@@ -21,5 +21,7 @@ namespace Assets.Scripts
         public bool IsFlying { get; set; }
 
         public bool IsSwimming { get; set; }
+
+        public bool CanUseTurn { get; set; }
     }
 }
