@@ -1,37 +1,69 @@
 using Assets.Scripts;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class TileView : MonoBehaviour
 {
-    private Tile _tile;
     private MeshRenderer _renderer;
 
-    public void Init(Tile tile)
-    {
-        _tile = tile;
+    public Color roadColor;
+    public Color mountainColor;
+    public Color grassColor;
+    public Color waterColor;
+    public Color unknown;
 
-        switch (tile.Type)
+    public GameObject castlePrefab;
+
+    public void SetType(TileType tileType)
+    {
+        switch (tileType)
         {
             case TileType.Road:
-                _renderer.material.color = Color.black;
+                _renderer.material.color = roadColor;
                 break;
 
             case TileType.Grass:
-                _renderer.material.color = Color.green;
+                _renderer.material.color = grassColor;
                 break;
 
             case TileType.Mountain:
-                _renderer.material.color = Color.gray;
+                _renderer.material.color = mountainColor;
                 break;
 
             case TileType.Water:
-                _renderer.material.color = Color.blue;
+                _renderer.material.color = waterColor;
                 break;
 
             default:
-                _renderer.material.color = Color.cyan;
+                _renderer.material.color = unknown;
+                break;
+        }
+    }
+
+    public void SetBuilding(Building building)
+    {
+        switch (building.Type)
+        {
+            case BuildingType.None:
+                break;
+
+            case BuildingType.Village:
+                break;
+
+            case BuildingType.Castle:
+                {
+                    var castleView = Instantiate(
+                        castlePrefab,
+                        Vector3.zero,
+                        Quaternion.identity);
+
+                    castleView.transform.SetParent(
+                        transform,
+                        worldPositionStays: false);
+
+                    break;
+                };
+
+            default:
                 break;
         }
     }
@@ -43,12 +75,11 @@ public class TileView : MonoBehaviour
 
     void Awake()
     {
-        _renderer = GetComponent<MeshRenderer>();
+        _renderer = GetComponentInChildren<MeshRenderer>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        
     }
 }

@@ -396,6 +396,30 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1509246753962109426, guid: 12d7b4f602ed8174cb616a6f3f4f24f0, type: 3}
+      propertyPath: waterColor.b
+      value: 0.6355584
+      objectReference: {fileID: 0}
+    - target: {fileID: 1509246753962109426, guid: 12d7b4f602ed8174cb616a6f3f4f24f0, type: 3}
+      propertyPath: waterColor.g
+      value: 0.6886792
+      objectReference: {fileID: 0}
+    - target: {fileID: 1509246753962109426, guid: 12d7b4f602ed8174cb616a6f3f4f24f0, type: 3}
+      propertyPath: waterColor.r
+      value: 0.32095048
+      objectReference: {fileID: 0}
+    - target: {fileID: 1509246753962109426, guid: 12d7b4f602ed8174cb616a6f3f4f24f0, type: 3}
+      propertyPath: mountainColor.b
+      value: 0.2830189
+      objectReference: {fileID: 0}
+    - target: {fileID: 1509246753962109426, guid: 12d7b4f602ed8174cb616a6f3f4f24f0, type: 3}
+      propertyPath: mountainColor.g
+      value: 0.2830189
+      objectReference: {fileID: 0}
+    - target: {fileID: 1509246753962109426, guid: 12d7b4f602ed8174cb616a6f3f4f24f0, type: 3}
+      propertyPath: mountainColor.r
+      value: 0.2830189
+      objectReference: {fileID: 0}
     - target: {fileID: 8030496198351442240, guid: 12d7b4f602ed8174cb616a6f3f4f24f0, type: 3}
       propertyPath: m_Name
       value: Tile

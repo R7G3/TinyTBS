@@ -2,18 +2,27 @@
 {
     public class Map
     {
-        private Tile[,] _tiles;
+        private TileView[,] _tiles;
 
-        public Map(Tile[,] tiles)
+        public Map(TileView[,] tiles)
         {
             _tiles = tiles;
         }
 
-        public Tile this[int x, int y]
+        public Map(int x, int y)
+        {
+            _tiles = new TileView[x, y];
+        }
+
+        public TileView this[int x, int y]
         {
             get
             {
                 return _tiles[x, y];
+            }
+            set
+            {
+                _tiles[x, y] = value;
             }
         }
     }

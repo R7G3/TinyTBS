@@ -5,30 +5,75 @@ using UnityEngine;
 
 public class GameController : MonoBehaviour
 {
-    TileView CreateTile(TileType type, Vector3 vector)
+    Map CreateMap(TileType[,] tileTypes)
     {
-        var tileResource = Resources.Load<TileView>("models/tile/Tile");
-        var tile = new Tile()
+        var width = tileTypes.GetLength(0);
+        var height = tileTypes.GetLength(0);
+
+        var map = new Map(width, height);
+
+        for (int x = 0; x < width; x++)
         {
-            Type = type,
-        };
-        var tileView = Instantiate(tileResource, vector, Quaternion.identity);
-        tileView.GetComponent<TileView>().Init(tile);
+            for (int y = 0; y < height; y++)
+            {
+                map[x, y] = CreateTile(x, y, tileTypes[x, y]);
+            }
+        }
+
+        return map;
+    }
+
+    TileView CreateTile(int x, int y, TileType type)
+    {
+        var vector = new Vector3(x, 0, y);
+
+        var tileResource = Resources.Load<GameObject>("models/tile/Tile");
+
+        var tileView = Instantiate(
+            tileResource,
+            vector,
+            Quaternion.identity)
+            .GetComponent<TileView>();
+
+        tileView.SetType(type);
+        tileView.SetBuilding(new Building
+        {
+            Type = BuildingType.Castle
+        });
 
         return tileView;
+    }
+
+    void Awake()
+    {
+        var map = CreateMap(
+            new TileType[,]
+            {
+                {
+                    TileType.Grass,
+                    TileType.Road,
+                    TileType.Mountain,
+                },
+                {
+                    TileType.Water,
+                    TileType.Grass,
+                    TileType.Road,
+                },
+                {
+                    TileType.Road,
+                    TileType.Water,
+                    TileType.Grass,
+                }
+            });
     }
 
     // Start is called before the first frame update
     void Start()
     {
-        CreateTile(TileType.Grass, new Vector3(0, 0, 0));
-        CreateTile(TileType.Road, new Vector3(1, 0, 0));
-        CreateTile(TileType.Water, new Vector3(1, 0, 1));
     }
 
     // Update is called once per frame
     void Update()
     {
-        
     }
 }
