@@ -1,10 +1,12 @@
+using System;
 using Assets.Scripts;
-using System.Collections;
-using System.Collections.Generic;
+using Assets.Scripts.Config;
 using UnityEngine;
 
 public class GameController : MonoBehaviour
 {
+    private TilesConfig _tilesConfig;
+    
     Map CreateMap(TileType[,] tileTypes)
     {
         var width = tileTypes.GetLength(0);
@@ -23,11 +25,28 @@ public class GameController : MonoBehaviour
         return map;
     }
 
+    GameObject GetTilePrefab(TileType tileType)
+    {
+        switch (tileType)
+        {
+            case TileType.Road:
+                return _tilesConfig.tilePrefabs.road;
+            case TileType.Grass:
+                return _tilesConfig.tilePrefabs.grass;
+            case TileType.Mountain:
+                return _tilesConfig.tilePrefabs.mountain;
+            case TileType.Water:
+                return _tilesConfig.tilePrefabs.water;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(tileType), tileType, null);
+        }
+    }
+
     TileView CreateTile(int x, int y, TileType type)
     {
         var vector = new Vector3(x, 0, y);
 
-        var tileResource = Resources.Load<GameObject>("models/tile/Tile");
+        var tileResource = GetTilePrefab(type);
 
         var tileView = Instantiate(
             tileResource,
@@ -46,6 +65,7 @@ public class GameController : MonoBehaviour
 
     void Awake()
     {
+        _tilesConfig = Resources.Load<TilesConfig>("TilesConfig");
         var map = CreateMap(
             new TileType[,]
             {
