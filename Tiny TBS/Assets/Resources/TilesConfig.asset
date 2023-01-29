@@ -15,5 +15,5 @@ MonoBehaviour:
   tilePrefabs:
     grass: {fileID: 8030496198351442240, guid: e9335f5ce66224a58ab824fe64b66f05, type: 3}
     road: {fileID: 8030496198351442240, guid: 12d7b4f602ed8174cb616a6f3f4f24f0, type: 3}
-    mountain: {fileID: 8030496198351442240, guid: 12d7b4f602ed8174cb616a6f3f4f24f0, type: 3}
-    water: {fileID: 8030496198351442240, guid: 12d7b4f602ed8174cb616a6f3f4f24f0, type: 3}
+    mountain: {fileID: 8030496198351442240, guid: efb926f442eb342baa9bc5a7dc5312bf, type: 3}
+    water: {fileID: 8030496198351442240, guid: 40566598a5bb849f1a981d61c66ad652, type: 3}

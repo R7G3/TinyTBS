@@ -251,6 +251,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1137337379}
   - component: {fileID: 1137337380}
+  - component: {fileID: 1137337382}
+  - component: {fileID: 1137337381}
   m_Layer: 0
   m_Name: GameController
   m_TagString: Untagged
@@ -285,6 +287,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d75c6d16bc1f53e468c426ea2f74e4df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  randomMap: 1
+--- !u!114 &1137337381
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1137337378}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ce1ef06601e40bbbb938279ee468640, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  zoomSensitivity: 1
+  zoomSmoothingTime: 0.3
+  minMaxZoom: {x: 2, y: 5}
+  mouseController: {fileID: 1137337382}
+--- !u!114 &1137337382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1137337378}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ea26ca5854a4b2bbc3c53131d4d168b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &2032675054
 GameObject:
   m_ObjectHideFlags: 0
@@ -314,8 +345,8 @@ Light:
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 1
+  m_Color: {r: 1, g: 0.95181817, b: 0.894, a: 1}
+  m_Intensity: 2.5
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208

@@ -15,6 +15,7 @@ public class TileView : MonoBehaviour
 
     public void SetType(TileType tileType)
     {
+        return;
         switch (tileType)
         {
             case TileType.Road:
