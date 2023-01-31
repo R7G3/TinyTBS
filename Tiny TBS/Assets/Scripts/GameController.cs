@@ -1,12 +1,17 @@
 using System;
+using System.Collections.Generic;
 using Assets.Scripts;
 using Assets.Scripts.Config;
+using Assets.Scripts.Input;
 using UnityEngine;
+using Utils;
 using Random = UnityEngine.Random;
 
 public class GameController : MonoBehaviour
 {
-    private TilesConfig _tilesConfig;
+    [SerializeField] private GridDrawer _gridDrawer;
+    [SerializeField] private MouseController _mouseController;
+    [SerializeField] private TilesConfig _tilesConfig;
     public bool randomMap;
 
     Map CreateRandomMap(int size)
@@ -66,13 +71,11 @@ public class GameController : MonoBehaviour
 
     TileView CreateTile(int x, int y, TileType type)
     {
-        var vector = new Vector3(x, 0, y);
-
         var tileResource = GetTilePrefab(type);
 
         var tileView = Instantiate(
                 tileResource,
-                vector,
+                FieldUtils.GetWorldPos(new Vector2Int(x, y)),
                 Quaternion.identity)
             .GetComponent<TileView>();
 
@@ -87,7 +90,8 @@ public class GameController : MonoBehaviour
 
     void Awake()
     {
-        _tilesConfig = Resources.Load<TilesConfig>("TilesConfig");
+        _mouseController.onClick += pos => _gridDrawer.SelectGridRect(pos);
+        
         if (randomMap)
         {
             CreateRandomMap(20);
@@ -119,6 +123,15 @@ public class GameController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        _gridDrawer.ShowGrid(new List<Vector2Int>()
+        {
+            new Vector2Int(0, 0),
+            new Vector2Int(0, 1),
+            new Vector2Int(0, 2),
+            new Vector2Int(1, 0),
+            new Vector2Int(1, 1),
+            new Vector2Int(1, 2),
+        });
     }
 
     // Update is called once per frame
