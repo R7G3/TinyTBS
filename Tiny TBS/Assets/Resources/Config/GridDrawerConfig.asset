@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23bb7c5909ef14bbfaaa73411f990367, type: 3}
   m_Name: GridDrawerConfig
   m_EditorClassIdentifier: 
-  defaultColor: {r: 0, g: 0, b: 0, a: 0}
-  mouseOverColor: {r: 0, g: 0, b: 0, a: 0}
-  selectedColor: {r: 0, g: 0, b: 0, a: 0}
+  defaultColor: {r: 0.36842102, g: 0.56578946, b: 1, a: 1}
+  mouseOverColor: {r: 1, g: 0.333, b: 0.39544857, a: 1}
+  selectedColor: {r: 0.02441454, g: 1, b: 0, a: 1}

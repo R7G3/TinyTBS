@@ -6,8 +6,8 @@ public class TileRandomizer : MonoBehaviour
 
     void Start()
     {
-        var rndObj = tilePrefabs[Random.Range(0, tilePrefabs.Length - 1)];
+        var rndObj = tilePrefabs[Random.Range(0, tilePrefabs.Length)];
         var obj = Instantiate(rndObj, transform, false);
-        obj.transform.rotation = Quaternion.AngleAxis(Random.Range(0, 4) * 45f, Vector3.up);
+        obj.transform.rotation = Quaternion.AngleAxis(Random.Range(0, 4) * 90f, Vector3.up);
     }
 }
