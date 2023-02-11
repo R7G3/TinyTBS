@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 
 namespace Assets.Scripts
 {
@@ -23,5 +24,7 @@ namespace Assets.Scripts
         public bool IsSwimming { get; set; }
 
         public bool CanUseTurn { get; set; }
+
+        public Vector2Int Coord { get; set; }
     }
 }

@@ -50,6 +50,7 @@ MonoBehaviour:
   _gridDrawer: {fileID: 9023078333106480148}
   _mouseController: {fileID: 1597399656683591530}
   _tilesConfig: {fileID: 11400000, guid: f7e1ba3ad8a784c95817a55321819107, type: 2}
+  _unitPrefab: {fileID: 3616979588159604868, guid: cd118c1676815fc4eb1791f6d5e0084c, type: 3}
   randomMap: 1
 --- !u!114 &1597399656683591530
 MonoBehaviour:
