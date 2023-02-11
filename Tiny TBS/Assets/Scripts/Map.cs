@@ -1,4 +1,6 @@
-﻿namespace Assets.Scripts
+﻿using UnityEngine;
+
+namespace Assets.Scripts
 {
     public class Map
     {
@@ -23,6 +25,18 @@
             set
             {
                 _tiles[x, y] = value;
+            }
+        }
+
+        public TileView this[Vector2Int coord]
+        {
+            get
+            {
+                return _tiles[coord.x, coord.y];
+            }
+            set
+            {
+                _tiles[coord.x, coord.y] = value;
             }
         }
     }

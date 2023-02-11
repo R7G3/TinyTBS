@@ -13,6 +13,8 @@ public class TileView : MonoBehaviour
 
     public GameObject castlePrefab;
 
+    public Unit Unit { get; set; }
+
     public void SetType(TileType tileType)
     {
         return;
@@ -70,7 +72,7 @@ public class TileView : MonoBehaviour
     }
 
     // Start is called before the first frame update
-    private void Start()
+    void Start()
     {
     }
 

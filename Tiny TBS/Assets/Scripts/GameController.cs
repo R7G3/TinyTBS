@@ -13,6 +13,9 @@ public class GameController : MonoBehaviour
     [SerializeField] private MouseController _mouseController;
     [SerializeField] private TilesConfig _tilesConfig;
     [SerializeField] private GameObject _unitPrefab;
+    private Camera _camera;
+    private Map _map;
+    private Plane _plane;
     public bool randomMap;
 
     void PlaceUnit(Unit unit)
@@ -20,6 +23,8 @@ public class GameController : MonoBehaviour
         Instantiate(_unitPrefab)
             .GetComponent<GameUnitController>()
             .Init(unit);
+
+        _map[unit.Coord].Unit = unit;
     }
 
     Map CreateRandomMap(int size)
@@ -39,12 +44,7 @@ public class GameController : MonoBehaviour
             }
         }
 
-        var unit = new Unit
-        {
-            Coord = new Vector2Int(0, 0)
-        };
-
-        PlaceUnit(unit);
+        map[1, 1].SetType(TileType.Road);
 
         return map;
     }
@@ -103,17 +103,57 @@ public class GameController : MonoBehaviour
         return tileView;
     }
 
+    void OnMouseClick(Vector3 position)
+    {
+        var ray = _camera.ScreenPointToRay(position);
+
+        if (!_plane.Raycast(ray, out var distance))
+        {
+            return;
+        }
+
+        var worldPosition = ray.GetPoint(distance);
+        var coord = FieldUtils.To2dCoord(worldPosition);
+
+        Debug.Log($"Clicked: {{x:{coord.x},y:{coord.y}}}");
+
+        Unit unit;
+
+        unit = _map[coord].Unit;
+
+        if (unit == null)
+        {
+            return;
+        }
+
+        var neighbournFields = new Vector2Int[]
+        {
+            new Vector2Int(coord.x + 1, coord.y + 1),
+            new Vector2Int(coord.x, coord.y + 1),
+            new Vector2Int(coord.x - 1, coord.y + 1),
+            new Vector2Int(coord.x + 1, coord.y),
+            new Vector2Int(coord.x - 1, coord.y),
+            new Vector2Int(coord.x + 1, coord.y - 1),
+            new Vector2Int(coord.x, coord.y - 1),
+            new Vector2Int(coord.x - 1, coord.y - 1),
+        };
+
+        _gridDrawer.ShowGrid(neighbournFields);
+    }
+
     void Awake()
     {
-        _mouseController.onClick += pos => _gridDrawer.SelectGridRect(pos);
+        _camera = Camera.main;
+        _plane = new Plane(Vector3.up, 0); // zero on y
+        _mouseController.onClick += pos => OnMouseClick(pos);
         
         if (randomMap)
         {
-            CreateRandomMap(20);
+            _map = CreateRandomMap(20);
         }
         else
         {
-            CreateMap(
+            _map = CreateMap(
                 new TileType[,]
                 {
                     {
@@ -133,20 +173,18 @@ public class GameController : MonoBehaviour
                     }
                 });
         }
+
+        var unit = new Unit
+        {
+            Coord = new Vector2Int(1, 1)
+        };
+
+        PlaceUnit(unit);
     }
 
     // Start is called before the first frame update
     void Start()
     {
-        _gridDrawer.ShowGrid(new List<Vector2Int>()
-        {
-            new Vector2Int(0, 0),
-            new Vector2Int(0, 1),
-            new Vector2Int(0, 2),
-            new Vector2Int(1, 0),
-            new Vector2Int(1, 1),
-            new Vector2Int(1, 2),
-        });
     }
 
     // Update is called once per frame
