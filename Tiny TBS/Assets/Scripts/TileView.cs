@@ -15,33 +15,6 @@ public class TileView : MonoBehaviour
 
     public Unit Unit { get; set; }
 
-    public void SetType(TileType tileType)
-    {
-        return;
-        switch (tileType)
-        {
-            case TileType.Road:
-                _renderer.material.color = roadColor;
-                break;
-
-            case TileType.Grass:
-                _renderer.material.color = grassColor;
-                break;
-
-            case TileType.Mountain:
-                _renderer.material.color = mountainColor;
-                break;
-
-            case TileType.Water:
-                _renderer.material.color = waterColor;
-                break;
-
-            default:
-                _renderer.material.color = unknown;
-                break;
-        }
-    }
-
     public void SetBuilding(Building building)
     {
         switch (building.Type)

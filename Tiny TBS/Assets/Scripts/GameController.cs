@@ -5,6 +5,7 @@ using Assets.Scripts.Config;
 using Assets.Scripts.Input;
 using UnityEngine;
 using Utils;
+using Object = System.Object;
 using Random = UnityEngine.Random;
 
 public class GameController : MonoBehaviour
@@ -21,7 +22,7 @@ public class GameController : MonoBehaviour
     void PlaceUnit(Unit unit)
     {
         Instantiate(_unitPrefab)
-            .GetComponent<GameUnitController>()
+            .AddComponent<GameUnitController>()
             .Init(unit);
 
         _map[unit.Coord].Unit = unit;
@@ -44,7 +45,8 @@ public class GameController : MonoBehaviour
             }
         }
 
-        map[1, 1].SetType(TileType.Road);
+        Destroy(map[1,1].gameObject);
+        map[1, 1] = CreateTile(1, 1, TileType.Grass);
 
         return map;
     }
@@ -94,7 +96,6 @@ public class GameController : MonoBehaviour
                 Quaternion.identity)
             .GetComponent<TileView>();
 
-        tileView.SetType(type);
         // tileView.SetBuilding(new Building
         // {
         //     Type = BuildingType.Castle
