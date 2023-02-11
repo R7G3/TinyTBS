@@ -107,6 +107,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9039969173908657901}
   - component: {fileID: 1500307156109112467}
+  - component: {fileID: 4670574095929917303}
   m_Layer: 0
   m_Name: CubeUnit
   m_TagString: Untagged
@@ -146,6 +147,19 @@ MonoBehaviour:
   redUnableFractionColor: {r: 0.4056604, g: 0.2234959, b: 0.2234959, a: 0}
   blueFractionColor: {r: 0.336917, g: 0.33755028, b: 0.9811321, a: 0}
   blueUnableFractionColor: {r: 0.18561764, g: 0.19818443, b: 0.41509432, a: 0}
+  unitPrefab: {fileID: 0}
+--- !u!114 &4670574095929917303
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3616979588159604868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1be7a8686e194542b580b377c146da1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6575449160310561489
 GameObject:
   m_ObjectHideFlags: 0

@@ -12,7 +12,15 @@ public class GameController : MonoBehaviour
     [SerializeField] private GridDrawer _gridDrawer;
     [SerializeField] private MouseController _mouseController;
     [SerializeField] private TilesConfig _tilesConfig;
+    [SerializeField] private GameObject _unitPrefab;
     public bool randomMap;
+
+    void PlaceUnit(Unit unit)
+    {
+        Instantiate(_unitPrefab)
+            .GetComponent<GameUnitController>()
+            .Init(unit);
+    }
 
     Map CreateRandomMap(int size)
     {
@@ -30,6 +38,13 @@ public class GameController : MonoBehaviour
                 map[x, y] = CreateTile(x, y, (TileType)typeValues.GetValue(rndIndex));
             }
         }
+
+        var unit = new Unit
+        {
+            Coord = new Vector2Int(0, 0)
+        };
+
+        PlaceUnit(unit);
 
         return map;
     }
