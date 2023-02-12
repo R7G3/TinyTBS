@@ -16,7 +16,10 @@ namespace Utils
 
         public void WarmUp(int size)
         {
-            _items.Enqueue(_factory.Invoke());
+            for (int i = 0; i < size; i++)
+            {
+                _items.Enqueue(_factory.Invoke());
+            }
         }
 
         public void Return(T item)

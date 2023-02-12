@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Assets.Scripts;
 using Assets.Scripts.Config;
 using Assets.Scripts.Input;
+using HUD.Menu;
 using UnityEngine;
 using Utils;
 using Object = System.Object;
@@ -12,6 +13,7 @@ public class GameController : MonoBehaviour
 {
     [SerializeField] private GridDrawer _gridDrawer;
     [SerializeField] private MouseController _mouseController;
+    [SerializeField] private MenuController _menuController;
     [SerializeField] private TilesConfig _tilesConfig;
     [SerializeField] private GameObject _unitPrefab;
     private Camera _camera;
@@ -118,12 +120,19 @@ public class GameController : MonoBehaviour
 
         Debug.Log($"Clicked: {{x:{coord.x},y:{coord.y}}}");
 
-        Unit unit;
-
-        unit = _map[coord].Unit;
+        Unit unit = null;
+        
+        // TODO: add check for map size
+        var isValidCoord = coord.x >= 0 || coord.y >= 0;
+        if (isValidCoord)
+        {
+            unit = _map[coord].Unit;
+        }
 
         if (unit == null)
         {
+            _gridDrawer.Hide();
+            _menuController.Hide();
             return;
         }
 
@@ -140,6 +149,17 @@ public class GameController : MonoBehaviour
         };
 
         _gridDrawer.ShowGrid(neighbournFields);
+        _menuController.ShowMenu(position, new List<MenuItem>()
+        {
+            new MenuItem()
+            {
+                title = "test1"
+            },
+            new MenuItem()
+            {
+                title = "test2"
+            },
+        });
     }
 
     void Awake()

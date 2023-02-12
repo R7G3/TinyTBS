@@ -26,6 +26,11 @@ public class GridDrawer : MonoBehaviour
         }
     }
 
+    public void Hide()
+    {
+        CleanUp();
+    }
+
     [SuppressMessage("ReSharper", "Unity.NoNullPropagation")]
     public void SelectGridRect(Vector3 mousePosition)
     {
