@@ -21,12 +21,14 @@ namespace Assets.Scripts.Input
             {
                 onZoom?.Invoke(scrollDelta.y);
             }
+            
+            var dragDelta = _mouseLastPos - _clickStartPos;
+            var isDragging = dragDelta.sqrMagnitude > SqrDragThreshold;
+            
             if (!UnityEngine.Input.GetMouseButton(0))
             {
                 if (_hasStartedClickBefore)
                 {
-                    var dragDelta = _mouseLastPos - _clickStartPos;
-                    var isDragging = dragDelta.sqrMagnitude > SqrDragThreshold;
                     if (!isDragging)
                     {
                         onClick?.Invoke(UnityEngine.Input.mousePosition);
@@ -35,6 +37,15 @@ namespace Assets.Scripts.Input
                     _hasStartedClickBefore = false;
                 }
                 return;
+            }
+
+            if (isDragging)
+            {
+                onDrag?.Invoke(new DragData()
+                {
+                    currentPos = _mouseCurrentPos,
+                    lastPos = _mouseLastPos
+                });
             }
 
             if (!_hasStartedClickBefore)
@@ -49,12 +60,8 @@ namespace Assets.Scripts.Input
             {
                 _mouseLastPos = _mouseCurrentPos;
                 _mouseCurrentPos = UnityEngine.Input.mousePosition;
-                onDrag?.Invoke(new DragData()
-                {
-                    currentPos = _mouseCurrentPos,
-                    lastPos = _mouseLastPos
-                });
             }
+            
 
         }
 

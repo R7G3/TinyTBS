@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Assets.Scripts;
 using Assets.Scripts.Config;
 using Assets.Scripts.Input;
 using HUD.Menu;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using Utils;
-using Object = System.Object;
 using Random = UnityEngine.Random;
 
 public class GameController : MonoBehaviour
@@ -14,17 +15,22 @@ public class GameController : MonoBehaviour
     [SerializeField] private GridDrawer _gridDrawer;
     [SerializeField] private MouseController _mouseController;
     [SerializeField] private MenuController _menuController;
+    [SerializeField] private CameraController _cameraController;
     [SerializeField] private TilesConfig _tilesConfig;
     [SerializeField] private GameObject _unitPrefab;
     private Camera _camera;
     private Map _map;
-    private Plane _plane;
     public bool randomMap;
+    
+    private MouseInteractionState _mouseInteractionState = MouseInteractionState.Idle;
+    private Unit _selectedUnit;
+    private Vector2Int _selectedCoord;
+    private UnitAction _selectedAction;
 
     void PlaceUnit(Unit unit)
     {
         Instantiate(_unitPrefab)
-            .AddComponent<GameUnitController>()
+            .GetComponent<GameUnitController>()
             .Init(unit);
 
         _map[unit.Coord].Unit = unit;
@@ -106,67 +112,123 @@ public class GameController : MonoBehaviour
         return tileView;
     }
 
-    void OnMouseClick(Vector3 position)
+    void OnSelectUnit(Vector3 mousePosition)
     {
-        var ray = _camera.ScreenPointToRay(position);
-
-        if (!_plane.Raycast(ray, out var distance))
-        {
-            return;
-        }
-
-        var worldPosition = ray.GetPoint(distance);
-        var coord = FieldUtils.To2dCoord(worldPosition);
-
-        Debug.Log($"Clicked: {{x:{coord.x},y:{coord.y}}}");
-
         Unit unit = null;
+        
+        var coord = FieldUtils.GetCoordFromMousePos(mousePosition, _camera);
         
         // TODO: add check for map size
         var isValidCoord = coord.x >= 0 || coord.y >= 0;
         if (isValidCoord)
         {
-            unit = _map[coord].Unit;
+            _selectedUnit = _map[coord].Unit;
         }
 
-        if (unit == null)
-        {
-            _gridDrawer.Hide();
-            _menuController.Hide();
-            return;
-        }
+        SetMouseInteractionState(_selectedUnit != null
+            ? MouseInteractionState.SelectingAction
+            : MouseInteractionState.Idle);
+    }
 
-        var neighbournFields = new Vector2Int[]
+    private void OnMoveUnit()
+    {
+        _map[_selectedUnit.Coord].Unit = null;
+        _selectedUnit.Coord = _selectedCoord;
+        _map[_selectedUnit.Coord].Unit = _selectedUnit;
+    }
+
+    private void OnSelectCoord()
+    {
+        _gridDrawer.ShowGrid(GetMoveCoordsForUnit(_selectedUnit));
+    }
+
+    private IEnumerable<Vector2Int> GetMoveCoordsForUnit(Unit unit) => FieldUtils.GetNeighbours(unit.Coord);
+
+    private void OnCoordSelected()
+    {
+        switch (_selectedAction)
         {
-            new Vector2Int(coord.x + 1, coord.y + 1),
-            new Vector2Int(coord.x, coord.y + 1),
-            new Vector2Int(coord.x - 1, coord.y + 1),
-            new Vector2Int(coord.x + 1, coord.y),
-            new Vector2Int(coord.x - 1, coord.y),
-            new Vector2Int(coord.x + 1, coord.y - 1),
-            new Vector2Int(coord.x, coord.y - 1),
-            new Vector2Int(coord.x - 1, coord.y - 1),
+            case UnitAction.Move:
+                var coords = GetMoveCoordsForUnit(_selectedUnit).ToHashSet();
+                if (!coords.Contains(_selectedCoord))
+                {
+                    SetMouseInteractionState(MouseInteractionState.Idle);
+                    return;
+                }
+                
+                OnMoveUnit();
+                SetMouseInteractionState(MouseInteractionState.WaitingForAnimations);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
+
+    private IEnumerable<MenuItem> GetUnitMenu()
+    {
+        yield return new MenuItem()
+        {
+            title = "Move",
+            onClick = () => SetMouseInteractionState(MouseInteractionState.SelectingCoord)
         };
+    }
 
-        _gridDrawer.ShowGrid(neighbournFields);
-        _menuController.ShowMenu(position, new List<MenuItem>()
+    private void SetMouseInteractionState(MouseInteractionState state)
+    {
+        if (_mouseInteractionState == state) return;
+        
+        _mouseInteractionState = state;
+        
+        Debug.Log($"MouseInteractionState: {state}");
+        // _cameraController.enabled = state != MouseInteractionState.SelectingAction;
+
+        switch (state)
         {
-            new MenuItem()
-            {
-                title = "test1"
-            },
-            new MenuItem()
-            {
-                title = "test2"
-            },
-        });
+            case MouseInteractionState.Idle:
+                _selectedUnit = null;
+                _menuController.Hide();
+                _gridDrawer.Hide();
+                break;
+            case MouseInteractionState.SelectingAction:
+                _menuController.ShowMenu(Input.mousePosition, GetUnitMenu());
+                break;
+            case MouseInteractionState.SelectingCoord:
+                OnSelectCoord();
+                break;
+            case MouseInteractionState.WaitingForAnimations:
+                // TODO: wait for animations, for now just get back to idle
+                SetMouseInteractionState(MouseInteractionState.Idle);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(state), state, null);
+        }
+
+        
+    }
+
+    private void OnMouseClick(Vector3 position)
+    {
+        if (EventSystem.current.currentSelectedGameObject != null) return;
+        if (_mouseInteractionState == MouseInteractionState.Idle)
+        {
+            OnSelectUnit(position);
+        }
+        else if (_mouseInteractionState == MouseInteractionState.SelectingCoord)
+        {
+            _selectedCoord = FieldUtils.GetCoordFromMousePos(position, _camera);
+            OnCoordSelected();
+        }
+        else if (_mouseInteractionState == MouseInteractionState.SelectingAction)
+        {
+            SetMouseInteractionState(MouseInteractionState.Idle);
+        }
     }
 
     void Awake()
     {
         _camera = Camera.main;
-        _plane = new Plane(Vector3.up, 0); // zero on y
         _mouseController.onClick += pos => OnMouseClick(pos);
+        _mouseController.onDrag += data => OnDrag(data);
         
         if (randomMap)
         {
@@ -203,13 +265,24 @@ public class GameController : MonoBehaviour
         PlaceUnit(unit);
     }
 
-    // Start is called before the first frame update
-    void Start()
+    private void OnDrag(MouseController.DragData data)
     {
+        if (_mouseInteractionState == MouseInteractionState.SelectingAction)
+        {
+            SetMouseInteractionState(MouseInteractionState.Idle);
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    public enum MouseInteractionState
     {
+        Idle,
+        SelectingAction,
+        SelectingCoord,
+        WaitingForAnimations
+    }
+
+    public enum UnitAction
+    {
+        Move
     }
 }

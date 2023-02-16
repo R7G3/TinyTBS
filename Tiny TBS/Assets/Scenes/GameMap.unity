@@ -123,6 +123,17 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!114 &52479322 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1597399656683591529, guid: 3b2bd008be1d44224814966748556820, type: 3}
+  m_PrefabInstance: {fileID: 1597399657795728204}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ce1ef06601e40bbbb938279ee468640, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &406481860
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -130,6 +141,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3773396630480827174, guid: 694be92177d2046dc9bda992530c7a1b, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3773396630993370556, guid: 694be92177d2046dc9bda992530c7a1b, type: 3}
       propertyPath: m_Name
       value: MenuController
@@ -547,6 +562,10 @@ PrefabInstance:
       propertyPath: _menuController
       value: 
       objectReference: {fileID: 406481861}
+    - target: {fileID: 1597399656683591528, guid: 3b2bd008be1d44224814966748556820, type: 3}
+      propertyPath: _cameraController
+      value: 
+      objectReference: {fileID: 52479322}
     - target: {fileID: 1597399656683591534, guid: 3b2bd008be1d44224814966748556820, type: 3}
       propertyPath: m_Name
       value: GameController

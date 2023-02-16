@@ -43,6 +43,7 @@ namespace Assets.Scripts
 
         private void OnDrag(MouseController.DragData dragData)
         {
+            if (!isActiveAndEnabled) return;
             var currentPos = _camera.ScreenToWorldPoint(dragData.currentPos);
             var lastPos = _camera.ScreenToWorldPoint(dragData.lastPos);
             _cameraTransform.position += -(currentPos - lastPos); // minus here for the natural scrolling
