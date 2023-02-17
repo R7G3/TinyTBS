@@ -10,36 +10,46 @@ public class UnitView : MonoBehaviour
     [SerializeField] private Animator _animator;
     [SerializeField] private float _travelSpeed = 1f;
     [SerializeField] private Transform _rootTransform;
+    private int _speedParameterHash;
     private Vector3 _velocity;
     private Vector3 _lastPos;
 
+    private void Awake()
+    {
+        _speedParameterHash = Animator.StringToHash("speed");
+    }
+
     public async Task Travel(IEnumerable<Vector2Int> path)
     {
+        const float animationThresholdDistance = 0.001f;
         foreach (var coord in path)
         {
             var targetPoint = FieldUtils.GetWorldPos(coord);
-            var threshold = 0.001f;
-            var delta = targetPoint - _rootTransform.position;
+            bool hasReachedPoint;
+
             do
             {
                 await UniTask.DelayFrame(1);
+                
                 var position = _rootTransform.position;
+                var prevPosition = position;
+                
                 position = Vector3.SmoothDamp(position, targetPoint, ref _velocity,
                     1f / _travelSpeed);
                 _rootTransform.position = position;
                 _rootTransform.rotation = Quaternion.LookRotation((targetPoint - position).normalized, Vector3.up);
-                delta = targetPoint - _rootTransform.position;
-            } while (delta.sqrMagnitude > threshold * threshold);
-            _rootTransform.position = targetPoint;
+                
+                var distanceToTargetPoint = targetPoint - position;
+                
+                var speed = (position - prevPosition).magnitude;
+                _animator.SetFloat(_speedParameterHash, speed);
+                
+                hasReachedPoint = distanceToTargetPoint.sqrMagnitude <
+                                  animationThresholdDistance * animationThresholdDistance;
+            } while (!hasReachedPoint);
+            
+            _rootTransform.position = targetPoint; // make sure we at the final position after interpolation
         }
     }
 
-    // private void Update()
-    // {
-    //     var currentPos = _rootTransform.position;
-    //     var delta = _lastPos - currentPos;
-    //     var angle = Vector3.SignedAngle(delta, Vector3.forward, Vector3.up);
-    //     _rootTransform.rotation = Quaternion.Euler(0f, angle, 0f);
-    //     _lastPos = currentPos;
-    // }
 }
