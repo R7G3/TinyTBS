@@ -76,14 +76,19 @@ namespace Assets.Scripts.Controllers
 
         GameObject GetTilePrefab(TileType tileType)
         {
-            return tileType switch
+            switch (tileType)
             {
-                TileType.Road => _tilesConfig.tilePrefabs.road,
-                TileType.Grass => _tilesConfig.tilePrefabs.grass,
-                TileType.Mountain => _tilesConfig.tilePrefabs.mountain,
-                TileType.Water => _tilesConfig.tilePrefabs.water,
-                _ => throw new ArgumentOutOfRangeException(nameof(tileType), tileType, null),
-            };
+                case TileType.Road:
+                    return _tilesConfig.tilePrefabs.road;
+                case TileType.Grass:
+                    return _tilesConfig.tilePrefabs.grass;
+                case TileType.Mountain:
+                    return _tilesConfig.tilePrefabs.mountain;
+                case TileType.Water:
+                    return _tilesConfig.tilePrefabs.water;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(tileType), tileType, null);
+            }
         }
 
         TileView CreateTile(int x, int y, TileType type)
@@ -127,21 +132,21 @@ namespace Assets.Scripts.Controllers
                 _map = CreateMap(
                     new TileType[,]
                     {
-                    {
-                        TileType.Grass,
-                        TileType.Road,
-                        TileType.Mountain,
-                    },
-                    {
-                        TileType.Water,
-                        TileType.Grass,
-                        TileType.Road,
-                    },
-                    {
-                        TileType.Road,
-                        TileType.Water,
-                        TileType.Grass,
-                    }
+                        {
+                            TileType.Grass,
+                            TileType.Road,
+                            TileType.Mountain,
+                        },
+                        {
+                            TileType.Water,
+                            TileType.Grass,
+                            TileType.Road,
+                        },
+                        {
+                            TileType.Road,
+                            TileType.Water,
+                            TileType.Grass,
+                        }
                     });
             }
 
@@ -149,6 +154,7 @@ namespace Assets.Scripts.Controllers
             _uiController.onMoveUnit += OnMoveUnit;
             _unitController = new UnitController(_unitPrefab);
             _mouseController.onClick += pos => _uiController.OnMouseClick(pos);
+            _mouseController.onMouseMove += pos => _uiController.OnMouseMove(pos);
 
             var unit = new Unit
             {

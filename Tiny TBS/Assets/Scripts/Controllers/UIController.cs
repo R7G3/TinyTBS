@@ -88,7 +88,7 @@ namespace Assets.Scripts.Controllers
         {
             var taskSource = new UniTaskCompletionSource<UnitAction>();
             
-            _menuController.ShowMenu(UnityEngine.Input.mousePosition,
+            _menuController.ShowMenu(Input.mousePosition,
                 GetUnitMenu(action => taskSource.TrySetResult(action)));
 
             void MouseClickHandler(Vector3 _)
@@ -96,34 +96,36 @@ namespace Assets.Scripts.Controllers
                 if (EventSystem.current.currentSelectedGameObject == null)
                 {
                     _menuController.Hide();
+                    _onMouseClick -= MouseClickHandler;
                     taskSource.TrySetException(new UserCanceledActionException());
                 }
             }
 
             _onMouseClick += MouseClickHandler;
             
-            var result = await taskSource.Task;
-
-            _onMouseClick -= MouseClickHandler;
-
-            return result;
+            return await taskSource.Task;
         }
+        
         private void ShowGridOnHover(Vector3 pos)
         {
-            _gridDrawer.ShowGrid(Enumerable.Repeat(FieldUtils.GetCoordFromMousePos(pos, _camera), 1));
+            var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
+            if (!_map.IsValidCoord(coord))
+            {
+                _gridDrawer.Hide();
+                return;
+            }
+            _gridDrawer.ShowGrid(Enumerable.Repeat(coord, 1));
         }
 
         private Task<Unit> SelectUnit()
         {
-
             _onMouseMove += ShowGridOnHover;
                 
             return ListenMouseClick<Unit>((taskSource, pos) =>
             {
                 var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
 
-                // TODO: add check for map size
-                var isValidCoord = coord.x >= 0 || coord.y >= 0;
+                var isValidCoord = _map.IsValidCoord(coord);
                 if (isValidCoord)
                 {
                     taskSource.TrySetResult(_map[coord].Unit);

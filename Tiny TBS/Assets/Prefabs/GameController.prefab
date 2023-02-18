@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1597399656683591535}
-  - component: {fileID: 1597399656683591528}
+  - component: {fileID: 380331333397153070}
   - component: {fileID: 1597399656683591530}
   - component: {fileID: 1597399656683591529}
   m_Layer: 0
@@ -35,7 +35,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1597399656683591528
+--- !u!114 &380331333397153070
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -44,11 +44,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1597399656683591534}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d75c6d16bc1f53e468c426ea2f74e4df, type: 3}
+  m_Script: {fileID: 11500000, guid: 3bae913ab83184cea803452945cc9fd3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   _gridDrawer: {fileID: 9023078333106480148}
   _mouseController: {fileID: 1597399656683591530}
+  _menuController: {fileID: 0}
   _tilesConfig: {fileID: 11400000, guid: f7e1ba3ad8a784c95817a55321819107, type: 2}
   _unitPrefab: {fileID: 3616979588159604868, guid: cd118c1676815fc4eb1791f6d5e0084c, type: 3}
   randomMap: 1
