@@ -8,38 +8,60 @@ namespace Assets.Scripts.Input
         public event Action<Vector3> onClick;
         public event Action<DragData> onDrag;
         public event Action<float> onZoom;
-        
-        private bool _hasStartedClickBefore;
+
+        public event Action<Vector3> onMouseMove;
+
+        private bool _isClickStarted;
         private Vector3 _mouseCurrentPos;
         private Vector3 _clickStartPos;
         private Vector3 _mouseLastPos;
-        
+
+        private bool HasStartedDragging()
+        {
+            var dragDelta = _mouseLastPos - _clickStartPos;
+            return dragDelta.sqrMagnitude > SqrDragThreshold;
+        }
+
         public void Update()
         {
-            var scrollDelta = UnityEngine.Input.mouseScrollDelta;
-            if (scrollDelta != Vector2.zero)
-            {
-                onZoom?.Invoke(scrollDelta.y);
-            }
-            
-            var dragDelta = _mouseLastPos - _clickStartPos;
-            var isDragging = dragDelta.sqrMagnitude > SqrDragThreshold;
-            
+            HandleHover();
+            HandleZoom();
+
             if (!UnityEngine.Input.GetMouseButton(0))
             {
-                if (_hasStartedClickBefore)
-                {
-                    if (!isDragging)
-                    {
-                        onClick?.Invoke(UnityEngine.Input.mousePosition);
-                    }
-
-                    _hasStartedClickBefore = false;
-                }
+                HandleMouseUp();
                 return;
             }
 
-            if (isDragging)
+            if (!_isClickStarted) HandleMouseClickStart();
+            HandleMouseMove();
+        }
+
+        private void HandleMouseClickStart()
+        {
+            var mousePos = UnityEngine.Input.mousePosition;
+            _clickStartPos = mousePos;
+            _mouseCurrentPos = mousePos;
+            _mouseLastPos = mousePos;
+            _isClickStarted = true;
+        }
+
+        /// <returns>true if click happened</returns>
+        private void HandleMouseUp()
+        {
+            if (!_isClickStarted) return;
+
+            if (!HasStartedDragging())
+            {
+                onClick?.Invoke(UnityEngine.Input.mousePosition);
+            }
+
+            _isClickStarted = false;
+        }
+
+        private void HandleMouseMove()
+        {
+            if (HasStartedDragging())
             {
                 onDrag?.Invoke(new DragData()
                 {
@@ -48,21 +70,25 @@ namespace Assets.Scripts.Input
                 });
             }
 
-            if (!_hasStartedClickBefore)
-            {
-                var mousePos = UnityEngine.Input.mousePosition;
-                _clickStartPos = mousePos;
-                _mouseCurrentPos = mousePos;
-                _mouseLastPos = mousePos;
-                _hasStartedClickBefore = true;
-            }
-            else
-            {
-                _mouseLastPos = _mouseCurrentPos;
-                _mouseCurrentPos = UnityEngine.Input.mousePosition;
-            }
-            
+            _mouseLastPos = _mouseCurrentPos;
+            _mouseCurrentPos = UnityEngine.Input.mousePosition;
+        }
 
+        private void HandleZoom()
+        {
+            var scrollDelta = UnityEngine.Input.mouseScrollDelta;
+            if (scrollDelta != Vector2.zero)
+            {
+                onZoom?.Invoke(scrollDelta.y);
+            }
+        }
+
+        private void HandleHover()
+        {
+            if (_mouseLastPos != UnityEngine.Input.mousePosition)
+            {
+                onMouseMove?.Invoke(UnityEngine.Input.mousePosition);
+            }
         }
 
         public struct DragData
@@ -70,8 +96,7 @@ namespace Assets.Scripts.Input
             public Vector3 currentPos;
             public Vector3 lastPos;
         }
-        
+
         private const float SqrDragThreshold = 10f;
-        
     }
 }

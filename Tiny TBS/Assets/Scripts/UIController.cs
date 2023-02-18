@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using HUD.Menu;
@@ -23,6 +24,7 @@ namespace Assets.Scripts
 
         public event Action<Unit, Vector2Int> onMoveUnit;
         private event Action<Vector3> _onMouseClick;
+        private event Action<Vector3> _onMouseMove;
 
         public UIController(Map map, GridDrawer gridDrawer, MenuController menuController, Camera camera)
         {
@@ -62,7 +64,7 @@ namespace Assets.Scripts
 
         private Task<Vector2Int> SelectCoord(IEnumerable<Vector2Int> coords)
         {
-            var availableCoords = coords.ToHashSet();
+            var availableCoords = LinqUtility.ToHashSet(coords);
             _gridDrawer.ShowGrid(availableCoords);
             
             return ListenMouseClick<Vector2Int>(((taskSource, pos) =>
@@ -104,9 +106,16 @@ namespace Assets.Scripts
 
             return result;
         }
+        private void ShowGridOnHover(Vector3 pos)
+        {
+            _gridDrawer.ShowGrid(Enumerable.Repeat(FieldUtils.GetCoordFromMousePos(pos, _camera), 1));
+        }
 
         private Task<Unit> SelectUnit()
         {
+
+            _onMouseMove += ShowGridOnHover;
+                
             return ListenMouseClick<Unit>((taskSource, pos) =>
             {
                 var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
@@ -121,6 +130,7 @@ namespace Assets.Scripts
                 {
                     taskSource.TrySetException(new UserCanceledActionException());
                 }
+                _onMouseMove -= ShowGridOnHover;
             });
         }
 
@@ -141,6 +151,11 @@ namespace Assets.Scripts
             _onMouseClick -= OnMouseClickHandler;
 
             return result;
+        }
+
+        public void OnMouseMove(Vector3 position)
+        {
+            _onMouseMove?.Invoke(position);
         }
 
         public void OnMouseClick(Vector3 position)

@@ -151,6 +151,7 @@ public class GameController : MonoBehaviour
         _uiController.onMoveUnit += OnMoveUnit;
         _unitController = new UnitController(_unitPrefab);
         _mouseController.onClick += pos => _uiController.OnMouseClick(pos);
+        _mouseController.onMouseMove += pos => _uiController.OnMouseMove(pos);
 
         var unit = new Unit
         {
