@@ -18,7 +18,9 @@ namespace Utils
         {
             for (int i = 0; i < size; i++)
             {
-                _items.Enqueue(_factory.Invoke());
+                var go = _factory.Invoke();
+                go.gameObject.SetActive(false);
+                _items.Enqueue(go);
             }
         }
 

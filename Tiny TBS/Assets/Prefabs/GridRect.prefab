@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 21265750461174240}
   - component: {fileID: 3839335612360234559}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: GridRect
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -58,7 +58,7 @@ GameObject:
   - component: {fileID: 8338252182834094632}
   - component: {fileID: 617921178584945241}
   - component: {fileID: 5997593861233452196}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: GameObject
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -8,14 +8,13 @@ namespace Assets.Scripts.Controllers
         public float zoomSmoothingTime = 0.3f;
         public Vector2 minMaxZoom;
         public MouseController mouseController;
-        private Camera _camera;
+        [SerializeField] private Camera _camera;
         private Transform _cameraTransform;
         private float _targetZoom;
         private float _currentZoomVelocity;
 
         private void Awake()
         {
-            _camera = Camera.main;
             _cameraTransform = _camera.transform;
             _targetZoom = _camera.orthographicSize;
             mouseController.onDrag += OnDrag;

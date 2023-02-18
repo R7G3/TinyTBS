@@ -27,6 +27,7 @@ namespace Assets.Scripts.Controllers
         public event Action<Unit, Vector2Int> onMoveUnit;
         private event Action<Vector3> _onMouseClick;
         private event Action<Vector3> _onMouseMove;
+        private event Action<MouseController.DragData> _onMouseDrag;
 
         public UIController(Map map, GridDrawer gridDrawer, MenuController menuController, Camera camera)
         {
@@ -34,6 +35,8 @@ namespace Assets.Scripts.Controllers
             _gridDrawer = gridDrawer;
             _menuController = menuController;
             _camera = camera;
+
+            _onMouseDrag += HideMenuOnDrag;
         }
 
         public async Task StartIdleScenario()
@@ -105,7 +108,27 @@ namespace Assets.Scripts.Controllers
             
             return await taskSource.Task;
         }
-        
+
+        private void DisableHoverOnDrag(MouseController.DragData dragData)
+        {
+            switch (dragData.status)
+            {
+                case MouseController.DragStatus.Start:
+                    _gridDrawer.Hide();
+                    _onMouseMove -= ShowGridOnHover;
+                    break;
+                case MouseController.DragStatus.Stop:
+                    _onMouseMove += ShowGridOnHover;
+                    break;
+            }
+        }
+
+        private void HideMenuOnDrag(MouseController.DragData dragData)
+        {
+            if (dragData.status != MouseController.DragStatus.Start) return;
+            _menuController.Hide();
+        }
+
         private void ShowGridOnHover(Vector3 pos)
         {
             var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
@@ -120,6 +143,7 @@ namespace Assets.Scripts.Controllers
         private Task<Unit> SelectUnit()
         {
             _onMouseMove += ShowGridOnHover;
+            _onMouseDrag += DisableHoverOnDrag;
                 
             return ListenMouseClick<Unit>((taskSource, pos) =>
             {
@@ -134,6 +158,8 @@ namespace Assets.Scripts.Controllers
                 {
                     taskSource.TrySetException(new UserCanceledActionException());
                 }
+
+                _onMouseDrag -= DisableHoverOnDrag;
                 _onMouseMove -= ShowGridOnHover;
             });
         }
@@ -155,6 +181,11 @@ namespace Assets.Scripts.Controllers
             _onMouseClick -= OnMouseClickHandler;
 
             return result;
+        }
+
+        public void OnMouseDrag(MouseController.DragData dragData)
+        {
+            _onMouseDrag?.Invoke(dragData);
         }
 
         public void OnMouseMove(Vector3 position)

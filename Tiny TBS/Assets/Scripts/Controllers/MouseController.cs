@@ -12,11 +12,12 @@ namespace Assets.Scripts.Controllers
         public event Action<Vector3> onMouseMove;
 
         private bool _isClickStarted;
+        private bool _isDragStarted;
         private Vector3 _mouseCurrentPos;
         private Vector3 _clickStartPos;
         private Vector3 _mouseLastPos;
 
-        private bool HasStartedDragging()
+        private bool CanStartDrag()
         {
             var dragDelta = _mouseLastPos - _clickStartPos;
             return dragDelta.sqrMagnitude > SqrDragThreshold;
@@ -27,7 +28,7 @@ namespace Assets.Scripts.Controllers
             HandleHover();
             HandleZoom();
 
-            if (!UnityEngine.Input.GetMouseButton(0))
+            if (!Input.GetMouseButton(0))
             {
                 HandleMouseUp();
                 return;
@@ -39,7 +40,7 @@ namespace Assets.Scripts.Controllers
 
         private void HandleMouseClickStart()
         {
-            var mousePos = UnityEngine.Input.mousePosition;
+            var mousePos = Input.mousePosition;
             _clickStartPos = mousePos;
             _mouseCurrentPos = mousePos;
             _mouseLastPos = mousePos;
@@ -51,27 +52,43 @@ namespace Assets.Scripts.Controllers
         {
             if (!_isClickStarted) return;
 
-            if (!HasStartedDragging())
+            if (!_isDragStarted)
             {
-                onClick?.Invoke(UnityEngine.Input.mousePosition);
+                onClick?.Invoke(Input.mousePosition);
+            }
+            else
+            {
+                onDrag?.Invoke(GetDragDataWithStatus(DragStatus.Stop));
+                _isDragStarted = false;
             }
 
             _isClickStarted = false;
         }
 
+        private DragData GetDragDataWithStatus(DragStatus status) => new ()
+        {
+            status = status,
+            currentPos = _mouseCurrentPos,
+            lastPos = _mouseLastPos
+        };
+
         private void HandleMouseMove()
         {
-            if (HasStartedDragging())
+            if (!_isDragStarted)
             {
-                onDrag?.Invoke(new DragData()
+                if (CanStartDrag())
                 {
-                    currentPos = _mouseCurrentPos,
-                    lastPos = _mouseLastPos
-                });
+                    _isDragStarted = true;
+                    onDrag?.Invoke(GetDragDataWithStatus(DragStatus.Start));
+                }
+            }
+            if (_isDragStarted)
+            {
+                onDrag?.Invoke(GetDragDataWithStatus(DragStatus.InProgress));
             }
 
             _mouseLastPos = _mouseCurrentPos;
-            _mouseCurrentPos = UnityEngine.Input.mousePosition;
+            _mouseCurrentPos = Input.mousePosition;
         }
 
         private void HandleZoom()
@@ -85,16 +102,24 @@ namespace Assets.Scripts.Controllers
 
         private void HandleHover()
         {
-            if (_mouseLastPos != UnityEngine.Input.mousePosition)
+            if (_mouseLastPos != Input.mousePosition)
             {
-                onMouseMove?.Invoke(UnityEngine.Input.mousePosition);
+                onMouseMove?.Invoke(Input.mousePosition);
             }
         }
 
         public struct DragData
         {
+            public DragStatus status;
             public Vector3 currentPos;
             public Vector3 lastPos;
+        }
+
+        public enum DragStatus
+        {
+            Start,
+            InProgress,
+            Stop
         }
 
         private const float SqrDragThreshold = 10f;

@@ -33,17 +33,6 @@ namespace Assets.Scripts.HUD
             CleanUp();
         }
 
-        [SuppressMessage("ReSharper", "Unity.NoNullPropagation")]
-        public void SelectGridRect(Vector3 mousePosition)
-        {
-            RunMouseRaycastHit(gridRect =>
-            {
-                _selectedRect?.SetSelected(false);
-                gridRect?.SetSelected(true);
-                _selectedRect = gridRect;
-            });
-        }
-
         private GridRect CreateGridRect()
         {
             return Instantiate(gridRectPrefab, _transform, worldPositionStays: true).GetComponent<GridRect>();

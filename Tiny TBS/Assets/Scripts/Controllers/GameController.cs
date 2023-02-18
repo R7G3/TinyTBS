@@ -153,8 +153,9 @@ namespace Assets.Scripts.Controllers
             _uiController = new UIController(_map, _gridDrawer, _menuController, _camera);
             _uiController.onMoveUnit += OnMoveUnit;
             _unitController = new UnitController(_unitPrefab);
-            _mouseController.onClick += pos => _uiController.OnMouseClick(pos);
-            _mouseController.onMouseMove += pos => _uiController.OnMouseMove(pos);
+            _mouseController.onClick += _uiController.OnMouseClick;
+            _mouseController.onMouseMove += _uiController.OnMouseMove;
+            _mouseController.onDrag += _uiController.OnMouseDrag;
 
             var unit = new Unit
             {
