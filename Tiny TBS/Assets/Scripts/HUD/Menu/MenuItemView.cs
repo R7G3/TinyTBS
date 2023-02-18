@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace HUD.Menu
+namespace Assets.Scripts.HUD.Menu
 {
     public class MenuItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {

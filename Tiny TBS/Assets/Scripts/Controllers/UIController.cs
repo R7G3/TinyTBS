@@ -2,13 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
-using HUD.Menu;
+using Assets.Scripts.HUD;
+using Assets.Scripts.HUD.Menu;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using Utils;
+using Unit = Assets.Scripts.Units.Unit;
 
-namespace Assets.Scripts
+namespace Assets.Scripts.Controllers
 {
     public class UIController
     {

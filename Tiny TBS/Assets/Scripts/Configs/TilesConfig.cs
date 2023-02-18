@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Assets.Scripts.Config
+namespace Assets.Scripts.Configs
 {
     [CreateAssetMenu]
     public class TilesConfig : ScriptableObject

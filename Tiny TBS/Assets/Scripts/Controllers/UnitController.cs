@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Assets.Scripts.Units;
 using UnityEngine;
 using Utils;
 
-namespace Assets.Scripts
+namespace Assets.Scripts.Controllers
 {
     public class UnitController
     {
