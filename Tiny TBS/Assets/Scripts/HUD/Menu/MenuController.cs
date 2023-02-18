@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using Assets.Scripts.HUD;
 using UnityEngine;
 using Utils;
 
-namespace HUD.Menu
+namespace Assets.Scripts.HUD.Menu
 {
     public struct MenuItem
     {

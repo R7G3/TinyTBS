@@ -1,4 +1,7 @@
-namespace Assets.Scripts
+using Assets.Scripts.Buildings;
+using Assets.Scripts.Units;
+
+namespace Assets.Scripts.Tiles
 {
     public class Tile
     {
