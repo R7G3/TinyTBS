@@ -106,8 +106,6 @@ namespace Assets.Scripts
             var penalty = _balanceConfig.GetPenaltyFor(tile.Type);
             var cost = previousMovesCost + penalty;
 
-            Debug.Log($"{coord} cost: {cost}");
-
             return new MoveCost(coord, cost);
         }
 
