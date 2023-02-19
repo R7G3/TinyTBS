@@ -31,10 +31,12 @@ namespace Assets.Scripts.Controllers
             if (!Input.GetMouseButton(0))
             {
                 HandleMouseUp();
-                return;
             }
 
-            if (!_isClickStarted) HandleMouseClickStart();
+            if (!_isClickStarted && Input.GetMouseButtonDown(0))
+            {
+                HandleMouseClickStart();
+            }
             HandleMouseMove();
         }
 
@@ -74,7 +76,7 @@ namespace Assets.Scripts.Controllers
 
         private void HandleMouseMove()
         {
-            if (!_isDragStarted)
+            if (_isClickStarted && !_isDragStarted)
             {
                 if (CanStartDrag())
                 {
