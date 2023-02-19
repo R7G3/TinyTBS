@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 27234972}
   - component: {fileID: 27234975}
   - component: {fileID: 27234973}
+  - component: {fileID: 27234974}
   m_Layer: 0
   m_Name: HUDCamera
   m_TagString: Untagged
