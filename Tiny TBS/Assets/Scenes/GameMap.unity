@@ -197,7 +197,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 27234971}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &27234975
 Camera:
   m_ObjectHideFlags: 0
@@ -710,6 +710,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 380331333397153070, guid: 3b2bd008be1d44224814966748556820, type: 3}
+      propertyPath: _balanceConfig
+      value: 
+      objectReference: {fileID: 11400000, guid: 73d65e2cf3ab3af4aaa3e477c40abb14, type: 2}
     - target: {fileID: 380331333397153070, guid: 3b2bd008be1d44224814966748556820, type: 3}
       propertyPath: _menuController
       value: 

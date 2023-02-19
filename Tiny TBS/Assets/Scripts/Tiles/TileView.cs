@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Tiles
 {
-    public class TileView : MonoBehaviour
+    public class TileView : MonoBehaviour, ITile
     {
         private MeshRenderer _renderer;
 
@@ -16,7 +16,16 @@ namespace Assets.Scripts.Tiles
 
         public GameObject castlePrefab;
 
+        public TileType Type { get; private set; }
+
+        public Building Building { get; private set; }
+
         public Unit Unit { get; set; }
+
+        public void SetType(TileType type)
+        {
+            Type = type;
+        }
 
         public void SetBuilding(Building building)
         {

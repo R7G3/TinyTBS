@@ -19,6 +19,7 @@ namespace Assets.Scripts.Controllers
         [SerializeField] private MouseController _mouseController;
         [SerializeField] private MenuController _menuController;
         [SerializeField] private TilesConfig _tilesConfig;
+        [SerializeField] private BalanceConfig _balanceConfig;
         [SerializeField] private GameObject _unitPrefab;
         private Camera _camera;
         private Map _map;
@@ -38,7 +39,7 @@ namespace Assets.Scripts.Controllers
             var width = size;
             var height = size;
 
-            var map = new Map(width, height);
+            var map = new Map(width, height, _balanceConfig);
             var typeValues = Enum.GetValues(typeof(TileType));
 
             for (int x = 0; x < width; x++)
@@ -50,7 +51,7 @@ namespace Assets.Scripts.Controllers
                 }
             }
 
-            Destroy(map[1, 1].gameObject);
+            Destroy(((TileView)map[1, 1]).gameObject);
             map[1, 1] = CreateTile(1, 1, TileType.Grass);
 
             return map;
@@ -61,7 +62,7 @@ namespace Assets.Scripts.Controllers
             var width = tileTypes.GetLength(0);
             var height = tileTypes.GetLength(0);
 
-            var map = new Map(width, height);
+            var map = new Map(width, height, _balanceConfig);
 
             for (int x = 0; x < width; x++)
             {
@@ -100,6 +101,8 @@ namespace Assets.Scripts.Controllers
                     FieldUtils.GetWorldPos(new Vector2Int(x, y)),
                     Quaternion.identity)
                 .GetComponent<TileView>();
+
+            tileView.SetType(type);
 
             // tileView.SetBuilding(new Building
             // {
@@ -161,6 +164,8 @@ namespace Assets.Scripts.Controllers
             {
                 Coord = new Vector2Int(1, 1)
             };
+
+            unit.Speed = 3;
 
             PlaceUnit(unit);
 

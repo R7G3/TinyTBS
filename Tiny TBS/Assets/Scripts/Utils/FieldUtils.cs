@@ -16,18 +16,7 @@ namespace Utils
             
             return To2dCoord(worldPosition);
         }
-        
-        public static IEnumerable<Vector2Int> GetNeighbours(Vector2Int coord)
-        {
-            yield return new Vector2Int(coord.x + 1, coord.y + 1);
-            yield return new Vector2Int(coord.x, coord.y + 1);
-            yield return new Vector2Int(coord.x - 1, coord.y + 1);
-            yield return new Vector2Int(coord.x + 1, coord.y);
-            yield return new Vector2Int(coord.x - 1, coord.y);
-            yield return new Vector2Int(coord.x + 1, coord.y - 1);
-            yield return new Vector2Int(coord.x, coord.y - 1);
-            yield return new Vector2Int(coord.x - 1, coord.y - 1);
-        }
+
         public static Vector3 GetWorldPos(Vector2Int coord)
         {
             return new Vector3(coord.x, 0, coord.y);

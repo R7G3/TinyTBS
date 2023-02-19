@@ -198,7 +198,11 @@ namespace Assets.Scripts.Controllers
             _onMouseClick?.Invoke(position);
         }
 
-        private IEnumerable<Vector2Int> GetMoveCoordsForUnit(Unit unit) => FieldUtils.GetNeighbours(unit.Coord);
+        private IEnumerable<Vector2Int> GetMoveCoordsForUnit(Unit unit)
+        {
+            //return FieldUtils.GetNeighbours(unit.Coord);
+            return _map.GetPossibleMoves(unit);
+        }
 
         private IEnumerable<MenuItem> GetUnitMenu(Action<UnitAction> onUnitActionSelected)
         {
