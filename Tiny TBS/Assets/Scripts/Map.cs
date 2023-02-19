@@ -9,6 +9,8 @@ namespace Assets.Scripts
 {
     public class Map
     {
+        private const int xAxis = 0;
+        private const int yAxis = 1;
         private BalanceConfig _balanceConfig;
         private ITile[,] _tiles;
 
@@ -25,8 +27,8 @@ namespace Assets.Scripts
         }
 
         public bool IsValidCoord(Vector2Int coord)
-            => coord.x >= 0 && coord.x < _tiles.GetLength(0) &&
-               coord.y >= 0 && coord.y < _tiles.GetLength(1);
+            => coord.x >= 0 && coord.x < _tiles.GetLength(xAxis) &&
+               coord.y >= 0 && coord.y < _tiles.GetLength(yAxis);
 
         public ITile this[int x, int y]
         {
@@ -59,7 +61,7 @@ namespace Assets.Scripts
                     processed.Add(potentialMove);
 
                     forChecking.AddRange(
-                        GetNeighborsForPossibleMoves(potentialMove, unit.Speed + 1)
+                        GetNeighborsForPossibleMoves(potentialMove, unit.Speed)
                             .Where(x => !processed.Contains(x)));
                 }
 
@@ -111,28 +113,28 @@ namespace Assets.Scripts
 
         private IEnumerable<Vector2Int> GetNeighbors(Vector2Int coord)
         {
-            var valueWithOffset = Normalize(coord.x - 1, 0);
+            var valueWithOffset = Normalize(coord.x - 1, xAxis);
 
             if (valueWithOffset != coord.x)
             {
                 yield return new Vector2Int(valueWithOffset, coord.y);
             }
 
-            valueWithOffset = Normalize(coord.x + 1, 0);
+            valueWithOffset = Normalize(coord.x + 1, xAxis);
 
             if (valueWithOffset != coord.x)
             {
                 yield return new Vector2Int(valueWithOffset, coord.y);
             }
 
-            valueWithOffset = Normalize(coord.y - 1, 0);
+            valueWithOffset = Normalize(coord.y - 1, yAxis);
 
             if (valueWithOffset != coord.y)
             {
                 yield return new Vector2Int(coord.x, valueWithOffset);
             }
 
-            valueWithOffset = Normalize(coord.y + 1, 0);
+            valueWithOffset = Normalize(coord.y + 1, yAxis);
 
             if (valueWithOffset != coord.y)
             {
