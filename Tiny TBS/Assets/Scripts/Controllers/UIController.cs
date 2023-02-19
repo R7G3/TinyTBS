@@ -22,6 +22,7 @@ namespace Assets.Scripts.Controllers
         private Unit _selectedUnit;
         private Vector2Int _selectedCoord;
         private UnitAction _selectedAction;
+        private Vector2Int _hoveredGrid = new Vector2Int(-1, -1);
         private Task _currentScenarioTask;
 
         public event Action<Unit, Vector2Int> onMoveUnit;
@@ -137,6 +138,10 @@ namespace Assets.Scripts.Controllers
                 _gridDrawer.Hide();
                 return;
             }
+
+            if (_hoveredGrid == coord) return;
+
+            _hoveredGrid = coord;
             _gridDrawer.ShowGrid(Enumerable.Repeat(coord, 1));
         }
 
