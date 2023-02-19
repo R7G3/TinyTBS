@@ -17,6 +17,7 @@ namespace Assets.Scripts.HUD
         private readonly Dictionary<Vector2Int, GridRect> _activeRects = new();
         private GridRect _mouseOverRect;
         private GridRect _selectedRect;
+        private int _hudLayerMask;
 
         public void ShowGrid(IEnumerable<Vector2Int> coords)
         {
@@ -60,6 +61,7 @@ namespace Assets.Scripts.HUD
             _transform = GetComponent<Transform>();
             _pool = new Pool<GridRect>(CreateGridRect);
             _pool.WarmUp(10);
+            _hudLayerMask = LayerMask.GetMask("HUD");
         }
 
         private void CleanUp(Vector2Int coord)
@@ -82,7 +84,7 @@ namespace Assets.Scripts.HUD
         {
             var mousePos = Input.mousePosition;
             var ray = Camera.main.ScreenPointToRay(mousePos);
-            if (!Physics.Raycast(ray, out var hit))
+            if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, _hudLayerMask))
             {
                 action.Invoke(null);
                 return;
@@ -95,6 +97,7 @@ namespace Assets.Scripts.HUD
         {
             RunMouseRaycastHit(gridRect =>
             {
+                if (_mouseOverRect == gridRect) return;
                 _mouseOverRect?.SetMouseOver(false);
                 gridRect?.SetMouseOver(true);
                 _mouseOverRect = gridRect;

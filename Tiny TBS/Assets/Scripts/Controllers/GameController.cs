@@ -19,12 +19,11 @@ namespace Assets.Scripts.Controllers
         [SerializeField] private MouseController _mouseController;
         [SerializeField] private MenuController _menuController;
         [SerializeField] private TilesConfig _tilesConfig;
-        [SerializeField] private GameObject _unitPrefab;
+        [SerializeField] private UnitController _unitController;
         private Camera _camera;
         private Map _map;
         public bool randomMap;
 
-        private UnitController _unitController;
         private UIController _uiController;
 
         void PlaceUnit(Unit unit)
@@ -95,9 +94,10 @@ namespace Assets.Scripts.Controllers
         {
             var tileResource = GetTilePrefab(type);
 
+            const float halfTileHeight = 0.07f;
             var tileView = Instantiate(
                     tileResource,
-                    FieldUtils.GetWorldPos(new Vector2Int(x, y)),
+                    FieldUtils.GetWorldPos(new Vector2Int(x, y)) + Vector3.down * halfTileHeight,
                     Quaternion.identity)
                 .GetComponent<TileView>();
 
@@ -152,7 +152,6 @@ namespace Assets.Scripts.Controllers
 
             _uiController = new UIController(_map, _gridDrawer, _menuController, _camera);
             _uiController.onMoveUnit += OnMoveUnit;
-            _unitController = new UnitController(_unitPrefab);
             _mouseController.onClick += _uiController.OnMouseClick;
             _mouseController.onMouseMove += _uiController.OnMouseMove;
             _mouseController.onDrag += _uiController.OnMouseDrag;

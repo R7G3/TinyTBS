@@ -7,26 +7,37 @@ using Utils;
 
 namespace Assets.Scripts.Controllers
 {
-    public class UnitController
+    public class UnitController : MonoBehaviour
     {
-        private readonly Dictionary<Guid, UnitView> _unitViews = new Dictionary<Guid, UnitView>();
-        private readonly GameObject _unitPrefab;
+        [SerializeField] private GameObject _countLabelPrefab;
+        [SerializeField] private Transform _countLabelsRoot;
+        [SerializeField] private GameObject _unitPrefab;
         
-        public UnitController(GameObject unitPrefab)
+        private readonly Dictionary<Guid, UnitView> _unitViews = new Dictionary<Guid, UnitView>();
+        private Pool<Transform> _countLabelsPool;
+
+        private void Awake()
         {
-            _unitPrefab = unitPrefab;
+            _countLabelsPool = new Pool<Transform>(CreateCountLabel);
         }
 
         public void CreateUnitAt(Unit unit, Vector2Int coord)
         {
             _unitViews[unit.Id] = UnityEngine.Object.Instantiate(_unitPrefab)
                 .GetComponent<UnitView>();
-            _unitViews[unit.Id].gameObject.transform.position = FieldUtils.GetWorldPos(coord);
+            var unitTransform = _unitViews[unit.Id].gameObject.transform;
+            unitTransform.position = FieldUtils.GetWorldPos(coord);
+            _countLabelsPool.Get().GetComponent<FollowUnitPosition>().FollowUnit(unitTransform);
         }
 
         public Task MoveUnit(Unit unit, IEnumerable<Vector2Int> path)
         {
             return _unitViews[unit.Id].Travel(path);
+        }
+
+        private Transform CreateCountLabel()
+        {
+            return UnityEngine.Object.Instantiate(_countLabelPrefab, _countLabelsRoot).transform;
         }
     }
 }

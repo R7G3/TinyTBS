@@ -9,6 +9,7 @@ namespace Assets.Scripts.Controllers
         public Vector2 minMaxZoom;
         public MouseController mouseController;
         [SerializeField] private Camera _camera;
+        [SerializeField] private Canvas _hudCanvas;
         private Transform _cameraTransform;
         private float _targetZoom;
         private float _currentZoomVelocity;
