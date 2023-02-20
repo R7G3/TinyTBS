@@ -20,7 +20,7 @@ namespace Assets.Scripts.Units
             _speedParameterHash = Animator.StringToHash("speed");
         }
 
-        public async Task Travel(IEnumerable<Vector2Int> path)
+        public async UniTask Travel(IEnumerable<Vector2Int> path)
         {
             const float animationThresholdDistance = 0.001f;
             foreach (var coord in path)

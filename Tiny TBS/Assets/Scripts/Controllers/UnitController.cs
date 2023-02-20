@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Assets.Scripts.Units;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Utils;
 
@@ -30,7 +31,7 @@ namespace Assets.Scripts.Controllers
             _countLabelsPool.Get().GetComponent<FollowUnitPosition>().FollowUnit(unitTransform);
         }
 
-        public Task MoveUnit(Unit unit, IEnumerable<Vector2Int> path)
+        public UniTask MoveUnit(Unit unit, IEnumerable<Vector2Int> path)
         {
             return _unitViews[unit.Id].Travel(path);
         }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Assets.Scripts.Configs;
@@ -18,18 +19,27 @@ namespace Assets.Scripts.Controllers
         [SerializeField] private GridDrawer _gridDrawer;
         [SerializeField] private MouseController _mouseController;
         [SerializeField] private MenuController _menuController;
+        [SerializeField] private HUDMessageController _hudMessageController;
         [SerializeField] private TilesConfig _tilesConfig;
         [SerializeField] private UnitController _unitController;
         [SerializeField] private BalanceConfig _balanceConfig;
-        [SerializeField] private GameObject _unitPrefab;
-        private Camera _camera;
-        private Map _map;
-        public bool randomMap;
+        [SerializeField] private bool _randomMap;
 
         private UIController _uiController;
+        private Camera _camera;
+        private Map _map;
+        private readonly List<UniTask> _queuedAnimations = new();
+        private List<Player> _players;
+        private List<Unit> _units = new();
+
+        void SetPlayers(IEnumerable<Player> players)
+        {
+            _players = players.ToList();
+        }
 
         void PlaceUnit(Unit unit)
         {
+            _units.Add(unit);
             _map[unit.Coord].Unit = unit;
             _unitController.CreateUnitAt(unit, unit.Coord);
         }
@@ -114,20 +124,22 @@ namespace Assets.Scripts.Controllers
         }
 
 
-        private void OnMoveUnit(Unit unit, Vector2Int coord)
+        private void OnMoveUnit(UIController.MoveUnit moveUnit)
         {
-            _map[unit.Coord].Unit = null;
-            unit.Coord = coord;
-            _map[unit.Coord].Unit = unit;
+            _map[moveUnit.unit.Coord].Unit = null;
+            moveUnit.unit.Coord = moveUnit.coord;
+            _map[moveUnit.coord].Unit = moveUnit.unit;
+            moveUnit.unit.HasMoved = true;
 
-            _unitController.MoveUnit(unit, Enumerable.Repeat<Vector2Int>(coord, 1));
+            var moveTask = _unitController.MoveUnit(moveUnit.unit, Enumerable.Repeat(moveUnit.coord, 1));
+            _queuedAnimations.Add(moveTask);
         }
 
         private void Awake()
         {
             _camera = Camera.main;
 
-            if (randomMap)
+            if (_randomMap)
             {
                 _map = CreateRandomMap(20);
             }
@@ -154,14 +166,20 @@ namespace Assets.Scripts.Controllers
                     });
             }
 
-            _uiController = new UIController(_map, _gridDrawer, _menuController, _camera);
-            _uiController.onMoveUnit += OnMoveUnit;
+            _uiController = new UIController(_map, _gridDrawer, _menuController, _camera, _hudMessageController);
             _mouseController.onClick += _uiController.OnMouseClick;
             _mouseController.onMouseMove += _uiController.OnMouseMove;
             _mouseController.onDrag += _uiController.OnMouseDrag;
 
+            SetPlayers(new[]
+            {
+                new Player(new Fraction("Player 1")), 
+                // new Player(new Fraction("Player 2"))
+            });
+
             var unit = new Unit
             {
+                Fraction = _players[0].Fraction,
                 Coord = new Vector2Int(1, 1)
             };
 
@@ -172,11 +190,63 @@ namespace Assets.Scripts.Controllers
             StartCoroutine(Turn().AsUniTask().ToCoroutine());
         }
 
+        // ReSharper disable once FunctionNeverReturns
         private async Task Turn()
         {
+            var currentPlayerIndex = 0;
             while (true)
             {
-                await _uiController.StartIdleScenario();
+                var currentPlayer = _players[currentPlayerIndex];
+
+                TurnStart(currentPlayer);
+
+                UIController.IPlayerAction playerAction;
+                do
+                {
+                    playerAction = await _uiController.GetPlayerAction(currentPlayer);
+
+                    if (playerAction == null) continue;
+
+                    ProcessPlayerAction(playerAction);
+                    await UniTask.WhenAll(_queuedAnimations);
+                    _queuedAnimations.Clear();
+                } while (playerAction is not UIController.EndTurn && CanDoMoreActions(currentPlayer));
+
+                await _uiController.ShowMessage("Next turn");
+                
+                
+                currentPlayerIndex = (currentPlayerIndex + 1) % _players.Count;
+            }
+        }
+
+        private IEnumerable<Unit> GetPlayerUnits(Player player)
+            => _units.Where(u => u.Fraction == player.Fraction);
+
+        private static bool IsUnitEnabled(Unit unit)
+            // For future
+            // => !unit.HasMoved || !unit.HasPerformedAction;
+            => !unit.HasMoved;
+
+        private bool CanDoMoreActions(Player player) => GetPlayerUnits(player).Any(IsUnitEnabled);
+
+        private void TurnStart(Player player)
+        {
+            foreach (var unit in GetPlayerUnits(player))
+            {
+                unit.HasMoved = false;
+                unit.HasPerformedAction = false;
+            }
+        }
+        
+        private void ProcessPlayerAction(UIController.IPlayerAction playerAction)
+        {
+            switch (playerAction)
+            {
+                case UIController.MoveUnit moveUnit:
+                    OnMoveUnit(moveUnit);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(playerAction));
             }
         }
     }

@@ -19,28 +19,37 @@ namespace Assets.Scripts.Controllers
         private readonly GridDrawer _gridDrawer;
         private readonly MenuController _menuController;
         private readonly Camera _camera;
+        private readonly HUDMessageController _hudMessageController;
         private Unit _selectedUnit;
         private Vector2Int _selectedCoord;
         private UnitAction _selectedAction;
         private Vector2Int _hoveredGrid = new Vector2Int(-1, -1);
         private Task _currentScenarioTask;
 
-        public event Action<Unit, Vector2Int> onMoveUnit;
         private event Action<Vector3> _onMouseClick;
         private event Action<Vector3> _onMouseMove;
         private event Action<MouseController.DragData> _onMouseDrag;
 
-        public UIController(Map map, GridDrawer gridDrawer, MenuController menuController, Camera camera)
+        public UIController(Map map, GridDrawer gridDrawer, MenuController menuController, Camera camera,
+            HUDMessageController hudMessageController)
         {
             _map = map;
             _gridDrawer = gridDrawer;
             _menuController = menuController;
             _camera = camera;
+            _hudMessageController = hudMessageController;
 
             _onMouseDrag += HideMenuOnDrag;
         }
 
-        public async Task StartIdleScenario()
+        public async UniTask ShowMessage(string msg)
+        {
+            _hudMessageController.ShowMsg(msg);
+            await UniTask.Delay(1000);
+            _hudMessageController.HideMsg();
+        }
+
+        public async UniTask<IPlayerAction> GetPlayerAction(Player player)
         {
             try
             {
@@ -48,7 +57,7 @@ namespace Assets.Scripts.Controllers
                 do
                 {
                     unit = await SelectUnit();
-                } while (unit == null);
+                } while (unit == null || unit.Fraction != player.Fraction);
 
                 var action = await SelectAction(unit);
                 switch (action)
@@ -56,7 +65,11 @@ namespace Assets.Scripts.Controllers
                     case UnitAction.Move:
                         var coords = GetMoveCoordsForUnit(unit);
                         var coord = await SelectCoord(coords);
-                        onMoveUnit?.Invoke(unit, coord);
+                        return new MoveUnit()
+                        {
+                            unit = unit,
+                            coord = coord
+                        };
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -66,13 +79,15 @@ namespace Assets.Scripts.Controllers
             {
                 _onMouseClick = null;
             }
+
+            return null;
         }
 
         private Task<Vector2Int> SelectCoord(IEnumerable<Vector2Int> coords)
         {
             var availableCoords = LinqUtility.ToHashSet(coords);
             _gridDrawer.ShowGrid(availableCoords);
-            
+
             return ListenMouseClick<Vector2Int>(((taskSource, pos) =>
             {
                 _gridDrawer.Hide();
@@ -91,7 +106,7 @@ namespace Assets.Scripts.Controllers
         private async Task<UnitAction> SelectAction(Unit unit)
         {
             var taskSource = new UniTaskCompletionSource<UnitAction>();
-            
+
             _menuController.ShowMenu(Input.mousePosition,
                 GetUnitMenu(action => taskSource.TrySetResult(action)));
 
@@ -106,7 +121,7 @@ namespace Assets.Scripts.Controllers
             }
 
             _onMouseClick += MouseClickHandler;
-            
+
             return await taskSource.Task;
         }
 
@@ -149,7 +164,7 @@ namespace Assets.Scripts.Controllers
         {
             _onMouseMove += ShowGridOnHover;
             _onMouseDrag += DisableHoverOnDrag;
-                
+
             return ListenMouseClick<Unit>((taskSource, pos) =>
             {
                 var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
@@ -179,7 +194,7 @@ namespace Assets.Scripts.Controllers
             }
 
             await UniTask.NextFrame(); // required to not process mouse clicks on the same frame
-            
+
             _onMouseClick += OnMouseClickHandler;
 
             var result = await taskSource.Task;
@@ -225,6 +240,20 @@ namespace Assets.Scripts.Controllers
 
         private class UserCanceledActionException : Exception
         {
+        }
+
+        public interface IPlayerAction
+        {
+        }
+
+        public struct EndTurn : IPlayerAction
+        {
+        }
+
+        public struct MoveUnit : IPlayerAction
+        {
+            public Unit unit;
+            public Vector2Int coord;
         }
     }
 }

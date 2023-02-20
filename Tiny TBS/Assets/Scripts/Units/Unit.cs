@@ -23,7 +23,9 @@ namespace Assets.Scripts.Units
 
         public bool IsSwimming { get; set; }
 
-        public bool CanUseTurn { get; set; }
+        public bool HasMoved { get; set; }
+        
+        public bool HasPerformedAction { get; set; }
 
         public Vector2Int Coord { get; set; }
     }
