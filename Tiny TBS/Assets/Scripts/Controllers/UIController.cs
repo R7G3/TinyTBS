@@ -75,7 +75,7 @@ namespace Assets.Scripts.Controllers
                         throw new ArgumentOutOfRangeException();
                 }
             }
-            catch (UserCanceledActionException) // TODO: wtf it's not real exception
+            catch (UserCanceledActionException)
             {
                 _onMouseClick = null;
             }
@@ -94,7 +94,7 @@ namespace Assets.Scripts.Controllers
                 var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
                 if (!availableCoords.Contains(coord))
                 {
-                    taskSource.TrySetException(new UserCanceledActionException()); // TODO: wtf it's not real exception
+                    taskSource.TrySetException(new UserCanceledActionException());
                 }
                 else
                 {
@@ -116,7 +116,7 @@ namespace Assets.Scripts.Controllers
                 {
                     _menuController.Hide();
                     _onMouseClick -= MouseClickHandler;
-                    taskSource.TrySetException(new UserCanceledActionException()); // TODO: wtf it's not real exception
+                    taskSource.TrySetException(new UserCanceledActionException());
                 }
             }
 
