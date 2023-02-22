@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Assets.Scripts.Configs;
 using Assets.Scripts.HUD;
 using Assets.Scripts.HUD.Menu;
+using Assets.Scripts.PlayerAction;
 using Assets.Scripts.Tiles;
 using Assets.Scripts.Units;
 using Cysharp.Threading.Tasks;
@@ -124,7 +125,7 @@ namespace Assets.Scripts.Controllers
         }
 
 
-        private void OnMoveUnit(UIController.MoveUnit moveUnit)
+        private void OnMoveUnit(MoveUnit moveUnit)
         {
             _map[moveUnit.unit.Coord].Unit = null;
             moveUnit.unit.Coord = moveUnit.coord;
@@ -200,7 +201,7 @@ namespace Assets.Scripts.Controllers
 
                 TurnStart(currentPlayer);
 
-                UIController.IPlayerAction playerAction;
+                IPlayerAction playerAction;
                 do
                 {
                     playerAction = await _uiController.GetPlayerAction(currentPlayer);
@@ -210,7 +211,7 @@ namespace Assets.Scripts.Controllers
                     ProcessPlayerAction(playerAction);
                     await UniTask.WhenAll(_queuedAnimations);
                     _queuedAnimations.Clear();
-                } while (playerAction is not UIController.EndTurn && CanDoMoreActions(currentPlayer));
+                } while (playerAction is not PlayerAction.EndTurn && CanDoMoreActions(currentPlayer));
 
                 await _uiController.ShowMessage("Next turn");
                 
@@ -238,11 +239,11 @@ namespace Assets.Scripts.Controllers
             }
         }
         
-        private void ProcessPlayerAction(UIController.IPlayerAction playerAction)
+        private void ProcessPlayerAction(IPlayerAction playerAction)
         {
             switch (playerAction)
             {
-                case UIController.MoveUnit moveUnit:
+                case MoveUnit moveUnit:
                     OnMoveUnit(moveUnit);
                     break;
                 default:

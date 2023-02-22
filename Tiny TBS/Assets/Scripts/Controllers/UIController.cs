@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Assets.Scripts.HUD;
 using Assets.Scripts.HUD.Menu;
+using Assets.Scripts.PlayerAction;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -70,12 +71,11 @@ namespace Assets.Scripts.Controllers
                             unit = unit,
                             coord = coord
                         };
-                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
             }
-            catch (UserCanceledActionException)
+            catch (UserCanceledActionException) // TODO: wtf it's not real exception
             {
                 _onMouseClick = null;
             }
@@ -94,7 +94,7 @@ namespace Assets.Scripts.Controllers
                 var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
                 if (!availableCoords.Contains(coord))
                 {
-                    taskSource.TrySetException(new UserCanceledActionException());
+                    taskSource.TrySetException(new UserCanceledActionException()); // TODO: wtf it's not real exception
                 }
                 else
                 {
@@ -116,7 +116,7 @@ namespace Assets.Scripts.Controllers
                 {
                     _menuController.Hide();
                     _onMouseClick -= MouseClickHandler;
-                    taskSource.TrySetException(new UserCanceledActionException());
+                    taskSource.TrySetException(new UserCanceledActionException()); // TODO: wtf it's not real exception
                 }
             }
 
@@ -236,24 +236,6 @@ namespace Assets.Scripts.Controllers
         private enum UnitAction
         {
             Move
-        }
-
-        private class UserCanceledActionException : Exception
-        {
-        }
-
-        public interface IPlayerAction
-        {
-        }
-
-        public struct EndTurn : IPlayerAction
-        {
-        }
-
-        public struct MoveUnit : IPlayerAction
-        {
-            public Unit unit;
-            public Vector2Int coord;
         }
     }
 }
