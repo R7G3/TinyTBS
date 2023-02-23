@@ -29,6 +29,8 @@ namespace Assets.Scripts.Units
         
         public bool HasPerformedAction { get; set; }
 
+        public bool IsInVillage { get; set; }
+
         public Vector2Int Coord { get; set; }
     }
 }
