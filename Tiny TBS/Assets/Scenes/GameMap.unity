@@ -956,6 +956,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: HudMessageController
       objectReference: {fileID: 0}
+    - target: {fileID: 432494238237010223, guid: 25af658b1126d4b0ab07acad1617fb48, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1041808128829853706, guid: 25af658b1126d4b0ab07acad1617fb48, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5

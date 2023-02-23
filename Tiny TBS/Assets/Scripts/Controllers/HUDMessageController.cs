@@ -9,12 +9,13 @@ namespace Assets.Scripts.Controllers
 
         public void ShowMsg(string msg)
         {
+            gameObject.SetActive(true);
             _label.text = msg;
         }
 
         public void HideMsg()
         {
-            _label.text = "";
+            gameObject.SetActive(false);
         }
         
     }
