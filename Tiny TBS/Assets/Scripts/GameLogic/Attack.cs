@@ -20,9 +20,9 @@ namespace Assets.Scripts.GameLogic
         private int CalculateDamage(Unit attacker, Unit defender)
         {
             var attakerDamage = CalculateAttack(attacker);
-            var defenderDefece = CalculateDefence(defender);
+            var defenderDefence = CalculateDefence(defender);
 
-            int totalDamage = attakerDamage - defenderDefece;
+            int totalDamage = attakerDamage - defenderDefence;
 
             return totalDamage;
         }
