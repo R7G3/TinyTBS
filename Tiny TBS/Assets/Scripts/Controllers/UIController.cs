@@ -13,6 +13,7 @@ using Utils;
 using Unit = Assets.Scripts.Units.Unit;
 using Assets.Scripts.GameLogic;
 using Assets.Scripts.Configs;
+using Assets.Scripts.GameLogic.Models;
 
 namespace Assets.Scripts.Controllers
 {
@@ -30,7 +31,7 @@ namespace Assets.Scripts.Controllers
         private Task _currentScenarioTask;
 
         private readonly BalanceConfig _balanceConfig;
-        private readonly Movement _movement;
+        private readonly MapActions _movement;
 
         private event Action<Vector3> _onMouseClick;
         private event Action<Vector3> _onMouseMove;
@@ -46,7 +47,7 @@ namespace Assets.Scripts.Controllers
             _hudMessageController = hudMessageController;
 
             _balanceConfig = balanceConfig;
-            _movement = new Movement(_map, _balanceConfig);
+            _movement = new MapActions(_map, _balanceConfig);
 
             _onMouseDrag += HideMenuOnDrag;
         }
@@ -73,7 +74,7 @@ namespace Assets.Scripts.Controllers
                 {
                     case UnitAction.Move:
                         var coords = GetMoveCoordsForUnit(unit);
-                        var coord = await SelectCoord(coords);
+                        var coord = await SelectCoord(coords.Select(c => c.Coord));
                         return new MoveUnit()
                         {
                             unit = unit,
@@ -226,7 +227,7 @@ namespace Assets.Scripts.Controllers
             _onMouseClick?.Invoke(position);
         }
 
-        private IEnumerable<Vector2Int> GetMoveCoordsForUnit(Unit unit)
+        private IEnumerable<MoveCost> GetMoveCoordsForUnit(Unit unit)
         {
             return _movement.GetPossibleMoves(unit);
         }
