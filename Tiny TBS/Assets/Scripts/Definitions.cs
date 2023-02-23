@@ -10,5 +10,7 @@ namespace Assets.Scripts
         public const int xAxis = 0;
 
         public const int yAxis = 1;
+
+        public const int MaxUnitHealth = 10;
     }
 }

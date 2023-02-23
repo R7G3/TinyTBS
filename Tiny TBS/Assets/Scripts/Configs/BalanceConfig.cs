@@ -14,9 +14,19 @@ namespace Assets.Scripts.Configs
 
         public int waterMovementSpeedPenalty;
 
-        public float attackCoefficient;
+        public int roadDefenceBonus = 0;
 
-        public float defenceCoefficient;
+        public int grassDefenceBonus = 1;
+        
+        public int mountainDefenceBonus = 3;
+        
+        public int waterDefenceBonus = -1;
+
+        public int villageDefenceBonus = 2;
+
+        public int attackImpact = 1;
+
+        public int defenceImpact = 1;
 
         public int GetPenaltyFor(TileType type)
         {
@@ -26,6 +36,18 @@ namespace Assets.Scripts.Configs
                 TileType.Grass => grassMovementSpeedPenalty,
                 TileType.Mountain => mountainMovementSpeedPenalty,
                 TileType.Water => waterMovementSpeedPenalty,
+                _ => 0,
+            };
+        }
+
+        public int GetDefenceImpact(TileType type)
+        {
+            return type switch
+            {
+                TileType.Road => roadDefenceBonus,
+                TileType.Grass => grassDefenceBonus,
+                TileType.Mountain => mountainDefenceBonus,
+                TileType.Water => waterDefenceBonus,
                 _ => 0,
             };
         }
