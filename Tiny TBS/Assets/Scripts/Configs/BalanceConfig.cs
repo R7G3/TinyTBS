@@ -24,9 +24,9 @@ namespace Assets.Scripts.Configs
 
         public int villageDefenceBonus = 2;
 
-        public double attackCoefficient = 1;
+        public int attackCoefficient = 1;
 
-        public double defenceCoefficient = 1;
+        public int defenceCoefficient = 1;
 
         public int GetPenaltyFor(TileType type)
         {
@@ -40,7 +40,7 @@ namespace Assets.Scripts.Configs
             };
         }
 
-        public int GetDefenceBonusFor(TileType type)
+        public int GetDefenceImpact(TileType type)
         {
             return type switch
             {

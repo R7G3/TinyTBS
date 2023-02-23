@@ -33,9 +33,9 @@ namespace Assets.Scripts.GameLogic
 
             var attackPercent = attacker.Attack / 100;
             var healthPercent = 100 * (attacker.Health / Definitions.MaxUnitHealth);
-            var totalAttack = attackPercent * healthPercent * _balanceConfig.attackCoefficient;
+            var totalAttack = attackPercent * healthPercent + _balanceConfig.attackCoefficient;
             
-            attakerDamage = (int)Math.Round(totalAttack);
+            attakerDamage = (int)Math.Round((double)totalAttack);
 
             return attakerDamage;
         }
@@ -44,19 +44,14 @@ namespace Assets.Scripts.GameLogic
         {
             int defenderDefece;
 
+            var tileDefence = defender.IsFlying ? 0 : _balanceConfig.GetDefenceImpact(_map[defender.Coord].Type);
             var villageDefence = defender.IsInVillage ? _balanceConfig.villageDefenceBonus : 0;
-            var tileDefence = _balanceConfig.GetDefenceBonusFor(_map[defender.Coord].Type);
             var sumDefece = (double)defender.Defence + tileDefence + villageDefence;
             var healthPercent = defender.Health / Definitions.MaxUnitHealth;
 
             defenderDefece = (int)Math.Round(healthPercent * sumDefece);
 
             return defenderDefece;
-        }
-
-        private bool IsNeighborsCells(Unit attacker, Unit defender)
-        {
-            return true;
         }
     }
 }
