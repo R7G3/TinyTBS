@@ -14,6 +14,10 @@ namespace Assets.Scripts.Configs
 
         public int waterMovementSpeedPenalty;
 
+        public float attackCoefficient;
+
+        public float defenceCoefficient;
+
         public int GetPenaltyFor(TileType type)
         {
             return type switch

@@ -50,7 +50,7 @@ namespace Assets.Scripts.Controllers
             var width = size;
             var height = size;
 
-            var map = new Map(width, height, _balanceConfig);
+            var map = new Map(width, height);
             var typeValues = Enum.GetValues(typeof(TileType));
 
             for (int x = 0; x < width; x++)
@@ -73,7 +73,7 @@ namespace Assets.Scripts.Controllers
             var width = tileTypes.GetLength(0);
             var height = tileTypes.GetLength(0);
 
-            var map = new Map(width, height, _balanceConfig);
+            var map = new Map(width, height);
 
             for (int x = 0; x < width; x++)
             {
@@ -167,7 +167,14 @@ namespace Assets.Scripts.Controllers
                     });
             }
 
-            _uiController = new UIController(_map, _gridDrawer, _menuController, _camera, _hudMessageController);
+            _uiController = new UIController(
+                _map,
+                _gridDrawer,
+                _menuController,
+                _camera,
+                _hudMessageController,
+                _balanceConfig);
+
             _mouseController.onClick += _uiController.OnMouseClick;
             _mouseController.onMouseMove += _uiController.OnMouseMove;
             _mouseController.onDrag += _uiController.OnMouseDrag;

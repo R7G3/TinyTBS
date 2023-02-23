@@ -15,9 +15,11 @@ namespace Assets.Scripts.Units
 
         public int Speed { get; set; }
 
+        public int Defence { get; set; }
+
         public int Attack { get; set; }
 
-        public int Defence { get; set; }
+        public int AttackRange { get; set; }
 
         public bool IsFlying { get; set; }
 

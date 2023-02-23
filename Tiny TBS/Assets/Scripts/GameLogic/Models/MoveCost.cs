@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Assets.Scripts
+namespace Assets.Scripts.GameLogic.Models
 {
     public class MoveCost : IEquatable<MoveCost>
     {

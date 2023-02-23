@@ -11,6 +11,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using Utils;
 using Unit = Assets.Scripts.Units.Unit;
+using Assets.Scripts.GameLogic;
+using Assets.Scripts.Configs;
 
 namespace Assets.Scripts.Controllers
 {
@@ -27,18 +29,24 @@ namespace Assets.Scripts.Controllers
         private Vector2Int _hoveredGrid = new Vector2Int(-1, -1);
         private Task _currentScenarioTask;
 
+        private readonly BalanceConfig _balanceConfig;
+        private readonly Movement _movement;
+
         private event Action<Vector3> _onMouseClick;
         private event Action<Vector3> _onMouseMove;
         private event Action<MouseController.DragData> _onMouseDrag;
 
         public UIController(Map map, GridDrawer gridDrawer, MenuController menuController, Camera camera,
-            HUDMessageController hudMessageController)
+            HUDMessageController hudMessageController, BalanceConfig balanceConfig)
         {
             _map = map;
             _gridDrawer = gridDrawer;
             _menuController = menuController;
             _camera = camera;
             _hudMessageController = hudMessageController;
+
+            _balanceConfig = balanceConfig;
+            _movement = new Movement(_map, _balanceConfig);
 
             _onMouseDrag += HideMenuOnDrag;
         }
@@ -220,8 +228,7 @@ namespace Assets.Scripts.Controllers
 
         private IEnumerable<Vector2Int> GetMoveCoordsForUnit(Unit unit)
         {
-            //return FieldUtils.GetNeighbours(unit.Coord);
-            return _map.GetPossibleMoves(unit);
+            return _movement.GetPossibleMoves(unit);
         }
 
         private IEnumerable<MenuItem> GetUnitMenu(Action<UnitAction> onUnitActionSelected)
