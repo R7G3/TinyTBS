@@ -26,6 +26,7 @@ namespace Assets.Scripts.Controllers
         {
             _unitViews[unit.Id] = UnityEngine.Object.Instantiate(_unitPrefab)
                 .GetComponent<UnitView>();
+            _unitViews[unit.Id].SetFraction(unit.Fraction);
             var unitTransform = _unitViews[unit.Id].gameObject.transform;
             unitTransform.position = FieldUtils.GetWorldPos(coord);
             _countLabelsPool.Get().GetComponent<FollowUnitPosition>().FollowUnit(unitTransform);

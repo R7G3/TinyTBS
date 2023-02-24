@@ -15,3 +15,5 @@ MonoBehaviour:
   defaultColor: {r: 0.36842102, g: 0.56578946, b: 1, a: 1}
   mouseOverColor: {r: 0.5, g: 1, b: 0.33333337, a: 1}
   selectedColor: {r: 0.02441454, g: 1, b: 0, a: 1}
+  availableForAttackColor: {r: 0.6320754, g: 0.6320754, b: 0.6320754, a: 1}
+  enemyColor: {r: 1, g: 0, b: 0, a: 1}

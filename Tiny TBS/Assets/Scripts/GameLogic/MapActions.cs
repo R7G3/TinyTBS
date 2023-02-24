@@ -4,10 +4,8 @@ using Assets.Scripts.GameLogic.Models;
 using Assets.Scripts.Units;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using UnityEngine;
-using static UnityEngine.RuleTile.TilingRuleOutput;
 
 namespace Assets.Scripts.GameLogic
 {
@@ -108,7 +106,7 @@ namespace Assets.Scripts.GameLogic
             foreach (var coord in coordsInRange.Select(c => c.Coord))
             {
                 if (CoordinateInRange(unit, coord)
-                    && HaveEnemyUnit(unit, coord))
+                    && HasEnemyUnit(unit, coord))
                 {
                     yield return coord;
                 }
@@ -120,17 +118,8 @@ namespace Assets.Scripts.GameLogic
             return GetNeighbours(unit.Coord)
                 .Where(neighbourn => HaveOccupableBuilding(unit, neighbourn));
         }
-
-        private bool CoordinateInRange(Unit unit, Vector2Int coord)
-        {
-            var rangeByX = Math.Abs(coord.x - unit.Coord.x);
-            var rangeByY = Math.Abs(coord.y - unit.Coord.y);
-            var summaryRange = rangeByX + rangeByY;
-
-            return summaryRange <= unit.AttackRange;
-        }
-
-        private bool HaveEnemyUnit(Unit unit, Vector2Int coord)
+        
+        public bool HasEnemyUnit(Unit unit, Vector2Int coord)
         {
             var otherUnit = _map[coord].Unit;
 
@@ -146,6 +135,16 @@ namespace Assets.Scripts.GameLogic
 
             return true;
         }
+
+        private bool CoordinateInRange(Unit unit, Vector2Int coord)
+        {
+            var rangeByX = Math.Abs(coord.x - unit.Coord.x);
+            var rangeByY = Math.Abs(coord.y - unit.Coord.y);
+            var summaryRange = rangeByX + rangeByY;
+
+            return summaryRange <= unit.AttackRange;
+        }
+
 
         private bool HaveOccupableBuilding(Unit unit, Vector2Int coord)
         {
@@ -166,7 +165,7 @@ namespace Assets.Scripts.GameLogic
                 return false;
             }
 
-            // TODO: проверять, может ли юнит захватывать
+            // TODO: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             return true;
         }
 
@@ -205,7 +204,7 @@ namespace Assets.Scripts.GameLogic
             return new MoveCost(coord, cost);
         }
 
-        private IEnumerable<Vector2Int> GetNeighbours(Vector2Int coord)
+        public IEnumerable<Vector2Int> GetNeighbours(Vector2Int coord)
         {
             var valueWithOffset = Normalize(coord.x - 1, Definitions.xAxis);
 

@@ -182,13 +182,23 @@ namespace Assets.Scripts.Controllers
             SetPlayers(new[]
             {
                 new Player(new Fraction("Player 1")), 
-                // new Player(new Fraction("Player 2"))
+                new Player(new Fraction("Player 2"))
             });
 
             var unit = new Unit
             {
                 Fraction = _players[0].Fraction,
                 Coord = new Vector2Int(1, 1)
+            };
+
+            unit.Speed = 3;
+
+            PlaceUnit(unit);
+            
+            unit = new Unit
+            {
+                Fraction = _players[1].Fraction,
+                Coord = new Vector2Int(3, 3)
             };
 
             unit.Speed = 3;

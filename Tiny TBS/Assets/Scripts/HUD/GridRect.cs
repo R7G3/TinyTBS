@@ -1,3 +1,4 @@
+using System;
 using Assets.Scripts.Configs;
 using UnityEngine;
 
@@ -9,30 +10,22 @@ namespace Assets.Scripts.HUD
 
         [SerializeField] private GridDrawerConfig _config;
 
-        private bool _isSelected;
-        private bool _isMouseOver;
-
-        public void SetSelected(bool isSelected)
+        public void SetType(GridType type)
         {
-            _isSelected = isSelected;
-            UpdateState();
-        }
-
-        public void SetMouseOver(bool isMouseOver)
-        {
-            _isMouseOver = isMouseOver;
-            UpdateState();
-        }
-
-        private void UpdateState()
-        {
-            if (_isSelected)
+            switch (type)
             {
-                _renderer.color = _config.selectedColor;
-                return;
+                case GridType.Default:
+                    _renderer.color = _config.defaultColor;
+                    break;
+                case GridType.AvailableForAttack:
+                    _renderer.color = _config.availableForAttackColor;
+                    break;
+                case GridType.Enemy:
+                    _renderer.color = _config.enemyColor;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
-
-            _renderer.color = _isMouseOver ? _config.mouseOverColor : _config.defaultColor;
         }
     }
 }

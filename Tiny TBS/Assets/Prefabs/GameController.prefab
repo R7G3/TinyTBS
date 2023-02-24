@@ -153,9 +153,11 @@ MonoBehaviour:
   _gridDrawer: {fileID: 9023078333106480148}
   _mouseController: {fileID: 1597399656683591530}
   _menuController: {fileID: 0}
+  _hudMessageController: {fileID: 0}
   _tilesConfig: {fileID: 11400000, guid: f7e1ba3ad8a784c95817a55321819107, type: 2}
   _unitController: {fileID: 7912222001813536552}
-  randomMap: 1
+  _balanceConfig: {fileID: 0}
+  _randomMap: 0
 --- !u!114 &1597399656683591530
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -246,6 +248,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gridRectPrefab: {fileID: 21265750461174242, guid: 0891e787670c449689fc133ce63ddb45, type: 3}
+  cursorPrefab: {fileID: 21265750461174242, guid: 752385c2d149b4a2292a7df09719e35f, type: 3}
 --- !u!1 &9105476343825667016
 GameObject:
   m_ObjectHideFlags: 0
