@@ -8,6 +8,14 @@ namespace Assets.Scripts.Configs
     {
 
         public TilePrefabs tilePrefabs = new();
+        public BuildingPrefabs buildingPrefabs = new();
+        
+        [Serializable]
+        public class BuildingPrefabs
+        {
+            public GameObject village;
+            public GameObject castle;
+        }
         
         [Serializable]
         public class TilePrefabs
@@ -17,5 +25,7 @@ namespace Assets.Scripts.Configs
             public GameObject mountain;
             public GameObject water;
         }
+
+        public static TilesConfig instance => Resources.Load<TilesConfig>("Config/TilesConfig");
     }
 }
