@@ -5,7 +5,7 @@ namespace Assets.Scripts.Units
 {
     public class Unit
     {
-        public Guid Id { get; set; }
+        public Guid Id { get; } = Guid.NewGuid();
 
         public UnitType Type { get; set; }
 
