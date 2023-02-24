@@ -11,6 +11,7 @@ namespace Assets.Scripts.HUD
     public class GridDrawer : MonoBehaviour
     {
         public GameObject gridRectPrefab;
+        public GameObject cursorPrefab;
         private Transform _transform;
         private Pool<GridRect> _pool;
         private HashSet<Vector2Int> _shownCoords = new HashSet<Vector2Int>();
@@ -18,6 +19,24 @@ namespace Assets.Scripts.HUD
         private GridRect _mouseOverRect;
         private GridRect _selectedRect;
         private int _hudLayerMask;
+        private Transform _cursor;
+
+        public void HideCursor()
+        {
+            if (_cursor == null) return;
+            _cursor.gameObject.SetActive(false);
+        }
+        
+        public void ShowCursor(Vector2Int coord)
+        {
+            if (_cursor == null)
+            {
+                _cursor = Instantiate(cursorPrefab, _transform, worldPositionStays: true).transform;
+            }
+
+            _cursor.gameObject.SetActive(true);
+            _cursor.position = FieldUtils.GetWorldPos(coord);
+        }
 
         public void ShowGrid(IEnumerable<Vector2Int> coords)
         {

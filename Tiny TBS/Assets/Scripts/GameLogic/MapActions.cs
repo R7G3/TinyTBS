@@ -120,7 +120,7 @@ namespace Assets.Scripts.GameLogic
                 foreach (var neighbourn in neighbours)
                 {
                     if (CoordinateInRange(unit, neighbourn)
-                        && HaveEnemyUnit(unit, neighbourn))
+                        && HasEnemyUnit(unit, neighbourn))
                     {
                         result.Add(neighbourn);
                     }
@@ -137,17 +137,8 @@ namespace Assets.Scripts.GameLogic
             return GetNeighbours(unit.Coord)
                 .Where(neighbourn => HaveOccupableBuilding(unit, neighbourn));
         }
-
-        private bool CoordinateInRange(Unit unit, Vector2Int coord)
-        {
-            var rangeByX = Math.Abs(coord.x - unit.Coord.x);
-            var rangeByY = Math.Abs(coord.y - unit.Coord.y);
-            var summaryRange = rangeByX + rangeByY;
-
-            return summaryRange <= unit.AttackRange;
-        }
-
-        private bool HaveEnemyUnit(Unit unit, Vector2Int coord)
+        
+        public bool HasEnemyUnit(Unit unit, Vector2Int coord)
         {
             var otherUnit = _map[coord].Unit;
 
@@ -163,6 +154,16 @@ namespace Assets.Scripts.GameLogic
 
             return true;
         }
+
+        private bool CoordinateInRange(Unit unit, Vector2Int coord)
+        {
+            var rangeByX = Math.Abs(coord.x - unit.Coord.x);
+            var rangeByY = Math.Abs(coord.y - unit.Coord.y);
+            var summaryRange = rangeByX + rangeByY;
+
+            return summaryRange <= unit.AttackRange;
+        }
+
 
         private bool HaveOccupableBuilding(Unit unit, Vector2Int coord)
         {
@@ -183,7 +184,7 @@ namespace Assets.Scripts.GameLogic
                 return false;
             }
 
-            // TODO: проверять, может ли юнит захватывать
+            // TODO: пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             return true;
         }
 

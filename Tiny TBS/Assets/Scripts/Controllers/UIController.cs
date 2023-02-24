@@ -50,6 +50,8 @@ namespace Assets.Scripts.Controllers
             _movement = new MapActions(_map, _balanceConfig);
 
             _onMouseDrag += HideMenuOnDrag;
+            _onMouseDrag += DisableHoverOnDrag;
+            _onMouseMove += ShowCursorOnHover;
         }
 
         public async UniTask ShowMessage(string msg)
@@ -69,12 +71,13 @@ namespace Assets.Scripts.Controllers
                     unit = await SelectUnit();
                 } while (unit == null || unit.Fraction != player.Fraction);
 
-                var action = await SelectAction(unit);
+                var coords = GetMoveCoordsForUnit(unit);
+                var coord = await SelectCoord(coords.Select(c => c.Coord));
+                var action = await SelectAction(unit, coord);
+                
                 switch (action)
                 {
                     case UnitAction.Move:
-                        var coords = GetMoveCoordsForUnit(unit);
-                        var coord = await SelectCoord(coords.Select(c => c.Coord));
                         return new MoveUnit()
                         {
                             unit = unit,
@@ -112,24 +115,14 @@ namespace Assets.Scripts.Controllers
             }));
         }
 
-        private async Task<UnitAction> SelectAction(Unit unit)
+        private async Task<UnitAction> SelectAction(Unit unit, Vector2Int coord)
         {
             var taskSource = new UniTaskCompletionSource<UnitAction>();
 
             _menuController.ShowMenu(Input.mousePosition,
-                GetUnitMenu(action => taskSource.TrySetResult(action)));
-
-            void MouseClickHandler(Vector3 _)
-            {
-                if (EventSystem.current.currentSelectedGameObject == null)
-                {
-                    _menuController.Hide();
-                    _onMouseClick -= MouseClickHandler;
-                    taskSource.TrySetException(new UserCanceledActionException());
-                }
-            }
-
-            _onMouseClick += MouseClickHandler;
+                GetUnitMenu(unit, coord,
+                    onUnitActionSelected: action => taskSource.TrySetResult(action)),
+                onCancel: () => taskSource.TrySetException(new UserCanceledActionException()));
 
             return await taskSource.Task;
         }
@@ -139,11 +132,10 @@ namespace Assets.Scripts.Controllers
             switch (dragData.status)
             {
                 case MouseController.DragStatus.Start:
-                    _gridDrawer.Hide();
-                    _onMouseMove -= ShowGridOnHover;
+                    _gridDrawer.HideCursor();
                     break;
                 case MouseController.DragStatus.Stop:
-                    _onMouseMove += ShowGridOnHover;
+                    _gridDrawer.ShowCursor(FieldUtils.GetCoordFromMousePos(dragData.currentPos, _camera));
                     break;
             }
         }
@@ -154,26 +146,24 @@ namespace Assets.Scripts.Controllers
             _menuController.Hide();
         }
 
-        private void ShowGridOnHover(Vector3 pos)
+        private void ShowCursorOnHover(Vector3 pos)
         {
             var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
             if (!_map.IsValidCoord(coord))
             {
-                _gridDrawer.Hide();
+                _gridDrawer.HideCursor();
+                _hoveredGrid = coord;
                 return;
             }
 
             if (_hoveredGrid == coord) return;
 
             _hoveredGrid = coord;
-            _gridDrawer.ShowGrid(Enumerable.Repeat(coord, 1));
+            _gridDrawer.ShowCursor(coord);
         }
 
         private Task<Unit> SelectUnit()
         {
-            _onMouseMove += ShowGridOnHover;
-            _onMouseDrag += DisableHoverOnDrag;
-
             return ListenMouseClick<Unit>((taskSource, pos) =>
             {
                 var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
@@ -187,9 +177,6 @@ namespace Assets.Scripts.Controllers
                 {
                     taskSource.TrySetException(new UserCanceledActionException());
                 }
-
-                _onMouseDrag -= DisableHoverOnDrag;
-                _onMouseMove -= ShowGridOnHover;
             });
         }
 
@@ -232,18 +219,31 @@ namespace Assets.Scripts.Controllers
             return _movement.GetPossibleMoves(unit);
         }
 
-        private IEnumerable<MenuItem> GetUnitMenu(Action<UnitAction> onUnitActionSelected)
+        private IEnumerable<MenuItem> GetUnitMenu(Unit unit, Vector2Int targetCoord, Action<UnitAction> onUnitActionSelected)
         {
-            yield return new MenuItem()
+            if (_movement.HasEnemyUnit(unit, targetCoord))
             {
-                title = "Move",
-                onClick = () => onUnitActionSelected.Invoke(UnitAction.Move)
-            };
+                yield return new MenuItem()
+                {
+                    title = "Attack",
+                    onClick = () => onUnitActionSelected.Invoke(UnitAction.Attack)
+                };
+            }
+            else
+            {
+                onUnitActionSelected(UnitAction.Move);
+            }
+        }
+
+        private struct UIState
+        {
+            public bool isShowingMenu;
         }
 
         private enum UnitAction
         {
-            Move
+            Move,
+            Attack
         }
     }
 }
