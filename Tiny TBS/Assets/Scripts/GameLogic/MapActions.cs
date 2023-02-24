@@ -99,37 +99,18 @@ namespace Assets.Scripts.GameLogic
 
         public IEnumerable<Vector2Int> GetPossibleTargetsForAttack(Unit unit)
         {
-            var result = new List<Vector2Int>();
-            var processed = new List<Vector2Int>();
-            IEnumerable<Vector2Int> neighbours;
+            var position = new MoveCost(unit.Coord, 0);
 
-            var startCoord = unit.Coord;
-            var attackRangeLimitNotReached = true;
+            var coordsInRange = GetNeighboursForPossibleMoves(position, unit.AttackRange);
 
-            while (attackRangeLimitNotReached)
+            foreach (var coord in coordsInRange.Select(c => c.Coord))
             {
-                neighbours = GetNeighbours(startCoord)
-                    .Where(coord => !processed.Contains(coord));
-
-                if (!neighbours.Any())
+                if (CoordinateInRange(unit, coord)
+                    && HasEnemyUnit(unit, coord))
                 {
-                    attackRangeLimitNotReached = false;
-                    continue;
-                }
-
-                foreach (var neighbourn in neighbours)
-                {
-                    if (CoordinateInRange(unit, neighbourn)
-                        && HasEnemyUnit(unit, neighbourn))
-                    {
-                        result.Add(neighbourn);
-                    }
-
-                    processed.Add(neighbourn);
+                    yield return coord;
                 }
             }
-
-            return result;
         }
 
         public IEnumerable<Vector2Int> GetPossibleTargetsForOccupy(Unit unit)
