@@ -197,6 +197,16 @@ namespace Assets.Scripts.Controllers
             unit.Speed = 3;
 
             PlaceUnit(unit);
+            
+            unit = new Unit
+            {
+                Fraction = _players[1].Fraction,
+                Coord = new Vector2Int(3, 3)
+            };
+
+            unit.Speed = 3;
+
+            PlaceUnit(unit);
             PlaceBuilding(_players[0].Fraction, BuildingType.Village, new Vector2Int(0, 1));
             PlaceBuilding(_players[1].Fraction, BuildingType.Village, new Vector2Int(3, 1));
             PlaceBuilding(_players[0].Fraction, BuildingType.Castle, new Vector2Int(0, 2));
