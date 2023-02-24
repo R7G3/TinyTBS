@@ -12,12 +12,18 @@ namespace Assets.Scripts.Units
         [SerializeField] private Animator _animator;
         [SerializeField] private float _travelSpeed = 1f;
         [SerializeField] private Transform _rootTransform;
+        [SerializeField] private FractionColorCustomizer _colorCustomizer;
         private int _speedParameterHash;
         private Vector3 _velocity;
 
         private void Awake()
         {
             _speedParameterHash = Animator.StringToHash("speed");
+        }
+
+        public void SetFraction(IFraction fraction)
+        {
+            _colorCustomizer.Init(fraction);
         }
 
         public async UniTask Travel(IEnumerable<Vector2Int> path)
