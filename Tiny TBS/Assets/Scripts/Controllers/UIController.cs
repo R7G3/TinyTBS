@@ -71,8 +71,8 @@ namespace Assets.Scripts.Controllers
                     unit = await SelectUnit();
                 } while (unit == null || unit.Fraction != player.Fraction);
 
-                var coords = GetMoveCoordsForUnit(unit);
-                var coord = await SelectCoord(coords.Select(c => c.Coord));
+                var coords = GetActionCoordsForUnit(unit);
+                var coord = await SelectCoord(coords);
                 var action = await SelectAction(unit, coord);
                 
                 switch (action)
@@ -95,16 +95,26 @@ namespace Assets.Scripts.Controllers
             return null;
         }
 
-        private Task<Vector2Int> SelectCoord(IEnumerable<Vector2Int> coords)
+        GridType GetGridType(Unit currentUnit, Vector2Int coord)
         {
-            var availableCoords = LinqUtility.ToHashSet(coords);
-            _gridDrawer.ShowGrid(availableCoords);
+            if (_movement.HasEnemyUnit(currentUnit, coord))
+            {
+                return GridType.Enemy;
+            }
+            
+            return GridType.Default;
+        }
 
-            return ListenMouseClick<Vector2Int>(((taskSource, pos) =>
+        private Task<Vector2Int> SelectCoord(IEnumerable<GridItem> gridItems)
+        {
+            var availableCoords = gridItems.ToDictionary(keySelector: i => i.coord);
+            _gridDrawer.ShowGrid(availableCoords.Values);
+
+            return ListenMouseClick<Vector2Int>((taskSource, pos) =>
             {
                 _gridDrawer.Hide();
                 var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
-                if (!availableCoords.Contains(coord))
+                if (!availableCoords.ContainsKey(coord))
                 {
                     taskSource.TrySetException(new UserCanceledActionException());
                 }
@@ -112,7 +122,7 @@ namespace Assets.Scripts.Controllers
                 {
                     taskSource.TrySetResult(coord);
                 }
-            }));
+            });
         }
 
         private async Task<UnitAction> SelectAction(Unit unit, Vector2Int coord)
@@ -214,9 +224,21 @@ namespace Assets.Scripts.Controllers
             _onMouseClick?.Invoke(position);
         }
 
-        private IEnumerable<MoveCost> GetMoveCoordsForUnit(Unit unit)
+        private IEnumerable<GridItem> GetActionCoordsForUnit(Unit unit)
         {
-            return _movement.GetPossibleMoves(unit);
+            var moveCoords = _movement.GetPossibleMoves(unit);
+            var enemies = _movement.GetNeighbours(unit.Coord)
+                .Where(i => _movement.HasEnemyUnit(unit, i))
+                .Select(i => new GridItem()
+                {
+                    coord = i,
+                    type = GridType.Enemy
+                });
+            return moveCoords.Select(i => new GridItem()
+            {
+                coord = i.Coord,
+                type = GridType.Default
+            }).Concat(enemies);
         }
 
         private IEnumerable<MenuItem> GetUnitMenu(Unit unit, Vector2Int targetCoord, Action<UnitAction> onUnitActionSelected)

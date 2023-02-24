@@ -223,7 +223,7 @@ namespace Assets.Scripts.GameLogic
             return new MoveCost(coord, cost);
         }
 
-        private IEnumerable<Vector2Int> GetNeighbours(Vector2Int coord)
+        public IEnumerable<Vector2Int> GetNeighbours(Vector2Int coord)
         {
             var valueWithOffset = Normalize(coord.x - 1, Definitions.xAxis);
 

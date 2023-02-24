@@ -8,5 +8,7 @@ namespace Assets.Scripts.Configs
         public Color defaultColor;
         public Color mouseOverColor;
         public Color selectedColor;
+        public Color availableForAttackColor;
+        public Color enemyColor;
     }
 }

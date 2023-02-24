@@ -14,7 +14,7 @@ namespace Assets.Scripts.HUD
         public GameObject cursorPrefab;
         private Transform _transform;
         private Pool<GridRect> _pool;
-        private HashSet<Vector2Int> _shownCoords = new HashSet<Vector2Int>();
+        private readonly Dictionary<Vector2Int, GridItem> _shownItems = new();
         private readonly Dictionary<Vector2Int, GridRect> _activeRects = new();
         private GridRect _mouseOverRect;
         private GridRect _selectedRect;
@@ -38,30 +38,33 @@ namespace Assets.Scripts.HUD
             _cursor.position = FieldUtils.GetWorldPos(coord);
         }
 
-        public void ShowGrid(IEnumerable<Vector2Int> coords)
+        public void ShowGrid(IEnumerable<GridItem> gridItems)
         {
-            _shownCoords.Clear();
-            _shownCoords.AddRange(coords);
+            _shownItems.Clear();
+            
+            foreach (var item in gridItems)
+            {
+                _shownItems.Add(item.coord, item);
+            }
 
             var coordsToRemove = _activeRects.Keys
-                .Where(k => !_shownCoords.Contains(k)).ToList();
+                .Where(k => !_shownItems.ContainsKey(k)).ToList();
 
             foreach (var coord in coordsToRemove)
             {
                 CleanUp(coord);
             }
             
-            foreach (var coord in _shownCoords)
+            foreach (var kv in _shownItems)
             {
-                if (!_activeRects.TryGetValue(coord, out var rect))
+                if (!_activeRects.TryGetValue(kv.Key, out var rect))
                 {
                     rect = _pool.Get();
-                    rect.transform.localPosition = FieldUtils.GetWorldPos(coord);
-                    _activeRects.Add(coord, rect);
+                    rect.transform.localPosition = FieldUtils.GetWorldPos(kv.Key);
+                    _activeRects.Add(kv.Key, rect);
                 }
                 
-                rect.SetSelected(false);
-                rect.SetMouseOver(false);
+                rect.SetType(kv.Value.type);
             }
         }
 
@@ -98,29 +101,18 @@ namespace Assets.Scripts.HUD
             }
             _activeRects.Clear();
         }
+    }
 
-        private void RunMouseRaycastHit(Action<GridRect> action)
-        {
-            var mousePos = Input.mousePosition;
-            var ray = Camera.main.ScreenPointToRay(mousePos);
-            if (!Physics.Raycast(ray, out var hit, Mathf.Infinity, _hudLayerMask))
-            {
-                action.Invoke(null);
-                return;
-            }
-            action.Invoke(hit.transform.gameObject.GetComponentInParent<GridRect>());
-        }
+    public struct GridItem
+    {
+        public Vector2Int coord;
+        public GridType type;
+    }
 
-        [SuppressMessage("ReSharper", "Unity.NoNullPropagation")]
-        private void Update()
-        {
-            RunMouseRaycastHit(gridRect =>
-            {
-                if (_mouseOverRect == gridRect) return;
-                _mouseOverRect?.SetMouseOver(false);
-                gridRect?.SetMouseOver(true);
-                _mouseOverRect = gridRect;
-            });
-        }
+    public enum GridType
+    {
+        Default,
+        AvailableForAttack,
+        Enemy,
     }
 }
