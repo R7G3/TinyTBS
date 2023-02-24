@@ -33,7 +33,7 @@ namespace Assets.Scripts.GameLogic
 
             var attackPercent = attacker.Attack / 100;
             var healthPercent = 100 * (attacker.Health / Definitions.MaxUnitHealth);
-            var totalAttack = attackPercent * healthPercent + _balanceConfig.attackCoefficient;
+            var totalAttack = attackPercent * healthPercent + _balanceConfig.attackImpact;
             
             attakerDamage = (int)Math.Round((double)totalAttack);
 
@@ -46,7 +46,7 @@ namespace Assets.Scripts.GameLogic
 
             var tileDefence = defender.IsFlying ? 0 : _balanceConfig.GetDefenceImpact(_map[defender.Coord].Type);
             var villageDefence = defender.IsInVillage ? _balanceConfig.villageDefenceBonus : 0;
-            var sumDefece = (double)defender.Defence + tileDefence + villageDefence;
+            var sumDefece = (double)defender.Defence + tileDefence + villageDefence + _balanceConfig.defenceImpact;
             var healthPercent = defender.Health / Definitions.MaxUnitHealth;
 
             defenderDefece = (int)Math.Round(healthPercent * sumDefece);
