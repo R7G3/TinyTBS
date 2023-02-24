@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Assets.Scripts.Buildings;
 using Assets.Scripts.Configs;
 using Assets.Scripts.HUD;
 using Assets.Scripts.HUD.Menu;
@@ -61,10 +62,7 @@ namespace Assets.Scripts.Controllers
                     map[x, y] = CreateTile(x, y, (TileType)typeValues.GetValue(rndIndex));
                 }
             }
-
-            Destroy(((TileView)map[1, 1]).gameObject);
-            map[1, 1] = CreateTile(1, 1, TileType.Grass);
-
+            
             return map;
         }
 
@@ -115,11 +113,6 @@ namespace Assets.Scripts.Controllers
                 .GetComponent<TileView>();
 
             tileView.SetType(type);
-
-            // tileView.SetBuilding(new Building
-            // {
-            //     Type = BuildingType.Castle
-            // });
 
             return tileView;
         }
@@ -204,8 +197,25 @@ namespace Assets.Scripts.Controllers
             unit.Speed = 3;
 
             PlaceUnit(unit);
+            PlaceBuilding(_players[0].Fraction, BuildingType.Village, new Vector2Int(0, 1));
+            PlaceBuilding(_players[1].Fraction, BuildingType.Village, new Vector2Int(3, 1));
+            PlaceBuilding(_players[0].Fraction, BuildingType.Castle, new Vector2Int(0, 2));
+            PlaceBuilding(_players[1].Fraction, BuildingType.Castle, new Vector2Int(3, 2));
+            
 
             StartCoroutine(Turn().AsUniTask().ToCoroutine());
+        }
+
+        private void PlaceBuilding(IFraction fraction, BuildingType type, Vector2Int coord)
+        {
+            Destroy(((TileView)_map[coord]).gameObject);
+            _map[coord] = CreateTile(coord.x, coord.y, TileType.Grass);
+            _map[coord].Building = new Building()
+            {
+                Fraction = fraction,
+                State = new BuildingState(),
+                Type = type
+            };
         }
 
         // ReSharper disable once FunctionNeverReturns

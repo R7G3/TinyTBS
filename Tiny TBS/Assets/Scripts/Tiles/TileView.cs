@@ -1,4 +1,6 @@
+using System;
 using Assets.Scripts.Buildings;
+using Assets.Scripts.Configs;
 using Assets.Scripts.Units;
 using UnityEngine;
 
@@ -6,69 +8,62 @@ namespace Assets.Scripts.Tiles
 {
     public class TileView : MonoBehaviour, ITile
     {
-        private MeshRenderer _renderer;
-
-        public Color roadColor;
-        public Color mountainColor;
-        public Color grassColor;
-        public Color waterColor;
-        public Color unknown;
-
-        public GameObject castlePrefab;
-
+        private TilesConfig _tilesConfig;
         public TileType Type { get; private set; }
 
-        public Building Building { get; private set; }
+        public Building Building
+        {
+            get => _building;
+            set
+            {
+                _building = value;
+                SetBuilding(value);
+            }
+    }
 
         public Unit Unit { get; set; }
+
+        private Building _building;
+        private GameObject _buildingObject;
+
+        private void Awake()
+        {
+            _tilesConfig = TilesConfig.instance;
+        }
 
         public void SetType(TileType type)
         {
             Type = type;
         }
 
-        public void SetBuilding(Building building)
+        private void SetBuilding(Building building)
         {
+            GameObject prefab = null;
             switch (building.Type)
             {
                 case BuildingType.None:
                     break;
 
                 case BuildingType.Village:
+                    prefab = _tilesConfig.buildingPrefabs.village;
                     break;
 
                 case BuildingType.Castle:
-                    {
-                        var castleView = Instantiate(
-                            castlePrefab,
-                            Vector3.zero,
-                            Quaternion.identity);
-
-                        castleView.transform.SetParent(
-                            transform,
-                            worldPositionStays: false);
-
-                        break;
-                    };
-
-                default:
+                    prefab = _tilesConfig.buildingPrefabs.castle;
                     break;
             }
-        }
 
-        // Start is called before the first frame update
-        void Start()
-        {
-        }
+            if (_buildingObject != null)
+            {
+                Destroy(_buildingObject);
+            }
 
-        void Awake()
-        {
-            _renderer = GetComponentInChildren<MeshRenderer>();
-        }
-
-        // Update is called once per frame
-        void Update()
-        {
+            if (prefab != null)
+            {
+                _buildingObject = Instantiate(prefab, transform);
+                _buildingObject.GetComponent<FractionColorCustomizer>()
+                    ?.Init(building.Fraction);
+            }
         }
     }
 }

@@ -7,7 +7,7 @@ namespace Assets.Scripts.Tiles
     {
         TileType Type { get; }
 
-        Building Building { get; }
+        Building Building { get; set; }
 
         Unit Unit { get; set; }
     }

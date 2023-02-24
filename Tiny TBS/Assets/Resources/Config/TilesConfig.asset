@@ -17,3 +17,6 @@ MonoBehaviour:
     road: {fileID: 8030496198351442240, guid: 12d7b4f602ed8174cb616a6f3f4f24f0, type: 3}
     mountain: {fileID: 8030496198351442240, guid: efb926f442eb342baa9bc5a7dc5312bf, type: 3}
     water: {fileID: 8030496198351442240, guid: 40566598a5bb849f1a981d61c66ad652, type: 3}
+  buildingPrefabs:
+    village: {fileID: 774324617447285755, guid: 387f7fec6a1a8498dbe1b517868190f1, type: 3}
+    castle: {fileID: 870094947421467167, guid: 26bdb492279844eb39d7d34ab6e3de94, type: 3}

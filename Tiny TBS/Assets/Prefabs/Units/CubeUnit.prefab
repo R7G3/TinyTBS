@@ -63,7 +63,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _renderers:
-  - {fileID: 6359462806529534525}
+  - renderer: {fileID: 6359462806529534525}
+    materialIndex: 0
   _config: {fileID: 11400000, guid: 9d5071b40847f49eba9e8407a42f8672, type: 2}
 --- !u!1 &6575449160310561489
 GameObject:
