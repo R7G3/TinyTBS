@@ -1,4 +1,5 @@
 using Assets.Scripts.Tiles;
+using Assets.Scripts.Units;
 using UnityEngine;
 
 namespace Assets.Scripts.Configs
@@ -28,14 +29,19 @@ namespace Assets.Scripts.Configs
 
         public int defenceImpact = 1;
 
-        public int GetPenaltyFor(TileType type)
+        public int GetPenaltyFor(TileType type, Unit unit)
         {
+            if (unit.IsFlying)
+            {
+                return 0;
+            }
+
             return type switch
             {
                 TileType.Road => roadMovementSpeedPenalty,
                 TileType.Grass => grassMovementSpeedPenalty,
                 TileType.Mountain => mountainMovementSpeedPenalty,
-                TileType.Water => waterMovementSpeedPenalty,
+                TileType.Water => unit.IsSwimming ? 1 : waterMovementSpeedPenalty,
                 _ => 0,
             };
         }

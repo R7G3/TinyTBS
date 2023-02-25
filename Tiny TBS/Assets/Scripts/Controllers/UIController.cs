@@ -226,19 +226,14 @@ namespace Assets.Scripts.Controllers
 
         private IEnumerable<GridItem> GetActionCoordsForUnit(Unit unit)
         {
-            var moveCoords = _movement.GetPossibleMoves(unit);
-            var enemies = _movement.GetNeighbours(unit.Coord)
-                .Where(i => _movement.HasEnemyUnit(unit, i))
-                .Select(i => new GridItem()
+            var possibleActions = _movement.GetPossibleActions(unit)
+                .Select(cell => new GridItem()
                 {
-                    coord = i,
-                    type = GridType.Enemy
+                    coord = cell.Coord,
+                    type = cell.CanAttack ? GridType.Enemy : GridType.Default,
                 });
-            return moveCoords.Select(i => new GridItem()
-            {
-                coord = i.Coord,
-                type = GridType.Default
-            }).Concat(enemies);
+
+            return possibleActions;
         }
 
         private IEnumerable<MenuItem> GetUnitMenu(Unit unit, Vector2Int targetCoord, Action<UnitAction> onUnitActionSelected)
