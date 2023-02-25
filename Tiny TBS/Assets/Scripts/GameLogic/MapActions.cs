@@ -35,41 +35,10 @@ namespace Assets.Scripts.GameLogic
             return false;
         }
 
-        public IEnumerable<MoveCost> GetPossibleMoves(Unit unit)
-        {
-            var processed = new HashSet<MoveCost>();
-            var result = new List<MoveCost>();
-            var startPoint = new MoveCost(unit.Coord, 0);
-
-            var movesForProcessing = new List<MoveCost>(
-                GetNeighboursForPossibleMoves(startPoint, unit.Speed));
-
-            while (movesForProcessing.Any())
-            {
-                result.AddRange(movesForProcessing);
-                var forChecking = new List<MoveCost>();
-
-                foreach (var potentialMove in movesForProcessing)
-                {
-                    processed.Add(potentialMove);
-
-                    forChecking.AddRange(
-                        GetNeighboursForPossibleMoves(potentialMove, unit.Speed)
-                            .Where(x => !processed.Contains(x)));
-                }
-
-                movesForProcessing.Clear();
-                movesForProcessing.AddRange(forChecking);
-            }
-
-            return result
-                .Distinct();
-        }
-
-        public IEnumerable<Vector2Int> GetTrackForMoving(Vector2Int start, Vector2Int finish, MoveCost[] moveCosts)
+        public IEnumerable<Vector2Int> GetTrackForMoving(Vector2Int start, Vector2Int finish, MoveInfo[] moveCosts)
         {
             IEnumerable<Vector2Int> neighbours;
-            IEnumerable<MoveCost> neighbourCosts;
+            IEnumerable<MoveInfo> neighbourCosts;
             int minimalCost = 0;
 
             var previousMove = moveCosts.Single(move => move.Coord == finish);
@@ -82,7 +51,7 @@ namespace Assets.Scripts.GameLogic
                 neighbours = GetNeighbours(previousMove.Coord);
                 neighbourCosts = moveCosts.Where(move => neighbours.Contains(move.Coord));
                 minimalCost = neighbourCosts.Min(move => move.Cost);
-                
+
                 previousMove = neighbourCosts.Single(move => move.Cost == minimalCost);
 
                 if (previousMove.Coord == start)
@@ -99,11 +68,9 @@ namespace Assets.Scripts.GameLogic
 
         public IEnumerable<Vector2Int> GetPossibleTargetsForAttack(Unit unit)
         {
-            var position = new MoveCost(unit.Coord, 0);
+            var coordsInRange = GetNeighboursInRange(unit.Coord, unit.AttackRange);
 
-            var coordsInRange = GetNeighboursForPossibleMoves(position, unit.AttackRange);
-
-            foreach (var coord in coordsInRange.Select(c => c.Coord))
+            foreach (var coord in coordsInRange)
             {
                 if (CoordinateInRange(unit, coord)
                     && HasEnemyUnit(unit, coord))
@@ -118,7 +85,7 @@ namespace Assets.Scripts.GameLogic
             return GetNeighbours(unit.Coord)
                 .Where(neighbourn => HaveOccupableBuilding(unit, neighbourn));
         }
-        
+
         public bool HasEnemyUnit(Unit unit, Vector2Int coord)
         {
             var otherUnit = _map[coord].Unit;
@@ -128,80 +95,12 @@ namespace Assets.Scripts.GameLogic
                 return false;
             }
 
-            if (otherUnit.Fraction.Id.Equals(unit.Fraction.Id, StringComparison.OrdinalIgnoreCase))
+            if (otherUnit.Fraction.Id == unit.Fraction.Id)
             {
                 return false;
             }
 
             return true;
-        }
-
-        private bool CoordinateInRange(Unit unit, Vector2Int coord)
-        {
-            var rangeByX = Math.Abs(coord.x - unit.Coord.x);
-            var rangeByY = Math.Abs(coord.y - unit.Coord.y);
-            var summaryRange = rangeByX + rangeByY;
-
-            return summaryRange <= unit.AttackRange;
-        }
-
-
-        private bool HaveOccupableBuilding(Unit unit, Vector2Int coord)
-        {
-            var building = _map[coord].Building;
-
-            if (building == null)
-            {
-                return false;
-            }
-
-            if (building.State == BuildingState.Broken)
-            {
-                return false;
-            }
-
-            if (building.Fraction.Id.Equals(unit.Fraction.Id, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            // TODO: ���������, ����� �� ���� �����������
-            return true;
-        }
-
-        private IEnumerable<MoveCost> GetNeighboursForPossibleMoves(MoveCost previousMove, int unitSpeed)
-        {
-            var result = new List<MoveCost>(4);
-            var neighbours = GetNeighbours(previousMove.Coord);
-
-            foreach (var neighbour in neighbours)
-            {
-                var potentialMovement = GetCostForMove(neighbour, previousMove.Cost);
-
-                if (unitSpeed < potentialMovement.Cost)
-                {
-                    continue;
-                }
-
-                result.Add(potentialMovement);
-            }
-
-            return result;
-        }
-
-        private MoveCost GetCostForMove(Vector2Int coord, int previousMovesCost)
-        {
-            var tile = _map[coord];
-
-            if (tile.Building != null || tile.Unit != null)
-            {
-                return new MoveCost(coord, 100);
-            }
-
-            var penalty = _balanceConfig.GetPenaltyFor(tile.Type);
-            var cost = previousMovesCost + penalty;
-
-            return new MoveCost(coord, cost);
         }
 
         public IEnumerable<Vector2Int> GetNeighbours(Vector2Int coord)
@@ -233,6 +132,157 @@ namespace Assets.Scripts.GameLogic
             {
                 yield return new Vector2Int(coord.x, valueWithOffset);
             }
+        }
+
+        public IEnumerable<Vector2Int> GetNeighboursInRange(Vector2Int coord, int range)
+        {
+            throw new NotImplementedException(nameof(GetNeighboursInRange));
+        }
+
+        public IEnumerable<MoveInfo> GetPossibleActions(Unit unit)
+        {
+            var result = new List<MoveInfo>();
+            var startPoint = MoveInfo.CreateDefault(unit.Coord);
+            var processed = new HashSet<MoveInfo>();
+            processed.Add(startPoint);
+
+            var availableMoves = new List<MoveInfo>(
+                GetNeighboursForPossibleActions(startPoint, unit));
+
+            availableMoves.Remove(startPoint);
+
+            result.AddRange(availableMoves);
+
+            var forChecking = new List<MoveInfo>();
+            var possibles = new List<MoveInfo>(result);
+            var returnedCount = availableMoves.Count();
+
+            while (returnedCount != 0)
+            {
+                var newPossibles = new List<MoveInfo>();
+                result.ForEach(possible => 
+                    newPossibles.AddRange(GetNeighboursForPossibleActions(possible, unit)
+                        .Where(possible => !processed.Contains(possible))));
+
+                possibles = newPossibles;
+
+                returnedCount = possibles.Count();
+
+                foreach (var possible in possibles)
+                {
+                    if (!processed.Contains(possible))
+                    {
+                        processed.Add(possible);
+                    }
+
+                    if (!result.Contains(possible))
+                    {
+                        result.Add(possible);
+                    }
+                }
+            }
+
+            return result.Where(cell => cell.CanMove || cell.CanAttack || cell.CanOccupy)
+                .Where(cell =>
+                {
+                    if (cell.CanAttack || cell.CanOccupy)
+                    {
+                        return cell.PathwayPart.Previous.CurrentMoveInfo.Cost <= unit.Speed;
+                    }
+                    return true;
+                });
+        }
+
+        private IEnumerable<MoveInfo> GetNeighboursForPossibleActions(MoveInfo previousMove, Unit unit)
+        {
+            var result = new List<MoveInfo>(4);
+            var neighbours = GetNeighbours(previousMove.Coord);
+
+            foreach (var neighbour in neighbours)
+            {
+                var potentialMovement = GetMoveInformation(neighbour, previousMove, unit);
+
+                var costOutOfRange = unit.Speed + unit.AttackRange < potentialMovement.Cost;
+
+                if (!costOutOfRange ||
+                    potentialMovement.CanAttack ||
+                    potentialMovement.CanOccupy)
+                {
+                    result.Add(potentialMovement);
+                }
+            }
+
+            return result;
+        }
+
+        private MoveInfo GetMoveInformation(Vector2Int coord, MoveInfo previousMove, Unit unit)
+        {
+            var tile = _map[coord];
+            var canAttack = false;
+            var canOccupy = false;
+
+            if (tile.Unit != null)
+            {
+                canAttack = unit.Fraction != tile.Unit.Fraction;
+            }
+
+            if (tile.Building != null)
+            {
+                canOccupy = unit.Fraction != tile.Building.Fraction;
+            }
+
+            var penalty = _balanceConfig.GetPenaltyFor(tile.Type, unit);
+            var cost = (canAttack || canOccupy) ? 100 : previousMove.Cost + penalty;
+            var canMove = cost <= unit.Speed;
+
+            var moveInfo = new MoveInfo(
+                    coord: coord,
+                    cost: cost,
+                    canMove: canMove,
+                    canAttack: canAttack,
+                    canOccupy: canOccupy,
+                    pathwayPart: null);
+
+            var pathPart = new PathPart(
+                previous: previousMove.PathwayPart,
+                current: moveInfo);
+
+            moveInfo.PathwayPart = pathPart;
+
+            return moveInfo;
+        }
+
+        private bool CoordinateInRange(Unit unit, Vector2Int coord)
+        {
+            var rangeByX = Math.Abs(coord.x - unit.Coord.x);
+            var rangeByY = Math.Abs(coord.y - unit.Coord.y);
+            var summaryRange = rangeByX + rangeByY;
+
+            return summaryRange <= unit.AttackRange;
+        }
+
+
+        private bool HaveOccupableBuilding(Unit unit, Vector2Int coord)
+        {
+            var building = _map[coord].Building;
+
+            if (building == null)
+            {
+                return false;
+            }
+
+            if (building.State == BuildingState.Broken)
+            {
+                return false;
+            }
+
+            if (building.Fraction.Id == unit.Fraction.Id)
+            {
+                return false;
+            }
+
+            // TODO: проверить может ли юнит захватывать
+            return true;
         }
 
         private int Normalize(int value, int axis)

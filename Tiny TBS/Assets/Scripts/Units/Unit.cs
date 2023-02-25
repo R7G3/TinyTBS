@@ -19,7 +19,7 @@ namespace Assets.Scripts.Units
 
         public int Attack { get; set; }
 
-        public int AttackRange { get; set; }
+        public int AttackRange { get; set; } = 1;
 
         public bool IsFlying { get; set; }
 
