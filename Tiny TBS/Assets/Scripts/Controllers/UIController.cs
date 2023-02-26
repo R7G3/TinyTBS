@@ -22,8 +22,10 @@ namespace Assets.Scripts.Controllers
         private readonly Map _map;
         private readonly GridDrawer _gridDrawer;
         private readonly MenuController _menuController;
+        private readonly TileInfoController _tileInfoController;
         private readonly Camera _camera;
         private readonly HUDMessageController _hudMessageController;
+        private TileInformation _tileInformation;
         private Unit _selectedUnit;
         private Vector2Int _selectedCoord;
         private UnitAction _selectedAction;
@@ -38,20 +40,24 @@ namespace Assets.Scripts.Controllers
         private event Action<MouseController.DragData> _onMouseDrag;
 
         public UIController(Map map, GridDrawer gridDrawer, MenuController menuController, Camera camera,
-            HUDMessageController hudMessageController, BalanceConfig balanceConfig)
+            HUDMessageController hudMessageController, BalanceConfig balanceConfig, TileInfoController tileInfoController)
         {
             _map = map;
             _gridDrawer = gridDrawer;
             _menuController = menuController;
+            _tileInfoController = tileInfoController;
             _camera = camera;
             _hudMessageController = hudMessageController;
 
             _balanceConfig = balanceConfig;
             _movement = new MapActions(_map, _balanceConfig);
+            _tileInformation = new TileInformation(_map, _balanceConfig, _camera);
 
             _onMouseDrag += HideMenuOnDrag;
             _onMouseDrag += DisableHoverOnDrag;
             _onMouseMove += ShowCursorOnHover;
+
+            _onMouseMove += GetTileInfo;
         }
 
         public async UniTask ShowMessage(string msg)
@@ -170,6 +176,13 @@ namespace Assets.Scripts.Controllers
 
             _hoveredGrid = coord;
             _gridDrawer.ShowCursor(coord);
+        }
+
+        private void GetTileInfo(Vector3 pos)
+        {
+            string info = _tileInformation.GetTileInfo(pos);
+
+            _tileInfoController.UpdateHUDInfo(info);
         }
 
         private Task<Unit> SelectUnit()
