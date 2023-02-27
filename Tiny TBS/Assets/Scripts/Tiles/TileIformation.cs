@@ -63,7 +63,6 @@ public static class TileInformation
     private static string GetUnitInformationOnMap(ITile tile)
     {
         string info = "";
-        
 
         if (tile.Unit != null)
         {
