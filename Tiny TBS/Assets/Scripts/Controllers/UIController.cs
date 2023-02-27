@@ -1,19 +1,17 @@
+using Assets.Scripts.Configs;
+using Assets.Scripts.GameLogic;
+using Assets.Scripts.HUD;
+using Assets.Scripts.HUD.Menu;
+using Assets.Scripts.PlayerAction;
+using Assets.Scripts.Tiles;
+using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Cysharp.Threading.Tasks;
-using Assets.Scripts.HUD;
-using Assets.Scripts.HUD.Menu;
-using Assets.Scripts.PlayerAction;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using Utils;
 using Unit = Assets.Scripts.Units.Unit;
-using Assets.Scripts.GameLogic;
-using Assets.Scripts.Configs;
-using Assets.Scripts.GameLogic.Models;
 
 namespace Assets.Scripts.Controllers
 {
