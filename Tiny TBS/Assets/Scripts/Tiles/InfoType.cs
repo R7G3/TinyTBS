@@ -1,10 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public enum InfoType
+namespace Assets.Scripts.Tiles
 {
-    Tile,
-    Unit,
-    Building
+    public enum InfoType
+    {
+        Tile,
+        Unit,
+        Building
+    }
 }
