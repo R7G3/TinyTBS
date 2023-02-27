@@ -22,6 +22,7 @@ namespace Assets.Scripts.Controllers
         private readonly Map _map;
         private readonly GridDrawer _gridDrawer;
         private readonly MenuController _menuController;
+        private readonly TileInfoController _tileInfoController;
         private readonly Camera _camera;
         private readonly HUDMessageController _hudMessageController;
         private Unit _selectedUnit;
@@ -38,11 +39,12 @@ namespace Assets.Scripts.Controllers
         private event Action<MouseController.DragData> _onMouseDrag;
 
         public UIController(Map map, GridDrawer gridDrawer, MenuController menuController, Camera camera,
-            HUDMessageController hudMessageController, BalanceConfig balanceConfig)
+            HUDMessageController hudMessageController, BalanceConfig balanceConfig, TileInfoController tileInfoController)
         {
             _map = map;
             _gridDrawer = gridDrawer;
             _menuController = menuController;
+            _tileInfoController = tileInfoController;
             _camera = camera;
             _hudMessageController = hudMessageController;
 
@@ -52,6 +54,8 @@ namespace Assets.Scripts.Controllers
             _onMouseDrag += HideMenuOnDrag;
             _onMouseDrag += DisableHoverOnDrag;
             _onMouseMove += ShowCursorOnHover;
+
+            _onMouseMove += GetTileInfo;
         }
 
         public async UniTask ShowMessage(string msg)
@@ -170,6 +174,13 @@ namespace Assets.Scripts.Controllers
 
             _hoveredGrid = coord;
             _gridDrawer.ShowCursor(coord);
+        }
+
+        private void GetTileInfo(Vector3 pos)
+        {
+            string info = TileInformation.GetTileInfo(pos, _map, _balanceConfig, _camera, InfoType.Tile);
+
+            _tileInfoController.SetTileInfo(info);
         }
 
         private Task<Unit> SelectUnit()

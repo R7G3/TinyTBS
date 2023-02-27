@@ -21,6 +21,7 @@ namespace Assets.Scripts.Controllers
         [SerializeField] private GridDrawer _gridDrawer;
         [SerializeField] private MouseController _mouseController;
         [SerializeField] private MenuController _menuController;
+        [SerializeField] private TileInfoController _tileInfoController;
         [SerializeField] private HUDMessageController _hudMessageController;
         [SerializeField] private TilesConfig _tilesConfig;
         [SerializeField] private UnitController _unitController;
@@ -166,7 +167,8 @@ namespace Assets.Scripts.Controllers
                 _menuController,
                 _camera,
                 _hudMessageController,
-                _balanceConfig);
+                _balanceConfig,
+                _tileInfoController);
 
             _mouseController.onClick += _uiController.OnMouseClick;
             _mouseController.onMouseMove += _uiController.OnMouseMove;
@@ -198,15 +200,7 @@ namespace Assets.Scripts.Controllers
 
             PlaceUnit(unit);
             
-            unit = new Unit
-            {
-                Fraction = _players[1].Fraction,
-                Coord = new Vector2Int(3, 3)
-            };
-
-            unit.Speed = 3;
-
-            PlaceUnit(unit);
+            
             PlaceBuilding(_players[0].Fraction, BuildingType.Village, new Vector2Int(0, 1));
             PlaceBuilding(_players[1].Fraction, BuildingType.Village, new Vector2Int(3, 1));
             PlaceBuilding(_players[0].Fraction, BuildingType.Castle, new Vector2Int(0, 2));
