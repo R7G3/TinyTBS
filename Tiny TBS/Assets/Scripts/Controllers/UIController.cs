@@ -25,7 +25,6 @@ namespace Assets.Scripts.Controllers
         private readonly TileInfoController _tileInfoController;
         private readonly Camera _camera;
         private readonly HUDMessageController _hudMessageController;
-        private TileInformation _tileInformation;
         private Unit _selectedUnit;
         private Vector2Int _selectedCoord;
         private UnitAction _selectedAction;
@@ -51,7 +50,6 @@ namespace Assets.Scripts.Controllers
 
             _balanceConfig = balanceConfig;
             _movement = new MapActions(_map, _balanceConfig);
-            _tileInformation = new TileInformation(_map, _balanceConfig, _camera);
 
             _onMouseDrag += HideMenuOnDrag;
             _onMouseDrag += DisableHoverOnDrag;
@@ -180,9 +178,9 @@ namespace Assets.Scripts.Controllers
 
         private void GetTileInfo(Vector3 pos)
         {
-            string info = _tileInformation.GetTileInfo(pos);
+            string info = TileInformation.GetTileInfo(pos, _map, _balanceConfig, _camera, InfoType.Tile);
 
-            _tileInfoController.UpdateHUDInfo(info);
+            _tileInfoController.SetTileInfo(info);
         }
 
         private Task<Unit> SelectUnit()

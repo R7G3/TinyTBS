@@ -15,16 +15,10 @@ using System.Reflection.Emit;
 
 public class TileInfoController : MonoBehaviour
 {
-    [SerializeField] private RectTransform _list;
-    [SerializeField] private TextMeshProUGUI _title;
+    [SerializeField] private TextMeshProUGUI _tileInfo;
 
-    private void Start()
+    public void SetTileInfo(string text)
     {
-        _list.gameObject.SetActive(true);
-    }
-
-    public void UpdateHUDInfo(string text)
-    {
-        _title.text = text;
+        _tileInfo.text = text;
     }
 }
