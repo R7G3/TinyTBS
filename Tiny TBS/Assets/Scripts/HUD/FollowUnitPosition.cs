@@ -1,18 +1,22 @@
 using UnityEngine;
 
-public class FollowUnitPosition : MonoBehaviour
+namespace Assets.Scripts.HUD
 {
-    private RectTransform _transform;
-    private Transform _unitTransform;
-    [SerializeField] private Vector3 _offset;
-    public void FollowUnit(Transform unit)
+    public class FollowUnitPosition : MonoBehaviour
     {
-        _transform = GetComponent<RectTransform>();
-        _unitTransform = unit;
-    }
+        private RectTransform _transform;
+        private Transform _unitTransform;
+        [SerializeField] private Vector3 _offset;
 
-    private void Update()
-    {
-        _transform.position = _unitTransform.position + _offset;
+        public void FollowUnit(Transform unit)
+        {
+            _transform = GetComponent<RectTransform>();
+            _unitTransform = unit;
+        }
+
+        private void Update()
+        {
+            _transform.position = _unitTransform.position + _offset;
+        }
     }
 }

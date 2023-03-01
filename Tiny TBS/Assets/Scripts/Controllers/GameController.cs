@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Assets.Scripts.Buildings;
 using Assets.Scripts.Configs;
+using Assets.Scripts.GameLogic;
 using Assets.Scripts.HUD;
 using Assets.Scripts.HUD.Menu;
 using Assets.Scripts.PlayerAction;
@@ -28,6 +29,7 @@ namespace Assets.Scripts.Controllers
         [SerializeField] private BalanceConfig _balanceConfig;
         [SerializeField] private bool _randomMap;
 
+        private Attack _attackLogic;
         private UIController _uiController;
         private Camera _camera;
         private Map _map;
@@ -45,6 +47,13 @@ namespace Assets.Scripts.Controllers
             _units.Add(unit);
             _map[unit.Coord].Unit = unit;
             _unitController.CreateUnitAt(unit, unit.Coord);
+        }
+
+        void RemoveUnit(Unit unit)
+        {
+            _units.Remove(unit);
+            _map[unit.Coord].Unit = null;
+            _unitController.RemoveUnitAt(unit);
         }
 
         Map CreateRandomMap(int size)
@@ -118,7 +127,6 @@ namespace Assets.Scripts.Controllers
             return tileView;
         }
 
-
         private void OnMoveUnit(MoveUnit moveUnit)
         {
             _map[moveUnit.unit.Coord].Unit = null;
@@ -128,6 +136,53 @@ namespace Assets.Scripts.Controllers
 
             var moveTask = _unitController.MoveUnit(moveUnit.unit, Enumerable.Repeat(moveUnit.coord, 1));
             _queuedAnimations.Add(moveTask);
+        }
+
+        private void OnAttackUnit(AttackUnit attackUnit)
+        {
+            if (attackUnit.NeedToCome)
+            {
+                /*OnMoveUnit(
+                    new MoveUnit
+                    {
+                        unit = attackUnit.Attacking,
+                        coord = attackUnit.Attacked.Coord.x - 1,
+                    });*/
+            }
+
+            var damage = _attackLogic.CalculateDamage(attackUnit.Attacking, attackUnit.Attacked);
+
+            if (attackUnit.Attacked.Health < damage)
+            {
+                RemoveUnit(attackUnit.Attacked);
+                return;
+            }
+
+            attackUnit.Attacked.Health -= damage;
+
+            var retaliatoryDamage = _attackLogic.CalculateDamage(attackUnit.Attacked, attackUnit.Attacking);
+
+            if (attackUnit.Attacking.Health < retaliatoryDamage)
+            {
+                RemoveUnit(attackUnit.Attacking);
+                return;
+            }
+
+            attackUnit.Attacking.Health -= retaliatoryDamage;
+
+            attackUnit.Attacking.HasMoved = true;
+        }
+
+        private void OnOccupyBuilding(OccupyBuilding occupyBuilding)
+        {
+            var building = _map[occupyBuilding.Coord].Building;
+
+            if (building != null)
+            {
+                building.Fraction = occupyBuilding.Unit.Fraction;
+            }
+
+            occupyBuilding.Unit.HasMoved = true;
         }
 
         private void Awake()
@@ -161,6 +216,8 @@ namespace Assets.Scripts.Controllers
                     });
             }
 
+            _attackLogic = new Attack(_map, _balanceConfig);
+
             _uiController = new UIController(
                 _map,
                 _gridDrawer,
@@ -183,21 +240,21 @@ namespace Assets.Scripts.Controllers
             var unit = new Unit
             {
                 Fraction = _players[0].Fraction,
-                Coord = new Vector2Int(1, 1)
+                Coord = new Vector2Int(1, 1),
+                Speed = 3,
+                Attack = 5,
+                AttackRange = 1,
             };
-
-            unit.Speed = 3;
-
             PlaceUnit(unit);
             
             unit = new Unit
             {
                 Fraction = _players[1].Fraction,
-                Coord = new Vector2Int(3, 3)
+                Coord = new Vector2Int(3, 3),
+                Speed = 3,
+                Attack = 5,
+                AttackRange = 1,
             };
-
-            unit.Speed = 3;
-
             PlaceUnit(unit);
             
             
@@ -276,6 +333,12 @@ namespace Assets.Scripts.Controllers
             {
                 case MoveUnit moveUnit:
                     OnMoveUnit(moveUnit);
+                    break;
+                case AttackUnit attackUnit:
+                    OnAttackUnit(attackUnit);
+                    break;
+                case OccupyBuilding occupyBuilding:
+                    OnOccupyBuilding(occupyBuilding);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(playerAction));

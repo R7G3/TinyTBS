@@ -1,8 +1,6 @@
 using Assets.Scripts.Configs;
 using Assets.Scripts.Units;
 using System;
-using UnityEditor.Experimental.GraphView;
-using UnityEngine;
 
 namespace Assets.Scripts.GameLogic
 {
@@ -17,7 +15,7 @@ namespace Assets.Scripts.GameLogic
             _balanceConfig = balanceConfig;
         }
 
-        private int CalculateDamage(Unit attacker, Unit defender)
+        public int CalculateDamage(Unit attacker, Unit defender)
         {
             var attakerDamage = CalculateAttack(attacker);
             var defenderDefence = CalculateDefence(defender);
