@@ -103,6 +103,23 @@ namespace Assets.Scripts.GameLogic
             return true;
         }
 
+        public bool HasEnemyBuilding(Unit unit, Vector2Int coord)
+        {
+            var targetTile = _map[coord];
+
+            if (targetTile.Unit != null)
+            {
+                return false;
+            }
+
+            if (targetTile.Building != null)
+            {
+                return targetTile.Building.Fraction.Id != unit.Fraction.Id;
+            }
+
+            return false;
+        }
+
         public IEnumerable<Vector2Int> GetNeighbours(Vector2Int coord)
         {
             var valueWithOffset = Normalize(coord.x - 1, Definitions.xAxis);

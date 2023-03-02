@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using Assets.Scripts.HUD;
 using Assets.Scripts.Units;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -15,6 +15,7 @@ namespace Assets.Scripts.Controllers
         [SerializeField] private GameObject _unitPrefab;
         
         private readonly Dictionary<Guid, UnitView> _unitViews = new Dictionary<Guid, UnitView>();
+        private readonly Dictionary<Unit, Transform> _unitLabelMap = new Dictionary<Unit, Transform>();
         private Pool<Transform> _countLabelsPool;
 
         private void Awake()
@@ -29,7 +30,20 @@ namespace Assets.Scripts.Controllers
             _unitViews[unit.Id].SetFraction(unit.Fraction);
             var unitTransform = _unitViews[unit.Id].gameObject.transform;
             unitTransform.position = FieldUtils.GetWorldPos(coord);
-            _countLabelsPool.Get().GetComponent<FollowUnitPosition>().FollowUnit(unitTransform);
+
+            var labelTransform = _countLabelsPool.Get();
+            _unitLabelMap.Add(unit, labelTransform);
+            labelTransform.GetComponent<FollowUnitPosition>().FollowUnit(unitTransform);
+        }
+
+        public void RemoveUnitAt(Unit unit)
+        {
+            UnityEngine.Object.Destroy(
+                _unitViews[unit.Id].gameObject);
+
+            _countLabelsPool.Return(_unitLabelMap[unit]);
+
+            _unitViews.Remove(unit.Id);
         }
 
         public UniTask MoveUnit(Unit unit, IEnumerable<Vector2Int> path)

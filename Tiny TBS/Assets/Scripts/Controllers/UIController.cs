@@ -1,5 +1,6 @@
 using Assets.Scripts.Configs;
 using Assets.Scripts.GameLogic;
+using Assets.Scripts.GameLogic.Models;
 using Assets.Scripts.HUD;
 using Assets.Scripts.HUD.Menu;
 using Assets.Scripts.PlayerAction;
@@ -80,10 +81,26 @@ namespace Assets.Scripts.Controllers
                 switch (action)
                 {
                     case UnitAction.Move:
-                        return new MoveUnit()
+                        return new MoveUnit
                         {
                             unit = unit,
-                            coord = coord
+                            coord = coord,
+                        };
+                    case UnitAction.Attack:
+                        {
+                            var enemyUnit = _map[coord].Unit;
+
+                            return new AttackUnit
+                            {
+                                Attacker = unit,
+                                Defender = enemyUnit,
+                            };
+                        }
+                    case UnitAction.Occupy:
+                        return new OccupyBuilding
+                        {
+                            Unit = unit,
+                            Coord = coord,
                         };
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -239,7 +256,7 @@ namespace Assets.Scripts.Controllers
                 .Select(cell => new GridItem()
                 {
                     coord = cell.Coord,
-                    type = cell.CanAttack ? GridType.Enemy : GridType.Default,
+                    type = GridTypeFromMoveInfoAttributes(cell),
                 });
 
             return possibleActions;
@@ -255,10 +272,33 @@ namespace Assets.Scripts.Controllers
                     onClick = () => onUnitActionSelected.Invoke(UnitAction.Attack)
                 };
             }
+            else if (_movement.HasEnemyBuilding(unit, targetCoord))
+            {
+                yield return new MenuItem()
+                {
+                    title = "Occupy",
+                    onClick = () => onUnitActionSelected.Invoke(UnitAction.Occupy)
+                };
+            }
             else
             {
                 onUnitActionSelected(UnitAction.Move);
             }
+        }
+
+        private GridType GridTypeFromMoveInfoAttributes(MoveInfo moveInfo)
+        {
+            if (moveInfo.CanAttack)
+            {
+                return GridType.Enemy;
+            }
+
+            if (moveInfo.CanOccupy)
+            {
+                return GridType.EnemyBuilding;
+            }
+
+            return GridType.Default;
         }
 
         private struct UIState
@@ -269,7 +309,8 @@ namespace Assets.Scripts.Controllers
         private enum UnitAction
         {
             Move,
-            Attack
+            Attack,
+            Occupy,
         }
     }
 }

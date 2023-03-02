@@ -23,6 +23,9 @@ namespace Assets.Scripts.HUD
                 case GridType.Enemy:
                     _renderer.color = _config.enemyColor;
                     break;
+                case GridType.EnemyBuilding:
+                    _renderer.color = _config.enemyColor;
+                    return;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
