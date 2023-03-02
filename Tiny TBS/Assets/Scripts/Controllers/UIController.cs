@@ -89,13 +89,11 @@ namespace Assets.Scripts.Controllers
                     case UnitAction.Attack:
                         {
                             var enemyUnit = _map[coord].Unit;
-                            var needToCome = _movement.IsNeighbors(unit.Coord, enemyUnit.Coord);
 
                             return new AttackUnit
                             {
-                                Attacking = unit,
-                                Attacked = enemyUnit,
-                                NeedToCome = needToCome,
+                                Attacker = unit,
+                                Defender = enemyUnit,
                             };
                         }
                     case UnitAction.Occupy:
@@ -103,7 +101,6 @@ namespace Assets.Scripts.Controllers
                         {
                             Unit = unit,
                             Coord = coord,
-                            NeedToCome = _movement.IsNeighbors(unit.Coord, coord),
                         };
                     default:
                         throw new ArgumentOutOfRangeException();

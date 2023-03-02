@@ -4,10 +4,8 @@ namespace Assets.Scripts.PlayerAction
 {
     public struct AttackUnit : IPlayerAction
     {
-        public Unit Attacking { get; set; }
+        public Unit Attacker { get; set; }
 
-        public Unit Attacked { get; set; }
-
-        public bool NeedToCome { get; set; }
+        public Unit Defender { get; set; }
     }
 }

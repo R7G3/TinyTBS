@@ -1,8 +1,4 @@
-﻿using Assets.Scripts.Configs;
-using Assets.Scripts.Tiles;
-using Assets.Scripts.Units;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Assets.Scripts.Tiles;
 using UnityEngine;
 
 namespace Assets.Scripts

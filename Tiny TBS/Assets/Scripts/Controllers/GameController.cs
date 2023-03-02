@@ -140,37 +140,27 @@ namespace Assets.Scripts.Controllers
 
         private void OnAttackUnit(AttackUnit attackUnit)
         {
-            if (attackUnit.NeedToCome)
-            {
-                /*OnMoveUnit(
-                    new MoveUnit
-                    {
-                        unit = attackUnit.Attacking,
-                        coord = attackUnit.Attacked.Coord.x - 1,
-                    });*/
-            }
+            var damage = _attackLogic.CalculateDamage(attackUnit.Attacker, attackUnit.Defender);
 
-            var damage = _attackLogic.CalculateDamage(attackUnit.Attacking, attackUnit.Attacked);
-
-            if (attackUnit.Attacked.Health < damage)
+            if (attackUnit.Defender.Health < damage)
             {
-                RemoveUnit(attackUnit.Attacked);
+                RemoveUnit(attackUnit.Defender);
                 return;
             }
 
-            attackUnit.Attacked.Health -= damage;
+            attackUnit.Defender.Health -= damage;
 
-            var retaliatoryDamage = _attackLogic.CalculateDamage(attackUnit.Attacked, attackUnit.Attacking);
+            var retaliatoryDamage = _attackLogic.CalculateDamage(attackUnit.Defender, attackUnit.Attacker);
 
-            if (attackUnit.Attacking.Health < retaliatoryDamage)
+            if (attackUnit.Attacker.Health < retaliatoryDamage)
             {
-                RemoveUnit(attackUnit.Attacking);
+                RemoveUnit(attackUnit.Attacker);
                 return;
             }
 
-            attackUnit.Attacking.Health -= retaliatoryDamage;
+            attackUnit.Attacker.Health -= retaliatoryDamage;
 
-            attackUnit.Attacking.HasMoved = true;
+            attackUnit.Attacker.HasMoved = true;
         }
 
         private void OnOccupyBuilding(OccupyBuilding occupyBuilding)
@@ -237,24 +227,14 @@ namespace Assets.Scripts.Controllers
                 new Player(new Fraction("Player 2"))
             });
 
-            var unit = new Unit
-            {
-                Fraction = _players[0].Fraction,
-                Coord = new Vector2Int(1, 1),
-                Speed = 3,
-                Attack = 5,
-                AttackRange = 1,
-            };
+            var unit = new Unit(
+                _players[0].Fraction,
+                new Vector2Int(1, 1));
             PlaceUnit(unit);
-            
-            unit = new Unit
-            {
-                Fraction = _players[1].Fraction,
-                Coord = new Vector2Int(3, 3),
-                Speed = 3,
-                Attack = 5,
-                AttackRange = 1,
-            };
+
+            unit = new Unit(
+                _players[1].Fraction,
+                new Vector2Int(3, 3));
             PlaceUnit(unit);
             
             

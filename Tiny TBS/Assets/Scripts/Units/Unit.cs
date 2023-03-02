@@ -5,6 +5,44 @@ namespace Assets.Scripts.Units
 {
     public class Unit
     {
+        public Unit(
+            UnitType unitType,
+            IFraction fraction,
+            int speed,
+            int defence,
+            int attack,
+            int attackRange,
+            bool isFlying,
+            bool isSwimming,
+            Vector2Int coord
+            )
+        {
+            Type = unitType;
+            Fraction = fraction;
+            Health = Definitions.MaxUnitHealth;
+            Speed = speed;
+            Defence = defence;
+            Attack = attack;
+            AttackRange = attackRange;
+            IsFlying = isFlying;
+            IsSwimming = isSwimming;
+            Coord = coord;
+        }
+
+        public Unit(IFraction fraction, Vector2Int coord)
+        {
+            Type = UnitType.Soldier;
+            Fraction = fraction;
+            Health = Definitions.MaxUnitHealth;
+            Speed = 3;
+            Defence = 3;
+            Attack = 5;
+            AttackRange = 1;
+            IsFlying = false;
+            IsSwimming = false;
+            Coord = coord;
+        }
+
         public Guid Id { get; } = Guid.NewGuid();
 
         public UnitType Type { get; set; }
