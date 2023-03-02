@@ -21,7 +21,10 @@ namespace Assets.Scripts.Controllers
         [SerializeField] private GridDrawer _gridDrawer;
         [SerializeField] private MouseController _mouseController;
         [SerializeField] private MenuController _menuController;
-        [SerializeField] private TileInfoController _tileInfoController;
+        [SerializeField] private TileInformationVisibilityController _widgetVisibility;
+        [SerializeField] private TileInfoController _terrainInfo;
+        [SerializeField] private TileInfoController _unitInfo;
+        [SerializeField] private TileInfoController _buildInfo;
         [SerializeField] private HUDMessageController _hudMessageController;
         [SerializeField] private TilesConfig _tilesConfig;
         [SerializeField] private UnitController _unitController;
@@ -168,7 +171,10 @@ namespace Assets.Scripts.Controllers
                 _camera,
                 _hudMessageController,
                 _balanceConfig,
-                _tileInfoController);
+                _terrainInfo,
+                _buildInfo,
+                _unitInfo,
+                _widgetVisibility);
 
             _mouseController.onClick += _uiController.OnMouseClick;
             _mouseController.onMouseMove += _uiController.OnMouseMove;

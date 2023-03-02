@@ -6,13 +6,13 @@ namespace Assets.Scripts.Tiles
 {
     public static class TileInformation
     {
-        public static string GetTileInfo(Vector3 pos, Map map, BalanceConfig balanceConfig, Camera camera, InfoType type)
+        public static string GetTileInfo(Vector2Int coord, Map map, BalanceConfig balanceConfig, InfoType type)
         {
-            var coord = FieldUtils.GetCoordFromMousePos(pos, camera);
+            var _coord = coord;
 
-            if (map.IsValidCoord(coord))
+            if (map.IsValidCoord(_coord))
             {
-                var tile = map[coord];
+                var tile = map[_coord];
 
                 switch (type)
                 {
