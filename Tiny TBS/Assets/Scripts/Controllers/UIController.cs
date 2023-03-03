@@ -21,7 +21,10 @@ namespace Assets.Scripts.Controllers
         private readonly Map _map;
         private readonly GridDrawer _gridDrawer;
         private readonly MenuController _menuController;
-        private readonly TileInfoController _tileInfoController;
+        private readonly TileInformationVisibilityController _widgetVisibility;
+        private readonly TileInfoController _terrainInfo;
+        private readonly TileInfoController _buildInfo;
+        private readonly TileInfoController _unitInfo;
         private readonly Camera _camera;
         private readonly HUDMessageController _hudMessageController;
         private Unit _selectedUnit;
@@ -38,12 +41,17 @@ namespace Assets.Scripts.Controllers
         private event Action<MouseController.DragData> _onMouseDrag;
 
         public UIController(Map map, GridDrawer gridDrawer, MenuController menuController, Camera camera,
-            HUDMessageController hudMessageController, BalanceConfig balanceConfig, TileInfoController tileInfoController)
+            HUDMessageController hudMessageController, BalanceConfig balanceConfig,
+            TileInfoController terrainInfo, TileInfoController buildInfo, TileInfoController unitInfo,
+            TileInformationVisibilityController widgetVisibility)
         {
             _map = map;
             _gridDrawer = gridDrawer;
             _menuController = menuController;
-            _tileInfoController = tileInfoController;
+            _widgetVisibility = widgetVisibility;
+            _terrainInfo = terrainInfo;
+            _buildInfo = buildInfo;
+            _unitInfo = unitInfo;
             _camera = camera;
             _hudMessageController = hudMessageController;
 
@@ -193,9 +201,20 @@ namespace Assets.Scripts.Controllers
 
         private void GetTileInfo(Vector3 pos)
         {
-            string info = TileInformation.GetTileInfo(pos, _map, _balanceConfig, _camera, InfoType.Tile);
+            var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
 
-            _tileInfoController.SetTileInfo(info);
+            if (_map.IsValidCoord(coord))
+            {
+                var tileInfo = TileInformation.GetTileInfo(coord, _map, _balanceConfig, InfoType.Tile);
+                var buildingInfo = TileInformation.GetTileInfo(coord, _map, _balanceConfig, InfoType.Building);
+                var unitInfo = TileInformation.GetTileInfo(coord, _map, _balanceConfig, InfoType.Unit);
+
+                _widgetVisibility.ChangeVisibility(coord, _map);
+
+                _terrainInfo.SetTileInfo(tileInfo);
+                _unitInfo.SetTileInfo(unitInfo);
+                _buildInfo.SetTileInfo(buildingInfo);
+            }
         }
 
         private Task<Unit> SelectUnit()
