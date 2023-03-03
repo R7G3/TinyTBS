@@ -1221,7 +1221,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5590918988812406007, guid: 81e35e70ef0d60a46b834e52d66e0f40, type: 3}
       propertyPath: m_Name
-      value: WidjetActivityController
+      value: WidgetActivityController
       objectReference: {fileID: 0}
     - target: {fileID: 5648204519755543097, guid: 81e35e70ef0d60a46b834e52d66e0f40, type: 3}
       propertyPath: m_AnchorMax.y
