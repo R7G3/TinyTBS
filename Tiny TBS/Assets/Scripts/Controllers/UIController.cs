@@ -1,3 +1,4 @@
+using Assets.Scripts.Buildings;
 using Assets.Scripts.Configs;
 using Assets.Scripts.GameLogic;
 using Assets.Scripts.GameLogic.Models;
@@ -305,6 +306,18 @@ namespace Assets.Scripts.Controllers
             }
         }
 
+        private IEnumerable<MenuItem> GetCastleMenu(Building building, Vector2Int buildingCoord, Action<CastleAction> onBuildeingActionSelected)
+        {
+            if (_movement.HasCastle(building, buildingCoord))
+            {
+                yield return new MenuItem()
+                {
+                    onClick = () => onBuildeingActionSelected.Invoke(CastleAction.BuyUnit)
+                };
+            }
+        }
+
+
         private GridType GridTypeFromMoveInfoAttributes(MoveInfo moveInfo)
         {
             if (moveInfo.CanAttack)
@@ -330,6 +343,11 @@ namespace Assets.Scripts.Controllers
             Move,
             Attack,
             Occupy,
+        }
+
+        private enum CastleAction
+        {
+            BuyUnit
         }
     }
 }
