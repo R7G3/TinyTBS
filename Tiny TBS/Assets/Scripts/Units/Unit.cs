@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Units
 {
-    public class Unit
+    public class Unit : IGameplayObject
     {
         public Unit(
             UnitType unitType,

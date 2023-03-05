@@ -1,6 +1,6 @@
 ﻿namespace Assets.Scripts.Buildings
 {
-    public class Building
+    public class Building : IGameplayObject
     {
         public BuildingType Type { get; set; }
 

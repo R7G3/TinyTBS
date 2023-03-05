@@ -78,41 +78,24 @@ namespace Assets.Scripts.Controllers
             try
             {
                 Unit unit;
+                Building building;
+                IGameplayObject gameplayObject;
                 do
                 {
-                    unit = await SelectUnit();
-                } while (unit == null || unit.Fraction != player.Fraction);
+                    gameplayObject = await SelectGameplayObject(player);
+                } while (gameplayObject == null || gameplayObject.Fraction != player.Fraction);
 
-                var coords = GetActionCoordsForUnit(unit);
-                var coord = await SelectCoord(coords);
-                var action = await SelectAction(unit, coord);
-                
-                switch (action)
+                if (gameplayObject is Unit)
                 {
-                    case UnitAction.Move:
-                        return new MoveUnit
-                        {
-                            unit = unit,
-                            coord = coord,
-                        };
-                    case UnitAction.Attack:
-                        {
-                            var enemyUnit = _map[coord].Unit;
+                    unit = gameplayObject as Unit;
 
-                            return new AttackUnit
-                            {
-                                Attacker = unit,
-                                Defender = enemyUnit,
-                            };
-                        }
-                    case UnitAction.Occupy:
-                        return new OccupyBuilding
-                        {
-                            Unit = unit,
-                            Coord = coord,
-                        };
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                    return await ProcessUnitPlayerAction(unit);
+                }
+                else if (gameplayObject is Building)
+                {
+                    building = gameplayObject as Building;
+
+                    // пиши код для постройки сюда
                 }
             }
             catch (UserCanceledActionException)
@@ -121,6 +104,41 @@ namespace Assets.Scripts.Controllers
             }
 
             return null;
+        }
+
+        private async UniTask<IPlayerAction> ProcessUnitPlayerAction(Unit unit)
+        {
+            var coords = GetActionCoordsForUnit(unit);
+            var coord = await SelectCoord(coords);
+            var action = await SelectAction(unit, coord);
+
+            switch (action)
+            {
+                case UnitAction.Move:
+                    return new MoveUnit
+                    {
+                        unit = unit,
+                        coord = coord,
+                    };
+                case UnitAction.Attack:
+                    {
+                        var enemyUnit = _map[coord].Unit;
+
+                        return new AttackUnit
+                        {
+                            Attacker = unit,
+                            Defender = enemyUnit,
+                        };
+                    }
+                case UnitAction.Occupy:
+                    return new OccupyBuilding
+                    {
+                        Unit = unit,
+                        Coord = coord,
+                    };
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         GridType GetGridType(Unit currentUnit, Vector2Int coord)
@@ -218,16 +236,27 @@ namespace Assets.Scripts.Controllers
             }
         }
 
-        private Task<Unit> SelectUnit()
+        private Task<IGameplayObject> SelectGameplayObject(Player player)
         {
-            return ListenMouseClick<Unit>((taskSource, pos) =>
+            return ListenMouseClick<IGameplayObject>((taskSource, pos) =>
             {
                 var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
 
                 var isValidCoord = _map.IsValidCoord(coord);
                 if (isValidCoord)
                 {
-                    taskSource.TrySetResult(_map[coord].Unit);
+                    var building = _map[coord].Building;
+
+                    if (building != null
+                        && building.Type == BuildingType.Castle
+                        && building.Fraction == player.Fraction)
+                    {
+                        taskSource.TrySetResult(_map[coord].Building);
+                    }
+                    else if (_map[coord].Unit != null)
+                    {
+                        taskSource.TrySetResult(_map[coord].Unit);
+                    }
                 }
                 else
                 {
