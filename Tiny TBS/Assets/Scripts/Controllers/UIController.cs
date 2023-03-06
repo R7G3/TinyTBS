@@ -33,6 +33,7 @@ namespace Assets.Scripts.Controllers
         private UnitAction _selectedAction;
         private Vector2Int _hoveredGrid = new Vector2Int(-1, -1);
         private Task _currentScenarioTask;
+        private IGameplayObject gameplayObject = null;
 
         private readonly BalanceConfig _balanceConfig;
         private readonly MapActions _movement;
@@ -79,7 +80,6 @@ namespace Assets.Scripts.Controllers
             {
                 Unit unit;
                 Building building;
-                IGameplayObject gameplayObject;
                 do
                 {
                     gameplayObject = await SelectGameplayObject(player);
@@ -277,15 +277,15 @@ namespace Assets.Scripts.Controllers
                 {
                     var building = _map[coord].Building;
 
-                    if (building != null
-                        && building.Type == BuildingType.Castle
-                        && building.Fraction == player.Fraction)
-                    {
-                        taskSource.TrySetResult(_map[coord].Building);
-                    }
-                    else if (_map[coord].Unit != null)
+                    if (_map[coord].Unit != null)
                     {
                         taskSource.TrySetResult(_map[coord].Unit);
+                    }
+                    else if (building != null
+                            && building.Type == BuildingType.Castle 
+                            && building.Fraction == player.Fraction)
+                    {
+                        taskSource.TrySetResult(_map[coord].Building);
                     }
                 }
                 else
