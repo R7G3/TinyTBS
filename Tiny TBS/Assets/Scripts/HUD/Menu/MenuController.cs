@@ -80,6 +80,7 @@ namespace Assets.Scripts.HUD.Menu
         private void Clear()
         {
             _items.Clear();
+
             for (int i = 0; i < _list.childCount; i++)
             {
                 _pool.Return(_list.GetChild(i).GetComponent<MenuItemView>());

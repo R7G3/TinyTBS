@@ -103,9 +103,42 @@ namespace Assets.Scripts.GameLogic
             return true;
         }
 
+        public bool HasEmptyCastle(Building building, Vector2Int coord)
+        {
+            var otherCastle = _map[coord].Building;
+
+            if (otherCastle == null)
+            {
+                return false;
+            }
+
+            if (_map[coord].Unit != null) 
+            {
+                return false;
+            }
+
+            if (otherCastle.Type != BuildingType.Castle)
+            {
+                return false;
+            }
+
+            if (otherCastle.Fraction.Id != building.Fraction.Id)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+
         public bool HasEnemyBuilding(Unit unit, Vector2Int coord)
         {
             var targetTile = _map[coord];
+
+            if(unit == null)
+            {
+                return false;
+            }
 
             if (targetTile.Unit != null)
             {

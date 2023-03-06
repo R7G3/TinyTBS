@@ -178,6 +178,14 @@ namespace Assets.Scripts.Controllers
             occupyBuilding.Unit.HasMoved = true;
         }
 
+        private void OnBuyUnit(BuyUnit buyUnit)
+        {
+            var unit = new Unit(
+                buyUnit.unit.Fraction,
+                buyUnit.unit.Coord);
+            PlaceUnit(unit);
+        }
+
         private void Awake()
         {
             _camera = Camera.main;
@@ -261,7 +269,8 @@ namespace Assets.Scripts.Controllers
             {
                 Fraction = fraction,
                 State = new BuildingState(),
-                Type = type
+                Type = type,
+                Coord = coord
             };
         }
 
@@ -325,6 +334,9 @@ namespace Assets.Scripts.Controllers
                     break;
                 case OccupyBuilding occupyBuilding:
                     OnOccupyBuilding(occupyBuilding);
+                    break;
+                case BuyUnit buyUnit:
+                    OnBuyUnit(buyUnit);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(playerAction));
