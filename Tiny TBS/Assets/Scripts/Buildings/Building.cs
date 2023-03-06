@@ -1,4 +1,6 @@
-﻿namespace Assets.Scripts.Buildings
+﻿using UnityEngine;
+
+namespace Assets.Scripts.Buildings
 {
     public class Building : IGameplayObject
     {
@@ -7,5 +9,7 @@
         public BuildingState State { get; set; }
 
         public IFraction Fraction { get; set; }
+
+        public Vector2Int Coord { get; set; }
     }
 }

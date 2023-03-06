@@ -95,7 +95,7 @@ namespace Assets.Scripts.Controllers
                 {
                     building = gameplayObject as Building;
 
-                    // пиши код для постройки сюда
+                    return await ProcessBuildingPlayerAction(building);
                 }
             }
             catch (UserCanceledActionException)
@@ -141,6 +141,25 @@ namespace Assets.Scripts.Controllers
             }
         }
 
+        private async UniTask<IPlayerAction> ProcessBuildingPlayerAction(Building building)
+        {
+            var coord = building.Coord;
+            var action = await SelectCastleAction(building, coord);
+
+            switch (action)
+            {
+                case CastleAction.BuyUnit:
+                    return new BuyUnit
+                    {
+                        unit = new Unit(
+                        building.Fraction,
+                        building.Coord)
+                    };
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
         GridType GetGridType(Unit currentUnit, Vector2Int coord)
         {
             if (_movement.HasEnemyUnit(currentUnit, coord))
@@ -178,6 +197,17 @@ namespace Assets.Scripts.Controllers
             _menuController.ShowMenu(Input.mousePosition,
                 GetUnitMenu(unit, coord,
                     onUnitActionSelected: action => taskSource.TrySetResult(action)),
+                onCancel: () => taskSource.TrySetException(new UserCanceledActionException()));
+
+            return await taskSource.Task;
+        }
+
+        private async Task<CastleAction> SelectCastleAction(Building building, Vector2Int coord)
+        {
+            var taskSource = new UniTaskCompletionSource<CastleAction>();
+
+            _menuController.ShowCastleMenu(Input.mousePosition,
+                GetCastleMenu(building, coord, onCastleActionSelected: action => taskSource.TrySetResult(action)),
                 onCancel: () => taskSource.TrySetException(new UserCanceledActionException()));
 
             return await taskSource.Task;
@@ -335,17 +365,17 @@ namespace Assets.Scripts.Controllers
             }
         }
 
-        private IEnumerable<MenuItem> GetCastleMenu(Building building, Vector2Int buildingCoord, Action<CastleAction> onBuildeingActionSelected)
+        private IEnumerable<CastleMenuItem> GetCastleMenu(Building building, Vector2Int targetCoord, Action<CastleAction> onCastleActionSelected)
         {
-            if (_movement.HasCastle(building, buildingCoord))
+            if (_movement.HasEmptyCastle(building, targetCoord))
             {
-                yield return new MenuItem()
+                yield return new CastleMenuItem()
                 {
-                    onClick = () => onBuildeingActionSelected.Invoke(CastleAction.BuyUnit)
+                    title = "Buy swordMan",
+                    onClick = () => onCastleActionSelected.Invoke(CastleAction.BuyUnit)
                 };
             }
         }
-
 
         private GridType GridTypeFromMoveInfoAttributes(MoveInfo moveInfo)
         {

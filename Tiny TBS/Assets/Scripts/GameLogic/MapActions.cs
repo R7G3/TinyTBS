@@ -103,11 +103,16 @@ namespace Assets.Scripts.GameLogic
             return true;
         }
 
-        public bool HasCastle(Building building, Vector2Int coord)
+        public bool HasEmptyCastle(Building building, Vector2Int coord)
         {
             var otherCastle = _map[coord].Building;
 
             if (otherCastle == null)
+            {
+                return false;
+            }
+
+            if (_map[coord].Unit != null) 
             {
                 return false;
             }
@@ -117,7 +122,7 @@ namespace Assets.Scripts.GameLogic
                 return false;
             }
 
-            if (otherCastle.Fraction.Id == building.Fraction.Id)
+            if (otherCastle.Fraction.Id != building.Fraction.Id)
             {
                 return false;
             }
