@@ -135,6 +135,11 @@ namespace Assets.Scripts.GameLogic
         {
             var targetTile = _map[coord];
 
+            if(unit == null)
+            {
+                return false;
+            }
+
             if (targetTile.Unit != null)
             {
                 return false;

@@ -180,12 +180,9 @@ namespace Assets.Scripts.Controllers
 
         private void OnBuyUnit(BuyUnit buyUnit)
         {
-            var fraction = buyUnit.unit.Fraction;
-            var coord = buyUnit.unit.Coord;
-
             var unit = new Unit(
-                fraction,
-                coord);
+                buyUnit.unit.Fraction,
+                buyUnit.unit.Coord);
             PlaceUnit(unit);
         }
 

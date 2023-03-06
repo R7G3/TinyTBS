@@ -30,7 +30,7 @@ namespace Assets.Scripts.Controllers
         private readonly HUDMessageController _hudMessageController;
         private Unit _selectedUnit;
         private Vector2Int _selectedCoord;
-        private UnitAction _selectedAction;
+        private Action _selectedAction;
         private Vector2Int _hoveredGrid = new Vector2Int(-1, -1);
         private Task _currentScenarioTask;
         private IGameplayObject gameplayObject = null;
@@ -88,6 +88,7 @@ namespace Assets.Scripts.Controllers
                 if (gameplayObject is Unit)
                 {
                     unit = gameplayObject as Unit;
+                    building = null;
 
                     return await ProcessUnitPlayerAction(unit);
                 }
@@ -108,19 +109,20 @@ namespace Assets.Scripts.Controllers
 
         private async UniTask<IPlayerAction> ProcessUnitPlayerAction(Unit unit)
         {
+            Building building = null;
             var coords = GetActionCoordsForUnit(unit);
             var coord = await SelectCoord(coords);
-            var action = await SelectAction(unit, coord);
+            var action = await SelectAction(unit, building, coord);
 
             switch (action)
             {
-                case UnitAction.Move:
+                case Action.Move:
                     return new MoveUnit
                     {
                         unit = unit,
                         coord = coord,
                     };
-                case UnitAction.Attack:
+                case Action.Attack:
                     {
                         var enemyUnit = _map[coord].Unit;
 
@@ -130,7 +132,7 @@ namespace Assets.Scripts.Controllers
                             Defender = enemyUnit,
                         };
                     }
-                case UnitAction.Occupy:
+                case Action.Occupy:
                     return new OccupyBuilding
                     {
                         Unit = unit,
@@ -143,12 +145,13 @@ namespace Assets.Scripts.Controllers
 
         private async UniTask<IPlayerAction> ProcessBuildingPlayerAction(Building building)
         {
+            Unit unit = null;
             var coord = building.Coord;
-            var action = await SelectCastleAction(building, coord);
+            var action = await SelectAction(unit, building, coord);
 
             switch (action)
             {
-                case CastleAction.BuyUnit:
+                case Action.BuyUnit:
                     return new BuyUnit
                     {
                         unit = new Unit(
@@ -190,24 +193,13 @@ namespace Assets.Scripts.Controllers
             });
         }
 
-        private async Task<UnitAction> SelectAction(Unit unit, Vector2Int coord)
+        private async Task<Action> SelectAction(Unit unit, Building building, Vector2Int coord)
         {
-            var taskSource = new UniTaskCompletionSource<UnitAction>();
+            var taskSource = new UniTaskCompletionSource<Action>();
 
             _menuController.ShowMenu(Input.mousePosition,
-                GetUnitMenu(unit, coord,
-                    onUnitActionSelected: action => taskSource.TrySetResult(action)),
-                onCancel: () => taskSource.TrySetException(new UserCanceledActionException()));
-
-            return await taskSource.Task;
-        }
-
-        private async Task<CastleAction> SelectCastleAction(Building building, Vector2Int coord)
-        {
-            var taskSource = new UniTaskCompletionSource<CastleAction>();
-
-            _menuController.ShowCastleMenu(Input.mousePosition,
-                GetCastleMenu(building, coord, onCastleActionSelected: action => taskSource.TrySetResult(action)),
+                GetUnitMenu(unit, building, coord,
+                    onActionSelected: action => taskSource.TrySetResult(action)),
                 onCancel: () => taskSource.TrySetException(new UserCanceledActionException()));
 
             return await taskSource.Task;
@@ -341,14 +333,14 @@ namespace Assets.Scripts.Controllers
             return possibleActions;
         }
 
-        private IEnumerable<MenuItem> GetUnitMenu(Unit unit, Vector2Int targetCoord, Action<UnitAction> onUnitActionSelected)
+        private IEnumerable<MenuItem> GetUnitMenu(Unit unit, Building building, Vector2Int targetCoord, Action<Action> onActionSelected)
         {
             if (_movement.HasEnemyUnit(unit, targetCoord))
             {
                 yield return new MenuItem()
                 {
                     title = "Attack",
-                    onClick = () => onUnitActionSelected.Invoke(UnitAction.Attack)
+                    onClick = () => onActionSelected.Invoke(Action.Attack)
                 };
             }
             else if (_movement.HasEnemyBuilding(unit, targetCoord))
@@ -356,24 +348,20 @@ namespace Assets.Scripts.Controllers
                 yield return new MenuItem()
                 {
                     title = "Occupy",
-                    onClick = () => onUnitActionSelected.Invoke(UnitAction.Occupy)
+                    onClick = () => onActionSelected.Invoke(Action.Occupy)
+                };
+            }
+            else if (_movement.HasEmptyCastle(building, targetCoord))
+            {
+                yield return new MenuItem()
+                {
+                    title = "Buy swordMan",
+                    onClick = () => onActionSelected.Invoke(Action.BuyUnit)
                 };
             }
             else
             {
-                onUnitActionSelected(UnitAction.Move);
-            }
-        }
-
-        private IEnumerable<CastleMenuItem> GetCastleMenu(Building building, Vector2Int targetCoord, Action<CastleAction> onCastleActionSelected)
-        {
-            if (_movement.HasEmptyCastle(building, targetCoord))
-            {
-                yield return new CastleMenuItem()
-                {
-                    title = "Buy swordMan",
-                    onClick = () => onCastleActionSelected.Invoke(CastleAction.BuyUnit)
-                };
+                onActionSelected(Action.Move);
             }
         }
 
@@ -397,15 +385,11 @@ namespace Assets.Scripts.Controllers
             public bool isShowingMenu;
         }
 
-        private enum UnitAction
+        private enum Action
         {
             Move,
             Attack,
             Occupy,
-        }
-
-        private enum CastleAction
-        {
             BuyUnit
         }
     }

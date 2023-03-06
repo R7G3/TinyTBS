@@ -13,16 +13,9 @@ namespace Assets.Scripts.HUD.Menu
         public Action onClick;
     }
 
-    public struct CastleMenuItem
-    {
-        public string title;
-        public Action onClick;
-    }
-
     public interface IHUDMenu
     {
         void ShowMenu(Vector3 screenPosition, IEnumerable<MenuItem> menuItems, Action onCancel = null);
-        void ShowCastleMenu(Vector3 screenPosition, IEnumerable<CastleMenuItem> menuItems, Action onCancel = null);
         void Hide();
     }
 
@@ -32,7 +25,6 @@ namespace Assets.Scripts.HUD.Menu
         [SerializeField] private MenuItemView _menuItemPrefab;
         [SerializeField] private Button _backgroundButton;
         private readonly List<MenuItem> _items = new();
-        private readonly List<CastleMenuItem> _castleItems = new();
 
         private Pool<MenuItemView> _pool;
         private Action _onCancel;
@@ -74,31 +66,6 @@ namespace Assets.Scripts.HUD.Menu
             _list.position = screenPosition;
         }
 
-        public void ShowCastleMenu(Vector3 screenPosition, IEnumerable<CastleMenuItem> menuItems, Action onCancel = null)
-        {
-            _onCancel = onCancel;
-            _list.gameObject.SetActive(true);
-            Clear();
-            _castleItems.AddRange(menuItems);
-
-            if (_castleItems.Count == 0)
-            {
-                Hide();
-                return;
-            }
-
-            foreach (var item in _castleItems)
-            {
-                _pool.Get().Init(item.title, () =>
-                {
-                    item.onClick.Invoke();
-                    Hide();
-                });
-            }
-
-            _list.position = screenPosition;
-        }
-
         public void Hide()
         {
             _list.gameObject.SetActive(false);
@@ -113,7 +80,6 @@ namespace Assets.Scripts.HUD.Menu
         private void Clear()
         {
             _items.Clear();
-            _castleItems.Clear();
 
             for (int i = 0; i < _list.childCount; i++)
             {
