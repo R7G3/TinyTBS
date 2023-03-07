@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2418169634320490852}
   - component: {fileID: 9092903535422753033}
+  - component: {fileID: 1137052566600402544}
   m_Layer: 3
   m_Name: CountLabel
   m_TagString: Untagged
@@ -51,6 +52,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _offset: {x: 0.32, y: 0, z: -0.32}
+--- !u!114 &1137052566600402544
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1718143852550079451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e48d5eb5ea2da5d4ca566e06d17365e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _text: {fileID: 2659434256373187046}
 --- !u!1 &4275512107916455222
 GameObject:
   m_ObjectHideFlags: 0

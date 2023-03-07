@@ -34,6 +34,8 @@ namespace Assets.Scripts.Controllers
             var labelTransform = _countLabelsPool.Get();
             _unitLabelMap.Add(unit, labelTransform);
             labelTransform.GetComponent<FollowUnitPosition>().FollowUnit(unitTransform);
+            labelTransform.GetComponent<UnitHealthUpdate>().SetUnitHealth(unit); // Ќадо куда-то переместить потому что не обновл€етс€
+
         }
 
         public void RemoveUnitAt(Unit unit)
