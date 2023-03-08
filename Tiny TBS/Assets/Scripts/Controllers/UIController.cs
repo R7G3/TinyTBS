@@ -6,6 +6,7 @@ using Assets.Scripts.HUD;
 using Assets.Scripts.HUD.Menu;
 using Assets.Scripts.PlayerAction;
 using Assets.Scripts.Tiles;
+using Assets.Scripts.Units;
 using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
@@ -28,15 +29,11 @@ namespace Assets.Scripts.Controllers
         private readonly TileInfoController _unitInfo;
         private readonly Camera _camera;
         private readonly HUDMessageController _hudMessageController;
-        private Unit _selectedUnit;
-        private Vector2Int _selectedCoord;
-        private Action _selectedAction;
-        private Vector2Int _hoveredGrid = new Vector2Int(-1, -1);
-        private Task _currentScenarioTask;
-        private IGameplayObject gameplayObject = null;
-
         private readonly BalanceConfig _balanceConfig;
         private readonly MapActions _movement;
+
+        private Vector2Int _hoveredGrid = new Vector2Int(-1, -1);
+        private IGameplayObject _gameplayObject = null;
 
         private event Action<Vector3> _onMouseClick;
         private event Action<Vector3> _onMouseMove;
@@ -82,21 +79,21 @@ namespace Assets.Scripts.Controllers
                 Building building;
                 do
                 {
-                    gameplayObject = await SelectGameplayObject(player);
-                } while (gameplayObject == null || gameplayObject.Fraction != player.Fraction);
+                    _gameplayObject = await SelectGameplayObject(player);
+                } while (_gameplayObject == null || _gameplayObject.Fraction != player.Fraction);
 
-                if (gameplayObject is Unit)
+                if (_gameplayObject is Unit)
                 {
-                    unit = gameplayObject as Unit;
+                    unit = _gameplayObject as Unit;
                     building = null;
 
                     return await ProcessUnitPlayerAction(unit);
                 }
-                else if (gameplayObject is Building)
+                else if (_gameplayObject is Building)
                 {
-                    building = gameplayObject as Building;
+                    building = _gameplayObject as Building;
 
-                    return await ProcessBuildingPlayerAction(building);
+                    return await ProcessBuildingPlayerAction(building, player);
                 }
             }
             catch (UserCanceledActionException)
@@ -109,20 +106,19 @@ namespace Assets.Scripts.Controllers
 
         private async UniTask<IPlayerAction> ProcessUnitPlayerAction(Unit unit)
         {
-            Building building = null;
             var coords = GetActionCoordsForUnit(unit);
             var coord = await SelectCoord(coords);
-            var action = await SelectAction(unit, building, coord);
+            var action = await SelectUnitAction(unit, coord);
 
             switch (action)
             {
-                case Action.Move:
+                case UnitAction.Move:
                     return new MoveUnit
                     {
                         unit = unit,
                         coord = coord,
                     };
-                case Action.Attack:
+                case UnitAction.Attack:
                     {
                         var enemyUnit = _map[coord].Unit;
 
@@ -132,7 +128,7 @@ namespace Assets.Scripts.Controllers
                             Defender = enemyUnit,
                         };
                     }
-                case Action.Occupy:
+                case UnitAction.Occupy:
                     return new OccupyBuilding
                     {
                         Unit = unit,
@@ -143,24 +139,21 @@ namespace Assets.Scripts.Controllers
             }
         }
 
-        private async UniTask<IPlayerAction> ProcessBuildingPlayerAction(Building building)
+        private async UniTask<IPlayerAction> ProcessBuildingPlayerAction(Building building, Player player)
         {
-            Unit unit = null;
             var coord = building.Coord;
-            var action = await SelectAction(unit, building, coord);
+            var unitType = await SelectBuildingAction(building, player);
 
-            switch (action)
+            return unitType switch
             {
-                case Action.BuyUnit:
-                    return new BuyUnit
-                    {
-                        unit = new Unit(
-                        building.Fraction,
+                UnitType.Soldier => new BuyUnit
+                {
+                    Unit = new Unit(
+                        player.Fraction,
                         building.Coord)
-                    };
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+                },
+                _ => throw new ArgumentOutOfRangeException($"{nameof(UnitType)}: {unitType.ToString()}"),
+            };
         }
 
         GridType GetGridType(Unit currentUnit, Vector2Int coord)
@@ -193,12 +186,26 @@ namespace Assets.Scripts.Controllers
             });
         }
 
-        private async Task<Action> SelectAction(Unit unit, Building building, Vector2Int coord)
+        private async Task<UnitAction> SelectUnitAction(Unit unit, Vector2Int coord)
         {
-            var taskSource = new UniTaskCompletionSource<Action>();
+            var taskSource = new UniTaskCompletionSource<UnitAction>();
 
             _menuController.ShowMenu(Input.mousePosition,
-                GetUnitMenu(unit, building, coord,
+                GetUnitMenu(unit, coord,
+                    onActionSelected: action => taskSource.TrySetResult(action)),
+                onCancel: () => taskSource.TrySetException(new UserCanceledActionException()));
+
+            return await taskSource.Task;
+        }
+
+        private async Task<UnitType> SelectBuildingAction(Building building, Player player)
+        {
+            var taskSource = new UniTaskCompletionSource<UnitType>();
+
+            _menuController.ShowMenu(Input.mousePosition,
+                GetBuyMenu(
+                    building,
+                    player,
                     onActionSelected: action => taskSource.TrySetResult(action)),
                 onCancel: () => taskSource.TrySetException(new UserCanceledActionException()));
 
@@ -333,14 +340,14 @@ namespace Assets.Scripts.Controllers
             return possibleActions;
         }
 
-        private IEnumerable<MenuItem> GetUnitMenu(Unit unit, Building building, Vector2Int targetCoord, Action<Action> onActionSelected)
+        private IEnumerable<MenuItem> GetUnitMenu(Unit unit, Vector2Int targetCoord, Action<UnitAction> onActionSelected)
         {
             if (_movement.HasEnemyUnit(unit, targetCoord))
             {
                 yield return new MenuItem()
                 {
                     title = "Attack",
-                    onClick = () => onActionSelected.Invoke(Action.Attack)
+                    onClick = () => onActionSelected.Invoke(UnitAction.Attack)
                 };
             }
             else if (_movement.HasEnemyBuilding(unit, targetCoord))
@@ -348,20 +355,24 @@ namespace Assets.Scripts.Controllers
                 yield return new MenuItem()
                 {
                     title = "Occupy",
-                    onClick = () => onActionSelected.Invoke(Action.Occupy)
-                };
-            }
-            else if (_movement.HasEmptyCastle(building, targetCoord))
-            {
-                yield return new MenuItem()
-                {
-                    title = "Buy swordMan",
-                    onClick = () => onActionSelected.Invoke(Action.BuyUnit)
+                    onClick = () => onActionSelected.Invoke(UnitAction.Occupy)
                 };
             }
             else
             {
-                onActionSelected(Action.Move);
+                onActionSelected(UnitAction.Move);
+            }
+        }
+
+        private IEnumerable<MenuItem> GetBuyMenu(Building building, Player player, Action<UnitType> onActionSelected)
+        {
+            if (_movement.HasEmptyCastle(building, player))
+            {
+                yield return new MenuItem()
+                {
+                    title = $"150 {UnitType.Soldier}",
+                    onClick = () => onActionSelected.Invoke(UnitType.Soldier)
+                };
             }
         }
 
@@ -385,7 +396,7 @@ namespace Assets.Scripts.Controllers
             public bool isShowingMenu;
         }
 
-        private enum Action
+        private enum UnitAction
         {
             Move,
             Attack,
