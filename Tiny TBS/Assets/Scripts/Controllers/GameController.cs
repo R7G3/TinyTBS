@@ -180,10 +180,7 @@ namespace Assets.Scripts.Controllers
 
         private void OnBuyUnit(BuyUnit buyUnit)
         {
-            var unit = new Unit(
-                buyUnit.unit.Fraction,
-                buyUnit.unit.Coord);
-            PlaceUnit(unit);
+            PlaceUnit(buyUnit.Unit);
         }
 
         private void Awake()
@@ -292,9 +289,11 @@ namespace Assets.Scripts.Controllers
                     if (playerAction == null) continue;
 
                     ProcessPlayerAction(playerAction);
+
                     await UniTask.WhenAll(_queuedAnimations);
                     _queuedAnimations.Clear();
-                } while (playerAction is not PlayerAction.EndTurn && CanDoMoreActions(currentPlayer));
+                }
+                while (playerAction is not PlayerAction.EndTurn && CanDoMoreActions(currentPlayer));
 
                 await _uiController.ShowMessage("Next turn");
                 

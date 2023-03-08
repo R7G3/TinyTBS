@@ -103,26 +103,24 @@ namespace Assets.Scripts.GameLogic
             return true;
         }
 
-        public bool HasEmptyCastle(Building building, Vector2Int coord)
+        public bool HasEmptyCastle(Building building, Player player)
         {
-            var otherCastle = _map[coord].Building;
-
-            if (otherCastle == null)
+            if (building == null)
             {
                 return false;
             }
 
-            if (_map[coord].Unit != null) 
+            if (_map[building.Coord].Unit != null) 
             {
                 return false;
             }
 
-            if (otherCastle.Type != BuildingType.Castle)
+            if (building.Type != BuildingType.Castle)
             {
                 return false;
             }
 
-            if (otherCastle.Fraction.Id != building.Fraction.Id)
+            if (building.Fraction.Id != player.Fraction.Id)
             {
                 return false;
             }
