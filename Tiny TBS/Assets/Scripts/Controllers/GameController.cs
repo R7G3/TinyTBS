@@ -178,11 +178,6 @@ namespace Assets.Scripts.Controllers
             occupyBuilding.Unit.HasMoved = true;
         }
 
-        private void OnBuyUnit(BuyUnit buyUnit)
-        {
-            PlaceUnit(buyUnit.Unit);
-        }
-
         private void Awake()
         {
             _camera = Camera.main;
@@ -335,7 +330,7 @@ namespace Assets.Scripts.Controllers
                     OnOccupyBuilding(occupyBuilding);
                     break;
                 case BuyUnit buyUnit:
-                    OnBuyUnit(buyUnit);
+                    PlaceUnit(buyUnit.Unit);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(playerAction));
