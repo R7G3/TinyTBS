@@ -5,6 +5,6 @@ namespace Assets.Scripts.PlayerAction
 {
     public struct BuyUnit : IPlayerAction
     {
-        public Unit unit;
+        public Unit Unit;
     }
 }

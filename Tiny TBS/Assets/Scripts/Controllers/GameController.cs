@@ -178,14 +178,6 @@ namespace Assets.Scripts.Controllers
             occupyBuilding.Unit.HasMoved = true;
         }
 
-        private void OnBuyUnit(BuyUnit buyUnit)
-        {
-            var unit = new Unit(
-                buyUnit.unit.Fraction,
-                buyUnit.unit.Coord);
-            PlaceUnit(unit);
-        }
-
         private void Awake()
         {
             _camera = Camera.main;
@@ -292,9 +284,11 @@ namespace Assets.Scripts.Controllers
                     if (playerAction == null) continue;
 
                     ProcessPlayerAction(playerAction);
+
                     await UniTask.WhenAll(_queuedAnimations);
                     _queuedAnimations.Clear();
-                } while (playerAction is not PlayerAction.EndTurn && CanDoMoreActions(currentPlayer));
+                }
+                while (playerAction is not PlayerAction.EndTurn && CanDoMoreActions(currentPlayer));
 
                 await _uiController.ShowMessage("Next turn");
                 
@@ -336,7 +330,7 @@ namespace Assets.Scripts.Controllers
                     OnOccupyBuilding(occupyBuilding);
                     break;
                 case BuyUnit buyUnit:
-                    OnBuyUnit(buyUnit);
+                    PlaceUnit(buyUnit.Unit);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(playerAction));
