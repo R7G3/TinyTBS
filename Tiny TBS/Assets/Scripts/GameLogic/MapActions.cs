@@ -283,7 +283,7 @@ namespace Assets.Scripts.GameLogic
 
             var penalty = _balanceConfig.GetPenaltyFor(tile.Type, unit);
             var cost = (canAttack || canOccupy) ? 100 : previousMove.Cost + penalty;
-            var canMove = cost <= unit.Speed;
+            var canMove = cost <= unit.Speed && tile.Unit == null;
 
             var moveInfo = new MoveInfo(
                     coord: coord,
