@@ -29,8 +29,8 @@ namespace Assets.Scripts.GameLogic
         {
             int attakerDamage;
 
-            var attackPercent = attacker.Attack / 100;
-            var healthPercent = 100 * (attacker.Health / Definitions.MaxUnitHealth);
+            var attackPercent = (double)attacker.Attack / 100d;
+            var healthPercent = 100d * ((double)attacker.Health / (double)Definitions.MaxUnitHealth);
             var totalAttack = attackPercent * healthPercent + _balanceConfig.attackImpact;
             
             attakerDamage = (int)Math.Round((double)totalAttack);
