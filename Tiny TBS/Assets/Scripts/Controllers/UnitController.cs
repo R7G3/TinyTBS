@@ -45,6 +45,11 @@ namespace Assets.Scripts.Controllers
 
             _unitViews.Remove(unit.Id);
         }
+        
+        public UniTask Attack(Unit unit, Vector2Int coord)
+        {
+            return _unitViews[unit.Id].Attack(coord);
+        }
 
         public UniTask MoveUnit(Unit unit, IEnumerable<Vector2Int> path)
         {
