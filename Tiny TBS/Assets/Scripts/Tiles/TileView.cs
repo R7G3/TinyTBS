@@ -14,18 +14,14 @@ namespace Assets.Scripts.Tiles
         public Building Building
         {
             get => _building;
-            set
-            {
-                _building = value;
-                SetBuilding(value);
-            }
-    }
+            set => SetBuilding(value);
+        }
 
         public Unit Unit { get; set; }
-
+        
         private Building _building;
         private GameObject _buildingObject;
-
+        
         private void Awake()
         {
             _tilesConfig = TilesConfig.instance;
@@ -37,6 +33,18 @@ namespace Assets.Scripts.Tiles
         }
 
         private void SetBuilding(Building building)
+        {
+            if (_building != building)
+            {
+                ConstructBuilding(building);
+            }
+            
+            _building = building;
+            _buildingObject.GetComponent<FractionColorCustomizer>()
+                ?.Init(building);
+        }
+
+        private void ConstructBuilding(Building building)
         {
             GameObject prefab = null;
             switch (building.Type)
@@ -61,8 +69,6 @@ namespace Assets.Scripts.Tiles
             if (prefab != null)
             {
                 _buildingObject = Instantiate(prefab, transform);
-                _buildingObject.GetComponent<FractionColorCustomizer>()
-                    ?.Init(building.Fraction);
             }
         }
     }

@@ -27,7 +27,7 @@ namespace Assets.Scripts.Controllers
         {
             _unitViews[unit.Id] = UnityEngine.Object.Instantiate(_unitPrefab)
                 .GetComponent<UnitView>();
-            _unitViews[unit.Id].SetFraction(unit.Fraction);
+            _unitViews[unit.Id].Init(unit);
             var unitTransform = _unitViews[unit.Id].gameObject.transform;
             unitTransform.position = FieldUtils.GetWorldPos(coord);
 

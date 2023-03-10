@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Utils;
@@ -21,9 +19,9 @@ namespace Assets.Scripts.Units
             _speedParameterHash = Animator.StringToHash("speed");
         }
 
-        public void SetFraction(IFraction fraction)
+        public void Init(Unit unit)
         {
-            _colorCustomizer.Init(fraction);
+            _colorCustomizer.Init(unit);
         }
 
         public async UniTask Travel(IEnumerable<Vector2Int> path)

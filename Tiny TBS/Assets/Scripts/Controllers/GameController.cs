@@ -75,7 +75,7 @@ namespace Assets.Scripts.Controllers
                     map[x, y] = CreateTile(x, y, (TileType)typeValues.GetValue(rndIndex));
                 }
             }
-            
+
             return map;
         }
 
@@ -166,16 +166,24 @@ namespace Assets.Scripts.Controllers
             attackUnit.Attacker.HasMoved = true;
         }
 
-        private void OnOccupyBuilding(OccupyBuilding occupyBuilding)
+        private async Task OnOccupyBuilding(OccupyBuilding occupyBuilding)
         {
-            var building = _map[occupyBuilding.Coord].Building;
-
-            if (building != null)
+            var tile = _map[occupyBuilding.Coord];
+            var building = tile.Building;
+            if (building == null)
             {
-                building.Fraction = occupyBuilding.Unit.Fraction;
+                throw new InvalidOperationException(
+                    $"Trying to occupy building that does not exist on coord {occupyBuilding.Coord}");
             }
+            
+            await ProcessPlayerAction(new MoveUnit
+            {
+                coord = occupyBuilding.Coord,
+                unit = occupyBuilding.Unit
+            });
 
-            occupyBuilding.Unit.HasMoved = true;
+            building.Fraction = occupyBuilding.Unit.Fraction;
+            occupyBuilding.Unit.HasPerformedAction = true;
         }
 
         private void Awake()
@@ -229,7 +237,7 @@ namespace Assets.Scripts.Controllers
 
             SetPlayers(new[]
             {
-                new Player(new Fraction("Player 1")), 
+                new Player(new Fraction("Player 1")),
                 new Player(new Fraction("Player 2"))
             });
 
@@ -242,13 +250,13 @@ namespace Assets.Scripts.Controllers
                 _players[1].Fraction,
                 new Vector2Int(3, 3));
             PlaceUnit(unit);
-            
-            
+
+
             PlaceBuilding(_players[0].Fraction, BuildingType.Village, new Vector2Int(0, 1));
             PlaceBuilding(_players[1].Fraction, BuildingType.Village, new Vector2Int(3, 1));
             PlaceBuilding(_players[0].Fraction, BuildingType.Castle, new Vector2Int(0, 2));
             PlaceBuilding(_players[1].Fraction, BuildingType.Castle, new Vector2Int(3, 2));
-            
+
 
             StartCoroutine(Turn().AsUniTask().ToCoroutine());
         }
@@ -264,6 +272,12 @@ namespace Assets.Scripts.Controllers
                 Type = type,
                 Coord = coord
             };
+        }
+
+        private async UniTask WaitAnimations()
+        {
+            await UniTask.WhenAll(_queuedAnimations);
+            _queuedAnimations.Clear();
         }
 
         // ReSharper disable once FunctionNeverReturns
@@ -285,14 +299,11 @@ namespace Assets.Scripts.Controllers
 
                     ProcessPlayerAction(playerAction);
 
-                    await UniTask.WhenAll(_queuedAnimations);
-                    _queuedAnimations.Clear();
-                }
-                while (playerAction is not PlayerAction.EndTurn && CanDoMoreActions(currentPlayer));
+                } while (playerAction is not PlayerAction.EndTurn && CanDoMoreActions(currentPlayer));
 
                 await _uiController.ShowMessage("Next turn");
-                
-                
+
+
                 currentPlayerIndex = (currentPlayerIndex + 1) % _players.Count;
             }
         }
@@ -315,8 +326,8 @@ namespace Assets.Scripts.Controllers
                 unit.HasPerformedAction = false;
             }
         }
-        
-        private void ProcessPlayerAction(IPlayerAction playerAction)
+
+        private async Task ProcessPlayerAction(IPlayerAction playerAction)
         {
             switch (playerAction)
             {
@@ -327,7 +338,7 @@ namespace Assets.Scripts.Controllers
                     OnAttackUnit(attackUnit);
                     break;
                 case OccupyBuilding occupyBuilding:
-                    OnOccupyBuilding(occupyBuilding);
+                    await OnOccupyBuilding(occupyBuilding);
                     break;
                 case BuyUnit buyUnit:
                     PlaceUnit(buyUnit.Unit);
@@ -335,6 +346,8 @@ namespace Assets.Scripts.Controllers
                 default:
                     throw new ArgumentOutOfRangeException(nameof(playerAction));
             }
+
+            await WaitAnimations();
         }
     }
 }
