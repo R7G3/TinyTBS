@@ -141,8 +141,14 @@ namespace Assets.Scripts.Controllers
             _queuedAnimations.Add(moveTask);
         }
 
-        private void OnAttackUnit(AttackUnit attackUnit)
+        private async UniTask OnAttackUnit(AttackUnit attackUnit)
         {
+            await ProcessPlayerAction(new MoveUnit
+            {
+                coord = attackUnit.StandingCoord,
+                unit = attackUnit.Attacker
+            });
+            
             var damage = _attackLogic.CalculateDamage(attackUnit.Attacker, attackUnit.Defender);
 
             if (attackUnit.Defender.Health < damage)
@@ -150,6 +156,8 @@ namespace Assets.Scripts.Controllers
                 RemoveUnit(attackUnit.Defender);
                 return;
             }
+
+            await _unitController.Attack(attackUnit.Attacker, attackUnit.Defender.Coord);
 
             attackUnit.Defender.Health -= damage;
 
@@ -160,6 +168,8 @@ namespace Assets.Scripts.Controllers
                 RemoveUnit(attackUnit.Attacker);
                 return;
             }
+            
+            await _unitController.Attack(attackUnit.Defender, attackUnit.Attacker.Coord);
 
             attackUnit.Attacker.Health -= retaliatoryDamage;
 
@@ -297,7 +307,7 @@ namespace Assets.Scripts.Controllers
 
                     if (playerAction == null) continue;
 
-                    ProcessPlayerAction(playerAction);
+                    await ProcessPlayerAction(playerAction);
 
                 } while (playerAction is not PlayerAction.EndTurn && CanDoMoreActions(currentPlayer));
 
@@ -335,7 +345,7 @@ namespace Assets.Scripts.Controllers
                     OnMoveUnit(moveUnit);
                     break;
                 case AttackUnit attackUnit:
-                    OnAttackUnit(attackUnit);
+                    await OnAttackUnit(attackUnit);
                     break;
                 case OccupyBuilding occupyBuilding:
                     await OnOccupyBuilding(occupyBuilding);

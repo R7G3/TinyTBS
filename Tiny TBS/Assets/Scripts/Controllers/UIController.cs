@@ -119,15 +119,18 @@ namespace Assets.Scripts.Controllers
                         coord = coord,
                     };
                 case UnitAction.Attack:
-                    {
-                        var enemyUnit = _map[coord].Unit;
+                {
+                    var standingCoord = coords.First(i => i.coord == coord).moveInfo
+                        .PathwayPart.Previous.CurrentMoveInfo.Coord;
+                    var enemyUnit = _map[coord].Unit;
 
-                        return new AttackUnit
-                        {
-                            Attacker = unit,
-                            Defender = enemyUnit,
-                        };
-                    }
+                    return new AttackUnit
+                    {
+                        StandingCoord = standingCoord,
+                        Attacker = unit,
+                        Defender = enemyUnit,
+                    };
+                }
                 case UnitAction.Occupy:
                     return new OccupyBuilding
                     {
@@ -162,7 +165,7 @@ namespace Assets.Scripts.Controllers
             {
                 return GridType.Enemy;
             }
-            
+
             return GridType.Default;
         }
 
@@ -281,8 +284,8 @@ namespace Assets.Scripts.Controllers
                         taskSource.TrySetResult(_map[coord].Unit);
                     }
                     else if (building != null
-                            && building.Type == BuildingType.Castle 
-                            && building.Fraction == player.Fraction)
+                             && building.Type == BuildingType.Castle
+                             && building.Fraction == player.Fraction)
                     {
                         taskSource.TrySetResult(_map[coord].Building);
                     }
@@ -333,6 +336,7 @@ namespace Assets.Scripts.Controllers
             var possibleActions = _movement.GetPossibleActions(unit)
                 .Select(cell => new GridItem()
                 {
+                    moveInfo = cell,
                     coord = cell.Coord,
                     type = GridTypeFromMoveInfoAttributes(cell),
                 });
@@ -340,7 +344,8 @@ namespace Assets.Scripts.Controllers
             return possibleActions;
         }
 
-        private IEnumerable<MenuItem> GetUnitMenu(Unit unit, Vector2Int targetCoord, Action<UnitAction> onActionSelected)
+        private IEnumerable<MenuItem> GetUnitMenu(Unit unit, Vector2Int targetCoord,
+            Action<UnitAction> onActionSelected)
         {
             if (_movement.HasEnemyUnit(unit, targetCoord))
             {
