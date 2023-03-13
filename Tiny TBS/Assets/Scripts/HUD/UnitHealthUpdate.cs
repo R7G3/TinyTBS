@@ -8,16 +8,26 @@ namespace Assets.Scripts.HUD
     {
         [SerializeField] private TextMeshProUGUI _text;
 
+        private Unit _unit;
         private string _unitHealth;
 
-        public void SetUnitHealth(Unit unit)
+        public void Init(Unit gameplayObject)
         {
-            _unitHealth = unit.Health.ToString();
+            _unit = gameplayObject;
         }
 
         private void Update()
         {
-            _text.text = _unitHealth;
+            if (_unit != null)
+            {
+                Debug.Log(_unit.Health);
+                UpdateHealth();
+            }
+        }
+
+        private void UpdateHealth()
+        {
+            _text.text = _unit.Health.ToString();
         }
     }
 }
