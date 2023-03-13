@@ -80,7 +80,7 @@ namespace Assets.Scripts.Controllers
                 do
                 {
                     _gameplayObject = await SelectGameplayObject(player);
-                } while (_gameplayObject == null || _gameplayObject.Fraction != player.Fraction);
+                } while (_gameplayObject == null || _gameplayObject.Owner.Id != player.Id);
 
                 if (_gameplayObject is Unit)
                 {
@@ -152,7 +152,7 @@ namespace Assets.Scripts.Controllers
                 UnitType.Soldier => new BuyUnit
                 {
                     Unit = new Unit(
-                        player.Fraction,
+                        player,
                         building.Coord)
                 },
                 _ => throw new ArgumentOutOfRangeException($"{nameof(UnitType)}: {unitType.ToString()}"),
@@ -285,7 +285,7 @@ namespace Assets.Scripts.Controllers
                     }
                     else if (building != null
                              && building.Type == BuildingType.Castle
-                             && building.Fraction == player.Fraction)
+                             && building.Owner.Id == player.Id)
                     {
                         taskSource.TrySetResult(_map[coord].Building);
                     }

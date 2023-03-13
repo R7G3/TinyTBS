@@ -192,7 +192,7 @@ namespace Assets.Scripts.Controllers
                 unit = occupyBuilding.Unit
             });
 
-            building.Fraction = occupyBuilding.Unit.Fraction;
+            building.Owner = occupyBuilding.Unit.Owner;
             occupyBuilding.Unit.HasPerformedAction = true;
         }
 
@@ -247,37 +247,37 @@ namespace Assets.Scripts.Controllers
 
             SetPlayers(new[]
             {
-                new Player(new Fraction("Player 1")),
-                new Player(new Fraction("Player 2"))
+                new Player(id: "Player 1", name: "Player 1"),
+                new Player(id: "Player 2", name: "Player 2")
             });
 
             var unit = new Unit(
-                _players[0].Fraction,
+                _players[0],
                 new Vector2Int(1, 1));
             PlaceUnit(unit);
 
             unit = new Unit(
-                _players[1].Fraction,
+                _players[1],
                 new Vector2Int(3, 3));
             PlaceUnit(unit);
 
 
-            PlaceBuilding(_players[0].Fraction, BuildingType.Village, new Vector2Int(0, 1));
-            PlaceBuilding(_players[1].Fraction, BuildingType.Village, new Vector2Int(3, 1));
-            PlaceBuilding(_players[0].Fraction, BuildingType.Castle, new Vector2Int(0, 2));
-            PlaceBuilding(_players[1].Fraction, BuildingType.Castle, new Vector2Int(3, 2));
+            PlaceBuilding(_players[0], BuildingType.Village, new Vector2Int(0, 1));
+            PlaceBuilding(_players[1], BuildingType.Village, new Vector2Int(3, 1));
+            PlaceBuilding(_players[0], BuildingType.Castle, new Vector2Int(0, 2));
+            PlaceBuilding(_players[1], BuildingType.Castle, new Vector2Int(3, 2));
 
 
             StartCoroutine(Turn().AsUniTask().ToCoroutine());
         }
 
-        private void PlaceBuilding(IFraction fraction, BuildingType type, Vector2Int coord)
+        private void PlaceBuilding(Player owner, BuildingType type, Vector2Int coord)
         {
             Destroy(((TileView)_map[coord]).gameObject);
             _map[coord] = CreateTile(coord.x, coord.y, TileType.Grass);
             _map[coord].Building = new Building()
             {
-                Fraction = fraction,
+                Owner = owner,
                 State = new BuildingState(),
                 Type = type,
                 Coord = coord
@@ -319,7 +319,7 @@ namespace Assets.Scripts.Controllers
         }
 
         private IEnumerable<Unit> GetPlayerUnits(Player player)
-            => _units.Where(u => u.Fraction == player.Fraction);
+            => _units.Where(u => u.Owner.Id == player.Id);
 
         private static bool IsUnitEnabled(Unit unit)
             // For future

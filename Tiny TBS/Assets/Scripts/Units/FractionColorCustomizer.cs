@@ -19,7 +19,7 @@ namespace Assets.Scripts.Units
 
         private void Update()
         {
-            if (_gameplayObject != null && _currentFraction != _gameplayObject.Fraction.Id)
+            if (_gameplayObject != null && _currentFraction != _gameplayObject.Owner.Id)
             {
                 UpdateFraction();
             }
@@ -27,13 +27,13 @@ namespace Assets.Scripts.Units
 
         private void UpdateFraction()
         {
-            var fractionConfig = _config.fractions.First(i => i.id == _gameplayObject.Fraction.Id);
+            var fractionConfig = _config.fractions.First(i => i.id == _gameplayObject.Owner.Id);
             foreach (var rendererMaterial in _renderers)
             {
                  rendererMaterial.renderer.materials[rendererMaterial.materialIndex].color = fractionConfig.color;
             }
 
-            _currentFraction = _gameplayObject.Fraction.Id;
+            _currentFraction = _gameplayObject.Owner.Id;
         }
 
         [Serializable]

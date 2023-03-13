@@ -7,7 +7,7 @@ namespace Assets.Scripts.Units
     {
         public Unit(
             UnitType unitType,
-            IFraction fraction,
+            Player owner,
             int speed,
             int defence,
             int attack,
@@ -18,7 +18,7 @@ namespace Assets.Scripts.Units
             )
         {
             Type = unitType;
-            Fraction = fraction;
+            Owner = owner;
             Health = Definitions.MaxUnitHealth;
             Speed = speed;
             Defence = defence;
@@ -29,10 +29,10 @@ namespace Assets.Scripts.Units
             Coord = coord;
         }
 
-        public Unit(IFraction fraction, Vector2Int coord)
+        public Unit(Player owner, Vector2Int coord)
         {
             Type = UnitType.Soldier;
-            Fraction = fraction;
+            Owner = owner;
             Health = Definitions.MaxUnitHealth;
             Speed = 3;
             Defence = 3;
@@ -47,7 +47,7 @@ namespace Assets.Scripts.Units
 
         public UnitType Type { get; set; }
 
-        public IFraction Fraction { get; set; }
+        public Player Owner { get; set; }
 
         public int Health { get; set; }
 

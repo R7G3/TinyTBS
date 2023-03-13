@@ -8,7 +8,7 @@ namespace Assets.Scripts.Buildings
 
         public BuildingState State { get; set; }
 
-        public IFraction Fraction { get; set; }
+        public Player Owner { get; set; }
 
         public Vector2Int Coord { get; set; }
     }

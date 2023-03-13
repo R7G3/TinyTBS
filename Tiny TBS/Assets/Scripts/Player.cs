@@ -4,12 +4,15 @@
     {
         private int _gold;
 
-        public Player(IFraction fraction)
+        public Player(string id, string name)
         {
-            Fraction = fraction;
+            Id = id;
+            Name = name;
         }
 
-        public IFraction Fraction { get; }
+        public string Id { get; }
+
+        public string Name { get; }
 
         public int Gold { get; }
 
