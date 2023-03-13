@@ -2,6 +2,6 @@ namespace Assets.Scripts
 {
     public interface IGameplayObject
     {
-        IFraction Fraction { get; }
+        Player Owner { get; }
     }
 }

@@ -95,7 +95,7 @@ namespace Assets.Scripts.GameLogic
                 return false;
             }
 
-            if (otherUnit.Fraction.Id == unit.Fraction.Id)
+            if (otherUnit.Owner == unit.Owner)
             {
                 return false;
             }
@@ -120,7 +120,7 @@ namespace Assets.Scripts.GameLogic
                 return false;
             }
 
-            if (building.Fraction.Id != player.Fraction.Id)
+            if (building.Owner != player)
             {
                 return false;
             }
@@ -145,7 +145,7 @@ namespace Assets.Scripts.GameLogic
 
             if (targetTile.Building != null)
             {
-                return targetTile.Building.Fraction.Id != unit.Fraction.Id;
+                return targetTile.Building.Owner != unit.Owner;
             }
 
             return false;
@@ -272,12 +272,12 @@ namespace Assets.Scripts.GameLogic
 
             if (tile.Unit != null)
             {
-                canAttack = unit.Fraction != tile.Unit.Fraction;
+                canAttack = unit.Owner != tile.Unit.Owner;
             }
 
             if (tile.Building != null)
             {
-                canOccupy = unit.Fraction != tile.Building.Fraction;
+                canOccupy = unit.Owner != tile.Building.Owner;
             }
 
             var penalty = _balanceConfig.GetPenaltyFor(tile.Type, unit);
@@ -325,7 +325,7 @@ namespace Assets.Scripts.GameLogic
                 return false;
             }
 
-            if (building.Fraction.Id == unit.Fraction.Id)
+            if (building.Owner == unit.Owner)
             {
                 return false;
             }

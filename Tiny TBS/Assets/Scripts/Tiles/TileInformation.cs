@@ -56,7 +56,7 @@ namespace Assets.Scripts.Tiles
                 var _unitDefence = tile.Unit.Defence.ToString();
                 var _unitAttackRange = tile.Unit.AttackRange.ToString();
                 var _unitSpeed = tile.Unit.Speed.ToString();
-                var _unitFraction = tile.Unit.Fraction.ToString();
+                var _unitFraction = tile.Unit.Owner.ToString();
 
                 info += $"\nUnit: {_unitType} \nAttack: {_unitAttack}\n" +
                     $"Health: {_unitHealth}\nDefence: {_unitDefence}\n" +
@@ -75,7 +75,7 @@ namespace Assets.Scripts.Tiles
             {
                 var _buildingType = tile.Building.Type.ToString();
                 var _buildingState = tile.Building.State.ToString();
-                var _buildingBelongsToPlayer = tile.Building.Fraction.ToString();
+                var _buildingBelongsToPlayer = tile.Building.Owner.ToString();
 
                 info += $"\nBuilding: {_buildingType} \nState: {_buildingState}\n" +
                     $"Fraction: {_buildingBelongsToPlayer}";
