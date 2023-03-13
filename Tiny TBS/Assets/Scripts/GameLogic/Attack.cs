@@ -31,9 +31,7 @@ namespace Assets.Scripts.GameLogic
             var healthPercent = 100d * ((double)attacker.Health / Definitions.MaxUnitHealth);
             var totalAttack = attackPercent * healthPercent + _balanceConfig.attackImpact;
             
-            var damage  = (int)Math.Round(totalAttack);
-
-            return damage;
+            return (int)Math.Round(totalAttack);
         }
 
         private int CalculateDefence(Unit defender)
@@ -43,9 +41,7 @@ namespace Assets.Scripts.GameLogic
             var sumDefece = (double)defender.Defence + tileDefence + villageDefence + _balanceConfig.defenceImpact;
             var healthPercent = (double)defender.Health / Definitions.MaxUnitHealth;
 
-            var defence = (int)Math.Round(healthPercent * sumDefece);
-
-            return defence;
+            return (int)Math.Round(healthPercent * sumDefece);
         }
     }
 }
