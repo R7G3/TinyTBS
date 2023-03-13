@@ -20,7 +20,6 @@ namespace Assets.Scripts.HUD
         {
             if (_unit != null)
             {
-                Debug.Log(_unit.Health);
                 UpdateHealth();
             }
         }
