@@ -11,9 +11,9 @@ namespace Assets.Scripts.HUD
         private Unit _unit;
         private string _unitHealth;
 
-        public void Init(Unit gameplayObject)
+        public void Init(Unit unit)
         {
-            _unit = gameplayObject;
+            _unit = unit;
         }
 
         private void Update()
