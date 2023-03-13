@@ -319,7 +319,7 @@ namespace Assets.Scripts.Controllers
         }
 
         private IEnumerable<Unit> GetPlayerUnits(Player player)
-            => _units.Where(u => u.Owner.Id == player.Id);
+            => _units.Where(u => u.Owner == player);
 
         private static bool IsUnitEnabled(Unit unit)
             // For future

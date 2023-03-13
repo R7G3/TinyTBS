@@ -95,7 +95,7 @@ namespace Assets.Scripts.GameLogic
                 return false;
             }
 
-            if (otherUnit.Owner.Id == unit.Owner.Id)
+            if (otherUnit.Owner == unit.Owner)
             {
                 return false;
             }
@@ -120,7 +120,7 @@ namespace Assets.Scripts.GameLogic
                 return false;
             }
 
-            if (building.Owner.Id != player.Id)
+            if (building.Owner != player)
             {
                 return false;
             }
@@ -145,7 +145,7 @@ namespace Assets.Scripts.GameLogic
 
             if (targetTile.Building != null)
             {
-                return targetTile.Building.Owner.Id != unit.Owner.Id;
+                return targetTile.Building.Owner != unit.Owner;
             }
 
             return false;
@@ -325,7 +325,7 @@ namespace Assets.Scripts.GameLogic
                 return false;
             }
 
-            if (building.Owner.Id == unit.Owner.Id)
+            if (building.Owner == unit.Owner)
             {
                 return false;
             }
