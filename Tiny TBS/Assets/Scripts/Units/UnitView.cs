@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Utils;
@@ -14,18 +12,41 @@ namespace Assets.Scripts.Units
         [SerializeField] private Transform _rootTransform;
         [SerializeField] private FractionColorCustomizer _colorCustomizer;
         private int _speedParameterHash;
+        private int _isAttackingParameterHash;
         private Vector3 _velocity;
 
         private void Awake()
         {
             _speedParameterHash = Animator.StringToHash("speed");
+            _isAttackingParameterHash = Animator.StringToHash("isAttacking");
         }
 
-        public void SetFraction(IFraction fraction)
+        public void Init(Unit unit)
         {
-            _colorCustomizer.Init(fraction);
+            _colorCustomizer.Init(unit);
         }
 
+        public async UniTask Attack(Vector2Int coord)
+        {
+            var targetPoint = FieldUtils.GetWorldPos(coord);
+            var position = _rootTransform.position;
+            _animator.SetBool(_isAttackingParameterHash, true);
+            
+            _rootTransform.rotation = Quaternion.LookRotation((targetPoint - position).normalized, Vector3.up);
+
+            while (!_animator.GetCurrentAnimatorStateInfo(0).IsName("Attack"))
+            {
+                await UniTask.DelayFrame(1);
+            }
+
+            while (_animator.GetCurrentAnimatorStateInfo(0).IsName("Attack"))
+            {
+                await UniTask.DelayFrame(1);
+            }
+            
+            _animator.SetBool(_isAttackingParameterHash, false);
+        }
+        
         public async UniTask Travel(IEnumerable<Vector2Int> path)
         {
             const float animationThresholdDistance = 0.001f;

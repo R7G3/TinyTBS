@@ -27,7 +27,7 @@ namespace Assets.Scripts.Controllers
         {
             _unitViews[unit.Id] = UnityEngine.Object.Instantiate(_unitPrefab)
                 .GetComponent<UnitView>();
-            _unitViews[unit.Id].SetFraction(unit.Fraction);
+            _unitViews[unit.Id].Init(unit);
             var unitTransform = _unitViews[unit.Id].gameObject.transform;
             unitTransform.position = FieldUtils.GetWorldPos(coord);
 
@@ -46,6 +46,11 @@ namespace Assets.Scripts.Controllers
             _countLabelsPool.Return(_unitLabelMap[unit]);
 
             _unitViews.Remove(unit.Id);
+        }
+        
+        public UniTask Attack(Unit unit, Vector2Int coord)
+        {
+            return _unitViews[unit.Id].Attack(coord);
         }
 
         public UniTask MoveUnit(Unit unit, IEnumerable<Vector2Int> path)

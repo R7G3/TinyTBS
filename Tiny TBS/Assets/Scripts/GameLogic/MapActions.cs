@@ -110,7 +110,7 @@ namespace Assets.Scripts.GameLogic
                 return false;
             }
 
-            if (_map[building.Coord].Unit != null) 
+            if (_map[building.Coord].Unit != null)
             {
                 return false;
             }
@@ -133,7 +133,7 @@ namespace Assets.Scripts.GameLogic
         {
             var targetTile = _map[coord];
 
-            if(unit == null)
+            if (unit == null)
             {
                 return false;
             }
@@ -208,7 +208,7 @@ namespace Assets.Scripts.GameLogic
             while (returnedCount != 0)
             {
                 var newPossibles = new List<MoveInfo>();
-                result.ForEach(possible => 
+                result.ForEach(possible =>
                     newPossibles.AddRange(GetNeighboursForPossibleActions(possible, unit)
                         .Where(possible => !processed.Contains(possible))));
 
@@ -237,6 +237,7 @@ namespace Assets.Scripts.GameLogic
                     {
                         return cell.PathwayPart.Previous.CurrentMoveInfo.Cost <= unit.Speed;
                     }
+
                     return true;
                 });
         }
@@ -284,12 +285,12 @@ namespace Assets.Scripts.GameLogic
             var canMove = cost <= unit.Speed && tile.Unit == null;
 
             var moveInfo = new MoveInfo(
-                    coord: coord,
-                    cost: cost,
-                    canMove: canMove,
-                    canAttack: canAttack,
-                    canOccupy: canOccupy,
-                    pathwayPart: null);
+                coord: coord,
+                cost: cost,
+                canMove: canMove,
+                canAttack: canAttack,
+                canOccupy: canOccupy,
+                pathwayPart: null);
 
             var pathPart = new PathPart(
                 previous: previousMove.PathwayPart,

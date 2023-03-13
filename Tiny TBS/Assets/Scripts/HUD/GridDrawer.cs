@@ -106,6 +106,7 @@ namespace Assets.Scripts.HUD
 
     public struct GridItem
     {
+        public MoveInfo moveInfo;
         public Vector2Int coord;
         public GridType type;
     }
