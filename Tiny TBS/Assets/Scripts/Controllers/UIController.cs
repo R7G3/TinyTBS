@@ -77,10 +77,13 @@ namespace Assets.Scripts.Controllers
             {
                 Unit unit;
                 Building building;
-                do
+
+                _gameplayObject = await SelectGameplayObject(player);
+
+                if (_gameplayObject == null || _gameplayObject.Owner != player)
                 {
-                    _gameplayObject = await SelectGameplayObject(player);
-                } while (_gameplayObject == null || _gameplayObject.Owner != player);
+                    return await ProcessGameMatchAction();
+                }
 
                 if (_gameplayObject is Unit)
                 {
@@ -102,6 +105,17 @@ namespace Assets.Scripts.Controllers
             }
 
             return null;
+        }
+
+        private async UniTask<IPlayerAction> ProcessGameMatchAction()
+        {
+            var action = await SelectGameMatchAction();
+
+            return action switch
+            {
+                GameMatchAction.EndTurn => new EndTurn(),
+                _ => throw new ArgumentOutOfRangeException($"{nameof(GameMatchAction)}: {action.ToString()}"),
+            };
         }
 
         private async UniTask<IPlayerAction> ProcessUnitPlayerAction(Unit unit)
@@ -187,6 +201,18 @@ namespace Assets.Scripts.Controllers
                     taskSource.TrySetResult(coord);
                 }
             });
+        }
+
+        private async Task<GameMatchAction> SelectGameMatchAction()
+        {
+            var taskSource = new UniTaskCompletionSource<GameMatchAction>();
+
+            _menuController.ShowMenu(Input.mousePosition,
+                GetGameMacthMenu(
+                    onActionSelected: action => taskSource.TrySetResult(action)),
+                onCancel: () => taskSource.TrySetException(new UserCanceledActionException()));
+
+            return await taskSource.Task;
         }
 
         private async Task<UnitAction> SelectUnitAction(Unit unit, Vector2Int coord)
@@ -289,6 +315,10 @@ namespace Assets.Scripts.Controllers
                     {
                         taskSource.TrySetResult(_map[coord].Building);
                     }
+                    else
+                    {
+                        taskSource.TrySetResult(null);
+                    }
                 }
                 else
                 {
@@ -342,6 +372,15 @@ namespace Assets.Scripts.Controllers
                 });
 
             return possibleActions;
+        }
+
+        private IEnumerable<MenuItem> GetGameMacthMenu(Action<GameMatchAction> onActionSelected)
+        {
+            yield return new MenuItem()
+            {
+                title = "End turn",
+                onClick = () => onActionSelected.Invoke(GameMatchAction.EndTurn),
+            };
         }
 
         private IEnumerable<MenuItem> GetUnitMenu(Unit unit, Vector2Int targetCoord,
@@ -407,6 +446,11 @@ namespace Assets.Scripts.Controllers
             Attack,
             Occupy,
             BuyUnit
+        }
+
+        private enum GameMatchAction
+        {
+            EndTurn,
         }
     }
 }
