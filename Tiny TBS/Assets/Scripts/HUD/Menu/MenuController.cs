@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Assets.Scripts.HUD;
+using Assets.Scripts.Utils;
 using UnityEngine;
 using UnityEngine.UI;
 using Utils;
@@ -19,7 +20,7 @@ namespace Assets.Scripts.HUD.Menu
         void Hide();
     }
 
-    public class MenuController : MonoBehaviour, IHUDMenu
+    public class MenuController : MonoBehaviour, IHUDMenu, IService
     {
         [SerializeField] private RectTransform _list;
         [SerializeField] private MenuItemView _menuItemPrefab;

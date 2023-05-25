@@ -1,11 +1,12 @@
 using Assets.Scripts.Tiles;
 using Assets.Scripts.Units;
+using Assets.Scripts.Utils;
 using UnityEngine;
 
 namespace Assets.Scripts.Configs
 {
     [CreateAssetMenu]
-    public class BalanceConfig : ScriptableObject
+    public class BalanceConfig : ScriptableObject, IService
     {
         public int roadMovementSpeedPenalty;
 

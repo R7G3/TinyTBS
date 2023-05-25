@@ -1,9 +1,10 @@
+using Assets.Scripts.Utils;
 using TMPro;
 using UnityEngine;
 
 namespace Assets.Scripts.Controllers
 {
-    public class HUDMessageController : MonoBehaviour
+    public class HUDMessageController : MonoBehaviour, IService
     {
         [SerializeField] private TextMeshProUGUI _label;
 
