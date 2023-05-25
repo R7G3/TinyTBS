@@ -805,17 +805,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 1597399656683591534, guid: 3b2bd008be1d44224814966748556820, type: 3}
   m_PrefabInstance: {fileID: 1597399657795728204}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1657501762 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1597399656683591530, guid: 3b2bd008be1d44224814966748556820, type: 3}
-  m_PrefabInstance: {fileID: 1597399657795728204}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1657501761}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1ea26ca5854a4b2bbc3c53131d4d168b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &1657501766
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -831,9 +820,8 @@ MonoBehaviour:
   zoomSensitivity: 1
   zoomSmoothingTime: 0.3
   minMaxZoom: {x: 2, y: 5}
-  mouseController: {fileID: 1657501762}
+  _serviceLocator: {fileID: 125483093}
   _camera: {fileID: 27234975}
-  _hudCanvas: {fileID: 1597399657795728206}
 --- !u!1 &2032675054
 GameObject:
   m_ObjectHideFlags: 0
@@ -1012,6 +1000,10 @@ PrefabInstance:
       propertyPath: _hudCanvas
       value: 
       objectReference: {fileID: 1597399657795728206}
+    - target: {fileID: 1597399656683591529, guid: 3b2bd008be1d44224814966748556820, type: 3}
+      propertyPath: _serviceLocator
+      value: 
+      objectReference: {fileID: 125483093}
     - target: {fileID: 1597399656683591534, guid: 3b2bd008be1d44224814966748556820, type: 3}
       propertyPath: m_Name
       value: GameController

@@ -8,25 +8,27 @@ namespace Assets.Scripts.Controllers
         public float zoomSensitivity = 1f;
         public float zoomSmoothingTime = 0.3f;
         public Vector2 minMaxZoom;
-        public MouseController mouseController;
-        [SerializeField] private Camera _camera;
-        [SerializeField] private Canvas _hudCanvas;
+        private MouseController _mouseController;
         private Transform _cameraTransform;
         private float _targetZoom;
         private float _currentZoomVelocity;
 
-        private void Awake()
+        [SerializeField] private ServiceLocator _serviceLocator;
+        [SerializeField] private Camera _camera;
+        
+        private void Start()
         {
+            _mouseController = _serviceLocator.GetService<MouseController>();
             _cameraTransform = _camera.transform;
             _targetZoom = _camera.orthographicSize;
-            mouseController.onDrag += OnDrag;
-            mouseController.onZoom += OnZoom;
+            _mouseController.onDrag += OnDrag;
+            _mouseController.onZoom += OnZoom;
         }
 
         private void OnDestroy()
         {
-            mouseController.onDrag -= OnDrag;
-            mouseController.onZoom -= OnZoom;
+            _mouseController.onDrag -= OnDrag;
+            _mouseController.onZoom -= OnZoom;
         }
 
         private void Update()
