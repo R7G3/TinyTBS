@@ -1,11 +1,12 @@
 using Assets.Scripts;
 using Assets.Scripts.Tiles;
+using Assets.Scripts.Utils;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
-public class TileInformationVisibilityController : MonoBehaviour
+public class TileInformationVisibilityController : MonoBehaviour, IService
 {
     [SerializeField] private GameObject _terrainInfoWidget;
     [SerializeField] private GameObject _unitInfoWidget;

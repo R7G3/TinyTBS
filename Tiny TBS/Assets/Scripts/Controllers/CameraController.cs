@@ -1,8 +1,9 @@
+using Assets.Scripts.Utils;
 using UnityEngine;
 
 namespace Assets.Scripts.Controllers
 {
-    public class CameraController : MonoBehaviour
+    public class CameraController : MonoBehaviour, IService
     {
         public float zoomSensitivity = 1f;
         public float zoomSmoothingTime = 0.3f;
