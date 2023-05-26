@@ -1,3 +1,4 @@
+using Assets.Scripts.Controllers;
 using UnityEngine;
 
 namespace Assets.Scripts.Utils
@@ -28,6 +29,8 @@ namespace Assets.Scripts.Utils
                 }
 
             }
+            
+            _locator.Register(() => new UIController(Camera.main, _locator));
         }
     }
 }
