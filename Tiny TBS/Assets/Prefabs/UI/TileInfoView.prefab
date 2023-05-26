@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 392339501751306766}
   - component: {fileID: 2650964549121372371}
   m_Layer: 5
-  m_Name: TileInfoController
+  m_Name: TileInfoView
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
