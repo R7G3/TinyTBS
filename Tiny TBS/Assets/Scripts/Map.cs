@@ -1,9 +1,10 @@
 ﻿using Assets.Scripts.Tiles;
+using Assets.Scripts.Utils;
 using UnityEngine;
 
 namespace Assets.Scripts
 {
-    public class Map
+    public class Map : IService
     {
         private ITile[,] _tiles;
 

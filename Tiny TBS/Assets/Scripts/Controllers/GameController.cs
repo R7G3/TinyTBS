@@ -20,24 +20,16 @@ namespace Assets.Scripts.Controllers
 {
     public class GameController : MonoBehaviour, IService
     {
-        private GridDrawer _gridDrawer;
         private MouseController _mouseController;
-        private MenuController _menuController;
-        private TileInformationVisibilityController _widgetVisibility;
-        private HUDMessageController _hudMessageController;
         private TilesConfig _tilesConfig;
         private UnitController _unitController;
         private BalanceConfig _balanceConfig;
 
-        [SerializeField] private TileInfoController _terrainInfo;
-        [SerializeField] private TileInfoController _unitInfo;
-        [SerializeField] private TileInfoController _buildInfo;
         [SerializeField] private bool _randomMap;
         [SerializeField] private ServiceLocator _serviceLocator;
 
         private Attack _attackLogic;
         private UIController _uiController;
-        private Camera _camera;
         private Map _map;
         private readonly List<UniTask> _queuedAnimations = new();
         private List<Player> _players;
@@ -199,59 +191,34 @@ namespace Assets.Scripts.Controllers
             occupyBuilding.Unit.HasPerformedAction = true;
         }
 
+        private void Awake()
+        {
+            _serviceLocator.Register(() =>
+            {
+                return _randomMap switch
+                {
+                    true => CreateRandomMap(20),
+                    _ => CreateMap(new TileType[,]
+                    {
+                        { TileType.Grass, TileType.Road, TileType.Mountain, },
+                        { TileType.Water, TileType.Grass, TileType.Road, },
+                        { TileType.Road, TileType.Water, TileType.Grass, }
+                    })
+                };
+            });
+        }
+
         private void Start()
         {
-            _gridDrawer = _serviceLocator.GetService<GridDrawer>();
             _mouseController = _serviceLocator.GetService<MouseController>();
-            _menuController = _serviceLocator.GetService<MenuController>();
-            _widgetVisibility = _serviceLocator.GetService<TileInformationVisibilityController>();
-            _hudMessageController = _serviceLocator.GetService<HUDMessageController>();
             _tilesConfig = _serviceLocator.GetService<TilesConfig>();
             _unitController = _serviceLocator.GetService<UnitController>();
             _balanceConfig = _serviceLocator.GetService<BalanceConfig>();
+            _map = _serviceLocator.GetService<Map>();
+            _uiController = _serviceLocator.GetService<UIController>();
 
-            _camera = Camera.main;
-
-            if (_randomMap)
-            {
-                _map = CreateRandomMap(20);
-            }
-            else
-            {
-                _map = CreateMap(
-                    new TileType[,]
-                    {
-                        {
-                            TileType.Grass,
-                            TileType.Road,
-                            TileType.Mountain,
-                        },
-                        {
-                            TileType.Water,
-                            TileType.Grass,
-                            TileType.Road,
-                        },
-                        {
-                            TileType.Road,
-                            TileType.Water,
-                            TileType.Grass,
-                        }
-                    });
-            }
 
             _attackLogic = new Attack(_map, _balanceConfig);
-
-            _uiController = new UIController(
-                _map,
-                _gridDrawer,
-                _menuController,
-                _camera,
-                _hudMessageController,
-                _balanceConfig,
-                _terrainInfo,
-                _buildInfo,
-                _unitInfo,
-                _widgetVisibility);
 
             _mouseController.onClick += _uiController.OnMouseClick;
             _mouseController.onMouseMove += _uiController.OnMouseMove;
