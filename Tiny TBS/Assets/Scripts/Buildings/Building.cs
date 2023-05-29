@@ -11,5 +11,7 @@ namespace Assets.Scripts.Buildings
         public Player Owner { get; set; }
 
         public Vector2Int Coord { get; set; }
+
+        public bool IsEnabled { get; set; } = true;
     }
 }

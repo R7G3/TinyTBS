@@ -5,8 +5,6 @@ using System.Threading.Tasks;
 using Assets.Scripts.Buildings;
 using Assets.Scripts.Configs;
 using Assets.Scripts.GameLogic;
-using Assets.Scripts.HUD;
-using Assets.Scripts.HUD.Menu;
 using Assets.Scripts.PlayerAction;
 using Assets.Scripts.Tiles;
 using Assets.Scripts.Units;
@@ -125,15 +123,14 @@ namespace Assets.Scripts.Controllers
             return tileView;
         }
 
-        private void OnMoveUnit(MoveUnit moveUnit)
+        private async void OnMoveUnit(MoveUnit moveUnit)
         {
             _map[moveUnit.unit.Coord].Unit = null;
             moveUnit.unit.Coord = moveUnit.coord;
             _map[moveUnit.coord].Unit = moveUnit.unit;
             moveUnit.unit.HasMoved = true;
 
-            var moveTask = _unitController.MoveUnit(moveUnit.unit, Enumerable.Repeat(moveUnit.coord, 1));
-            _queuedAnimations.Add(moveTask);
+            await _unitController.MoveUnit(moveUnit.unit, Enumerable.Repeat(moveUnit.coord, 1));
         }
 
         private async UniTask OnAttackUnit(AttackUnit attackUnit)
@@ -168,7 +165,7 @@ namespace Assets.Scripts.Controllers
 
             attackUnit.Attacker.Health -= retaliatoryDamage;
 
-            attackUnit.Attacker.HasMoved = true;
+            attackUnit.Attacker.HasPerformedAction = true;
         }
 
         private async Task OnOccupyBuilding(OccupyBuilding occupyBuilding)
@@ -277,8 +274,6 @@ namespace Assets.Scripts.Controllers
             {
                 var currentPlayer = _players[currentPlayerIndex];
 
-                TurnStart(currentPlayer);
-
                 IPlayerAction playerAction;
                 do
                 {
@@ -288,10 +283,11 @@ namespace Assets.Scripts.Controllers
 
                     await ProcessPlayerAction(playerAction);
 
-                } while (playerAction is not PlayerAction.EndTurn && CanDoMoreActions(currentPlayer));
+                } while (playerAction is not PlayerAction.EndTurn);
 
                 await _uiController.ShowMessage("Next turn");
 
+                TurnEnd(currentPlayer);
 
                 currentPlayerIndex = (currentPlayerIndex + 1) % _players.Count;
             }
@@ -300,14 +296,9 @@ namespace Assets.Scripts.Controllers
         private IEnumerable<Unit> GetPlayerUnits(Player player)
             => _units.Where(u => u.Owner == player);
 
-        private static bool IsUnitEnabled(Unit unit)
-            // For future
-            // => !unit.HasMoved || !unit.HasPerformedAction;
-            => !unit.HasMoved;
+        private bool CanDoMoreActions(Player player) => GetPlayerUnits(player).Any(u => u.IsEnabled);
 
-        private bool CanDoMoreActions(Player player) => GetPlayerUnits(player).Any(IsUnitEnabled);
-
-        private void TurnStart(Player player)
+        private void TurnEnd(Player player)
         {
             foreach (var unit in GetPlayerUnits(player))
             {
@@ -320,6 +311,10 @@ namespace Assets.Scripts.Controllers
         {
             switch (playerAction)
             {
+                case Wait wait:
+                    wait.unit.HasPerformedAction = true;
+                    wait.unit.HasMoved = true;
+                    break;
                 case MoveUnit moveUnit:
                     OnMoveUnit(moveUnit);
                     break;
