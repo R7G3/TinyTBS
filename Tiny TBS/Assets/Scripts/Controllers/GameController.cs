@@ -123,7 +123,7 @@ namespace Assets.Scripts.Controllers
             return tileView;
         }
 
-        private async void OnMoveUnit(MoveUnit moveUnit)
+        private async UniTask OnMoveUnit(MoveUnit moveUnit)
         {
             _map[moveUnit.unit.Coord].Unit = null;
             moveUnit.unit.Coord = moveUnit.coord;
@@ -316,7 +316,7 @@ namespace Assets.Scripts.Controllers
                     wait.unit.HasMoved = true;
                     break;
                 case MoveUnit moveUnit:
-                    OnMoveUnit(moveUnit);
+                    await OnMoveUnit(moveUnit);
                     break;
                 case AttackUnit attackUnit:
                     await OnAttackUnit(attackUnit);
