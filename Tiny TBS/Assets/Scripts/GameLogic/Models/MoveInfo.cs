@@ -32,8 +32,6 @@ namespace Assets.Scripts.GameLogic.Models
 
         public bool CanOccupy { get; }
 
-        public bool HasAvailableActions => CanMove || CanAttack || CanOccupy;
-
         public PathPart PathwayPart { get; set; }
 
         public static MoveInfo CreateDefault(Vector2Int coord)

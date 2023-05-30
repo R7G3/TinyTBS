@@ -153,10 +153,33 @@ namespace Assets.Scripts.GameLogic
 
         public IEnumerable<Vector2Int> GetNeighbours(Vector2Int coord)
         {
-            yield return Normalize(coord + Vector2Int.left);
-            yield return Normalize(coord + Vector2Int.up);
-            yield return Normalize(coord + Vector2Int.right);
-            yield return Normalize(coord + Vector2Int.down);
+            var valueWithOffset = Normalize(coord.x - 1, Definitions.xAxis);
+
+            if (valueWithOffset != coord.x)
+            {
+                yield return new Vector2Int(valueWithOffset, coord.y);
+            }
+
+            valueWithOffset = Normalize(coord.x + 1, Definitions.xAxis);
+
+            if (valueWithOffset != coord.x)
+            {
+                yield return new Vector2Int(valueWithOffset, coord.y);
+            }
+
+            valueWithOffset = Normalize(coord.y - 1, Definitions.yAxis);
+
+            if (valueWithOffset != coord.y)
+            {
+                yield return new Vector2Int(coord.x, valueWithOffset);
+            }
+
+            valueWithOffset = Normalize(coord.y + 1, Definitions.yAxis);
+
+            if (valueWithOffset != coord.y)
+            {
+                yield return new Vector2Int(coord.x, valueWithOffset);
+            }
         }
 
         public IEnumerable<Vector2Int> GetNeighboursInRange(Vector2Int coord, int range)
@@ -178,6 +201,7 @@ namespace Assets.Scripts.GameLogic
 
             result.AddRange(availableMoves);
 
+            var forChecking = new List<MoveInfo>();
             var possibles = new List<MoveInfo>(result);
             var returnedCount = availableMoves.Count();
 
@@ -190,7 +214,7 @@ namespace Assets.Scripts.GameLogic
 
                 possibles = newPossibles;
 
-                returnedCount = possibles.Count;
+                returnedCount = possibles.Count();
 
                 foreach (var possible in possibles)
                 {
@@ -206,7 +230,16 @@ namespace Assets.Scripts.GameLogic
                 }
             }
 
-            return result;
+            return result.Where(cell => cell.CanMove || cell.CanAttack || cell.CanOccupy)
+                .Where(cell =>
+                {
+                    if (cell.CanAttack || cell.CanOccupy)
+                    {
+                        return cell.PathwayPart.Previous.CurrentMoveInfo.Cost <= unit.Speed;
+                    }
+
+                    return true;
+                });
         }
 
         private IEnumerable<MoveInfo> GetNeighboursForPossibleActions(MoveInfo previousMove, Unit unit)
@@ -218,7 +251,11 @@ namespace Assets.Scripts.GameLogic
             {
                 var potentialMovement = GetMoveInformation(neighbour, previousMove, unit);
 
-                if (potentialMovement.HasAvailableActions)
+                var costOutOfRange = unit.Speed + unit.AttackRange < potentialMovement.Cost;
+
+                if (!costOutOfRange ||
+                    potentialMovement.CanAttack ||
+                    potentialMovement.CanOccupy)
                 {
                     result.Add(potentialMovement);
                 }
@@ -233,24 +270,19 @@ namespace Assets.Scripts.GameLogic
             var canAttack = false;
             var canOccupy = false;
 
-            var actualSpeed = !unit.HasMoved ? unit.Speed : 0;
-            var movePenalty = _balanceConfig.GetPenaltyFor(tile.Type, unit);
-
-            var isActionInRange = previousMove.Cost <= actualSpeed;
-            var isMoveInRange = previousMove.Cost + movePenalty <= actualSpeed;
-
-            if (tile.Unit != null && isActionInRange)
+            if (tile.Unit != null)
             {
-                canAttack = unit.Owner != tile.Unit.Owner && !unit.HasPerformedAction;
+                canAttack = unit.Owner != tile.Unit.Owner;
             }
 
-            if (tile.Building != null && isActionInRange)
+            if (tile.Building != null)
             {
                 canOccupy = unit.Owner != tile.Building.Owner;
             }
 
-            var cost = previousMove.Cost + movePenalty;
-            var canMove = !canAttack && !canOccupy && !unit.HasMoved && isMoveInRange && tile.Unit == null;
+            var penalty = _balanceConfig.GetPenaltyFor(tile.Type, unit);
+            var cost = (canAttack || canOccupy) ? 100 : previousMove.Cost + penalty;
+            var canMove = cost <= unit.Speed && tile.Unit == null;
 
             var moveInfo = new MoveInfo(
                 coord: coord,
@@ -300,16 +332,6 @@ namespace Assets.Scripts.GameLogic
 
             // TODO: проверить может ли юнит захватывать
             return true;
-        }
-
-        private Vector2Int Normalize(Vector2Int coord)
-        {
-            var result = coord;
-
-            result.x = Math.Clamp(coord.x, 0, _map.GetSizeByAxis(Definitions.xAxis));
-            result.y = Math.Clamp(coord.y, 0, _map.GetSizeByAxis(Definitions.yAxis));
-
-            return result;
         }
 
         private int Normalize(int value, int axis)
