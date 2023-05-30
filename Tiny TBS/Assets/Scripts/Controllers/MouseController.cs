@@ -1,10 +1,9 @@
 using System;
-using Assets.Scripts.Utils;
 using UnityEngine;
 
 namespace Assets.Scripts.Controllers
 {
-    public class MouseController : MonoBehaviour, IService
+    public class MouseController : MonoBehaviour
     {
         public event Action<Vector3> onClick;
         public event Action<DragData> onDrag;

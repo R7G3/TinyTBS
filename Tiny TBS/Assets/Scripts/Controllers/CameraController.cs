@@ -1,34 +1,31 @@
-using Assets.Scripts.Utils;
 using UnityEngine;
 
 namespace Assets.Scripts.Controllers
 {
-    public class CameraController : MonoBehaviour, IService
+    public class CameraController : MonoBehaviour
     {
         public float zoomSensitivity = 1f;
         public float zoomSmoothingTime = 0.3f;
         public Vector2 minMaxZoom;
-        private MouseController _mouseController;
+        public MouseController mouseController;
+        [SerializeField] private Camera _camera;
+        [SerializeField] private Canvas _hudCanvas;
         private Transform _cameraTransform;
         private float _targetZoom;
         private float _currentZoomVelocity;
 
-        [SerializeField] private ServiceLocator _serviceLocator;
-        [SerializeField] private Camera _camera;
-        
-        private void Start()
+        private void Awake()
         {
-            _mouseController = _serviceLocator.GetService<MouseController>();
             _cameraTransform = _camera.transform;
             _targetZoom = _camera.orthographicSize;
-            _mouseController.onDrag += OnDrag;
-            _mouseController.onZoom += OnZoom;
+            mouseController.onDrag += OnDrag;
+            mouseController.onZoom += OnZoom;
         }
 
         private void OnDestroy()
         {
-            _mouseController.onDrag -= OnDrag;
-            _mouseController.onZoom -= OnZoom;
+            mouseController.onDrag -= OnDrag;
+            mouseController.onZoom -= OnZoom;
         }
 
         private void Update()

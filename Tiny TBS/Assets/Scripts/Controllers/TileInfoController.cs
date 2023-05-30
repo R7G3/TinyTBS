@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace Assets.Scripts.Controllers
 {
-    public class TileInfoView : MonoBehaviour
+    public class TileInfoController : MonoBehaviour
     {
         [SerializeField] private TextMeshProUGUI _tileInfo;
 
-        public void SetText(string text)
+        public void SetTileInfo(string text)
         {
             _tileInfo.text = text;
         }
