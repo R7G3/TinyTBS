@@ -12,21 +12,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Assets.Scripts.Utils;
 using UnityEngine;
 using Utils;
 using Unit = Assets.Scripts.Units.Unit;
 
 namespace Assets.Scripts.Controllers
 {
-    public class UIController
+    public class UIController : IService
     {
         private readonly Map _map;
         private readonly GridDrawer _gridDrawer;
         private readonly MenuController _menuController;
-        private readonly TileInformationVisibilityController _widgetVisibility;
-        private readonly TileInfoController _terrainInfo;
-        private readonly TileInfoController _buildInfo;
-        private readonly TileInfoController _unitInfo;
+        private readonly TileInformationController _tileInfo;
         private readonly Camera _camera;
         private readonly HUDMessageController _hudMessageController;
         private readonly BalanceConfig _balanceConfig;
@@ -39,29 +37,23 @@ namespace Assets.Scripts.Controllers
         private event Action<Vector3> _onMouseMove;
         private event Action<MouseController.DragData> _onMouseDrag;
 
-        public UIController(Map map, GridDrawer gridDrawer, MenuController menuController, Camera camera,
-            HUDMessageController hudMessageController, BalanceConfig balanceConfig,
-            TileInfoController terrainInfo, TileInfoController buildInfo, TileInfoController unitInfo,
-            TileInformationVisibilityController widgetVisibility)
+        public UIController(Camera camera, ServiceLocator serviceLocator)
         {
-            _map = map;
-            _gridDrawer = gridDrawer;
-            _menuController = menuController;
-            _widgetVisibility = widgetVisibility;
-            _terrainInfo = terrainInfo;
-            _buildInfo = buildInfo;
-            _unitInfo = unitInfo;
+            _map = serviceLocator.GetService<Map>();
+            _gridDrawer = serviceLocator.GetService<GridDrawer>();
+            _menuController = serviceLocator.GetService<MenuController>();
+            _tileInfo = serviceLocator.GetService<TileInformationController>();
             _camera = camera;
-            _hudMessageController = hudMessageController;
+            _hudMessageController = serviceLocator.GetService<HUDMessageController>();
 
-            _balanceConfig = balanceConfig;
+            _balanceConfig = serviceLocator.GetService<BalanceConfig>();
             _movement = new MapActions(_map, _balanceConfig);
 
             _onMouseDrag += HideMenuOnDrag;
             _onMouseDrag += DisableHoverOnDrag;
             _onMouseMove += ShowCursorOnHover;
 
-            _onMouseMove += GetTileInfo;
+            _onMouseMove += UpdateTileInfo;
         }
 
         public async UniTask ShowMessage(string msg)
@@ -276,21 +268,17 @@ namespace Assets.Scripts.Controllers
             _gridDrawer.ShowCursor(coord);
         }
 
-        private void GetTileInfo(Vector3 pos)
+        private void UpdateTileInfo(Vector3 pos)
         {
             var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
 
             if (_map.IsValidCoord(coord))
             {
-                var tileInfo = TileInformation.GetTileInfo(coord, _map, _balanceConfig, InfoType.Tile);
-                var buildingInfo = TileInformation.GetTileInfo(coord, _map, _balanceConfig, InfoType.Building);
-                var unitInfo = TileInformation.GetTileInfo(coord, _map, _balanceConfig, InfoType.Unit);
-
-                _widgetVisibility.ChangeVisibility(coord, _map);
-
-                _terrainInfo.SetTileInfo(tileInfo);
-                _unitInfo.SetTileInfo(unitInfo);
-                _buildInfo.SetTileInfo(buildingInfo);
+                _tileInfo.ShowInfoFor(coord);
+            }
+            else
+            {
+                _tileInfo.Hide();
             }
         }
 

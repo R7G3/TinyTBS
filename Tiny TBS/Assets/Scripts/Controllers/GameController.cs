@@ -10,6 +10,7 @@ using Assets.Scripts.HUD.Menu;
 using Assets.Scripts.PlayerAction;
 using Assets.Scripts.Tiles;
 using Assets.Scripts.Units;
+using Assets.Scripts.Utils;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Utils;
@@ -17,103 +18,22 @@ using Random = UnityEngine.Random;
 
 namespace Assets.Scripts.Controllers
 {
-    public class GameController : MonoBehaviour
+    public class GameController : MonoBehaviour, IService
     {
-        [SerializeField] private GridDrawer _gridDrawer;
-        [SerializeField] private MouseController _mouseController;
-        [SerializeField] private MenuController _menuController;
-        [SerializeField] private TileInformationVisibilityController _widgetVisibility;
-        [SerializeField] private TileInfoController _terrainInfo;
-        [SerializeField] private TileInfoController _unitInfo;
-        [SerializeField] private TileInfoController _buildInfo;
-        [SerializeField] private HUDMessageController _hudMessageController;
-        [SerializeField] private TilesConfig _tilesConfig;
-        [SerializeField] private UnitController _unitController;
-        [SerializeField] private BalanceConfig _balanceConfig;
+        private MouseController _mouseController;
+        private TilesConfig _tilesConfig;
+        private UnitController _unitController;
+        private BalanceConfig _balanceConfig;
+
         [SerializeField] private bool _randomMap;
+        [SerializeField] private ServiceLocator _serviceLocator;
 
         private Attack _attackLogic;
         private UIController _uiController;
-        private Camera _camera;
         private Map _map;
         private readonly List<UniTask> _queuedAnimations = new();
         private List<Player> _players;
-        private List<Unit> _units = new();
-
-        private void Awake()
-        {
-            _camera = Camera.main;
-
-            if (_randomMap)
-            {
-                _map = CreateRandomMap(20);
-            }
-            else
-            {
-                _map = CreateMap(
-                    new TileType[,]
-                    {
-                        {
-                            TileType.Grass,
-                            TileType.Road,
-                            TileType.Mountain,
-                        },
-                        {
-                            TileType.Water,
-                            TileType.Grass,
-                            TileType.Road,
-                        },
-                        {
-                            TileType.Road,
-                            TileType.Water,
-                            TileType.Grass,
-                        }
-                    });
-            }
-
-            _attackLogic = new Attack(_map, _balanceConfig);
-
-            _uiController = new UIController(
-                _map,
-                _gridDrawer,
-                _menuController,
-                _camera,
-                _hudMessageController,
-                _balanceConfig,
-                _terrainInfo,
-                _buildInfo,
-                _unitInfo,
-                _widgetVisibility);
-
-            _mouseController.onClick += _uiController.OnMouseClick;
-            _mouseController.onMouseMove += _uiController.OnMouseMove;
-            _mouseController.onDrag += _uiController.OnMouseDrag;
-
-            SetPlayers(new[]
-            {
-                new Player(id: "Player 1", name: "Player 1"),
-                new Player(id: "Player 2", name: "Player 2")
-            });
-
-            var unit = new Unit(
-                _players[0],
-                new Vector2Int(1, 1));
-            PlaceUnit(unit);
-
-            unit = new Unit(
-                _players[1],
-                new Vector2Int(3, 3));
-            PlaceUnit(unit);
-
-
-            PlaceBuilding(_players[0], BuildingType.Village, new Vector2Int(0, 1));
-            PlaceBuilding(_players[1], BuildingType.Village, new Vector2Int(3, 1));
-            PlaceBuilding(_players[0], BuildingType.Castle, new Vector2Int(0, 2));
-            PlaceBuilding(_players[1], BuildingType.Castle, new Vector2Int(3, 2));
-
-
-            StartCoroutine(Turn().AsUniTask().ToCoroutine());
-        }
+        private readonly List<Unit> _units = new();
 
         void SetPlayers(IEnumerable<Player> players)
         {
@@ -269,6 +189,65 @@ namespace Assets.Scripts.Controllers
 
             building.Owner = occupyBuilding.Unit.Owner;
             occupyBuilding.Unit.HasPerformedAction = true;
+        }
+
+        private void Awake()
+        {
+            _serviceLocator.Register(() =>
+            {
+                return _randomMap switch
+                {
+                    true => CreateRandomMap(20),
+                    _ => CreateMap(new TileType[,]
+                    {
+                        { TileType.Grass, TileType.Road, TileType.Mountain, },
+                        { TileType.Water, TileType.Grass, TileType.Road, },
+                        { TileType.Road, TileType.Water, TileType.Grass, }
+                    })
+                };
+            });
+        }
+
+        private void Start()
+        {
+            _mouseController = _serviceLocator.GetService<MouseController>();
+            _tilesConfig = _serviceLocator.GetService<TilesConfig>();
+            _unitController = _serviceLocator.GetService<UnitController>();
+            _balanceConfig = _serviceLocator.GetService<BalanceConfig>();
+            _map = _serviceLocator.GetService<Map>();
+            _uiController = _serviceLocator.GetService<UIController>();
+
+
+            _attackLogic = new Attack(_map, _balanceConfig);
+
+            _mouseController.onClick += _uiController.OnMouseClick;
+            _mouseController.onMouseMove += _uiController.OnMouseMove;
+            _mouseController.onDrag += _uiController.OnMouseDrag;
+
+            SetPlayers(new[]
+            {
+                new Player(id: "Player 1", name: "Player 1"),
+                new Player(id: "Player 2", name: "Player 2")
+            });
+
+            var unit = new Unit(
+                _players[0],
+                new Vector2Int(1, 1));
+            PlaceUnit(unit);
+
+            unit = new Unit(
+                _players[1],
+                new Vector2Int(3, 3));
+            PlaceUnit(unit);
+
+
+            PlaceBuilding(_players[0], BuildingType.Village, new Vector2Int(0, 1));
+            PlaceBuilding(_players[1], BuildingType.Village, new Vector2Int(3, 1));
+            PlaceBuilding(_players[0], BuildingType.Castle, new Vector2Int(0, 2));
+            PlaceBuilding(_players[1], BuildingType.Castle, new Vector2Int(3, 2));
+
+
+            StartCoroutine(Turn().AsUniTask().ToCoroutine());
         }
 
         private void PlaceBuilding(Player owner, BuildingType type, Vector2Int coord)

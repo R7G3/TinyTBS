@@ -1,10 +1,11 @@
 using System;
+using Assets.Scripts.Utils;
 using UnityEngine;
 
 namespace Assets.Scripts.Configs
 {
     [CreateAssetMenu]
-    public class TilesConfig : ScriptableObject
+    public class TilesConfig : ScriptableObject, IService
     {
 
         public TilePrefabs tilePrefabs = new();
