@@ -2,14 +2,13 @@ using System;
 using System.Collections.Generic;
 using Assets.Scripts.HUD;
 using Assets.Scripts.Units;
-using Assets.Scripts.Utils;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Utils;
 
 namespace Assets.Scripts.Controllers
 {
-    public class UnitController : MonoBehaviour, IService
+    public class UnitController : MonoBehaviour
     {
         [SerializeField] private GameObject _countLabelPrefab;
         [SerializeField] private Transform _countLabelsRoot;
