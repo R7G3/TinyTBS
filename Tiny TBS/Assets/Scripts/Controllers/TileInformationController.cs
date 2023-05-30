@@ -15,11 +15,14 @@ public class TileInformationController : MonoBehaviour, IService
     private TileInfoView _buildingInfo;
     private TileInfoView _terrainInfo;
     private BalanceConfig _balanceConfig;
+    private UnityEngine.UI.LayoutGroup _layout;
     
     private Map _map;
 
     private void Awake()
     {
+        // _layout = gameObject.GetComponent<UnityEngine.UI.LayoutGroup>();
+        // _layout.enabled = false;
         _unitInfo = CreateInfo();
         _buildingInfo = CreateInfo();
         _terrainInfo = CreateInfo();
@@ -53,6 +56,9 @@ public class TileInformationController : MonoBehaviour, IService
         _terrainInfo.SetText(GetTerrainInfo(tile));
         _buildingInfo.SetText(GetBuildingInfo(tile));
         _unitInfo.SetText(GetUnitInfo(tile));
+
+        // _layout.enabled = true;
+        Canvas.ForceUpdateCanvases();
     }
     
     private string GetTerrainInfo(ITile tile)
