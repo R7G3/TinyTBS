@@ -64,6 +64,8 @@ namespace Assets.Scripts.Units
         public bool IsSwimming { get; set; }
 
         public bool HasMoved { get; set; }
+
+        public bool IsEnabled => !HasMoved || !HasPerformedAction;
         
         public bool HasPerformedAction { get; set; }
 
