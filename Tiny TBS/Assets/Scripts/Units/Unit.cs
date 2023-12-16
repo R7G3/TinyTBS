@@ -34,7 +34,7 @@ namespace Assets.Scripts.Units
             Type = UnitType.Soldier;
             Owner = owner;
             Health = Definitions.MaxUnitHealth;
-            Speed = 3;
+            Speed = 5;
             Defence = 3;
             Attack = 5;
             AttackRange = 1;

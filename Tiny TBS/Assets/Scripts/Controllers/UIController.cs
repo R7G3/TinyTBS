@@ -121,8 +121,8 @@ namespace Assets.Scripts.Controllers
         private async UniTask<IPlayerAction> ProcessUnitPlayerAction(Unit unit)
         {
             var coords = GetActionCoordsForUnit(unit);
-            var coord = await SelectCoord(coords);
-            var action = await SelectUnitAction(unit, coord);
+            var moveInfo = await SelectCoord(coords);
+            var action = await SelectUnitAction(unit, moveInfo.Coord);
 
             switch (action)
             {
@@ -130,13 +130,14 @@ namespace Assets.Scripts.Controllers
                     return new MoveUnit
                     {
                         unit = unit,
-                        coord = coord,
+                        coord = moveInfo.Coord,
+                        track = moveInfo.PathwayPart.GetTrackToHead().Reverse(),
                     };
                 case UnitAction.Attack:
                 {
-                    var standingCoord = coords.First(i => i.coord == coord).moveInfo
+                    var standingCoord = coords.First(i => i.coord == moveInfo.Coord).moveInfo
                         .PathwayPart.Previous.CurrentMoveInfo.Coord;
-                    var enemyUnit = _map[coord].Unit;
+                    var enemyUnit = _map[moveInfo.Coord].Unit;
 
                     return new AttackUnit
                     {
@@ -149,7 +150,7 @@ namespace Assets.Scripts.Controllers
                     return new OccupyBuilding
                     {
                         Unit = unit,
-                        Coord = coord,
+                        Coord = moveInfo.Coord,
                     };
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -183,12 +184,12 @@ namespace Assets.Scripts.Controllers
             return GridType.Default;
         }
 
-        private Task<Vector2Int> SelectCoord(IEnumerable<GridItem> gridItems)
+        private Task<MoveInfo> SelectCoord(IEnumerable<GridItem> gridItems)
         {
             var availableCoords = gridItems.ToDictionary(keySelector: i => i.coord);
             _gridDrawer.ShowGrid(availableCoords.Values);
 
-            return ListenMouseClick<Vector2Int>((taskSource, pos) =>
+            return ListenMouseClick<MoveInfo>((taskSource, pos) =>
             {
                 _gridDrawer.Hide();
                 var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
@@ -198,7 +199,7 @@ namespace Assets.Scripts.Controllers
                 }
                 else
                 {
-                    taskSource.TrySetResult(coord);
+                    taskSource.TrySetResult(availableCoords[coord].moveInfo);
                 }
             });
         }

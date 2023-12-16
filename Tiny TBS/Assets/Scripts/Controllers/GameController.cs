@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Assets.Scripts.Buildings;
 using Assets.Scripts.Configs;
 using Assets.Scripts.GameLogic;
+using Assets.Scripts.GameLogic.Models;
 using Assets.Scripts.HUD;
 using Assets.Scripts.HUD.Menu;
 using Assets.Scripts.PlayerAction;
@@ -212,7 +213,12 @@ namespace Assets.Scripts.Controllers
             _map[moveUnit.coord].Unit = moveUnit.unit;
             moveUnit.unit.HasMoved = true;
 
-            var moveTask = _unitController.MoveUnit(moveUnit.unit, Enumerable.Repeat(moveUnit.coord, 1));
+            var moveTask = _unitController.MoveUnit(
+                moveUnit.unit,
+                moveUnit.track
+                //Enumerable.Repeat(moveUnit.coord, 1)
+            );
+
             _queuedAnimations.Add(moveTask);
         }
 
@@ -264,11 +270,42 @@ namespace Assets.Scripts.Controllers
             await ProcessPlayerAction(new MoveUnit
             {
                 coord = occupyBuilding.Coord,
-                unit = occupyBuilding.Unit
+                unit = occupyBuilding.Unit,
+                track = GetShortTrack(occupyBuilding.Unit.Coord, occupyBuilding.Coord),
             });
 
             building.Owner = occupyBuilding.Unit.Owner;
             occupyBuilding.Unit.HasPerformedAction = true;
+        }
+
+        // replace this stupid code to MapActions and make static maybe;
+        // appply this fix to Attack logic
+        private IEnumerable<Vector2Int> GetShortTrack(Vector2Int start, Vector2Int finish)
+        {
+            var currentPosition = start;
+
+            while (currentPosition != finish)
+            {
+                if (currentPosition.x < finish.x)
+                {
+                    currentPosition.x += 1;
+                }
+                else if (currentPosition.x > finish.x)
+                {
+                    currentPosition.x -= 1;
+                }
+
+                if (currentPosition.y < finish.y)
+                {
+                    currentPosition.y += 1;
+                }
+                else if (currentPosition.y > finish.y)
+                {
+                    currentPosition.y -= 1;
+                }
+
+                yield return currentPosition;
+            }
         }
 
         private void PlaceBuilding(Player owner, BuildingType type, Vector2Int coord)
