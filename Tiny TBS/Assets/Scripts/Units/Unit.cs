@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace Assets.Scripts.Units
@@ -34,7 +34,7 @@ namespace Assets.Scripts.Units
             Type = UnitType.Soldier;
             Owner = owner;
             Health = Definitions.MaxUnitHealth;
-            Speed = 5;
+            Speed = 3;
             Defence = 3;
             Attack = 5;
             AttackRange = 1;
@@ -64,6 +64,8 @@ namespace Assets.Scripts.Units
         public bool IsSwimming { get; set; }
 
         public bool HasMoved { get; set; }
+
+        public bool IsEnabled => !HasMoved || !HasPerformedAction;
         
         public bool HasPerformedAction { get; set; }
 

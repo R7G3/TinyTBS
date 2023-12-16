@@ -1,4 +1,5 @@
 using Assets.Scripts.GameLogic.Models;
+using Assets.Scripts.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -9,7 +10,7 @@ using Utils;
 
 namespace Assets.Scripts.HUD
 {
-    public class GridDrawer : MonoBehaviour
+    public class GridDrawer : MonoBehaviour, IService
     {
         public GameObject gridRectPrefab;
         public GameObject cursorPrefab;
