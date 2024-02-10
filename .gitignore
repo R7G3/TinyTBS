@@ -62,3 +62,5 @@ crashlytics-build.properties
 .idea/
 
 **/.DS_Store
+
+Tiny TBS/.vscode/
