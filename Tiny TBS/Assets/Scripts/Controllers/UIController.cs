@@ -12,19 +12,21 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Assets.Scripts.Utils;
 using UnityEngine;
 using Utils;
 using Unit = Assets.Scripts.Units.Unit;
 
 namespace Assets.Scripts.Controllers
 {
-    public class UIController : IService
+    public class UIController
     {
         private readonly Map _map;
         private readonly GridDrawer _gridDrawer;
         private readonly MenuController _menuController;
-        private readonly TileInformationController _tileInfo;
+        private readonly TileInformationVisibilityController _widgetVisibility;
+        private readonly TileInfoController _terrainInfo;
+        private readonly TileInfoController _buildInfo;
+        private readonly TileInfoController _unitInfo;
         private readonly Camera _camera;
         private readonly HUDMessageController _hudMessageController;
         private readonly BalanceConfig _balanceConfig;
@@ -37,23 +39,29 @@ namespace Assets.Scripts.Controllers
         private event Action<Vector3> _onMouseMove;
         private event Action<MouseController.DragData> _onMouseDrag;
 
-        public UIController(Camera camera, ServiceLocator serviceLocator)
+        public UIController(Map map, GridDrawer gridDrawer, MenuController menuController, Camera camera,
+            HUDMessageController hudMessageController, BalanceConfig balanceConfig,
+            TileInfoController terrainInfo, TileInfoController buildInfo, TileInfoController unitInfo,
+            TileInformationVisibilityController widgetVisibility)
         {
-            _map = serviceLocator.GetService<Map>();
-            _gridDrawer = serviceLocator.GetService<GridDrawer>();
-            _menuController = serviceLocator.GetService<MenuController>();
-            _tileInfo = serviceLocator.GetService<TileInformationController>();
+            _map = map;
+            _gridDrawer = gridDrawer;
+            _menuController = menuController;
+            _widgetVisibility = widgetVisibility;
+            _terrainInfo = terrainInfo;
+            _buildInfo = buildInfo;
+            _unitInfo = unitInfo;
             _camera = camera;
-            _hudMessageController = serviceLocator.GetService<HUDMessageController>();
+            _hudMessageController = hudMessageController;
 
-            _balanceConfig = serviceLocator.GetService<BalanceConfig>();
+            _balanceConfig = balanceConfig;
             _movement = new MapActions(_map, _balanceConfig);
 
             _onMouseDrag += HideMenuOnDrag;
             _onMouseDrag += DisableHoverOnDrag;
             _onMouseMove += ShowCursorOnHover;
 
-            _onMouseMove += UpdateTileInfo;
+            _onMouseMove += GetTileInfo;
         }
 
         public async UniTask ShowMessage(string msg)
@@ -112,43 +120,37 @@ namespace Assets.Scripts.Controllers
 
         private async UniTask<IPlayerAction> ProcessUnitPlayerAction(Unit unit)
         {
-            var coords = GetActionCoordsForUnit(unit).ToList();
-            var hasHasActionCoords = coords.Count > 0;
-            var coord = hasHasActionCoords ? await SelectCoord(coords, unit.Coord) : unit.Coord;
-            var action = await SelectUnitAction(unit, coord);
+            var coords = GetActionCoordsForUnit(unit);
+            var moveInfo = await SelectCoord(coords);
+            var action = await SelectUnitAction(unit, moveInfo.Coord);
 
             switch (action)
             {
-                case UnitAction.Wait:
-                    return new Wait
-                    {
-                        unit = unit
-                    };
-                    
                 case UnitAction.Move:
                     return new MoveUnit
                     {
                         unit = unit,
-                        coord = coord,
+                        coord = moveInfo.Coord,
+                        track = moveInfo.PathwayPart.GetTrackToHead().Reverse(),
                     };
                 case UnitAction.Attack:
-                    {
-                        var standingCoord = coords.First(i => i.coord == coord).moveInfo
-                            .PathwayPart.Previous.CurrentMoveInfo.Coord;
-                        var enemyUnit = _map[coord].Unit;
+                {
+                    var standingCoord = coords.First(i => i.coord == moveInfo.Coord).moveInfo
+                        .PathwayPart.Previous.CurrentMoveInfo.Coord;
+                    var enemyUnit = _map[moveInfo.Coord].Unit;
 
-                        return new AttackUnit
-                        {
-                            StandingCoord = standingCoord,
-                            Attacker = unit,
-                            Defender = enemyUnit,
-                        };
-                    }
+                    return new AttackUnit
+                    {
+                        StandingCoord = standingCoord,
+                        Attacker = unit,
+                        Defender = enemyUnit,
+                    };
+                }
                 case UnitAction.Occupy:
                     return new OccupyBuilding
                     {
                         Unit = unit,
-                        Coord = coord,
+                        Coord = moveInfo.Coord,
                     };
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -182,22 +184,22 @@ namespace Assets.Scripts.Controllers
             return GridType.Default;
         }
 
-        private Task<Vector2Int> SelectCoord(IEnumerable<GridItem> gridItems, Vector2Int unitCoord)
+        private Task<MoveInfo> SelectCoord(IEnumerable<GridItem> gridItems)
         {
             var availableCoords = gridItems.ToDictionary(keySelector: i => i.coord);
             _gridDrawer.ShowGrid(availableCoords.Values);
 
-            return ListenMouseClick<Vector2Int>((taskSource, pos) =>
+            return ListenMouseClick<MoveInfo>((taskSource, pos) =>
             {
                 _gridDrawer.Hide();
                 var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
-                if (!availableCoords.ContainsKey(coord) && coord != unitCoord)
+                if (!availableCoords.ContainsKey(coord))
                 {
                     taskSource.TrySetException(new UserCanceledActionException());
                 }
                 else
                 {
-                    taskSource.TrySetResult(coord);
+                    taskSource.TrySetResult(availableCoords[coord].moveInfo);
                 }
             });
         }
@@ -275,17 +277,21 @@ namespace Assets.Scripts.Controllers
             _gridDrawer.ShowCursor(coord);
         }
 
-        private void UpdateTileInfo(Vector3 pos)
+        private void GetTileInfo(Vector3 pos)
         {
             var coord = FieldUtils.GetCoordFromMousePos(pos, _camera);
 
             if (_map.IsValidCoord(coord))
             {
-                _tileInfo.ShowInfoFor(coord);
-            }
-            else
-            {
-                _tileInfo.Hide();
+                var tileInfo = TileInformation.GetTileInfo(coord, _map, _balanceConfig, InfoType.Tile);
+                var buildingInfo = TileInformation.GetTileInfo(coord, _map, _balanceConfig, InfoType.Building);
+                var unitInfo = TileInformation.GetTileInfo(coord, _map, _balanceConfig, InfoType.Unit);
+
+                _widgetVisibility.ChangeVisibility(coord, _map);
+
+                _terrainInfo.SetTileInfo(tileInfo);
+                _unitInfo.SetTileInfo(unitInfo);
+                _buildInfo.SetTileInfo(buildingInfo);
             }
         }
 
@@ -356,13 +362,18 @@ namespace Assets.Scripts.Controllers
             _onMouseClick?.Invoke(position);
         }
 
-        private IEnumerable<GridItem> GetActionCoordsForUnit(Unit unit) => _movement.GetPossibleActions(unit)
+        private IEnumerable<GridItem> GetActionCoordsForUnit(Unit unit)
+        {
+            var possibleActions = _movement.GetPossibleActions(unit)
                 .Select(cell => new GridItem()
                 {
                     moveInfo = cell,
                     coord = cell.Coord,
                     type = GridTypeFromMoveInfoAttributes(cell),
                 });
+
+            return possibleActions;
+        }
 
         private IEnumerable<MenuItem> GetGameMacthMenu(Action<GameMatchAction> onActionSelected)
         {
@@ -376,49 +387,23 @@ namespace Assets.Scripts.Controllers
         private IEnumerable<MenuItem> GetUnitMenu(Unit unit, Vector2Int targetCoord,
             Action<UnitAction> onActionSelected)
         {
-            if (!unit.IsEnabled)
-            {
-                yield break;
-            }
-
-            bool hasActions = true;
-            if (!unit.HasPerformedAction)
-            {
-                if (_movement.HasEnemyUnit(unit, targetCoord))
-                {
-                    yield return new MenuItem()
-                    {
-                        title = "Attack",
-                        onClick = () => onActionSelected.Invoke(UnitAction.Attack)
-                    };
-                }
-                else if (_movement.HasEnemyBuilding(unit, targetCoord))
-                {
-                    yield return new MenuItem()
-                    {
-                        title = "Occupy",
-                        onClick = () => onActionSelected.Invoke(UnitAction.Occupy)
-                    };
-                }
-                else
-                {
-                    hasActions = false;
-                }
-            }
-            else
-            {
-                hasActions = false;
-            }
-
-            if (targetCoord == unit.Coord) 
+            if (_movement.HasEnemyUnit(unit, targetCoord))
             {
                 yield return new MenuItem()
                 {
-                    title = "Wait",
-                    onClick = () => onActionSelected.Invoke(UnitAction.Wait)
+                    title = "Attack",
+                    onClick = () => onActionSelected.Invoke(UnitAction.Attack)
                 };
             }
-            else if (!hasActions && !unit.HasMoved)
+            else if (_movement.HasEnemyBuilding(unit, targetCoord))
+            {
+                yield return new MenuItem()
+                {
+                    title = "Occupy",
+                    onClick = () => onActionSelected.Invoke(UnitAction.Occupy)
+                };
+            }
+            else
             {
                 onActionSelected(UnitAction.Move);
             }
@@ -461,8 +446,7 @@ namespace Assets.Scripts.Controllers
             Move,
             Attack,
             Occupy,
-            BuyUnit,
-            Wait
+            BuyUnit
         }
 
         private enum GameMatchAction
@@ -471,3 +455,4 @@ namespace Assets.Scripts.Controllers
         }
     }
 }
+

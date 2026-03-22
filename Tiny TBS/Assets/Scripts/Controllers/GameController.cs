@@ -5,10 +5,12 @@ using System.Threading.Tasks;
 using Assets.Scripts.Buildings;
 using Assets.Scripts.Configs;
 using Assets.Scripts.GameLogic;
+using Assets.Scripts.GameLogic.Models;
+using Assets.Scripts.HUD;
+using Assets.Scripts.HUD.Menu;
 using Assets.Scripts.PlayerAction;
 using Assets.Scripts.Tiles;
 using Assets.Scripts.Units;
-using Assets.Scripts.Utils;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Utils;
@@ -16,22 +18,103 @@ using Random = UnityEngine.Random;
 
 namespace Assets.Scripts.Controllers
 {
-    public class GameController : MonoBehaviour, IService
+    public class GameController : MonoBehaviour
     {
-        private MouseController _mouseController;
-        private TilesConfig _tilesConfig;
-        private UnitController _unitController;
-        private BalanceConfig _balanceConfig;
-
+        [SerializeField] private GridDrawer _gridDrawer;
+        [SerializeField] private MouseController _mouseController;
+        [SerializeField] private MenuController _menuController;
+        [SerializeField] private TileInformationVisibilityController _widgetVisibility;
+        [SerializeField] private TileInfoController _terrainInfo;
+        [SerializeField] private TileInfoController _unitInfo;
+        [SerializeField] private TileInfoController _buildInfo;
+        [SerializeField] private HUDMessageController _hudMessageController;
+        [SerializeField] private TilesConfig _tilesConfig;
+        [SerializeField] private UnitController _unitController;
+        [SerializeField] private BalanceConfig _balanceConfig;
         [SerializeField] private bool _randomMap;
-        [SerializeField] private ServiceLocator _serviceLocator;
 
         private Attack _attackLogic;
         private UIController _uiController;
+        private Camera _camera;
         private Map _map;
         private readonly List<UniTask> _queuedAnimations = new();
         private List<Player> _players;
-        private readonly List<Unit> _units = new();
+        private List<Unit> _units = new();
+
+        private void Awake()
+        {
+            _camera = Camera.main;
+
+            if (_randomMap)
+            {
+                _map = CreateRandomMap(20);
+            }
+            else
+            {
+                _map = CreateMap(
+                    new TileType[,]
+                    {
+                        {
+                            TileType.Grass,
+                            TileType.Road,
+                            TileType.Mountain,
+                        },
+                        {
+                            TileType.Water,
+                            TileType.Grass,
+                            TileType.Road,
+                        },
+                        {
+                            TileType.Road,
+                            TileType.Water,
+                            TileType.Grass,
+                        }
+                    });
+            }
+
+            _attackLogic = new Attack(_map, _balanceConfig);
+
+            _uiController = new UIController(
+                _map,
+                _gridDrawer,
+                _menuController,
+                _camera,
+                _hudMessageController,
+                _balanceConfig,
+                _terrainInfo,
+                _buildInfo,
+                _unitInfo,
+                _widgetVisibility);
+
+            _mouseController.onClick += _uiController.OnMouseClick;
+            _mouseController.onMouseMove += _uiController.OnMouseMove;
+            _mouseController.onDrag += _uiController.OnMouseDrag;
+
+            SetPlayers(new[]
+            {
+                new Player(id: "Player 1", name: "Player 1"),
+                new Player(id: "Player 2", name: "Player 2")
+            });
+
+            var unit = new Unit(
+                _players[0],
+                new Vector2Int(1, 1));
+            PlaceUnit(unit);
+
+            unit = new Unit(
+                _players[1],
+                new Vector2Int(3, 3));
+            PlaceUnit(unit);
+
+
+            PlaceBuilding(_players[0], BuildingType.Village, new Vector2Int(0, 1));
+            PlaceBuilding(_players[1], BuildingType.Village, new Vector2Int(3, 1));
+            PlaceBuilding(_players[0], BuildingType.Castle, new Vector2Int(0, 2));
+            PlaceBuilding(_players[1], BuildingType.Castle, new Vector2Int(3, 2));
+
+
+            StartCoroutine(Turn().AsUniTask().ToCoroutine());
+        }
 
         void SetPlayers(IEnumerable<Player> players)
         {
@@ -123,14 +206,20 @@ namespace Assets.Scripts.Controllers
             return tileView;
         }
 
-        private async UniTask OnMoveUnit(MoveUnit moveUnit)
+        private void OnMoveUnit(MoveUnit moveUnit)
         {
             _map[moveUnit.unit.Coord].Unit = null;
             moveUnit.unit.Coord = moveUnit.coord;
             _map[moveUnit.coord].Unit = moveUnit.unit;
             moveUnit.unit.HasMoved = true;
 
-            await _unitController.MoveUnit(moveUnit.unit, Enumerable.Repeat(moveUnit.coord, 1));
+            var moveTask = _unitController.MoveUnit(
+                moveUnit.unit,
+                moveUnit.track
+                //Enumerable.Repeat(moveUnit.coord, 1)
+            );
+
+            _queuedAnimations.Add(moveTask);
         }
 
         private async UniTask OnAttackUnit(AttackUnit attackUnit)
@@ -165,7 +254,7 @@ namespace Assets.Scripts.Controllers
 
             attackUnit.Attacker.Health -= retaliatoryDamage;
 
-            attackUnit.Attacker.HasPerformedAction = true;
+            attackUnit.Attacker.HasMoved = true;
         }
 
         private async Task OnOccupyBuilding(OccupyBuilding occupyBuilding)
@@ -181,70 +270,42 @@ namespace Assets.Scripts.Controllers
             await ProcessPlayerAction(new MoveUnit
             {
                 coord = occupyBuilding.Coord,
-                unit = occupyBuilding.Unit
+                unit = occupyBuilding.Unit,
+                track = GetShortTrack(occupyBuilding.Unit.Coord, occupyBuilding.Coord),
             });
 
             building.Owner = occupyBuilding.Unit.Owner;
             occupyBuilding.Unit.HasPerformedAction = true;
         }
 
-        private void Awake()
+        // replace this stupid code to MapActions and make static maybe;
+        // appply this fix to Attack logic
+        private IEnumerable<Vector2Int> GetShortTrack(Vector2Int start, Vector2Int finish)
         {
-            _serviceLocator.Register(() =>
+            var currentPosition = start;
+
+            while (currentPosition != finish)
             {
-                return _randomMap switch
+                if (currentPosition.x < finish.x)
                 {
-                    true => CreateRandomMap(20),
-                    _ => CreateMap(new TileType[,]
-                    {
-                        { TileType.Grass, TileType.Road, TileType.Mountain, },
-                        { TileType.Water, TileType.Grass, TileType.Road, },
-                        { TileType.Road, TileType.Water, TileType.Grass, }
-                    })
-                };
-            });
-        }
+                    currentPosition.x += 1;
+                }
+                else if (currentPosition.x > finish.x)
+                {
+                    currentPosition.x -= 1;
+                }
 
-        private void Start()
-        {
-            _mouseController = _serviceLocator.GetService<MouseController>();
-            _tilesConfig = _serviceLocator.GetService<TilesConfig>();
-            _unitController = _serviceLocator.GetService<UnitController>();
-            _balanceConfig = _serviceLocator.GetService<BalanceConfig>();
-            _map = _serviceLocator.GetService<Map>();
-            _uiController = _serviceLocator.GetService<UIController>();
+                if (currentPosition.y < finish.y)
+                {
+                    currentPosition.y += 1;
+                }
+                else if (currentPosition.y > finish.y)
+                {
+                    currentPosition.y -= 1;
+                }
 
-
-            _attackLogic = new Attack(_map, _balanceConfig);
-
-            _mouseController.onClick += _uiController.OnMouseClick;
-            _mouseController.onMouseMove += _uiController.OnMouseMove;
-            _mouseController.onDrag += _uiController.OnMouseDrag;
-
-            SetPlayers(new[]
-            {
-                new Player(id: "Player 1", name: "Player 1"),
-                new Player(id: "Player 2", name: "Player 2")
-            });
-
-            var unit = new Unit(
-                _players[0],
-                new Vector2Int(1, 1));
-            PlaceUnit(unit);
-
-            unit = new Unit(
-                _players[1],
-                new Vector2Int(3, 3));
-            PlaceUnit(unit);
-
-
-            PlaceBuilding(_players[0], BuildingType.Village, new Vector2Int(0, 1));
-            PlaceBuilding(_players[1], BuildingType.Village, new Vector2Int(3, 1));
-            PlaceBuilding(_players[0], BuildingType.Castle, new Vector2Int(0, 2));
-            PlaceBuilding(_players[1], BuildingType.Castle, new Vector2Int(3, 2));
-
-
-            StartCoroutine(Turn().AsUniTask().ToCoroutine());
+                yield return currentPosition;
+            }
         }
 
         private void PlaceBuilding(Player owner, BuildingType type, Vector2Int coord)
@@ -274,6 +335,8 @@ namespace Assets.Scripts.Controllers
             {
                 var currentPlayer = _players[currentPlayerIndex];
 
+                TurnStart(currentPlayer);
+
                 IPlayerAction playerAction;
                 do
                 {
@@ -283,11 +346,10 @@ namespace Assets.Scripts.Controllers
 
                     await ProcessPlayerAction(playerAction);
 
-                } while (playerAction is not PlayerAction.EndTurn);
+                } while (playerAction is not PlayerAction.EndTurn && CanDoMoreActions(currentPlayer));
 
                 await _uiController.ShowMessage("Next turn");
 
-                TurnEnd(currentPlayer);
 
                 currentPlayerIndex = (currentPlayerIndex + 1) % _players.Count;
             }
@@ -296,9 +358,14 @@ namespace Assets.Scripts.Controllers
         private IEnumerable<Unit> GetPlayerUnits(Player player)
             => _units.Where(u => u.Owner == player);
 
-        private bool CanDoMoreActions(Player player) => GetPlayerUnits(player).Any(u => u.IsEnabled);
+        private static bool IsUnitEnabled(Unit unit)
+            // For future
+            // => !unit.HasMoved || !unit.HasPerformedAction;
+            => !unit.HasMoved;
 
-        private void TurnEnd(Player player)
+        private bool CanDoMoreActions(Player player) => GetPlayerUnits(player).Any(IsUnitEnabled);
+
+        private void TurnStart(Player player)
         {
             foreach (var unit in GetPlayerUnits(player))
             {
@@ -311,12 +378,8 @@ namespace Assets.Scripts.Controllers
         {
             switch (playerAction)
             {
-                case Wait wait:
-                    wait.unit.HasPerformedAction = true;
-                    wait.unit.HasMoved = true;
-                    break;
                 case MoveUnit moveUnit:
-                    await OnMoveUnit(moveUnit);
+                    OnMoveUnit(moveUnit);
                     break;
                 case AttackUnit attackUnit:
                     await OnAttackUnit(attackUnit);
