@@ -27,33 +27,17 @@ namespace Assets.Scripts.GameLogic.Models
             var node = this;
             MoveInfo step = null;
 
-            yield return node.CurrentMoveInfo.Coord;
-
             while (node.Previous != null)
             {
                 step = node.Previous.CurrentMoveInfo;
 
-                if (!step.CanMove)
-                {
-                    node = node.Previous;
-
-                    continue;
-                }
-
-                if (IsDiagonalOffset(node.CurrentMoveInfo.Coord, step.Coord))
+                if (step.CanMove)
                 {
                     yield return step.Coord;
                 }
 
                 node = node.Previous;
             }
-
-            yield return node.CurrentMoveInfo.Coord;
-        }
-
-        private bool IsDiagonalOffset(Vector2Int previous, Vector2Int following)
-        {
-            return previous.x != following.x && previous.y != following.y;
         }
     }
 }

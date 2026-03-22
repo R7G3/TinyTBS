@@ -1,5 +1,4 @@
 using Assets.Scripts.Units;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Assets.Scripts.PlayerAction
@@ -9,7 +8,5 @@ namespace Assets.Scripts.PlayerAction
         public Unit unit;
 
         public Vector2Int coord;
-
-        public IEnumerable<Vector2Int> track;
     }
 }
