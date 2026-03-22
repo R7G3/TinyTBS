@@ -9,6 +9,11 @@ namespace Assets.Scripts.Controllers
 
         public void SetText(string text)
         {
+            if (_tileInfo == null) // otherwise error because it always null(it's a bug)
+            {
+                return;
+            }
+
             _tileInfo.text = text;
         }
     }
