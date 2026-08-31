@@ -41,7 +41,7 @@ TinyTBS/
 | Framework | MonoGame 3.8.5 DesktopGL |
 | Расширения | MonoGame.Extended 6 (экраны, ECS) |
 | UI | Gum.MonoGame + MVVM (ручная синхронизация) |
-| Контент | C# Content Builder, wildcard Include |
+| Контент | C# Content Builder (`TinyTbsContentBuilder`, RegexRule), .xnb → Desktop |
 | Карты | ZIP + JSON + script.cs |
 | Скрипты | Roslyn (C#), IScriptEngine для других языков позже |
 | Локализация | resx |

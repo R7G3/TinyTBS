@@ -1,0 +1,9 @@
+# Generated / local (MonoGame solution)
+
+**/bin/
+**/obj/
+TinyTBS.Desktop/Content/
+TinyTBS.Content/obj/
+*.user
+*.suo
+.vs/

@@ -27,16 +27,20 @@ public sealed class ModAssetResolver : IAssetResolver
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(logicalRelativePath);
 
-        var normalized = logicalRelativePath.Replace('\\', '/').TrimStart('/');
+        // Accept both / and \ from callers; normalize to the OS separator once.
+        var relative = logicalRelativePath
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar)
+            .TrimStart(Path.DirectorySeparatorChar);
 
         if (!string.IsNullOrWhiteSpace(ActiveModId))
         {
-            var modPath = _files.Combine(_paths.Mods, ActiveModId, normalized.Replace('/', Path.DirectorySeparatorChar));
+            var modPath = _files.Combine(_paths.Mods, ActiveModId, relative);
             if (_files.Exists(modPath))
                 return modPath;
         }
 
-        var bundled = _files.Combine(_bundledContentRoot, normalized.Replace('/', Path.DirectorySeparatorChar));
+        var bundled = _files.Combine(_bundledContentRoot, relative);
         return _files.Exists(bundled) ? bundled : null;
     }
 

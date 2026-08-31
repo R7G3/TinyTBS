@@ -7,7 +7,7 @@ todos:
     status: completed
   - id: content-project
     content: "TinyTBS.Content: исходники, C# Content Builder wildcard; bundled defaults"
-    status: pending
+    status: completed
   - id: asset-resolver
     content: "IAssetResolver: Mods/ подпапки → fallback на Content; выбор мода в меню"
     status: completed
