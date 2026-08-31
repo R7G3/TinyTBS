@@ -4,16 +4,16 @@ overview: "net10.0: Core + Content + Game + Desktop; карты .map.zip + Rosly
 todos:
   - id: split-solution
     content: Разнести на TinyTBS.Core, TinyTBS.Game, TinyTBS.Desktop, TinyTBS.Content (net10.0)
-    status: pending
+    status: completed
   - id: content-project
     content: "TinyTBS.Content: исходники, C# Content Builder wildcard; bundled defaults"
     status: pending
   - id: asset-resolver
     content: "IAssetResolver: Mods/ подпапки → fallback на Content; выбор мода в меню"
-    status: pending
+    status: completed
   - id: user-data-paths
     content: "IUserDataPaths: Maps, Campaigns, Saves, Downloads — абстракция desktop vs mobile"
-    status: pending
+    status: completed
   - id: gum-mvvm
     content: Gum на всех MGE-экранах; ViewModels
     status: pending

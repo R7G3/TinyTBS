@@ -31,7 +31,7 @@ TinyTBS/
   docs/
 ```
 
-Сейчас — один проект; разнесение — первый шаг реализации.
+Шаг 1 выполнен: solution разнесён на Core / Content / Game / Desktop; добавлены `IUserDataPaths`, `IFileContentProvider`, `IAssetResolver` (vanilla + опциональный мод).
 
 ## Стек
 

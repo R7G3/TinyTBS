@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="TinyTBS/TinyTBS.csproj" />
+  <Project Path="TinyTBS.Core/TinyTBS.Core.csproj" />
+  <Project Path="TinyTBS.Content/TinyTBS.Content.csproj" />
+  <Project Path="TinyTBS.Game/TinyTBS.Game.csproj" />
+  <Project Path="TinyTBS.Desktop/TinyTBS.Desktop.csproj" />
 </Solution>

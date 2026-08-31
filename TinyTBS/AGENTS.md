@@ -2,7 +2,7 @@
 
 ## Область работы
 
-- **Рабочий каталог:** `D:\Sources\TinyTBS\TinyTBS\` (MonoGame).
+- **Рабочий каталог / корень solution:** `D:\Sources\TinyTBS\TinyTBS\` (MonoGame: Core, Content, Game, Desktop).
 - **Не трогать:** `D:\Sources\TinyTBS\Tiny TBS Unity\` — отдельный Unity-проект в том же git-репозитории.
 
 Перед изменениями убедиться, что пути относятся к MonoGame-solution, а не к Unity.
