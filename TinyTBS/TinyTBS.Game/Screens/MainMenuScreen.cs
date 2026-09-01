@@ -4,9 +4,9 @@ using Gum.GueDeriving;
 using Gum.Wireframe;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended.Screens;
 using TinyTBS.Core.Assets;
+using TinyTBS.Core.Input;
 using TinyTBS.Game.Gum;
 using TinyTBS.Game.ViewModels;
 
@@ -62,14 +62,10 @@ public sealed class MainMenuScreen : GameScreen
 
     public override void Update(GameTime gameTime)
     {
-        if (Keyboard.GetState().IsKeyDown(Keys.Escape)
-            || GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
-        {
-            Game.Exit();
-            return;
-        }
-
         GumService.Default.Update(gameTime);
+
+        if (TinyGame.Commands.WasPressed(GameCommand.Back))
+            Game.Exit();
     }
 
     public override void Draw(GameTime gameTime)

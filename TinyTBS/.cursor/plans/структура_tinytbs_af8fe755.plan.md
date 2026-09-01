@@ -19,7 +19,7 @@ todos:
     status: completed
   - id: input-commands
     content: Слой команд игры
-    status: pending
+    status: completed
   - id: ecs-mge
     content: ECS MGE + GameplayScreen
     status: pending

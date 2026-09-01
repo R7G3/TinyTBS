@@ -2,8 +2,10 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.Screens;
 using TinyTBS.Core.Assets;
+using TinyTBS.Core.Input;
 using TinyTBS.Core.IO;
 using TinyTBS.Game.Gum;
+using TinyTBS.Game.Input;
 using TinyTBS.Game.Screens;
 
 namespace TinyTBS.Game;
@@ -12,6 +14,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
 {
     private readonly GraphicsDeviceManager _graphics;
     private readonly ScreenManager _screenManager;
+    private readonly GameCommandService _commands = new();
     private readonly IUserDataPaths _userDataPaths;
     private readonly IFileContentProvider _files;
     private readonly IAssetResolver _assets;
@@ -38,6 +41,8 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     public IUserDataPaths UserDataPaths => _userDataPaths;
     public IFileContentProvider Files => _files;
     public IAssetResolver Assets => _assets;
+
+    public IGameCommandSource Commands => _commands;
 
     public SpriteBatch SharedSpriteBatch =>
         _spriteBatch ?? throw new InvalidOperationException("SpriteBatch is not loaded yet.");
@@ -68,6 +73,12 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
         _graphics.PreferredBackBufferWidth = width;
         _graphics.PreferredBackBufferHeight = height;
         _graphics.ApplyChanges();
+    }
+
+    protected override void Update(GameTime gameTime)
+    {
+        _commands.Update();
+        base.Update(gameTime);
     }
 
     protected override void LoadContent()

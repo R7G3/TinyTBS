@@ -97,6 +97,10 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 Слой **команд игры** поверх API MonoGame (`Keyboard`, `Mouse`, `GamePad`, позже `TouchPanel`): устройство + привязка → логическое действие (`Confirm`, `EndTurn`, …). Не опрашивать клавиатуру из ViewModel напрямую.
 
+- `TinyTBS.Core.Input`: `GameCommand`, `IGameCommandSource`
+- `TinyTBS.Game.Input`: `GameCommandService` (опрос устройств, edge-trigger), `DefaultInputBindings`
+- `GameMain.Commands` обновляется каждый кадр до `ScreenManager.Update`
+
 ## Карты и кампании
 
 - Карта: [MAP_FORMAT.md](MAP_FORMAT.md)
@@ -120,7 +124,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 1. Core + Content + Game + Desktop; `IUserDataPaths`, `IAssetResolver` (vanilla).
 2. Документация (этот каталог).
 3. MGE ScreenManager + Gum на одном экране — **выполнено** (`MainMenuScreen`, `MainMenuViewModel`, выбор мода «Vanilla»).
-4. Слой команд ввода.
+4. Слой команд ввода — **выполнено** (`GameCommand`, `IGameCommandSource`, `GameCommandService`).
 5. ECS + минимальный match.
 6. `.map.zip` + загрузчик.
 7. MapScriptContext + Roslyn sandbox.
