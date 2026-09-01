@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>TinyTBS.Content</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- Transitive old NETCore.App from Content.Pipeline; not actionable for us. -->
+    <NoWarn>$(NoWarn);NU1903;NETSDK1206</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
+    <PackageReference Include="MonoGame.Framework.Content.Pipeline" Version="3.8.5.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Strings\Strings.resx">
+      <LogicalName>TinyTBS.Content.Strings.Strings.resources</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- Source assets stay in the project tree; Content Builder reads them from SourceDirectory. -->
+  <ItemGroup>
+    <None Include="Images\**\*" />
+    <None Include="Sounds\**\*" />
+  </ItemGroup>
+</Project>

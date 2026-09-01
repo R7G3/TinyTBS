@@ -1,0 +1,66 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <TieredCompilation>false</TieredCompilation>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>TinyTBS.Desktop</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Icon.ico</ApplicationIcon>
+    <MonoGamePlatform>DesktopGL</MonoGamePlatform>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Icon.ico" />
+    <None Remove="Icon.bmp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Icon.ico">
+      <LogicalName>Icon.ico</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Icon.bmp">
+      <LogicalName>Icon.bmp</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Gum.MonoGame" Version="2026.8.3.1" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TinyTBS.Game\TinyTBS.Game.csproj" />
+    <ProjectReference Include="..\TinyTBS.Core\TinyTBS.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Do not track generated .xnb in the static item list; they are produced mid-build. -->
+  <ItemGroup>
+    <None Include="Content\**\*" />
+  </ItemGroup>
+
+  <Target Name="BuildTinyTbsContent" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <_ContentProjectDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\TinyTBS.Content'))</_ContentProjectDir>
+      <!-- Builder appends Content/ under -o; point -o at the Desktop project root. -->
+      <_DesktopProjectDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)').TrimEnd('\'))</_DesktopProjectDir>
+    </PropertyGroup>
+    <Message Importance="High" Text="Building TinyTBS content → $(_DesktopProjectDir)\Content" />
+    <Exec
+      Command="dotnet run --project &quot;$(_ContentProjectDir)\TinyTBS.Content.csproj&quot; -c $(Configuration) --no-launch-profile -- build -p $(MonoGamePlatform) -s . -o &quot;$(_DesktopProjectDir)&quot; -i &quot;$(_ContentProjectDir)\obj\Content&quot; --workingDir &quot;$(_ContentProjectDir)&quot;"
+      WorkingDirectory="$(_ContentProjectDir)" />
+  </Target>
+
+  <Target Name="CopyTinyTbsContentToOutput" AfterTargets="Build">
+    <ItemGroup>
+      <_BuiltXnb Include="$(MSBuildProjectDirectory)\Content\**\*.xnb" />
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(_BuiltXnb)"
+      DestinationFiles="@(_BuiltXnb->'$(TargetDir)Content\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+</Project>
