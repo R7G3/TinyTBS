@@ -16,7 +16,7 @@ todos:
     status: completed
   - id: gum-mvvm
     content: Gum на всех MGE-экранах; ViewModels
-    status: pending
+    status: completed
   - id: input-commands
     content: Слой команд игры
     status: pending

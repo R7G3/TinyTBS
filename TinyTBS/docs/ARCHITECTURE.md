@@ -119,7 +119,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 1. Core + Content + Game + Desktop; `IUserDataPaths`, `IAssetResolver` (vanilla).
 2. Документация (этот каталог).
-3. MGE ScreenManager + Gum на одном экране.
+3. MGE ScreenManager + Gum на одном экране — **выполнено** (`MainMenuScreen`, `MainMenuViewModel`, выбор мода «Vanilla»).
 4. Слой команд ввода.
 5. ECS + минимальный match.
 6. `.map.zip` + загрузчик.
