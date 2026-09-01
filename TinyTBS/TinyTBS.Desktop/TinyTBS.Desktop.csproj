@@ -48,7 +48,10 @@
       <_ContentCsproj>$([MSBuild]::NormalizePath('$(_ContentProjectDir)', 'TinyTBS.Content.csproj'))</_ContentCsproj>
       <_ContentIntermediate>$([MSBuild]::NormalizePath('$(_ContentProjectDir)', 'obj', 'Content'))</_ContentIntermediate>
       <!-- Builder appends Content/ under -o; point -o at the Desktop project root. -->
-      <_DesktopProjectDir>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)'))</_DesktopProjectDir>
+      <_DesktopProjectDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))</_DesktopProjectDir>
+      <!-- Trailing '\' before a closing quote breaks Windows cmd parsing of Exec Command. -->
+      <_DesktopProjectDir>$(_DesktopProjectDir.TrimEnd('/'))</_DesktopProjectDir>
+      <_DesktopProjectDir>$(_DesktopProjectDir.TrimEnd(`\`))</_DesktopProjectDir>
       <_DesktopContentDir>$([MSBuild]::NormalizePath('$(_DesktopProjectDir)', 'Content'))</_DesktopContentDir>
     </PropertyGroup>
     <Message Importance="High" Text="Building TinyTBS content → $(_DesktopContentDir)" />

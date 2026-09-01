@@ -13,7 +13,7 @@ Strings/                           # .resx (not processed by Content Builder)
 
 ## Build
 
-Desktop runs this project before compile (`BuildTinyTbsContent` target). Paths in that target use `MSBuild::NormalizePath` so the same `.csproj` works on Windows and Linux.
+Desktop runs this project before compile (`BuildTinyTbsContent` target). Paths use `MSBuild::NormalizePath` / `Path.GetFullPath`; the Desktop output path is trimmed (no trailing `\` or `/`) so quoted `Exec` arguments work on **Windows cmd** and on Linux.
 
 ```bash
 dotnet run --project TinyTBS.Content -- \
