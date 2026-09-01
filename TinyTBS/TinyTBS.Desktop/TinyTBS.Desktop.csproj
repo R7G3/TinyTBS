@@ -39,28 +39,31 @@
 
   <!-- Do not track generated .xnb in the static item list; they are produced mid-build. -->
   <ItemGroup>
-    <None Include="Content\**\*" />
+    <None Include="Content/**/*" />
   </ItemGroup>
 
   <Target Name="BuildTinyTbsContent" BeforeTargets="BeforeBuild">
     <PropertyGroup>
-      <_ContentProjectDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\TinyTBS.Content'))</_ContentProjectDir>
+      <_ContentProjectDir>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '..', 'TinyTBS.Content'))</_ContentProjectDir>
+      <_ContentCsproj>$([MSBuild]::NormalizePath('$(_ContentProjectDir)', 'TinyTBS.Content.csproj'))</_ContentCsproj>
+      <_ContentIntermediate>$([MSBuild]::NormalizePath('$(_ContentProjectDir)', 'obj', 'Content'))</_ContentIntermediate>
       <!-- Builder appends Content/ under -o; point -o at the Desktop project root. -->
-      <_DesktopProjectDir>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)').TrimEnd('\'))</_DesktopProjectDir>
+      <_DesktopProjectDir>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)'))</_DesktopProjectDir>
+      <_DesktopContentDir>$([MSBuild]::NormalizePath('$(_DesktopProjectDir)', 'Content'))</_DesktopContentDir>
     </PropertyGroup>
-    <Message Importance="High" Text="Building TinyTBS content → $(_DesktopProjectDir)\Content" />
+    <Message Importance="High" Text="Building TinyTBS content → $(_DesktopContentDir)" />
     <Exec
-      Command="dotnet run --project &quot;$(_ContentProjectDir)\TinyTBS.Content.csproj&quot; -c $(Configuration) --no-launch-profile -- build -p $(MonoGamePlatform) -s . -o &quot;$(_DesktopProjectDir)&quot; -i &quot;$(_ContentProjectDir)\obj\Content&quot; --workingDir &quot;$(_ContentProjectDir)&quot;"
+      Command="dotnet run --project &quot;$(_ContentCsproj)&quot; -c $(Configuration) --no-launch-profile -- build -p $(MonoGamePlatform) -s . -o &quot;$(_DesktopProjectDir)&quot; -i &quot;$(_ContentIntermediate)&quot; --workingDir &quot;$(_ContentProjectDir)&quot;"
       WorkingDirectory="$(_ContentProjectDir)" />
   </Target>
 
   <Target Name="CopyTinyTbsContentToOutput" AfterTargets="Build">
     <ItemGroup>
-      <_BuiltXnb Include="$(MSBuildProjectDirectory)\Content\**\*.xnb" />
+      <_BuiltXnb Include="$(MSBuildProjectDirectory)/Content/**/*.xnb" />
     </ItemGroup>
     <Copy
       SourceFiles="@(_BuiltXnb)"
-      DestinationFiles="@(_BuiltXnb->'$(TargetDir)Content\%(RecursiveDir)%(Filename)%(Extension)')"
+      DestinationFiles="@(_BuiltXnb->'$(TargetDir)Content/%(RecursiveDir)%(Filename)%(Extension)')"
       SkipUnchangedFiles="true" />
   </Target>
 </Project>

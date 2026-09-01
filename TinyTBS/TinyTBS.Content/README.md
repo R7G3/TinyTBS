@@ -13,13 +13,13 @@ Strings/                           # .resx (not processed by Content Builder)
 
 ## Build
 
-Desktop runs this project before compile (`BuildTinyTbsContent` target):
+Desktop runs this project before compile (`BuildTinyTbsContent` target). Paths in that target use `MSBuild::NormalizePath` so the same `.csproj` works on Windows and Linux.
 
 ```bash
-dotnet run --project TinyTBS.Content -- `
-  build -p DesktopGL -s . `
-  -o ../TinyTBS.Desktop `
-  -i obj/Content `
+dotnet run --project TinyTBS.Content -- \
+  build -p DesktopGL -s . \
+  -o ../TinyTBS.Desktop \
+  -i obj/Content \
   --workingDir .
 ```
 
