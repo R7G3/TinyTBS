@@ -62,7 +62,8 @@ public sealed class MainMenuScreen : GameScreen
 
     public override void Update(GameTime gameTime)
     {
-        if (Keyboard.GetState().IsKeyDown(Keys.Escape))
+        if (Keyboard.GetState().IsKeyDown(Keys.Escape)
+            || GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
         {
             Game.Exit();
             return;
