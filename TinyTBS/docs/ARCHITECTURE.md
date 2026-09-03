@@ -93,6 +93,13 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 Каждый экран — MGE `Screen`. Порядок отрисовки: игровая сцена → Gum (UI, оверлеи).
 
+## ECS (MGE)
+
+- `TinyTBS.Core.Match`: `GridCell`, `MatchDefaults`
+- `TinyTBS.Game.Ecs`: компоненты (`GridPosition`, `UnitOwner`), системы отрисовки (`GridDrawSystem`, `UnitDrawSystem`)
+- `MatchSession` — демо-матч (2 игрока, выбор юнита, ход на 1 клетку, конец хода)
+- `GameplayScreen` — ECS-сцена + Gum HUD; переход из `MainMenuScreen` («Start match»)
+
 ## Ввод
 
 Слой **команд игры** поверх API MonoGame (`Keyboard`, `Mouse`, `GamePad`, позже `TouchPanel`): устройство + привязка → логическое действие (`Confirm`, `EndTurn`, …). Не опрашивать клавиатуру из ViewModel напрямую.
@@ -125,7 +132,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 2. Документация (этот каталог).
 3. MGE ScreenManager + Gum на одном экране — **выполнено** (`MainMenuScreen`, `MainMenuViewModel`, выбор мода «Vanilla»).
 4. Слой команд ввода — **выполнено** (`GameCommand`, `IGameCommandSource`, `GameCommandService`).
-5. ECS + минимальный match.
+5. ECS + минимальный match — **выполнено** (`MatchSession`, `GameplayScreen`, MGE `World` + draw systems).
 6. `.map.zip` + загрузчик.
 7. MapScriptContext + Roslyn sandbox.
 8. Mods fallback; редактор карт.

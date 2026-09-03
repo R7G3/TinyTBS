@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.Screens;
 using TinyTBS.Core.Assets;
 using TinyTBS.Core.Input;
+using TinyTBS.Game.Assets;
 using TinyTBS.Game.Gum;
 using TinyTBS.Game.ViewModels;
 
@@ -20,6 +21,7 @@ public sealed class MainMenuScreen : GameScreen
     private Panel? _rootPanel;
     private ComboBox? _modComboBox;
     private Texture2D? _placeholderTexture;
+    private LoadedTexture? _placeholderAsset;
 
     public MainMenuScreen(GameMain game, IAssetResolver assets)
         : base(game)
@@ -36,15 +38,13 @@ public sealed class MainMenuScreen : GameScreen
         _viewModel.RefreshMods(_assets);
         _viewModel.ApplyModSelection(_assets);
 
-        try
-        {
-            using var stream = TitleContainer.OpenStream("Content/Images/placeholder.png");
-            _placeholderTexture = Texture2D.FromStream(GraphicsDevice, stream);
-        }
-        catch
-        {
-            _placeholderTexture = null;
-        }
+        _placeholderAsset = GameTextureLoader.TryLoad(
+            GraphicsDevice,
+            Content,
+            _assets,
+            logicalRelativePath: "Images/placeholder.png",
+            contentAssetName: "Images/placeholder");
+        _placeholderTexture = _placeholderAsset?.Texture;
 
         BuildUi();
     }
@@ -54,7 +54,8 @@ public sealed class MainMenuScreen : GameScreen
         GumService.Default.Root.Children.Clear();
         _rootPanel = null;
         _modComboBox = null;
-        _placeholderTexture?.Dispose();
+        _placeholderAsset?.DisposeIfOwned();
+        _placeholderAsset = null;
         _placeholderTexture = null;
 
         base.UnloadContent();
@@ -145,6 +146,11 @@ public sealed class MainMenuScreen : GameScreen
         GumUiLayout.FillParentWidth(hint);
         contentPanel.AddChild(hint);
 
+        var startButton = new Button { Text = "Start match" };
+        GumUiLayout.FillParentWidth(startButton);
+        startButton.Click += (_, _) => StartMatch();
+        contentPanel.AddChild(startButton);
+
         var exitButton = new Button { Text = "Exit" };
         GumUiLayout.PinToBottomRight(exitButton, insetPixels: 24f, widthPercent: 14f);
         exitButton.Click += (_, _) => Game.Exit();
@@ -152,6 +158,9 @@ public sealed class MainMenuScreen : GameScreen
 
         _modComboBox.IsFocused = true;
     }
+
+    private void StartMatch() =>
+        ScreenManager.ReplaceScreen(new GameplayScreen(TinyGame, _assets));
 
     private void OnModSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {

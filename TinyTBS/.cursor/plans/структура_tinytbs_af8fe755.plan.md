@@ -22,7 +22,7 @@ todos:
     status: completed
   - id: ecs-mge
     content: ECS MGE + GameplayScreen
-    status: pending
+    status: completed
   - id: map-format
     content: .map.zip + map.json; загрузчик
     status: pending
