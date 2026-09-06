@@ -1,6 +1,6 @@
 ---
 name: Структура TinyTBS
-overview: "net10.0: Core + Content + Game + Desktop; карты .map.zip + Roslyn в песочнице; моды графики/звука; user data для карт/кампаний/сохранений; Gum/MGE/ECS; docs в git."
+overview: "net10.0: Core + Content + Game + Desktop; три слоя (логика / представление / движок); карты .map.zip + Roslyn; моды; user data; Gum/MGE/ECS; docs в git."
 todos:
   - id: split-solution
     content: Разнести на TinyTBS.Core, TinyTBS.Game, TinyTBS.Desktop, TinyTBS.Content (net10.0)
@@ -14,14 +14,17 @@ todos:
   - id: user-data-paths
     content: "IUserDataPaths: Maps, Campaigns, Saves, Downloads — абстракция desktop vs mobile"
     status: completed
-  - id: gum-mvvm
-    content: Gum на всех MGE-экранах; ViewModels
+  - id: gum-screens
+    content: Gum на всех MGE-экранах; тонкий UI-state (не MVVM-архитектура)
     status: completed
   - id: input-commands
     content: Слой команд игры
     status: completed
   - id: ecs-mge
     content: ECS MGE + GameplayScreen
+    status: completed
+  - id: layer-split
+    content: "Разнести Screens по слоям: логика / представление / движок (образец — Gameplay)"
     status: completed
   - id: map-format
     content: .map.zip + map.json; загрузчик
@@ -56,6 +59,7 @@ isProject: false
 - **User data** на диске: карты, кампании, сохранения, загрузки из сети — через абстракцию путей.
 - **Свой формат карт**, встроенный редактор, скрипты в **ограниченной песочнице**.
 - **Tiled / DotTiled — не используются.**
+- **Три слоя кода** (папки, не отдельный csproj): **логика** (правила, ECS-состояние, команды-намерения), **представление** (экраны, Gum-деревья, UI-state), **движок** (layout, порядок отрисовки, опрос устройств). Не MVVM/MVC как главная схема — см. `docs/adr/0005-three-layers-logic-presentation-engine.md`.
 
 ```mermaid
 flowchart TB
@@ -87,9 +91,9 @@ flowchart TB
 
 | Проект              | Назначение                                                                                                                  |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **TinyTBS.Core**    | ECS, карты, кампании (модели), скрипты, сохранения, `IFileContentProvider`, `IUserDataPaths`, `IAssetResolver` (контракты). |
+| **TinyTBS.Core**    | **Логика:** карты, кампании (модели), скрипты, сохранения, `IFileContentProvider`, `IUserDataPaths`, `IAssetResolver`, `GameCommand`. |
 | **TinyTBS.Content** | Исходники + C# Content Builder → **стандартные** ресурсы сборки.                                                            |
-| **TinyTBS.Game**    | Game, Gum, MGE screens, редактор, UI выбора мода/кампании.                                                                  |
+| **TinyTBS.Game**    | **Представление** (MGE screens, Gum UI) + **движок** (layout, input poll, draw systems); редактор.                        |
 | **TinyTBS.Desktop** | Точка входа.                                                                                                                |
 
 
@@ -314,17 +318,18 @@ ScriptOptions.Default
 
 1. Core + Content + Game + Desktop; **IUserDataPaths**, **IAssetResolver** (vanilla only сначала).
 2. docs/ (ARCHITECTURE, ADR, форматы).
-3. Gum + MGE screens; выбор мода (заглушка «Vanilla»).
+3. Gum + MGE screens; выбор мода (заглушка «Vanilla») — без MVVM как целевого паттерна.
 4. ECS + минимальный match.
-5. `.map.zip` + загрузчик.
-6. **MapScriptContext** + Roslyn sandbox + хуки.
-7. Mods fallback; редактор карт → user Maps/.
-8. Кампании и сохранения — после стабильного match loop.
+5. **layer-split:** разнести Screens по слоям (логика / представление / движок); образец — Gameplay — **выполнено**.
+6. `.map.zip` + загрузчик.
+7. **MapScriptContext** + Roslyn sandbox + хуки.
+8. Mods fallback; редактор карт → user Maps/.
+9. Кампании и сохранения — после стабильного match loop.
 
 ## Документация в репозитории
 
 - `docs/ARCHITECTURE.md`, `docs/MAP_FORMAT.md`, `docs/SCRIPTING.md`, `docs/SAVE_FORMAT.md`, `docs/CAMPAIGN_FORMAT.md`
-- `docs/adr/` — ZIP, JSON, отказ Tiled, sandbox, user data paths
+- `docs/adr/` — ZIP, JSON, отказ Tiled, sandbox, user data paths, **три слоя (0005)**
 - `AGENTS.md` — в т.ч. **git-workflow: без auto-commit/push**
 
 ## Риски

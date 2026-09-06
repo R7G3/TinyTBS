@@ -1,26 +1,24 @@
 using Gum;
-using Gum.Forms.Controls;
-using Gum.GueDeriving;
-using Gum.Wireframe;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.Screens;
 using TinyTBS.Core.Assets;
 using TinyTBS.Core.Input;
 using TinyTBS.Game.Assets;
-using TinyTBS.Game.Gum;
+using TinyTBS.Game.Presentation;
+using TinyTBS.Game.Rendering;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Screens;
 
+/// <summary>
+/// Thin frame glue: wires menu UI-state, Gum presentation, and background fit draw.
+/// </summary>
 public sealed class MainMenuScreen : GameScreen
 {
     private readonly IAssetResolver _assets;
     private readonly MainMenuViewModel _viewModel = new();
+    private readonly MainMenuView _view = new();
 
-    private Panel? _rootPanel;
-    private ComboBox? _modComboBox;
-    private Texture2D? _placeholderTexture;
     private LoadedTexture? _placeholderAsset;
 
     public MainMenuScreen(GameMain game, IAssetResolver assets)
@@ -44,19 +42,19 @@ public sealed class MainMenuScreen : GameScreen
             _assets,
             logicalRelativePath: "Images/placeholder.png",
             contentAssetName: "Images/placeholder");
-        _placeholderTexture = _placeholderAsset?.Texture;
 
-        BuildUi();
+        _view.Build(
+            _viewModel,
+            onStartMatch: StartMatch,
+            onExit: () => Game.Exit(),
+            onModSelectionChanged: OnModSelectionChanged);
     }
 
     public override void UnloadContent()
     {
-        GumService.Default.Root.Children.Clear();
-        _rootPanel = null;
-        _modComboBox = null;
+        _view.Clear();
         _placeholderAsset?.DisposeIfOwned();
         _placeholderAsset = null;
-        _placeholderTexture = null;
 
         base.UnloadContent();
     }
@@ -72,104 +70,27 @@ public sealed class MainMenuScreen : GameScreen
     public override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(new Color(24, 28, 38));
-        DrawBackground();
+
+        var texture = _placeholderAsset?.Texture;
+        if (texture is not null)
+        {
+            ViewportFit.DrawCentered(
+                TinyGame.SharedSpriteBatch,
+                texture,
+                GraphicsDevice.Viewport.Width,
+                GraphicsDevice.Viewport.Height,
+                Color.White * 0.35f);
+        }
 
         GumService.Default.Draw();
-    }
-
-    private void DrawBackground()
-    {
-        if (_placeholderTexture is null)
-            return;
-
-        var batch = TinyGame.SharedSpriteBatch;
-        var viewport = GraphicsDevice.Viewport;
-        var scale = Math.Min(
-            (float)viewport.Width / _placeholderTexture.Width,
-            (float)viewport.Height / _placeholderTexture.Height);
-
-        var drawSize = new Vector2(_placeholderTexture.Width, _placeholderTexture.Height) * scale;
-        var position = new Vector2(
-            (viewport.Width - drawSize.X) * 0.5f,
-            (viewport.Height - drawSize.Y) * 0.5f);
-
-        batch.Begin(SpriteSortMode.Deferred, Microsoft.Xna.Framework.Graphics.BlendState.AlphaBlend);
-        batch.Draw(_placeholderTexture, new Rectangle(
-            (int)position.X,
-            (int)position.Y,
-            (int)drawSize.X,
-            (int)drawSize.Y), Color.White * 0.35f);
-        batch.End();
-    }
-
-    private void BuildUi()
-    {
-        GumService.Default.Root.Children.Clear();
-
-        _rootPanel = new Panel();
-        _rootPanel.Dock(Dock.Fill);
-        _rootPanel.AddToRoot();
-
-        var bodyPanel = new Panel();
-        bodyPanel.Dock(Dock.Fill);
-        _rootPanel.AddChild(bodyPanel);
-
-        var contentPanel = GumUiLayout.CreateVerticalStackPanel(spacing: 14f, widthPercent: 90f);
-        GumUiLayout.CenterInParent(contentPanel, xPercent: 50f, yPercent: 45f);
-        bodyPanel.AddChild(contentPanel);
-
-        var title = new Label { Text = _viewModel.Title };
-        GumUiLayout.FillParentWidth(title);
-        contentPanel.AddChild(title);
-
-        var modLabel = new Label { Text = "Graphics mod" };
-        GumUiLayout.FillParentWidth(modLabel);
-        contentPanel.AddChild(modLabel);
-
-        _modComboBox = new ComboBox
-        {
-            Items = _viewModel.ModOptions.ToList()
-        };
-        GumUiLayout.FillParentWidth(_modComboBox);
-
-        var selectedIndex = _viewModel.ModOptions
-            .ToList()
-            .FindIndex(option => option == _viewModel.SelectedModOption);
-        _modComboBox.SelectedIndex = Math.Max(selectedIndex, 0);
-        _modComboBox.SelectionChanged += OnModSelectionChanged;
-        contentPanel.AddChild(_modComboBox);
-
-        var hint = new Label
-        {
-            Text = "Vanilla uses bundled content. Mods load from Mods/ next to the game."
-        };
-        GumUiLayout.FillParentWidth(hint);
-        contentPanel.AddChild(hint);
-
-        var startButton = new Button { Text = "Start match" };
-        GumUiLayout.FillParentWidth(startButton);
-        startButton.Click += (_, _) => StartMatch();
-        contentPanel.AddChild(startButton);
-
-        var exitButton = new Button { Text = "Exit" };
-        GumUiLayout.PinToBottomRight(exitButton, insetPixels: 24f, widthPercent: 14f);
-        exitButton.Click += (_, _) => Game.Exit();
-        _rootPanel.AddChild(exitButton);
-
-        _modComboBox.IsFocused = true;
     }
 
     private void StartMatch() =>
         ScreenManager.ReplaceScreen(new GameplayScreen(TinyGame, _assets));
 
-    private void OnModSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private void OnModSelectionChanged()
     {
-        if (_modComboBox is null)
-            return;
-
-        var selected = _modComboBox.SelectedObject as string
-            ?? _modComboBox.Text;
-        if (string.IsNullOrWhiteSpace(selected))
+        if (!_view.TryGetSelectedMod(out var selected))
             return;
 
         _viewModel.SelectedModOption = selected;
