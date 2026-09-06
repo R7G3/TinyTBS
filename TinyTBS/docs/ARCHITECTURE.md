@@ -58,7 +58,7 @@ flowchart LR
 **Где в solution:**
 
 - Логика — `TinyTBS.Core/` (+ по мере роста — чистые правила матча вне draw-wiring)
-- Движок — `TinyTBS.Game/Gum/`, `TinyTBS.Game/Input/`, `TinyTBS.Game/Ecs/Systems/`, `TinyTBS.Game/Rendering/`, `MatchBoardLayout`
+- Движок — `TinyTBS.Game/Gum/`, `TinyTBS.Game/Input/` (команды + pointer), `TinyTBS.Game/Ecs/Systems/`, `TinyTBS.Game/Rendering/` (в т.ч. `MatchBoardLayout`)
 - Представление — `TinyTBS.Game/Screens/` (тонкая склейка), `TinyTBS.Game/Presentation/` (Gum-деревья), `TinyTBS.Game/ViewModels/` (только UI-state)
 
 **Склейка кадра** — тонкий MGE `GameScreen`: `Update`/`Draw` вызывают логику и движок, не содержат формул layout и правил матча.
@@ -138,18 +138,18 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 ## ECS (MGE)
 
-- `TinyTBS.Core.Match`: `GridCell`, `MatchDefaults` (логика)
-- `TinyTBS.Game.Ecs`: компоненты состояния; системы отрисовки (`GridDrawSystem`, `UnitDrawSystem`) — **движок**; layout/sync позиций — `MatchSession.PrepareFrame` + `Rendering/`
-- `MatchSession` — демо-матч (2 игрока, выбор юнита, ход на 1 клетку, конец хода); `MatchCommandApplicator` — команды→матч; wiring World+draw systems ещё внутри сессии
-- `GameplayScreen` / `MainMenuScreen` — тонкая склейка; Gum в `Presentation/`; layout/fit/highlight в `Rendering/`
+- `TinyTBS.Core.Match`: `GridCell`, `MatchDefaults` (без пикселей), `MatchUnit`, `MatchState` — **логика**
+- `TinyTBS.Game.Ecs`: компоненты визуализации сетки/юнитов; `GridDrawSystem`, `UnitDrawSystem` — **движок**
+- `MatchScene` — ECS World + layout sync из `MatchState`; `MatchCommandApplicator` — команды/pointer→логика
+- `GameplayScreen` / `MainMenuScreen` — тонкая склейка; Gum в `Presentation/`; fit/highlight/layout в `Rendering/`
 
 ## Ввод
 
-**Движок** опрашивает устройства (`Keyboard`, `Mouse`, `GamePad`, позже `TouchPanel`) и отдаёт **логические** команды (`Confirm`, `EndTurn`, …). Представление/логика читают `IGameCommandSource`, не `Keyboard` напрямую.
+**Движок** опрашивает устройства (`Keyboard`, `Mouse`, `GamePad`, позже `TouchPanel`) и отдаёт **логические** команды / pointer. Представление/логика читают `IGameCommandSource` и `IPointerSource`, не `Keyboard`/`Mouse` напрямую.
 
-- `TinyTBS.Core.Input`: `GameCommand`, `IGameCommandSource` (логика / контракт)
-- `TinyTBS.Game.Input`: `GameCommandService`, `DefaultInputBindings` (движок)
-- `GameMain.Commands` обновляется каждый кадр до `ScreenManager.Update`
+- `TinyTBS.Core.Input`: `GameCommand`, `IGameCommandSource`, `IPointerSource`, `ScreenPoint`
+- `TinyTBS.Game.Input`: `GameCommandService`, `PointerInputService`, `DefaultInputBindings`
+- `GameMain` обновляет commands + pointer каждый кадр до `ScreenManager.Update`
 
 ## Карты и кампании
 
@@ -175,8 +175,8 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 2. Документация (этот каталог).
 3. MGE ScreenManager + Gum на экранах — **выполнено** (`MainMenuScreen`, UI-state, выбор мода «Vanilla»).
 4. Слой команд ввода — **выполнено** (`GameCommand`, `IGameCommandSource`, `GameCommandService`).
-5. ECS + минимальный match — **выполнено** (`MatchSession`, `GameplayScreen`, MGE `World` + draw systems).
-6. Разнести существующие Screens по слоям (логика / представление / движок); образец — Gameplay — **выполнено** (`Presentation/`, `Rendering/`, `MatchCommandApplicator`).
+5. ECS + минимальный match — **выполнено** (`MatchState` + `MatchScene`, `GameplayScreen`).
+6. Разнести Screens по слоям; split матча (логика Core / сцена Game) + pointer input — **выполнено**.
 7. `.map.zip` + загрузчик.
 8. MapScriptContext + Roslyn sandbox.
 9. Mods fallback; редактор карт.

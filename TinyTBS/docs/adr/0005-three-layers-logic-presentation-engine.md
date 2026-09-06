@@ -31,4 +31,6 @@
 ## Последствия
 
 - Обновить [ARCHITECTURE.md](../ARCHITECTURE.md) и roadmap (`layer-split`).
-- Screens разнесены: `Presentation/` (Gum), `Rendering/` (fit/highlight), `MatchCommandApplicator` (команды→матч); `MatchSession`+draw systems wiring — можно дробить дальше по мере роста.
+- Screens разнесены: `Presentation/` (Gum), `Rendering/` (fit/highlight/layout), `MatchCommandApplicator`.
+- Матч разделён: `MatchState` (Core, логика) + `MatchScene` (Game, ECS/draw); pointer — `IPointerSource` / `PointerInputService`.
+- Пиксельный размер тайла — в `MatchBoardLayout` (движок), не в Core `MatchDefaults`.

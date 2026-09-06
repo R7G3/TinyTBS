@@ -1,9 +1,8 @@
 using Gum;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended.Screens;
 using TinyTBS.Core.Assets;
-using TinyTBS.Core.Input;
+using TinyTBS.Core.Match;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Presentation;
@@ -13,7 +12,7 @@ using TinyTBS.Game.ViewModels;
 namespace TinyTBS.Game.Screens;
 
 /// <summary>
-/// Thin frame glue: wires match logic, HUD presentation, and engine draw helpers.
+/// Thin frame glue: wires match logic, HUD presentation, and engine scene/draw helpers.
 /// </summary>
 public sealed class GameplayScreen : GameScreen
 {
@@ -21,7 +20,8 @@ public sealed class GameplayScreen : GameScreen
     private readonly GameplayHudViewModel _hud = new();
     private readonly GameplayHudView _hudView = new();
 
-    private MatchSession? _match;
+    private MatchState? _match;
+    private MatchScene? _scene;
     private CursorHighlightRenderer? _cursorHighlight;
     private LoadedTexture? _unitAsset;
 
@@ -43,7 +43,13 @@ public sealed class GameplayScreen : GameScreen
             _assets,
             logicalRelativePath: "Images/placeholder.png",
             contentAssetName: "Images/placeholder");
-        _match = new MatchSession(GraphicsDevice, TinyGame.SharedSpriteBatch, _unitAsset.Value.Texture);
+
+        _match = MatchState.CreateDemo();
+        _scene = new MatchScene(
+            _match,
+            GraphicsDevice,
+            TinyGame.SharedSpriteBatch,
+            _unitAsset.Value.Texture);
         _cursorHighlight = new CursorHighlightRenderer(GraphicsDevice);
 
         _hudView.Build(_hud, onEndTurn: () => _match?.EndTurn(), onMenu: ReturnToMenu);
@@ -54,7 +60,8 @@ public sealed class GameplayScreen : GameScreen
     {
         _hudView.Clear();
 
-        _match?.Dispose();
+        _scene?.Dispose();
+        _scene = null;
         _match = null;
 
         _cursorHighlight?.Dispose();
@@ -68,10 +75,10 @@ public sealed class GameplayScreen : GameScreen
 
     public override void Update(GameTime gameTime)
     {
-        if (_match is null)
+        if (_match is null || _scene is null)
             return;
 
-        _match.PrepareFrame(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+        _scene.PrepareFrame(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
 
         if (MatchCommandApplicator.Apply(_match, TinyGame.Commands))
         {
@@ -79,16 +86,15 @@ public sealed class GameplayScreen : GameScreen
             return;
         }
 
-        // ReplaceScreen may unload this screen (e.g. if Apply somehow nested).
-        if (_match is null)
+        if (_match is null || _scene is null)
             return;
 
-        ApplyPointerIfAny();
+        MatchCommandApplicator.ApplyPointer(_match, TinyGame.Pointer, _scene.Layout);
 
-        if (_match is null)
+        if (_match is null || _scene is null)
             return;
 
-        _match.Update(gameTime);
+        _scene.Update(gameTime);
         SyncHud();
         GumService.Default.Update(gameTime);
     }
@@ -97,31 +103,18 @@ public sealed class GameplayScreen : GameScreen
     {
         GraphicsDevice.Clear(new Color(18, 20, 28));
 
-        if (_match is not null)
+        if (_match is not null && _scene is not null)
         {
-            _match.PrepareFrame(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
-            _match.Draw(gameTime);
+            _scene.PrepareFrame(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+            _scene.Draw(gameTime);
             _cursorHighlight?.Draw(
                 TinyGame.SharedSpriteBatch,
-                _match.Layout,
+                _scene.Layout,
                 _match.Cursor,
-                hasSelection: _match.SelectedEntityId is not null);
+                hasSelection: _match.SelectedUnitId is not null);
         }
 
         GumService.Default.Draw();
-    }
-
-    private void ApplyPointerIfAny()
-    {
-        if (_match is null)
-            return;
-
-        var mouse = Mouse.GetState();
-        if (mouse.LeftButton != ButtonState.Pressed)
-            return;
-
-        if (_match.Layout.TryScreenToCell(mouse.Position.ToVector2(), out var cell))
-            MatchCommandApplicator.ApplyPointer(_match, cell);
     }
 
     private void SyncHud()

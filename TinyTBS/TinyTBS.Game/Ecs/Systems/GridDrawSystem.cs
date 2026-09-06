@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.ECS.Systems;
-using TinyTBS.Game.Match;
 using TinyTBS.Game.Rendering;
 
 namespace TinyTBS.Game.Ecs.Systems;

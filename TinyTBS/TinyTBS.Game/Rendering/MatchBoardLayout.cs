@@ -1,20 +1,33 @@
 using Microsoft.Xna.Framework;
+using TinyTBS.Core.Input;
 using TinyTBS.Core.Match;
 
-namespace TinyTBS.Game.Match;
+namespace TinyTBS.Game.Rendering;
 
 /// <summary>
-/// Pixel layout for the minimal demo grid (centered in the viewport).
+/// Pixel layout for the match grid (centered in the viewport).
 /// </summary>
 public sealed class MatchBoardLayout
 {
+    public const int DefaultTileSizePixels = 64;
+
+    public MatchBoardLayout(
+        int width = MatchDefaults.GridWidth,
+        int height = MatchDefaults.GridHeight,
+        int tileSizePixels = DefaultTileSizePixels)
+    {
+        Width = width;
+        Height = height;
+        TileSize = tileSizePixels;
+    }
+
     public Vector2 Origin { get; private set; }
 
-    public int TileSize { get; } = MatchDefaults.TileSizePixels;
+    public int TileSize { get; }
 
-    public int Width { get; } = MatchDefaults.GridWidth;
+    public int Width { get; }
 
-    public int Height { get; } = MatchDefaults.GridHeight;
+    public int Height { get; }
 
     public void UpdateForViewport(int viewportWidth, int viewportHeight)
     {
@@ -27,6 +40,9 @@ public sealed class MatchBoardLayout
 
     public Vector2 CellToWorldCenter(GridCell cell) =>
         Origin + new Vector2((cell.X + 0.5f) * TileSize, (cell.Y + 0.5f) * TileSize);
+
+    public bool TryScreenToCell(ScreenPoint screenPosition, out GridCell cell) =>
+        TryScreenToCell(new Vector2(screenPosition.X, screenPosition.Y), out cell);
 
     public bool TryScreenToCell(Vector2 screenPosition, out GridCell cell)
     {

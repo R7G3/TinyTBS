@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TinyTBS.Core.Match;
-using TinyTBS.Game.Match;
 
 namespace TinyTBS.Game.Rendering;
 

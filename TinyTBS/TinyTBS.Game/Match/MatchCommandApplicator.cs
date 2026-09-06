@@ -1,17 +1,18 @@
 using TinyTBS.Core.Input;
 using TinyTBS.Core.Match;
+using TinyTBS.Game.Rendering;
 
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Applies logical game commands to a match session (no devices, no pixels).
+/// Applies logical game commands / pointer picks to <see cref="MatchState"/> (no devices, no draw).
 /// </summary>
 public static class MatchCommandApplicator
 {
     /// <summary>
     /// Returns true when the player requested leaving the match (Back).
     /// </summary>
-    public static bool Apply(MatchSession match, IGameCommandSource commands)
+    public static bool Apply(MatchState match, IGameCommandSource commands)
     {
         if (commands.WasPressed(GameCommand.Back))
             return true;
@@ -34,6 +35,12 @@ public static class MatchCommandApplicator
         return false;
     }
 
-    public static void ApplyPointer(MatchSession match, GridCell cell) =>
-        match.HandlePointer(cell);
+    public static void ApplyPointer(MatchState match, IPointerSource pointer, MatchBoardLayout layout)
+    {
+        if (!pointer.IsPrimaryDown)
+            return;
+
+        if (layout.TryScreenToCell(pointer.Position, out var cell))
+            match.HandlePointer(cell);
+    }
 }
