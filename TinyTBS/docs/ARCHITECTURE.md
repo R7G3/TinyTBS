@@ -19,14 +19,57 @@
 - **Свой редактор карт** и формат `.map.zip`; Tiled не используется.
 - **Gum** поверх **MGE Screen** на всех экранах (меню и геймплей).
 - **ECS** — MonoGame.Extended.
+- Код разделён на три слоя: **логика**, **представление**, **движок** — просто для чтения и правок. См. [ADR 0005](adr/0005-three-layers-logic-presentation-engine.md).
+
+## Слои (Logic / Presentation / Engine)
+
+Не четвёртый csproj: разделение папками внутри Core/Game. **MVVM не целевая архитектура** — классы `*ViewModel` только тонкие мешки UI-состояния (текст HUD, список модов), не место для ввода и layout.
+
+```mermaid
+flowchart LR
+  subgraph logic [Logic]
+    MatchRules[Match rules ECS state]
+    Commands[GameCommand intents]
+  end
+  subgraph presentation [Presentation]
+    Screens[MGE Screens]
+    GumUi[Gum control trees]
+    UiState[UI state bags]
+  end
+  subgraph engine [Engine]
+    Layout[Layout size position]
+    Draw[Draw order SpriteBatch]
+    InputPoll[Device poll to commands]
+  end
+  presentation -->|"commands UI events"| logic
+  logic -->|"read-only state"| presentation
+  presentation -->|"what to show"| engine
+  engine -->|"pixels hit-tests"| presentation
+```
+
+| Слой | Что внутри | Чего нет |
+|------|------------|----------|
+| **Логика** | Ходы, выбор юнита, ECS-состояние матча, карты/скрипты, `GameCommand` как намерения | Viewport, Gum, `SpriteBatch`, пиксели |
+| **Представление** | Экраны, дерево Gum, подписи, навигация экранов, синхронизация текста HUD | Формулы центрирования сетки, порядок `Begin`/`End` |
+| **Движок** | `MatchBoardLayout`, `GumUiLayout`, draw systems, fit текстуры, опрос устройств→команды, порядок «сцена → Gum» | Правила «можно ли ходить на клетку» |
+
+**Зависимости:** логика не ссылается на движок/Gum; представление не считает пиксели и не опрашивает `Keyboard` напрямую (только `IGameCommandSource` и события Gum).
+
+**Где в solution:**
+
+- Логика — `TinyTBS.Core/` (+ по мере роста — чистые правила матча вне draw-wiring)
+- Движок — `TinyTBS.Game/Gum/`, `TinyTBS.Game/Input/` (команды + pointer), `TinyTBS.Game/Ecs/Systems/`, `TinyTBS.Game/Rendering/` (в т.ч. `MatchBoardLayout`)
+- Представление — `TinyTBS.Game/Screens/` (тонкая склейка), `TinyTBS.Game/Presentation/` (Gum-деревья), `TinyTBS.Game/ViewModels/` (только UI-state)
+
+**Склейка кадра** — тонкий MGE `GameScreen`: `Update`/`Draw` вызывают логику и движок, не содержат формул layout и правил матча.
 
 ## Структура solution (целевая)
 
 ```
 TinyTBS/
-  TinyTBS.Core/       # ECS, карты, скрипты, IFileContentProvider, IUserDataPaths, IAssetResolver
+  TinyTBS.Core/       # логика: карты, скрипты, контракты путей/ассетов, GameCommand
   TinyTBS.Content/    # Images/, Sounds/, Strings/*.resx, C# Content Builder
-  TinyTBS.Game/       # Game, Gum, MGE screens, редактор, ввод
+  TinyTBS.Game/       # представление (Screens) + движок (Gum layout, Input, draw systems)
   TinyTBS.Desktop/    # Program.cs, DesktopGL
   docs/
 ```
@@ -40,7 +83,7 @@ TinyTBS/
 | Runtime | .NET 10 |
 | Framework | MonoGame 3.8.5 DesktopGL |
 | Расширения | MonoGame.Extended 6 (экраны, ECS) |
-| UI | Gum.MonoGame + MVVM (ручная синхронизация) |
+| UI | Gum.MonoGame + тонкий UI-state (ручная синхронизация; не MVVM-архитектура) |
 | Контент | C# Content Builder (`TinyTbsContentBuilder`, RegexRule), .xnb → Desktop |
 | Карты | ZIP + JSON + script.cs |
 | Скрипты | Roslyn (C#), IScriptEngine для других языков позже |
@@ -91,15 +134,22 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 ## Gum + MGE
 
-Каждый экран — MGE `Screen`. Порядок отрисовки: игровая сцена → Gum (UI, оверлеи).
+Каждый экран — MGE `GameScreen` (склейка слоёв). Порядок отрисовки (**движок**): игровая сцена → Gum (UI, оверлеи). Дерево контролов и навигация — **представление**; размеры/якоря Gum — хелперы движка (`GumUiLayout`).
+
+## ECS (MGE)
+
+- `TinyTBS.Core.Match`: `GridCell`, `MatchDefaults` (без пикселей), `MatchUnit`, `MatchState` — **логика**
+- `TinyTBS.Game.Ecs`: компоненты визуализации сетки/юнитов; `GridDrawSystem`, `UnitDrawSystem` — **движок**
+- `MatchScene` — ECS World + layout sync из `MatchState`; `MatchCommandApplicator` — команды/pointer→логика
+- `GameplayScreen` / `MainMenuScreen` — тонкая склейка; Gum в `Presentation/`; fit/highlight/layout в `Rendering/`
 
 ## Ввод
 
-Слой **команд игры** поверх API MonoGame (`Keyboard`, `Mouse`, `GamePad`, позже `TouchPanel`): устройство + привязка → логическое действие (`Confirm`, `EndTurn`, …). Не опрашивать клавиатуру из ViewModel напрямую.
+**Движок** опрашивает устройства (`Keyboard`, `Mouse`, `GamePad`, позже `TouchPanel`) и отдаёт **логические** команды / pointer. Представление/логика читают `IGameCommandSource` и `IPointerSource`, не `Keyboard`/`Mouse` напрямую.
 
-- `TinyTBS.Core.Input`: `GameCommand`, `IGameCommandSource`
-- `TinyTBS.Game.Input`: `GameCommandService` (опрос устройств, edge-trigger), `DefaultInputBindings`
-- `GameMain.Commands` обновляется каждый кадр до `ScreenManager.Update`
+- `TinyTBS.Core.Input`: `GameCommand`, `IGameCommandSource`, `IPointerSource`, `ScreenPoint`
+- `TinyTBS.Game.Input`: `GameCommandService`, `PointerInputService`, `DefaultInputBindings`
+- `GameMain` обновляет commands + pointer каждый кадр до `ScreenManager.Update`
 
 ## Карты и кампании
 
@@ -123,13 +173,14 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 1. Core + Content + Game + Desktop; `IUserDataPaths`, `IAssetResolver` (vanilla).
 2. Документация (этот каталог).
-3. MGE ScreenManager + Gum на одном экране — **выполнено** (`MainMenuScreen`, `MainMenuViewModel`, выбор мода «Vanilla»).
+3. MGE ScreenManager + Gum на экранах — **выполнено** (`MainMenuScreen`, UI-state, выбор мода «Vanilla»).
 4. Слой команд ввода — **выполнено** (`GameCommand`, `IGameCommandSource`, `GameCommandService`).
-5. ECS + минимальный match.
-6. `.map.zip` + загрузчик.
-7. MapScriptContext + Roslyn sandbox.
-8. Mods fallback; редактор карт.
-9. Кампании и сохранения — после playable loop.
+5. ECS + минимальный match — **выполнено** (`MatchState` + `MatchScene`, `GameplayScreen`).
+6. Разнести Screens по слоям; split матча (логика Core / сцена Game) + pointer input — **выполнено**.
+7. `.map.zip` + загрузчик.
+8. MapScriptContext + Roslyn sandbox.
+9. Mods fallback; редактор карт.
+10. Кампании и сохранения — после playable loop.
 
 ## Связанные ADR
 
@@ -137,3 +188,4 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 - [0002 — формат карты ZIP + JSON](adr/0002-map-format-zip-json.md)
 - [0003 — отказ от Tiled, свой редактор](adr/0003-no-tiled-custom-editor.md)
 - [0004 — перекраска спрайтов base + mask](adr/0004-sprite-base-mask-recoloring.md)
+- [0005 — три слоя: логика / представление / движок](adr/0005-three-layers-logic-presentation-engine.md)

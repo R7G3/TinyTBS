@@ -3,7 +3,7 @@ using TinyTBS.Core.Assets;
 namespace TinyTBS.Game.ViewModels;
 
 /// <summary>
-/// View model for the main menu. Gum controls sync manually in the screen.
+/// UI-state bag for the main menu (not an MVVM architecture layer).
 /// </summary>
 public sealed class MainMenuViewModel
 {

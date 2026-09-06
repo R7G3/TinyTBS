@@ -15,6 +15,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     private readonly GraphicsDeviceManager _graphics;
     private readonly ScreenManager _screenManager;
     private readonly GameCommandService _commands = new();
+    private readonly PointerInputService _pointer = new();
     private readonly IUserDataPaths _userDataPaths;
     private readonly IFileContentProvider _files;
     private readonly IAssetResolver _assets;
@@ -43,6 +44,8 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     public IAssetResolver Assets => _assets;
 
     public IGameCommandSource Commands => _commands;
+
+    public IPointerSource Pointer => _pointer;
 
     public SpriteBatch SharedSpriteBatch =>
         _spriteBatch ?? throw new InvalidOperationException("SpriteBatch is not loaded yet.");
@@ -78,6 +81,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     protected override void Update(GameTime gameTime)
     {
         _commands.Update();
+        _pointer.Update();
         base.Update(gameTime);
     }
 
