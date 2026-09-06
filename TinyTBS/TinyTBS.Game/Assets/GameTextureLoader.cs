@@ -5,23 +5,6 @@ using TinyTBS.Core.Assets;
 namespace TinyTBS.Game.Assets;
 
 /// <summary>
-/// A texture plus whether the caller must dispose it (raw/fallback assets only).
-/// Textures from <see cref="ContentManager"/> must not be disposed by screens.
-/// </summary>
-internal readonly struct LoadedTexture(Texture2D texture, bool disposeOnUnload)
-{
-    public Texture2D Texture { get; } = texture;
-
-    public bool DisposeOnUnload { get; } = disposeOnUnload;
-
-    public void DisposeIfOwned()
-    {
-        if (DisposeOnUnload)
-            Texture.Dispose();
-    }
-}
-
-/// <summary>
 /// Loads textures from mod/raw paths first, then from the MonoGame content pipeline (.xnb).
 /// </summary>
 internal static class GameTextureLoader

@@ -140,8 +140,8 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 - `TinyTBS.Core.Match`: `GridCell`, `MatchDefaults` (без пикселей), `MatchUnit`, `MatchState` — **логика**
 - `TinyTBS.Game.Ecs`: компоненты визуализации сетки/юнитов; `GridDrawSystem`, `UnitDrawSystem` — **движок**
-- `MatchScene` — ECS World + layout sync из `MatchState`; `MatchCommandApplicator` — команды/pointer→логика
-- `GameplayScreen` / `MainMenuScreen` — тонкая склейка; Gum в `Presentation/`; fit/highlight/layout в `Rendering/`
+- `MatchScene` / `GameplaySessionFactory` — ECS + загрузка текстур через `IAssetResolver`; `MatchCommandApplicator` — команды/pointer→логика
+- `GameplayScreen` / `MainMenuScreen` — тонкая склейка lifecycle; Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
 
 ## Ввод
 

@@ -11,7 +11,7 @@ using TinyTBS.Game.ViewModels;
 namespace TinyTBS.Game.Screens;
 
 /// <summary>
-/// Thin frame glue: wires menu UI-state, Gum presentation, and background fit draw.
+/// Thin frame glue: wires menu UI-state, Gum presentation, and background draw.
 /// </summary>
 public sealed class MainMenuScreen : GameScreen
 {
@@ -19,7 +19,7 @@ public sealed class MainMenuScreen : GameScreen
     private readonly MainMenuViewModel _viewModel = new();
     private readonly MainMenuView _view = new();
 
-    private LoadedTexture? _placeholderAsset;
+    private MainMenuBackground? _background;
 
     public MainMenuScreen(GameMain game, IAssetResolver assets)
         : base(game)
@@ -35,13 +35,7 @@ public sealed class MainMenuScreen : GameScreen
 
         _viewModel.RefreshMods(_assets);
         _viewModel.ApplyModSelection(_assets);
-
-        _placeholderAsset = GameTextureLoader.TryLoad(
-            GraphicsDevice,
-            Content,
-            _assets,
-            logicalRelativePath: "Images/placeholder.png",
-            contentAssetName: "Images/placeholder");
+        _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
 
         _view.Build(
             _viewModel,
@@ -53,9 +47,8 @@ public sealed class MainMenuScreen : GameScreen
     public override void UnloadContent()
     {
         _view.Clear();
-        _placeholderAsset?.DisposeIfOwned();
-        _placeholderAsset = null;
-
+        _background?.Dispose();
+        _background = null;
         base.UnloadContent();
     }
 
@@ -71,7 +64,7 @@ public sealed class MainMenuScreen : GameScreen
     {
         GraphicsDevice.Clear(new Color(24, 28, 38));
 
-        var texture = _placeholderAsset?.Texture;
+        var texture = _background?.Texture;
         if (texture is not null)
         {
             ViewportFit.DrawCentered(
