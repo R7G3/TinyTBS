@@ -139,7 +139,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 ## ECS (MGE)
 
 - `TinyTBS.Core.Match`: `GridCell`, `MatchDefaults` (логика)
-- `TinyTBS.Game.Ecs`: компоненты состояния; системы отрисовки (`GridDrawSystem`, `UnitDrawSystem`) — **движок**
+- `TinyTBS.Game.Ecs`: компоненты состояния; системы отрисовки (`GridDrawSystem`, `UnitDrawSystem`) — **движок**; layout/sync позиций — `MatchSession.PrepareFrame` + `Rendering/`
 - `MatchSession` — демо-матч (2 игрока, выбор юнита, ход на 1 клетку, конец хода); `MatchCommandApplicator` — команды→матч; wiring World+draw systems ещё внутри сессии
 - `GameplayScreen` / `MainMenuScreen` — тонкая склейка; Gum в `Presentation/`; layout/fit/highlight в `Rendering/`
 

@@ -71,6 +71,8 @@ public sealed class GameplayScreen : GameScreen
         if (_match is null)
             return;
 
+        _match.PrepareFrame(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+
         if (MatchCommandApplicator.Apply(_match, TinyGame.Commands))
         {
             ReturnToMenu();
@@ -97,14 +99,13 @@ public sealed class GameplayScreen : GameScreen
 
         if (_match is not null)
         {
+            _match.PrepareFrame(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
             _match.Draw(gameTime);
             _cursorHighlight?.Draw(
                 TinyGame.SharedSpriteBatch,
                 _match.Layout,
                 _match.Cursor,
-                hasSelection: _match.SelectedEntityId is not null,
-                GraphicsDevice.Viewport.Width,
-                GraphicsDevice.Viewport.Height);
+                hasSelection: _match.SelectedEntityId is not null);
         }
 
         GumService.Default.Draw();

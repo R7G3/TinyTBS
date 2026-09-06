@@ -7,6 +7,7 @@ namespace TinyTBS.Game.Rendering;
 
 /// <summary>
 /// Engine: cursor cell overlay on the match board.
+/// Expects <see cref="MatchBoardLayout"/> already prepared for the viewport.
 /// </summary>
 public sealed class CursorHighlightRenderer : IDisposable
 {
@@ -25,34 +26,17 @@ public sealed class CursorHighlightRenderer : IDisposable
         SpriteBatch spriteBatch,
         MatchBoardLayout layout,
         GridCell cursor,
-        bool hasSelection,
-        int viewportWidth,
-        int viewportHeight)
+        bool hasSelection)
     {
-        layout.UpdateForViewport(viewportWidth, viewportHeight);
-
         var topLeft = layout.Origin + new Vector2(cursor.X * layout.TileSize, cursor.Y * layout.TileSize);
         var rect = new Rectangle((int)topLeft.X, (int)topLeft.Y, layout.TileSize, layout.TileSize);
         var borderColor = hasSelection ? SelectedBorder : IdleBorder;
 
         spriteBatch.Begin();
         spriteBatch.Draw(_pixel, rect, Color.White * 0.18f);
-        DrawRectBorder(spriteBatch, _pixel, rect, borderColor, thickness: 2);
+        SpriteBatchPrimitives.DrawRectBorder(spriteBatch, _pixel, rect, borderColor, thickness: 2);
         spriteBatch.End();
     }
 
     public void Dispose() => _pixel.Dispose();
-
-    private static void DrawRectBorder(
-        SpriteBatch batch,
-        Texture2D pixel,
-        Rectangle rect,
-        Color color,
-        int thickness)
-    {
-        batch.Draw(pixel, new Rectangle(rect.X, rect.Y, rect.Width, thickness), color);
-        batch.Draw(pixel, new Rectangle(rect.X, rect.Bottom - thickness, rect.Width, thickness), color);
-        batch.Draw(pixel, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
-        batch.Draw(pixel, new Rectangle(rect.Right - thickness, rect.Y, thickness, rect.Height), color);
-    }
 }

@@ -2,7 +2,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.ECS;
-using MonoGame.Extended.ECS.Systems;
 using MonoGame.Extended.Graphics;
 using TinyTBS.Core.Match;
 using TinyTBS.Game.Ecs.Components;
@@ -28,7 +27,7 @@ public sealed class MatchSession : IDisposable
     {
         World = new WorldBuilder()
             .AddSystem(new GridDrawSystem(graphicsDevice, spriteBatch, _layout))
-            .AddSystem(new UnitDrawSystem(spriteBatch, _layout))
+            .AddSystem(new UnitDrawSystem(spriteBatch))
             .Build();
 
         SpawnDemoUnits(unitTexture);
@@ -58,6 +57,15 @@ public sealed class MatchSession : IDisposable
 
             return $"Player {CurrentPlayer + 1} — select a unit";
         }
+    }
+
+    /// <summary>
+    /// Once per Update/Draw: refresh board layout for the viewport and sync unit world positions from grid.
+    /// </summary>
+    public void PrepareFrame(int viewportWidth, int viewportHeight)
+    {
+        _layout.UpdateForViewport(viewportWidth, viewportHeight);
+        SyncUnitTransformsFromGrid();
     }
 
     public void MoveCursor(int deltaX, int deltaY)
@@ -91,6 +99,16 @@ public sealed class MatchSession : IDisposable
     public void Draw(GameTime gameTime) => World.Draw(gameTime);
 
     public void Dispose() => World.Dispose();
+
+    private void SyncUnitTransformsFromGrid()
+    {
+        foreach (var entityId in _unitEntityIds)
+        {
+            var entity = World.GetEntity(entityId);
+            var cell = entity.Get<GridPosition>().Cell;
+            entity.Get<Transform2>().Position = _layout.CellToWorldCenter(cell);
+        }
+    }
 
     private void SpawnDemoUnits(Texture2D unitTexture)
     {
@@ -148,8 +166,7 @@ public sealed class MatchSession : IDisposable
         var grid = entity.Get<GridPosition>();
         grid.X = destination.X;
         grid.Y = destination.Y;
-        var transform = entity.Get<Transform2>();
-        transform.Position = _layout.CellToWorldCenter(destination);
+        // World position is refreshed in PrepareFrame (before Draw).
         SelectedEntityId = null;
     }
 
