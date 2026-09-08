@@ -36,6 +36,10 @@
 
 При архитектурных решениях — обновлять `docs/` и при необходимости добавлять ADR в `docs/adr/`.
 
+**Геймдизайн (канон):** [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) и `docs/design/`. Черновик автора: `TinyTBS_design_source.txt` (при расхождении побеждают docs).
+
+Карты / уровни / юниты: [MAP_FORMAT.md](docs/MAP_FORMAT.md), [LEVEL_FORMAT.md](docs/LEVEL_FORMAT.md), [UNIT_FORMAT.md](docs/UNIT_FORMAT.md).
+
 ## Ассеты
 
 Спрайты юнитов и строений — **base + mask** PNG. Правила: [docs/ARTIST_GUIDE.md](docs/ARTIST_GUIDE.md).

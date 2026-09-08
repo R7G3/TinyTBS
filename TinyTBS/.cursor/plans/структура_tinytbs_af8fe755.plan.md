@@ -1,6 +1,6 @@
 ---
 name: Структура TinyTBS
-overview: "net10.0: Core + Content + Game + Desktop; три слоя (логика / представление / движок); карты .map.zip + Roslyn; моды; user data; Gum/MGE/ECS; docs в git."
+overview: "net10.0: Core/Game/Desktop/Content; три слоя; GDD; Map/Level/Campaign; content-моды; сеть позже; Gum/MGE/ECS."
 todos:
   - id: split-solution
     content: Разнести на TinyTBS.Core, TinyTBS.Game, TinyTBS.Desktop, TinyTBS.Content (net10.0)
@@ -26,23 +26,35 @@ todos:
   - id: layer-split
     content: "Разнести Screens по слоям: логика / представление / движок (образец — Gameplay)"
     status: completed
+  - id: gdd-docs
+    content: "Канон GDD в docs/GAME_DESIGN.md + design/* + UNIT/LEVEL formats"
+    status: completed
   - id: map-format
     content: .map.zip + map.json; загрузчик
+    status: pending
+  - id: level-format
+    content: Level пакет (embed/ref map) + загрузчик
     status: pending
   - id: map-scripting
     content: IScriptEngine + Roslyn sandbox; хуки с MapScriptContext
     status: pending
+  - id: content-mods
+    content: Content packs — юниты/баланс/кампании (data-driven UNIT_FORMAT)
+    status: pending
   - id: campaigns
-    content: campaign.json — список карт, метаданные сюжета; формат TBD в docs
+    content: campaign.json — список levels; метаданные сюжета
     status: pending
   - id: save-format
     content: Версионируемые сохранения (match + campaign progress); docs/SAVE_FORMAT.md
     status: pending
   - id: map-editor
-    content: Редактор карт → сохранение в user Maps/
+    content: Редактор карт/уровней → user Maps/
     status: pending
   - id: player-colors
-    content: PlayerPalette + base/mask PNG; отрисовка с tint; dimFactor для «уже походил»; color picker в Gum
+    content: PlayerPalette + base/mask PNG; отрисовка с tint; dimFactor; color picker в Gum
+    status: pending
+  - id: network-later
+    content: "Сеть (позже): Remote players; не ломать API матча"
     status: pending
   - id: repo-docs
     content: docs/ ARCHITECTURE, ADR, AGENTS (в т.ч. git-workflow без auto-commit), MAP/SCRIPT/SAVE formats
@@ -59,7 +71,9 @@ isProject: false
 - **User data** на диске: карты, кампании, сохранения, загрузки из сети — через абстракцию путей.
 - **Свой формат карт**, встроенный редактор, скрипты в **ограниченной песочнице**.
 - **Tiled / DotTiled — не используются.**
-- **Три слоя кода** (папки, не отдельный csproj): **логика** (правила, ECS-состояние, команды-намерения), **представление** (экраны, Gum-деревья, UI-state), **движок** (layout, порядок отрисовки, опрос устройств). Не MVVM/MVC как главная схема — см. `docs/adr/0005-three-layers-logic-presentation-engine.md`.
+- **Три слоя кода** (папки, не отдельный csproj): **логика**, **представление**, **движок**. См. ADR 0005.
+- **GDD** — [docs/GAME_DESIGN.md](../../docs/GAME_DESIGN.md); Map/Level/Campaign — ADR 0006; юниты data-driven — UNIT_FORMAT.
+- **Content-моды** (цель) и **сеть** (позже) — в roadmap.
 
 ```mermaid
 flowchart TB

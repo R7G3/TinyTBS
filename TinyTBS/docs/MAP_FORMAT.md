@@ -1,13 +1,15 @@
 # Формат карты (.map.zip)
 
-Карта — **ZIP-архив** ( `System.IO.Compression.ZipArchive` ), расширение например `.map.zip` или `.tbsmap`.
+Карта — **ZIP** (`System.IO.Compression.ZipArchive`), например `.map.zip`.
+
+Иерархия контента: **Map → Level → Campaign**. Карта — доска; сценарий партии — [LEVEL_FORMAT.md](LEVEL_FORMAT.md). Канон дизайна: [GAME_DESIGN.md](GAME_DESIGN.md).
 
 ## Содержимое архива
 
 | Файл | Обязательный | Описание |
 |------|--------------|----------|
 | `map.json` | да | Слои и метаданные |
-| `script.cs` | да | Логика карты (C#, Roslyn) |
+| `script.cs` | да | Логика доски (C#, Roslyn) |
 | `assets/` | нет | Спрайты, уникальные для карты |
 
 ## map.json (черновик схемы)
@@ -15,56 +17,72 @@
 ```json
 {
   "formatVersion": 1,
-  "id": "tutorial-01",
-  "title": "First battle",
+  "id": "crossroads",
+  "title": "Crossroads",
   "width": 32,
   "height": 24,
   "layers": {
     "surface": [],
     "buildings": [],
-    "units": []
+    "units": [],
+    "memorials": []
   }
 }
 ```
 
 ### Слой `surface`
 
-Типы местности: луг, вода, дорога, гора, лес, мост. Проходимость, стоимость хода — в данных типа или в коде игры.
+Типы местности (GDD): `road`, `grass`, `forest`, `mountain`, `water`, `bridge`.
 
-Представление (один из вариантов, уточнить при реализации):
+Стоимость хода и защита — в данных игры / мода (см. [design/WORLD.md](design/WORLD.md)), не обязательно дублировать в каждой клетке.
 
-- плоский массив `width × height` с id типа;
-- или массив `{ "x", "y", "type" }`.
+Представление: плоский массив `width × height` с id типа **или** список `{ "x", "y", "type" }` — уточнить при реализации загрузчика.
 
 ### Слой `buildings`
 
 ```json
-{ "type": "castle", "x": 5, "y": 10, "ownerId": null }
+{ "type": "castle", "x": 5, "y": 10, "slot": 0 }
+{ "type": "village", "x": 8, "y": 4, "slot": null, "state": "intact" }
 ```
 
-`ownerId`: `null` = нейтральное (цвет нейтрали из палитры).
+- `slot`: индекс слота игрока для стартового владения (назначается при старте Level/Схватки). `null` — нейтраль / без привязки.
+- Для кампании с фиксированными владельцами допустим явный `ownerId` **или** заполнение слотов level'ом — выбрать одно при реализации.
+- `state` для деревни: `intact` \| `ruined`.
 
 ### Слой `units`
 
 ```json
-{ "type": "knight", "x": 3, "y": 8, "ownerId": 0, "hp": 100 }
+{ "type": "swordsman", "x": 3, "y": 8, "slot": 0, "hp": 100, "xp": 0 }
 ```
 
-## Хранение на диске
+`type` — id из [UNIT_FORMAT.md](UNIT_FORMAT.md) / пакета контента.
+
+### Слой `memorials` (опционально)
+
+Стартовые экземпляры памятных камней. Правила жизни/подъёма — в логике ([design/COMBAT.md](design/COMBAT.md)), не в map.
+
+```json
+{ "x": 4, "y": 7 }
+```
+
+## Хранение
 
 | Место | Назначение |
 |-------|------------|
 | `{UserData}/Maps/` | Карты из редактора и установленные |
-| `{UserData}/Downloads/` | Временно после загрузки из сети |
+| `{UserData}/Downloads/` | Временно после сети |
+| внутри Level-пакета | embed |
 
-Не проходит через MonoGame Content Builder — загрузка в рантайме через `IFileContentProvider`.
+Не через MonoGame Content Builder — рантайм через `IFileContentProvider`.
 
 ## Редактор
 
-Встроенный редактор в игре сохраняет в `{UserData}/Maps/`.
+Встроенный редактор сохраняет в `{UserData}/Maps/` (и/или встраивает в Level).
 
 ## Связанные документы
 
-- [SCRIPTING.md](SCRIPTING.md) — `script.cs`
-- [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md) — объединение карт в сценарии
+- [LEVEL_FORMAT.md](LEVEL_FORMAT.md)
+- [SCRIPTING.md](SCRIPTING.md)
+- [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md)
 - [adr/0002-map-format-zip-json.md](adr/0002-map-format-zip-json.md)
+- [adr/0006-map-level-campaign.md](adr/0006-map-level-campaign.md)

@@ -1,15 +1,17 @@
 # Формат кампании (черновик)
 
-Кампания объединяет несколько карт общим сюжетом.
+Кампания объединяет **уровни (Level)**, не сырые map-файлы напрямую. См. [LEVEL_FORMAT.md](LEVEL_FORMAT.md), [GAME_DESIGN.md](GAME_DESIGN.md).
 
 ## Расположение
 
 ```
 {UserData}/Campaigns/MyCampaign/
   campaign.json
-  maps/              # .map.zip или ссылки на Maps/
+  levels/            # .level.zip или ссылки
   campaign.script    # опционально — общая логика сценария
 ```
+
+Кампания также может жить внутри **мода** (content pack).
 
 ## campaign.json (концепт)
 
@@ -18,22 +20,26 @@
   "formatVersion": 1,
   "id": "main-story",
   "title": "Осада королевства",
-  "maps": [
-    { "mapId": "chapter-01", "file": "maps/chapter-01.map.zip" },
-    { "mapId": "chapter-02", "file": "maps/chapter-02.map.zip" }
+  "levels": [
+    { "levelId": "chapter-01", "file": "levels/chapter-01.level.zip" },
+    { "levelId": "chapter-02", "file": "levels/chapter-02.level.zip" }
   ]
 }
 ```
 
-## Переход между картами
+## Что не класть в кампанию
 
-Условия (победа на карте, флаги скрипта) — уточнить: в `campaign.json`, в `campaign.script` или в скриптах отдельных карт.
+Параметры лобби схватки (золото, FFA vs 2v2) — на **Level** / UI Схватки. Кампания: порядок, сюжет, метапрогресс, общий script.
+
+## Переход между уровнями
+
+Условия (победа, флаги скрипта) — в `campaign.json`, `campaign.script` или скриптах level — уточнить при реализации.
 
 ## Связь с сохранениями
 
-См. [SAVE_FORMAT.md](SAVE_FORMAT.md) — campaign save хранит прогресс по списку карт.
+См. [SAVE_FORMAT.md](SAVE_FORMAT.md) — campaign save хранит прогресс по списку levels.
 
 ## TODO
 
-- [ ] Формат `campaign.script` vs скрипты карт
+- [ ] Формат `campaign.script` vs скрипты levels
 - [ ] Загрузка кампаний из сети (Downloads/)

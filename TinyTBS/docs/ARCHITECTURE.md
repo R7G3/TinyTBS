@@ -14,12 +14,13 @@
 ## Цели
 
 - Один код игры для desktop (Windows, Linux; Android позже).
-- **Bundled** контент + опциональные **графические/звуковые моды**.
-- **User data:** карты, кампании, сохранения, загрузки — через абстракции путей.
-- **Свой редактор карт** и формат `.map.zip`; Tiled не используется.
+- **Bundled** контент + **content-моды** (юниты, карты, кампании, ассеты, баланс; сейчас в коде в основном override графики/звука).
+- **User data:** карты, уровни, кампании, сохранения, загрузки — через абстракции путей.
+- **Свой редактор** и форматы Map / Level; Tiled не используется.
 - **Gum** поверх **MGE Screen** на всех экранах (меню и геймплей).
 - **ECS** — MonoGame.Extended.
-- Код разделён на три слоя: **логика**, **представление**, **движок** — просто для чтения и правок. См. [ADR 0005](adr/0005-three-layers-logic-presentation-engine.md).
+- Код разделён на три слоя: **логика**, **представление**, **движок**. См. [ADR 0005](adr/0005-three-layers-logic-presentation-engine.md).
+- Геймдизайн (канон): [GAME_DESIGN.md](GAME_DESIGN.md).
 
 ## Слои (Logic / Presentation / Engine)
 
@@ -126,7 +127,9 @@ flowchart TB
 
 ## Моды
 
-`IAssetResolver`: запрос ресурса → активный мод → fallback на bundled Content. Каждый мод — подпапка с `Images/`, `Sounds/`, опционально `mod.json`. Выбор мода в меню.
+**Сейчас:** `IAssetResolver` — активный мод → fallback на bundled Content (`Images/`, `Sounds/`, опц. `mod.json`).
+
+**Цель (GDD):** мод = **content pack** — юниты ([UNIT_FORMAT.md](UNIT_FORMAT.md)), строения/баланс, maps/levels/campaigns, скрипты, ассеты. Vanilla — тот же формат данных. Нестандартные юниты — конфиг + declarative `special` / abilities, не отдельный бой-движок.
 
 ## Цвета игроков на спрайтах
 
@@ -138,7 +141,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 ## ECS (MGE)
 
-- `TinyTBS.Core.Match`: `GridCell`, `MatchDefaults` (без пикселей), `MatchUnit`, `MatchState` — **логика**
+- `TinyTBS.Core.Match`: `GridCell`, `MatchDefaults` (без пикселей), `MatchUnit`, `MatchState` — **логика** (демо; полный GDD — впереди)
 - `TinyTBS.Game.Ecs`: компоненты визуализации сетки/юнитов; `GridDrawSystem`, `UnitDrawSystem` — **движок**
 - `MatchScene` / `GameplaySessionFactory` — ECS + загрузка текстур через `IAssetResolver`; `MatchCommandApplicator` — команды/pointer→логика
 - `GameplayScreen` / `MainMenuScreen` — тонкая склейка lifecycle; Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
@@ -151,11 +154,14 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 - `TinyTBS.Game.Input`: `GameCommandService`, `PointerInputService`, `DefaultInputBindings`
 - `GameMain` обновляет commands + pointer каждый кадр до `ScreenManager.Update`
 
-## Карты и кампании
+## Карты, уровни, кампании
 
-- Карта: [MAP_FORMAT.md](MAP_FORMAT.md)
+- Геймдизайн: [GAME_DESIGN.md](GAME_DESIGN.md)
+- Map: [MAP_FORMAT.md](MAP_FORMAT.md)
+- Level: [LEVEL_FORMAT.md](LEVEL_FORMAT.md)
+- Campaign: [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md)
+- Units data: [UNIT_FORMAT.md](UNIT_FORMAT.md)
 - Скрипты: [SCRIPTING.md](SCRIPTING.md)
-- Кампании: [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md) (черновик)
 - Сохранения: [SAVE_FORMAT.md](SAVE_FORMAT.md) (черновик)
 
 ## MonoGame 3.8.5
@@ -172,15 +178,16 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 ## Порядок внедрения
 
 1. Core + Content + Game + Desktop; `IUserDataPaths`, `IAssetResolver` (vanilla).
-2. Документация (этот каталог).
-3. MGE ScreenManager + Gum на экранах — **выполнено** (`MainMenuScreen`, UI-state, выбор мода «Vanilla»).
-4. Слой команд ввода — **выполнено** (`GameCommand`, `IGameCommandSource`, `GameCommandService`).
-5. ECS + минимальный match — **выполнено** (`MatchState` + `MatchScene`, `GameplayScreen`).
-6. Разнести Screens по слоям; split матча (логика Core / сцена Game) + pointer input — **выполнено**.
-7. `.map.zip` + загрузчик.
+2. Документация (этот каталог) + GDD — **выполнено** (канон в `GAME_DESIGN.md`).
+3. MGE ScreenManager + Gum на экранах — **выполнено**.
+4. Слой команд ввода — **выполнено**.
+5. ECS + минимальный match — **выполнено** (демо ≠ полный GDD).
+6. Слои Screens + split `MatchState`/`MatchScene` + pointer — **выполнено**.
+7. `.map.zip` / Level загрузчики + сближение матча с GDD.
 8. MapScriptContext + Roslyn sandbox.
-9. Mods fallback; редактор карт.
+9. Content-моды (данные юнитов + ассеты); редактор карт/уровней.
 10. Кампании и сохранения — после playable loop.
+11. **Сеть** — позже (типы игроков Remote закладывать заранее).
 
 ## Связанные ADR
 
@@ -189,3 +196,4 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 - [0003 — отказ от Tiled, свой редактор](adr/0003-no-tiled-custom-editor.md)
 - [0004 — перекраска спрайтов base + mask](adr/0004-sprite-base-mask-recoloring.md)
 - [0005 — три слоя: логика / представление / движок](adr/0005-three-layers-logic-presentation-engine.md)
+- [0006 — Map / Level / Campaign](adr/0006-map-level-campaign.md)
