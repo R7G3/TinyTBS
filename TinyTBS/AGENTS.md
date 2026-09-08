@@ -13,9 +13,10 @@
 - MonoGame 3.8.5 (DesktopGL; DesktopVK — в перспективе)
 - MonoGame.Extended 6 — игровые экраны, ECS
 - Gum.MonoGame — UI на **каждом** экране поверх графики
-- Карты: `.map.zip` (JSON + script.cs), **без Tiled / DotTiled**
+- Карты / уровни: `.map.zip`, Level-пакеты (JSON + script), **без Tiled / DotTiled** — см. [MAP_FORMAT.md](docs/MAP_FORMAT.md), [LEVEL_FORMAT.md](docs/LEVEL_FORMAT.md)
 - Контент: отдельный проект TinyTBS.Content + C# Content Builder (wildcard)
 - Локализация: resx в Content-проекте
+- Геймдизайн: [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md)
 
 ## Архитектура (кратко)
 
@@ -38,7 +39,7 @@
 
 **Геймдизайн (канон):** [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) и `docs/design/`. Черновик автора: `TinyTBS_design_source.txt` (при расхождении побеждают docs).
 
-Карты / уровни / юниты: [MAP_FORMAT.md](docs/MAP_FORMAT.md), [LEVEL_FORMAT.md](docs/LEVEL_FORMAT.md), [UNIT_FORMAT.md](docs/UNIT_FORMAT.md).
+Карты / уровни / юниты: [MAP_FORMAT.md](docs/MAP_FORMAT.md), [LEVEL_FORMAT.md](docs/LEVEL_FORMAT.md), [UNIT_FORMAT.md](docs/UNIT_FORMAT.md). Архитектура и roadmap: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Ассеты
 

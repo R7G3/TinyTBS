@@ -67,13 +67,13 @@ isProject: false
 ## Цели архитектуры
 
 - **Один код игры** на всех платформах: правила, ECS, карты, строки, скрипты.
-- **Bundled контент** (Content-проект) + **опциональные моды** (переопределение графики/звука).
-- **User data** на диске: карты, кампании, сохранения, загрузки из сети — через абстракцию путей.
-- **Свой формат карт**, встроенный редактор, скрипты в **ограниченной песочнице**.
+- **Bundled контент** (Content-проект) + **content-моды** (юниты, баланс, maps/levels/campaigns, ассеты; сейчас в коде в основном override графики/звука).
+- **User data** на диске: карты, уровни, кампании, сохранения, загрузки — через абстракцию путей.
+- **Свой формат Map / Level**, встроенный редактор, скрипты в **ограниченной песочнице**.
 - **Tiled / DotTiled — не используются.**
 - **Три слоя кода** (папки, не отдельный csproj): **логика**, **представление**, **движок**. См. ADR 0005.
 - **GDD** — [docs/GAME_DESIGN.md](../../docs/GAME_DESIGN.md); Map/Level/Campaign — ADR 0006; юниты data-driven — UNIT_FORMAT.
-- **Content-моды** (цель) и **сеть** (позже) — в roadmap.
+- **Сеть** — позже; типы игроков Remote закладывать в API заранее.
 
 ```mermaid
 flowchart TB
@@ -127,16 +127,13 @@ flowchart TB
 
 **Моды рядом с установкой** — естественно на **Windows/Linux desktop**. На **Android** папка установки часто **read-only**; моды кладут в **app-specific external storage** или импорт через «выбрать папку». Архитектура та же (`IAssetResolver`), реализация путей другая — **переделывать Game не нужно**.
 
-## Графические/звуковые моды
+## Моды (сейчас → цель)
 
-`**IAssetResolver**` (или `IModManager`):
+**Сейчас:** `IAssetResolver` — Images/Sounds override, `mod.json`, выбор в меню.
 
-1. Игрок выбирает активный мод в меню (или «Vanilla» = только bundled).
-2. При запросе `textures/units/knight.png`: сначала `{ActiveMod}/Images/units/knight.png`, если нет — **fallback** на bundled Content.
-3. Каждый мод — **отдельная подпапка** `Mods/MyMod/` со структурой, зеркалирующей ожидаемые пути (`Images/`, `Sounds/`).
-4. Опционально `mod.json` в корне мода: имя, автор, версия, совместимость.
+**Цель (GDD / content packs):** юниты (UNIT_FORMAT), баланс, maps/levels/campaigns, скрипты, ассеты. Vanilla — тот же формат данных. Локализация модов (resx) — позже.
 
-Строки (resx) модами на первом этапе **не** переопределяем — только графика/звук; локализация модов — позже через отдельные resx в mod-папке.
+На mobile корневые пути модов другие — контракт тот же, реализация `IUserDataPaths` / install dir.
 
 ## Цвета игроков на спрайтах (юниты и строения)
 
@@ -207,24 +204,28 @@ Custom `Effect` (HLSL → MGFX): в pixel shader, если цвет пиксел
 | Bake текстур         | только кэш по желанию, не по умолчанию           |
 
 
-## Карты и кампании
+## Карты, уровни и кампании
 
-**Карта** — `.map.zip` в `{UserData}/Maps/` (редактор сохраняет сюда; загрузка из интернета — в `Downloads/` с последующим переносом/регистрацией).
+Иерархия: **Map → Level → Campaign** (ADR 0006). Канон: `docs/GAME_DESIGN.md`, `MAP_FORMAT`, `LEVEL_FORMAT`, `CAMPAIGN_FORMAT`.
 
-**Кампания / сценарий** — отдельный пакет, например `campaign.zip` или папка:
+**Map** — `.map.zip` в `{UserData}/Maps/` (или embed в Level): terrain, строения, слоты/юниты, `script.cs`.
+
+**Level** — играбельная партия: map embed **или** ref; игроки/команды; золото; лимит юнитов; win/lose; mode tags.
+
+**Кампания** — пакет/папка:
 
 ```
 Campaigns/MyCampaign/
-  campaign.json    # id, title, порядок карт, метаданные сюжета
-  maps/            # ссылки или копии .map.zip
-  campaign.script  # опц., общая логика кампании (тот же sandbox)
+  campaign.json    # id, title, порядок **levels**
+  levels/          # .level.zip или ссылки
+  campaign.script  # опц.
 ```
 
-`campaign.json`: список map id, порядок, условия перехода между картами (часть может жить в скриптах карт или кампании — уточнить в `docs/CAMPAIGN_FORMAT.md`).
+`campaign.json`: список level id (не сырые map напрямую). Схватка использует Level/Map без кампании.
 
 ## Формат карты (.map.zip)
 
-ZIP + `**map.json**` (слои **surface**, **buildings**, **units**) + `**script.cs`**.
+ZIP + `map.json` (слои surface, buildings, units, опц. memorials) + `script.cs`. Детали — `docs/MAP_FORMAT.md`.
 
 ## Скрипты: хуки и аргументы
 
@@ -330,21 +331,27 @@ ScriptOptions.Default
 
 ## Порядок внедрения
 
-1. Core + Content + Game + Desktop; **IUserDataPaths**, **IAssetResolver** (vanilla only сначала).
-2. docs/ (ARCHITECTURE, ADR, форматы).
-3. Gum + MGE screens; выбор мода (заглушка «Vanilla») — без MVVM как целевого паттерна.
-4. ECS + минимальный match.
-5. **layer-split:** разнести Screens по слоям (логика / представление / движок); образец — Gameplay — **выполнено**.
-6. `.map.zip` + загрузчик.
-7. **MapScriptContext** + Roslyn sandbox + хуки.
-8. Mods fallback; редактор карт → user Maps/.
-9. Кампании и сохранения — после стабильного match loop.
+Согласовано с `docs/ARCHITECTURE.md`:
+
+1. Core + Content + Game + Desktop; **IUserDataPaths**, **IAssetResolver** — **выполнено**.
+2. docs/ + GDD (`GAME_DESIGN.md`, design/*, UNIT/LEVEL formats, ADR 0006) — **выполнено**.
+3. Gum + MGE screens — **выполнено**.
+4. Слой команд ввода + pointer — **выполнено**.
+5. ECS + минимальный match (демо ≠ полный GDD) — **выполнено**.
+6. layer-split Screens + MatchState/MatchScene — **выполнено**.
+7. `.map.zip` / **Level** загрузчики + сближение матча с GDD.
+8. **MapScriptContext** + Roslyn sandbox + хуки.
+9. **Content-моды** (UNIT_FORMAT + ассеты); редактор карт/уровней.
+10. Кампании и сохранения — после playable loop.
+11. **Сеть** — позже (Remote в API игроков заранее).
 
 ## Документация в репозитории
 
-- `docs/ARCHITECTURE.md`, `docs/MAP_FORMAT.md`, `docs/SCRIPTING.md`, `docs/SAVE_FORMAT.md`, `docs/CAMPAIGN_FORMAT.md`
-- `docs/adr/` — ZIP, JSON, отказ Tiled, sandbox, user data paths, **три слоя (0005)**
-- `AGENTS.md` — в т.ч. **git-workflow: без auto-commit/push**
+- `docs/ARCHITECTURE.md`, `docs/GAME_DESIGN.md`, `docs/design/*`
+- `docs/MAP_FORMAT.md`, `docs/LEVEL_FORMAT.md`, `docs/UNIT_FORMAT.md`, `docs/CAMPAIGN_FORMAT.md`
+- `docs/SCRIPTING.md`, `docs/SAVE_FORMAT.md`
+- `docs/adr/` — в т.ч. 0005 (слои), **0006 (Map/Level/Campaign)**
+- `AGENTS.md` — git-workflow без auto-commit/push; ссылка на GDD
 
 ## Риски
 
