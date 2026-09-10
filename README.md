@@ -1,5 +1,5 @@
 # Tiny TBS
-is a turn-based tactical-strategy game, inspired by games like [Ancient Empires II](https://en.wikipedia.org/wiki/Ancient_Empires_(series)), Wargroove [first](https://ru.wikipedia.org/wiki/Wargroove) & [second](https://en.wikipedia.org/wiki/Wargroove_2) and [Advance Wars](https://en.wikipedia.org/wiki/Advance_Wars)
+is a turn-based tactical-strategy game, inspired by games like [Ancient Empires II](https://en.wikipedia.org/wiki/Ancient_Empires_(series)), Wargroove [first](https://en.wikipedia.org/wiki/Wargroove) & [second](https://en.wikipedia.org/wiki/Wargroove_2) and [Advance Wars](https://en.wikipedia.org/wiki/Advance_Wars)
 
 ## Projects in repository
 
