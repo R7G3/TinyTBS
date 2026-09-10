@@ -1,5 +1,5 @@
-using TinyTBS.Core.Assets;
-using TinyTBS.Core.IO;
+using TinyTBS.Game.Assets;
+using TinyTBS.Engine.IO;
 using TinyTBS.Game;
 
 namespace TinyTBS.Desktop;

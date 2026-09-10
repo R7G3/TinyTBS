@@ -20,16 +20,17 @@
 - **Gum** поверх **MGE Screen** на всех экранах (меню и геймплей).
 - **ECS** — MonoGame.Extended.
 - Код разделён на три слоя: **логика**, **представление**, **движок**. См. [ADR 0005](adr/0005-three-layers-logic-presentation-engine.md).
+- Проекты: **Game** (игра + UI) и **Engine** (кадр / I/O). См. [ADR 0007](adr/0007-game-and-engine-projects.md).
 - Геймдизайн (канон): [GAME_DESIGN.md](GAME_DESIGN.md).
 
 ## Слои (Logic / Presentation / Engine)
 
-Не четвёртый csproj: разделение папками внутри Core/Game. **MVVM не целевая архитектура** — классы `*ViewModel` только тонкие мешки UI-состояния (текст HUD, список модов), не место для ввода и layout.
+Логические слои (ADR 0005) живут в основном в **Game** (логика + представление) и **Engine** (инфраструктура кадра). **MVVM не целевая архитектура** — классы `*ViewModel` только тонкие мешки UI-состояния (текст HUD, список модов), не место для ввода и layout.
 
 ```mermaid
 flowchart LR
   subgraph logic [Logic]
-    MatchRules[Match rules ECS state]
+    MatchRules[Match rules state]
     Commands[GameCommand intents]
   end
   subgraph presentation [Presentation]
@@ -37,45 +38,53 @@ flowchart LR
     GumUi[Gum control trees]
     UiState[UI state bags]
   end
-  subgraph engine [Engine]
+  subgraph engineLayer [Engine layer]
     Layout[Layout size position]
     Draw[Draw order SpriteBatch]
-    InputPoll[Device poll to commands]
+    InputPoll[Device poll]
   end
   presentation -->|"commands UI events"| logic
   logic -->|"read-only state"| presentation
-  presentation -->|"what to show"| engine
-  engine -->|"pixels hit-tests"| presentation
+  presentation -->|"what to show"| engineLayer
+  engineLayer -->|"pixels hit-tests"| presentation
 ```
 
 | Слой | Что внутри | Чего нет |
 |------|------------|----------|
-| **Логика** | Ходы, выбор юнита, ECS-состояние матча, карты/скрипты, `GameCommand` как намерения | Viewport, Gum, `SpriteBatch`, пиксели |
+| **Логика** | Ходы, выбор юнита, состояние матча, карты/скрипты, `GameCommand` как намерения | Viewport, Gum, `SpriteBatch`, пиксели |
 | **Представление** | Экраны, дерево Gum, подписи, навигация экранов, синхронизация текста HUD | Формулы центрирования сетки, порядок `Begin`/`End` |
-| **Движок** | `MatchBoardLayout`, `GumUiLayout`, draw systems, fit текстуры, опрос устройств→команды, порядок «сцена → Gum» | Правила «можно ли ходить на клетку» |
+| **Движок** | `MatchBoardLayout`, draw systems, fit текстуры, `GumLayout`, опрос pointer, порядок «сцена → Gum» | Правила «можно ли ходить на клетку» |
 
-**Зависимости:** логика не ссылается на движок/Gum; представление не считает пиксели и не опрашивает `Keyboard` напрямую (только `IGameCommandSource` и события Gum).
+**Зависимости проектов:** `Desktop → Game → Engine`. Engine не знает типы Game.
 
 **Где в solution:**
 
-- Логика — `TinyTBS.Core/` (+ по мере роста — чистые правила матча вне draw-wiring)
-- Движок — `TinyTBS.Game/Gum/`, `TinyTBS.Game/Input/` (команды + pointer), `TinyTBS.Game/Ecs/Systems/`, `TinyTBS.Game/Rendering/` (в т.ч. `MatchBoardLayout`)
-- Представление — `TinyTBS.Game/Screens/` (тонкая склейка), `TinyTBS.Game/Presentation/` (Gum-деревья), `TinyTBS.Game/ViewModels/` (только UI-state)
+- Логика + представление — `TinyTBS.Game/` (`Match/`, `Screens/`, `Presentation/`, `ViewModels/`, `Input/` команд, `Assets/`)
+- Инфраструктура кадра / файлов — `TinyTBS.Engine/` (`Rendering/`, `Ecs/`, `GumLayout/`, `Input/` pointer, `IO/`)
+- Склейка матча (`MatchScene`, session factory) — в Game, вызывает Engine
 
 **Склейка кадра** — тонкий MGE `GameScreen`: `Update`/`Draw` вызывают логику и движок, не содержат формул layout и правил матча.
 
-## Структура solution (целевая)
+## Структура solution
 
 ```
 TinyTBS/
-  TinyTBS.Core/       # логика: карты, скрипты, контракты путей/ассетов, GameCommand
-  TinyTBS.Content/    # Images/, Sounds/, Strings/*.resx, C# Content Builder
-  TinyTBS.Game/       # представление (Screens) + движок (Gum layout, Input, draw systems)
-  TinyTBS.Desktop/    # Program.cs, DesktopGL
+  TinyTBS.Engine/     # pointer, layout/draw ECS, GumLayout, IUserDataPaths / файлы
+  TinyTBS.Content/    # исходники Images/, Sounds/, Strings/*.resx + Content Builder
+  TinyTBS.Game/       # правила, экраны, матч, IAssetResolver / смысл модов
+  TinyTBS.Desktop/    # Program.cs, DesktopGL; Content/ = build output (.xnb, gitignore)
   docs/
 ```
 
-Шаг 1 выполнен: solution разнесён на Core / Content / Game / Desktop; добавлены `IUserDataPaths`, `IFileContentProvider`, `IAssetResolver` (vanilla + опциональный мод).
+```mermaid
+flowchart LR
+  Desktop[TinyTBS.Desktop] --> GameProj[TinyTBS.Game]
+  GameProj --> Engine[TinyTBS.Engine]
+```
+
+**Карты / моды:** контракты путей и файлов — `Engine.IO`; смысл мода и резолв ассетов — `Game.Assets` (`IAssetResolver`). Парсинг map/level JSON → модели → матч — **Game**. Низкоуровневые ZIP/stream/texture-from-stream хелперы — целевое место в Engine (сейчас часть загрузки текстур ещё в `GameTextureLoader`).
+
+Bundled pipeline: исходники в **TinyTBS.Content** → builder пишет `.xnb` в **`TinyTBS.Desktop/Content/`** (см. [TinyTBS.Content/README.md](../TinyTBS.Content/README.md)).
 
 ## Стек
 
@@ -115,7 +124,7 @@ flowchart TB
 
 ## Пути к данным
 
-Через `IUserDataPaths` / `IFileContentProvider` — не хардкодить пути к exe в Core.
+Через `IUserDataPaths` / `IFileContentProvider` — не хардкодить пути к exe в Game.
 
 | Каталог | Desktop | Mobile (будущее) |
 |---------|---------|------------------|
@@ -137,21 +146,22 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 ## Gum + MGE
 
-Каждый экран — MGE `GameScreen` (склейка слоёв). Порядок отрисовки (**движок**): игровая сцена → Gum (UI, оверлеи). Дерево контролов и навигация — **представление**; размеры/якоря Gum — хелперы движка (`GumUiLayout`).
+Каждый экран — MGE `GameScreen` (склейка слоёв). Порядок отрисовки (**движок**): игровая сцена → Gum (UI, оверлеи). Дерево контролов и навигация — **представление** (`Game/Presentation/`); bootstrap и размеры/якоря — **`Engine/GumLayout`** (`GumBootstrap`, `GumUiLayout`).
 
 ## ECS (MGE)
 
-- `TinyTBS.Core.Match`: `GridCell`, `MatchDefaults` (без пикселей), `MatchUnit`, `MatchState` — **логика** (демо; полный GDD — впереди)
-- `TinyTBS.Game.Ecs`: компоненты визуализации сетки/юнитов; `GridDrawSystem`, `UnitDrawSystem` — **движок**
-- `MatchScene` / `GameplaySessionFactory` — ECS + загрузка текстур через `IAssetResolver`; `MatchCommandApplicator` — команды/pointer→логика
+- `TinyTBS.Game.Match`: `GridCell`, `MatchDefaults` (без пикселей), `MatchUnit`, `MatchState` — **логика** (демо; полный GDD — впереди)
+- `TinyTBS.Engine.Ecs`: компоненты визуализации; `GridDrawSystem`, `UnitDrawSystem` — **движок**
+- `MatchScene` / `GameplaySessionFactory` — в Game: ECS + текстуры через `IAssetResolver`; `MatchCommandApplicator` — команды/pointer→логика
 - `GameplayScreen` / `MainMenuScreen` — тонкая склейка lifecycle; Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
 
 ## Ввод
 
-**Движок** опрашивает устройства (`Keyboard`, `Mouse`, `GamePad`, позже `TouchPanel`) и отдаёт **логические** команды / pointer. Представление/логика читают `IGameCommandSource` и `IPointerSource`, не `Keyboard`/`Mouse` напрямую.
+**Engine** опрашивает pointer (`Mouse`, позже touch) → `IPointerSource` / `ScreenPoint`.
+**Game** опрашивает клавиатуру/геймпад → логические `GameCommand` (`GameCommandService`). Представление/логика не читают `Keyboard`/`Mouse` напрямую.
 
-- `TinyTBS.Core.Input`: `GameCommand`, `IGameCommandSource`, `IPointerSource`, `ScreenPoint`
-- `TinyTBS.Game.Input`: `GameCommandService`, `PointerInputService`, `DefaultInputBindings`
+- `TinyTBS.Game.Input`: `GameCommand`, `IGameCommandSource`, `GameCommandService`, `DefaultInputBindings`
+- `TinyTBS.Engine.Input`: `IPointerSource`, `ScreenPoint`, `PointerInputService`
 - `GameMain` обновляет commands + pointer каждый кадр до `ScreenManager.Update`
 
 ## Карты, уровни, кампании
@@ -177,7 +187,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 ## Порядок внедрения
 
-1. Core + Content + Game + Desktop; `IUserDataPaths`, `IAssetResolver` (vanilla).
+1. Engine + Content + Game + Desktop; `IUserDataPaths`, `IAssetResolver` (vanilla). **Core убран** — см. ADR 0007.
 2. Документация (этот каталог) + GDD — **выполнено** (канон в `GAME_DESIGN.md`).
 3. MGE ScreenManager + Gum на экранах — **выполнено**.
 4. Слой команд ввода — **выполнено**.
@@ -197,3 +207,4 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 - [0004 — перекраска спрайтов base + mask](adr/0004-sprite-base-mask-recoloring.md)
 - [0005 — три слоя: логика / представление / движок](adr/0005-three-layers-logic-presentation-engine.md)
 - [0006 — Map / Level / Campaign](adr/0006-map-level-campaign.md)
+- [0007 — проекты Game и Engine](adr/0007-game-and-engine-projects.md)

@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using TinyTBS.Core.Assets;
+using TinyTBS.Game.Assets;
 
 namespace TinyTBS.Game.Assets;
 

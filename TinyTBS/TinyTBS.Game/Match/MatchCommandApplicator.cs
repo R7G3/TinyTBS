@@ -1,6 +1,6 @@
-using TinyTBS.Core.Input;
-using TinyTBS.Core.Match;
-using TinyTBS.Game.Rendering;
+using TinyTBS.Engine.Input;
+using TinyTBS.Engine.Rendering;
+using TinyTBS.Game.Input;
 
 namespace TinyTBS.Game.Match;
 
@@ -40,7 +40,7 @@ public static class MatchCommandApplicator
         if (!pointer.IsPrimaryDown)
             return;
 
-        if (layout.TryScreenToCell(pointer.Position, out var cell))
-            match.HandlePointer(cell);
+        if (layout.TryScreenToCell(pointer.Position, out var x, out var y))
+            match.HandlePointer(new GridCell(x, y));
     }
 }

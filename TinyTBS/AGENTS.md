@@ -2,7 +2,7 @@
 
 ## Область работы
 
-- **Рабочий каталог / корень solution:** `D:\Sources\TinyTBS\TinyTBS\` (MonoGame: Core, Content, Game, Desktop).
+- **Рабочий каталог / корень solution:** `D:\Sources\TinyTBS\TinyTBS\` (MonoGame: Engine, Content, Game, Desktop).
 - **Не трогать:** `D:\Sources\TinyTBS\Tiny TBS Unity\` — отдельный Unity-проект в том же git-репозитории.
 
 Перед изменениями убедиться, что пути относятся к MonoGame-solution, а не к Unity.
@@ -20,12 +20,12 @@
 
 ## Архитектура (кратко)
 
-- **TinyTBS.Core** — логика, ECS, карты, скрипты, интерфейсы путей/ассетов
+- **TinyTBS.Game** — правила, модели, экраны / деревья Gum, матч, оркестрация map/mod → домен
+- **TinyTBS.Engine** — ввод (pointer), рендер/layout, draw ECS, GumLayout (bootstrap + UI layout helpers), низкий I/O
 - **TinyTBS.Content** — bundled ресурсы, resx, Content Builder
-- **TinyTBS.Game** — Game, Gum, MGE screens, редактор
-- **TinyTBS.Desktop** — точка входа
+- **TinyTBS.Desktop** — точка входа (`Desktop → Game → Engine`); `Content/` рядом с проектом — **сгенерированные .xnb** (gitignore)
 
-Подробнее: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Подробнее: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [ADR 0007](docs/adr/0007-game-and-engine-projects.md).
 
 ## Git
 

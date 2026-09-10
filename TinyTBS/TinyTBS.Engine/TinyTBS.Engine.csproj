@@ -3,14 +3,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>TinyTBS.Game</RootNamespace>
+    <RootNamespace>TinyTBS.Engine</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Gum.MonoGame" Version="2026.8.3.1" />
     <PackageReference Include="MonoGame.Extended" Version="6.1.1" />
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\TinyTBS.Engine\TinyTBS.Engine.csproj" />
   </ItemGroup>
 </Project>

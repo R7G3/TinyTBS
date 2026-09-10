@@ -3,10 +3,9 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.ECS;
 using MonoGame.Extended.Graphics;
-using TinyTBS.Core.Match;
-using TinyTBS.Game.Ecs.Components;
-using TinyTBS.Game.Ecs.Systems;
-using TinyTBS.Game.Rendering;
+using TinyTBS.Engine.Ecs.Components;
+using TinyTBS.Engine.Ecs.Systems;
+using TinyTBS.Engine.Rendering;
 
 namespace TinyTBS.Game.Match;
 
@@ -22,7 +21,7 @@ public sealed class MatchScene : IDisposable
     ];
 
     private readonly MatchState _state;
-    private readonly MatchBoardLayout _layout = new();
+    private readonly MatchBoardLayout _layout;
     private readonly Dictionary<int, int> _unitEntityById = new();
 
     public MatchScene(
@@ -32,6 +31,7 @@ public sealed class MatchScene : IDisposable
         Texture2D unitTexture)
     {
         _state = state;
+        _layout = new MatchBoardLayout(MatchDefaults.GridWidth, MatchDefaults.GridHeight);
         World = new WorldBuilder()
             .AddSystem(new GridDrawSystem(graphicsDevice, spriteBatch, _layout))
             .AddSystem(new UnitDrawSystem(spriteBatch))
@@ -69,7 +69,7 @@ public sealed class MatchScene : IDisposable
 
         entity.Attach(new GridPosition(unit.Cell.X, unit.Cell.Y));
         entity.Attach(new UnitOwner(unit.PlayerIndex));
-        entity.Attach(new Transform2(_layout.CellToWorldCenter(unit.Cell)));
+        entity.Attach(new Transform2(_layout.CellToWorldCenter(unit.Cell.X, unit.Cell.Y)));
         entity.Attach(sprite);
 
         _unitEntityById[unit.Id] = entity.Id;
@@ -86,7 +86,7 @@ public sealed class MatchScene : IDisposable
             var grid = entity.Get<GridPosition>();
             grid.X = unit.Cell.X;
             grid.Y = unit.Cell.Y;
-            entity.Get<Transform2>().Position = _layout.CellToWorldCenter(unit.Cell);
+            entity.Get<Transform2>().Position = _layout.CellToWorldCenter(unit.Cell.X, unit.Cell.Y);
         }
     }
 }

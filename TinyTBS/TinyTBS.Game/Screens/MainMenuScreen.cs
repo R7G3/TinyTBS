@@ -1,11 +1,10 @@
 using Gum;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
-using TinyTBS.Core.Assets;
-using TinyTBS.Core.Input;
+using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
+using TinyTBS.Game.Input;
 using TinyTBS.Game.Presentation;
-using TinyTBS.Game.Rendering;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Screens;

@@ -17,20 +17,21 @@
 ## Решение
 
 - Целевая схема — **три слоя**, не MVVM и не MVC как главная архитектура.
-- Четвёртый csproj не вводим: слои — **папки** в `TinyTBS.Core` (логика) и `TinyTBS.Game` (представление + движок).
+- Четвёртый «слой = csproj» изначально не вводили: слои — **логические**. Позже выделен проект `TinyTBS.Engine` ([ADR 0007](0007-game-and-engine-projects.md)); слои по-прежнему не равны одному csproj.
 - `*ViewModel` — только мешок UI-состояния; без ввода устройств и без формул пикселей.
 - MGE `GameScreen` — **тонкая склейка** кадра (`Update`/`Draw`), без правил матча и без layout-формул внутри.
-- Правила зависимостей: логика ↛ движок/Gum; представление не опрашивает `Keyboard` напрямую.
+- Правила зависимостей: чистая логика матча не тянет Gum; представление не опрашивает `Keyboard`/`Mouse` напрямую.
 
 ## Альтернативы
 
 - **Полный MVVM** с binding Gum — отвергнуто: сцена/сетка/hit-test не выигрывают; ручная синхронизация UI уже достаточна.
 - **Presenter/MVC на каждый экран** — полезно точечно при рефакторе, но не заменяет три слоя в docs.
-- **Отдельный Engine-проект** — избыточно на текущем размере solution.
+- **Отдельный Engine-проект** — в ADR 0005 считался избыточным; принят позже в [ADR 0007](0007-game-and-engine-projects.md) после уточнения границ Game vs Engine.
 
 ## Последствия
 
 - Обновить [ARCHITECTURE.md](../ARCHITECTURE.md) и roadmap (`layer-split`).
 - Screens разнесены: `Presentation/` (Gum), `Rendering/` (fit/highlight/layout), `MatchCommandApplicator`.
-- Матч разделён: `MatchState` (Core, логика) + `MatchScene` (Game, ECS/draw); pointer — `IPointerSource` / `PointerInputService`.
-- Пиксельный размер тайла — в `MatchBoardLayout` (движок), не в Core `MatchDefaults`.
+- Матч разделён: `MatchState` (логика) + `MatchScene` (склейка ECS/draw); pointer — `IPointerSource` / `PointerInputService`.
+- Пиксельный размер тайла — в `MatchBoardLayout` (движок), не в `MatchDefaults`.
+- Размещение по проектам после ADR 0007: логика/UI в `TinyTBS.Game`, layout/draw/IO в `TinyTBS.Engine`.

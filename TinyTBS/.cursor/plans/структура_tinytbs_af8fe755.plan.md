@@ -1,12 +1,12 @@
 ---
 name: Структура TinyTBS
-overview: "net10.0: Core/Game/Desktop/Content; три слоя; GDD; Map/Level/Campaign; content-моды; сеть позже; Gum/MGE/ECS."
+overview: "net10.0: Engine/Game/Desktop/Content (ADR 0007); три логических слоя; GDD; Map/Level/Campaign; content-моды; сеть позже; Gum/MGE/ECS."
 todos:
   - id: split-solution
-    content: Разнести на TinyTBS.Core, TinyTBS.Game, TinyTBS.Desktop, TinyTBS.Content (net10.0)
+    content: "Engine + Content + Game + Desktop (бывший Core влит; ADR 0007)"
     status: completed
   - id: content-project
-    content: "TinyTBS.Content: исходники, C# Content Builder wildcard; bundled defaults"
+    content: "TinyTBS.Content: исходники, C# Content Builder wildcard; .xnb → Desktop/Content"
     status: completed
   - id: asset-resolver
     content: "IAssetResolver: Mods/ подпапки → fallback на Content; выбор мода в меню"
@@ -25,6 +25,9 @@ todos:
     status: completed
   - id: layer-split
     content: "Разнести Screens по слоям: логика / представление / движок (образец — Gameplay)"
+    status: completed
+  - id: game-engine-split
+    content: "ADR 0007: Game vs Engine; GumLayout в Engine; docs sync"
     status: completed
   - id: gdd-docs
     content: "Канон GDD в docs/GAME_DESIGN.md + design/* + UNIT/LEVEL formats"
@@ -71,7 +74,7 @@ isProject: false
 - **User data** на диске: карты, уровни, кампании, сохранения, загрузки — через абстракцию путей.
 - **Свой формат Map / Level**, встроенный редактор, скрипты в **ограниченной песочнице**.
 - **Tiled / DotTiled — не используются.**
-- **Три слоя кода** (папки, не отдельный csproj): **логика**, **представление**, **движок**. См. ADR 0005.
+- **Три логических слоя** (логика / представление / движок) — ADR 0005; проекты — **Game + Engine** (ADR 0007), не «один слой = один csproj».
 - **GDD** — [docs/GAME_DESIGN.md](../../docs/GAME_DESIGN.md); Map/Level/Campaign — ADR 0006; юниты data-driven — UNIT_FORMAT.
 - **Сеть** — позже; типы игроков Remote закладывать в API заранее.
 
@@ -105,15 +108,15 @@ flowchart TB
 
 | Проект              | Назначение                                                                                                                  |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **TinyTBS.Core**    | **Логика:** карты, кампании (модели), скрипты, сохранения, `IFileContentProvider`, `IUserDataPaths`, `IAssetResolver`, `GameCommand`. |
-| **TinyTBS.Content** | Исходники + C# Content Builder → **стандартные** ресурсы сборки.                                                            |
-| **TinyTBS.Game**    | **Представление** (MGE screens, Gum UI) + **движок** (layout, input poll, draw systems); редактор.                        |
-| **TinyTBS.Desktop** | Точка входа.                                                                                                                |
+| **TinyTBS.Game**    | Правила, модели map/level, экраны / деревья Gum, `GameCommand`, матч; смысл модов (`IAssetResolver`). |
+| **TinyTBS.Engine**  | Pointer, layout/draw ECS, **GumLayout**, `IUserDataPaths` / файлы. |
+| **TinyTBS.Content** | Исходники + Content Builder → `.xnb` в `TinyTBS.Desktop/Content/` (gitignore). |
+| **TinyTBS.Desktop** | Точка входа (`Desktop → Game → Engine`). |
 
 
 ## Пути к данным (кросс-платформенно)
 
-Вся работа с путями — через `**IUserDataPaths**` / `**IFileContentProvider**`, не через `Path.Combine` к exe в Core.
+Вся работа с путями — через **`IUserDataPaths`** / **`IFileContentProvider`** (`Engine.IO`), не через `Path.Combine` к exe в игровом коде.
 
 
 | Каталог             | Desktop (типично)              | Mobile (будущее)                                      |
@@ -189,7 +192,7 @@ Custom `Effect` (HLSL → MGFX): в pixel shader, если цвет пиксел
 ### Color picker и настройки
 
 - В настройках матча/игрока: **Gum** UI (ползунки RGB / HSV или готовый виджет).
-- В Core/Game: `PlayerPalette` — массив `Color` (slot 0…9 + `NeutralColor` для незахваченных строений).
+- В Game: `PlayerPalette` — массив `Color` (slot 0…9 + `NeutralColor` для незахваченных строений).
 - Сохранять в настройках профиля / save match setup (JSON).
 
 ### Итог для плана
@@ -333,7 +336,7 @@ ScriptOptions.Default
 
 Согласовано с `docs/ARCHITECTURE.md`:
 
-1. Core + Content + Game + Desktop; **IUserDataPaths**, **IAssetResolver** — **выполнено**.
+1. Engine + Content + Game + Desktop; **IUserDataPaths**, **IAssetResolver** — **выполнено** (Core убран, ADR 0007).
 2. docs/ + GDD (`GAME_DESIGN.md`, design/*, UNIT/LEVEL formats, ADR 0006) — **выполнено**.
 3. Gum + MGE screens — **выполнено**.
 4. Слой команд ввода + pointer — **выполнено**.
@@ -350,8 +353,8 @@ ScriptOptions.Default
 - `docs/ARCHITECTURE.md`, `docs/GAME_DESIGN.md`, `docs/design/*`
 - `docs/MAP_FORMAT.md`, `docs/LEVEL_FORMAT.md`, `docs/UNIT_FORMAT.md`, `docs/CAMPAIGN_FORMAT.md`
 - `docs/SCRIPTING.md`, `docs/SAVE_FORMAT.md`
-- `docs/adr/` — в т.ч. 0005 (слои), **0006 (Map/Level/Campaign)**
-- `AGENTS.md` — git-workflow без auto-commit/push; ссылка на GDD
+- `docs/adr/` — в т.ч. 0005 (слои), **0006 (Map/Level/Campaign)**, **0007 (Game / Engine)**
+- `AGENTS.md` — git-workflow без auto-commit/push; ссылка на GDD; актуальные проекты Engine/Game/…
 
 ## Риски
 

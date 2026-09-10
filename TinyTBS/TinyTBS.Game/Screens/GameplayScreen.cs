@@ -1,7 +1,7 @@
 using Gum;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
-using TinyTBS.Core.Assets;
+using TinyTBS.Game.Assets;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Presentation;
 using TinyTBS.Game.ViewModels;
@@ -94,7 +94,8 @@ public sealed class GameplayScreen : GameScreen
             _session.CursorHighlight.Draw(
                 TinyGame.SharedSpriteBatch,
                 scene.Layout,
-                match.Cursor,
+                match.Cursor.X,
+                match.Cursor.Y,
                 hasSelection: match.SelectedUnitId is not null);
         }
 

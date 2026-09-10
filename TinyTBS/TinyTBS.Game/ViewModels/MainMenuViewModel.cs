@@ -1,4 +1,4 @@
-using TinyTBS.Core.Assets;
+using TinyTBS.Game.Assets;
 
 namespace TinyTBS.Game.ViewModels;
 

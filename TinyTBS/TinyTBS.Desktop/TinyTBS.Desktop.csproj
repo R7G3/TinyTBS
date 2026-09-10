@@ -34,7 +34,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TinyTBS.Game\TinyTBS.Game.csproj" />
-    <ProjectReference Include="..\TinyTBS.Core\TinyTBS.Core.csproj" />
   </ItemGroup>
 
   <!-- Do not track generated .xnb in the static item list; they are produced mid-build. -->

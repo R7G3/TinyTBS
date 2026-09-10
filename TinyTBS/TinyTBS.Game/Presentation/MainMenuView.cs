@@ -1,7 +1,7 @@
 using Gum;
 using Gum.Forms.Controls;
 using Gum.Wireframe;
-using TinyTBS.Game.Gum;
+using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation;
