@@ -151,8 +151,8 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 ## ECS (MGE)
 
 - `TinyTBS.Game.Match`: `GridCell`, `MatchDefaults` (без пикселей), `MatchUnit`, `MatchState` — **логика** (демо; полный GDD — впереди)
-- `TinyTBS.Engine.Ecs`: компоненты визуализации; `GridDrawSystem`, `UnitDrawSystem` — **движок**
-- `MatchScene` / `GameplaySessionFactory` — в Game: ECS + текстуры через `IAssetResolver`; `MatchCommandApplicator` — команды/pointer→логика
+- `TinyTBS.Engine.Ecs`: `TilemapDrawSystem`, `TeamMaskedSpriteDrawSystem` (base + tint mask)
+- `MatchScene` / `GameplaySessionFactory` — в Game: атлас текстур + демо-карта; `MatchCommandApplicator` — команды/pointer→логика
 - `GameplayScreen` / `MainMenuScreen` — тонкая склейка lifecycle; Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
 
 ## Ввод

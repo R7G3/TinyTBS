@@ -2,7 +2,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.ECS;
-using MonoGame.Extended.Graphics;
 using TinyTBS.Engine.Ecs.Components;
 using TinyTBS.Engine.Ecs.Systems;
 using TinyTBS.Engine.Rendering;
@@ -10,35 +9,48 @@ using TinyTBS.Engine.Rendering;
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Engine view of a match: ECS world, draw systems, layout sync from <see cref="MatchState"/>.
+/// Visual side of a match: tilemap, buildings, units synced from <see cref="MatchState"/>.
 /// </summary>
 public sealed class MatchScene : IDisposable
 {
-    private static readonly Color[] PlayerColors =
-    [
-        new(90, 160, 255),
-        new(255, 120, 90),
-    ];
-
     private readonly MatchState _state;
     private readonly MatchBoardLayout _layout;
+    private readonly List<int> _buildingEntityIds = [];
     private readonly Dictionary<int, int> _unitEntityById = new();
 
     public MatchScene(
         MatchState state,
         GraphicsDevice graphicsDevice,
         SpriteBatch spriteBatch,
-        Texture2D unitTexture)
+        MatchTextureAtlas textures)
     {
         _state = state;
-        _layout = new MatchBoardLayout(MatchDefaults.GridWidth, MatchDefaults.GridHeight);
+        _layout = new MatchBoardLayout(state.Width, state.Height);
+
+        var tiles = new Texture2D[state.Width * state.Height];
+        for (var y = 0; y < state.Height; y++)
+        {
+            for (var x = 0; x < state.Width; x++)
+                tiles[y * state.Width + x] = textures.Terrain(state.GetTerrain(x, y));
+        }
+
         World = new WorldBuilder()
-            .AddSystem(new GridDrawSystem(graphicsDevice, spriteBatch, _layout))
-            .AddSystem(new UnitDrawSystem(spriteBatch))
+            .AddSystem(new TilemapDrawSystem(graphicsDevice, spriteBatch, _layout, tiles))
+            .AddSystem(new TeamMaskedSpriteDrawSystem(spriteBatch))
             .Build();
 
+        foreach (var building in state.Buildings)
+        {
+            var entityId = CreateMaskedVisual(
+                building.Cell,
+                textures.Building(building.Kind),
+                PlayerPalette.ForOwner(building.OwnerPlayerIndex));
+            World.GetEntity(entityId).Attach(new GridPosition(building.Cell.X, building.Cell.Y));
+            _buildingEntityIds.Add(entityId);
+        }
+
         foreach (var unit in state.Units)
-            CreateVisual(unit, unitTexture);
+            CreateUnitVisual(unit, textures);
     }
 
     public World World { get; }
@@ -48,6 +60,7 @@ public sealed class MatchScene : IDisposable
     public void PrepareFrame(int viewportWidth, int viewportHeight)
     {
         _layout.UpdateForViewport(viewportWidth, viewportHeight);
+        SyncBuildingTransforms();
         SyncUnitTransformsFromState();
     }
 
@@ -57,22 +70,43 @@ public sealed class MatchScene : IDisposable
 
     public void Dispose() => World.Dispose();
 
-    private void CreateVisual(MatchUnit unit, Texture2D unitTexture)
+    private void CreateUnitVisual(MatchUnit unit, MatchTextureAtlas textures)
+    {
+        var entityId = CreateMaskedVisual(
+            unit.Cell,
+            textures.Unit(unit.Kind),
+            PlayerPalette.ForPlayer(unit.PlayerIndex));
+
+        World.GetEntity(entityId).Attach(new UnitOwner(unit.PlayerIndex));
+        World.GetEntity(entityId).Attach(new GridPosition(unit.Cell.X, unit.Cell.Y));
+        _unitEntityById[unit.Id] = entityId;
+    }
+
+    private int CreateMaskedVisual(GridCell cell, MatchTextureAtlas.TeamSprite sprite, Color teamColor)
     {
         var entity = World.CreateEntity();
-        var region = new Texture2DRegion(unitTexture);
-        var sprite = new Sprite(region)
+        // Same footprint as terrain tiles: sprite origin = top-left of the cell.
+        var origin = Vector2.Zero;
+
+        entity.Attach(new Transform2(CellTopLeft(cell.X, cell.Y)));
+        entity.Attach(new TeamMaskedSprite(sprite.Base, sprite.Mask, teamColor, origin));
+        return entity.Id;
+    }
+
+    private Vector2 CellTopLeft(int cellX, int cellY) =>
+        _layout.Origin + new Vector2(cellX * _layout.TileSize, cellY * _layout.TileSize);
+
+    private void SyncBuildingTransforms()
+    {
+        for (var i = 0; i < _buildingEntityIds.Count; i++)
         {
-            Color = PlayerColors[unit.PlayerIndex % PlayerColors.Length],
-            Origin = new Vector2(region.Width * 0.5f, region.Height * 0.5f),
-        };
-
-        entity.Attach(new GridPosition(unit.Cell.X, unit.Cell.Y));
-        entity.Attach(new UnitOwner(unit.PlayerIndex));
-        entity.Attach(new Transform2(_layout.CellToWorldCenter(unit.Cell.X, unit.Cell.Y)));
-        entity.Attach(sprite);
-
-        _unitEntityById[unit.Id] = entity.Id;
+            var building = _state.Buildings[i];
+            var entity = World.GetEntity(_buildingEntityIds[i]);
+            var grid = entity.Get<GridPosition>();
+            grid.X = building.Cell.X;
+            grid.Y = building.Cell.Y;
+            entity.Get<Transform2>().Position = CellTopLeft(building.Cell.X, building.Cell.Y);
+        }
     }
 
     private void SyncUnitTransformsFromState()
@@ -86,7 +120,7 @@ public sealed class MatchScene : IDisposable
             var grid = entity.Get<GridPosition>();
             grid.X = unit.Cell.X;
             grid.Y = unit.Cell.Y;
-            entity.Get<Transform2>().Position = _layout.CellToWorldCenter(unit.Cell.X, unit.Cell.Y);
+            entity.Get<Transform2>().Position = CellTopLeft(unit.Cell.X, unit.Cell.Y);
         }
     }
 }

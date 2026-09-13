@@ -6,30 +6,21 @@ using TinyTBS.Game.Assets;
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Engine: loads match textures via <see cref="IAssetResolver"/> and builds a demo session.
+/// Loads match textures via <see cref="IAssetResolver"/> and builds a demo session.
 /// </summary>
 public static class GameplaySessionFactory
 {
-    private const string UnitLogicalPath = "Images/placeholder.png";
-    private const string UnitContentName = "Images/placeholder";
-
     public static GameplaySession CreateDemo(
         GraphicsDevice graphicsDevice,
         ContentManager content,
         SpriteBatch spriteBatch,
         IAssetResolver assets)
     {
-        var unitTexture = GameTextureLoader.LoadOrFallback(
-            graphicsDevice,
-            content,
-            assets,
-            logicalRelativePath: UnitLogicalPath,
-            contentAssetName: UnitContentName);
-
+        var textures = MatchTextureAtlas.Load(graphicsDevice, content, assets);
         var state = MatchState.CreateDemo();
-        var scene = new MatchScene(state, graphicsDevice, spriteBatch, unitTexture.Texture);
+        var scene = new MatchScene(state, graphicsDevice, spriteBatch, textures);
         var cursorHighlight = new CursorHighlightRenderer(graphicsDevice);
 
-        return new GameplaySession(state, scene, cursorHighlight, unitTexture);
+        return new GameplaySession(state, scene, cursorHighlight, textures);
     }
 }
