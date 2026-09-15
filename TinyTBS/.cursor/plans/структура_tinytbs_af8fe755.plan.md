@@ -351,6 +351,7 @@ ScriptOptions.Default
 ## Документация в репозитории
 
 - `docs/ARCHITECTURE.md`, `docs/GAME_DESIGN.md`, `docs/design/*`
+- `docs/ideas/` — отложенные идеи (**не** канон; см. README там)
 - `docs/MAP_FORMAT.md`, `docs/LEVEL_FORMAT.md`, `docs/UNIT_FORMAT.md`, `docs/CAMPAIGN_FORMAT.md`
 - `docs/SCRIPTING.md`, `docs/SAVE_FORMAT.md`
 - `docs/adr/` — в т.ч. 0005 (слои), **0006 (Map/Level/Campaign)**, **0007 (Game / Engine)**
