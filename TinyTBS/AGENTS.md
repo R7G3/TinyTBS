@@ -37,7 +37,7 @@
 
 При архитектурных решениях — обновлять `docs/` и при необходимости добавлять ADR в `docs/adr/`.
 
-**Геймдизайн (канон):** [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) и `docs/design/`.
+**Геймдизайн (канон):** [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) и `docs/design/` (в т.ч. [UI_AND_FLOW.md](docs/design/UI_AND_FLOW.md)).
 
 Карты / уровни / юниты: [MAP_FORMAT.md](docs/MAP_FORMAT.md), [LEVEL_FORMAT.md](docs/LEVEL_FORMAT.md), [UNIT_FORMAT.md](docs/UNIT_FORMAT.md). Архитектура и roadmap: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

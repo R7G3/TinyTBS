@@ -32,6 +32,7 @@
 | [design/UNITS.md](design/UNITS.md) | Vanilla-юниты и data-driven моды |
 | [design/COMBAT.md](design/COMBAT.md) | Формула урона, контратака, XP, памятный камень |
 | [design/TURN_AND_UI.md](design/TURN_AND_UI.md) | Ход, активность юнита, контекстное меню |
+| [design/UI_AND_FLOW.md](design/UI_AND_FLOW.md) | Экраны, ввод, HUD матча, пауза, магазин |
 | [UNIT_FORMAT.md](UNIT_FORMAT.md) | Схема конфига юнита (vanilla = тот же формат, что мод) |
 
 ## Map → Level → Campaign
@@ -64,7 +65,7 @@ Vanilla TinyTBS — тоже content pack в **том же** формате да
 
 Нестандартный юнит описывается **конфигом** (статы + способности-verbs + правила `special` к фиксированной формуле), а не отдельным движком. См. [UNITS.md](design/UNITS.md) и [UNIT_FORMAT.md](UNIT_FORMAT.md).
 
-Сейчас в коде в основном override графики/звука; полные content-моды — целевая архитектура.
+Сейчас в коде в основном override графики/звука; полные content-моды — целевая архитектура. Экран «Контент-паки» в меню — см. [UI_AND_FLOW.md](design/UI_AND_FLOW.md).
 
 ## Победа и поражение (стандарт)
 

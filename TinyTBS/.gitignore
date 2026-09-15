@@ -7,3 +7,6 @@ TinyTBS.Content/obj/
 *.user
 *.suo
 .vs/
+
+# Local scratch for AI / author notes (not canon, not committed)
+Drafts/

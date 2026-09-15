@@ -1,6 +1,6 @@
 ---
 name: Структура TinyTBS
-overview: "net10.0: Engine/Game/Desktop/Content (ADR 0007); три логических слоя; GDD; Map/Level/Campaign; content-моды; сеть позже; Gum/MGE/ECS."
+overview: "net10.0: Engine/Game/Desktop/Content (ADR 0007); GDD + UI_AND_FLOW; Map/Level/Campaign; content-моды; сеть позже (UI greyed); Gum/MGE/ECS; демо-арты base+mask."
 todos:
   - id: split-solution
     content: "Engine + Content + Game + Desktop (бывший Core влит; ADR 0007)"
@@ -18,7 +18,7 @@ todos:
     content: Gum на всех MGE-экранах; тонкий UI-state (не MVVM-архитектура)
     status: completed
   - id: input-commands
-    content: Слой команд игры
+    content: "Слой команд; positional геймпад; 3 столбца биндов (клава/пад/тач) — канон UI_AND_FLOW"
     status: completed
   - id: ecs-mge
     content: ECS MGE + GameplayScreen
@@ -32,6 +32,12 @@ todos:
   - id: gdd-docs
     content: "Канон GDD в docs/GAME_DESIGN.md + design/* + UNIT/LEVEL formats"
     status: completed
+  - id: ui-flow-docs
+    content: "docs/design/UI_AND_FLOW.md — экраны, HUD, пауза, магазин, ввод; ideas/ui-frosted-glass"
+    status: completed
+  - id: demo-art-render
+    content: "Демо: terrain + base/mask + PlayerPalette (Content/Images); nearest zoom в каноне"
+    status: completed
   - id: map-format
     content: .map.zip + map.json; загрузчик
     status: pending
@@ -41,8 +47,11 @@ todos:
   - id: map-scripting
     content: IScriptEngine + Roslyn sandbox; хуки с MapScriptContext
     status: pending
+  - id: match-ui-gdd
+    content: "Матч UI по UI_AND_FLOW: статус-бар, пауза/миникарта, магазин, инфо-панель, хотсит"
+    status: pending
   - id: content-mods
-    content: Content packs — юниты/баланс/кампании (data-driven UNIT_FORMAT)
+    content: Content packs — юниты/баланс/кампании (data-driven UNIT_FORMAT); экран паков
     status: pending
   - id: campaigns
     content: campaign.json — список levels; метаданные сюжета
@@ -51,13 +60,13 @@ todos:
     content: Версионируемые сохранения (match + campaign progress); docs/SAVE_FORMAT.md
     status: pending
   - id: map-editor
-    content: Редактор карт/уровней → user Maps/
+    content: Редактор карт/уровней → user Maps/ (детали v1 — открытые вопросы)
     status: pending
   - id: player-colors
-    content: PlayerPalette + base/mask PNG; отрисовка с tint; dimFactor; color picker в Gum
+    content: "Color picker в Gum + dimFactor «походил»; база tint в демо уже есть"
     status: pending
   - id: network-later
-    content: "Сеть (позже): Remote players; не ломать API матча"
+    content: "Сеть позже: Remote в API; UI мультиплеера/приглашения — greyed"
     status: pending
   - id: repo-docs
     content: docs/ ARCHITECTURE, ADR, AGENTS (в т.ч. git-workflow без auto-commit), MAP/SCRIPT/SAVE formats
@@ -75,8 +84,9 @@ isProject: false
 - **Свой формат Map / Level**, встроенный редактор, скрипты в **ограниченной песочнице**.
 - **Tiled / DotTiled — не используются.**
 - **Три логических слоя** (логика / представление / движок) — ADR 0005; проекты — **Game + Engine** (ADR 0007), не «один слой = один csproj».
-- **GDD** — [docs/GAME_DESIGN.md](../../docs/GAME_DESIGN.md); Map/Level/Campaign — ADR 0006; юниты data-driven — UNIT_FORMAT.
-- **Сеть** — позже; типы игроков Remote закладывать в API заранее.
+- **GDD** — [docs/GAME_DESIGN.md](../../docs/GAME_DESIGN.md); UI/экраны — [docs/design/UI_AND_FLOW.md](../../docs/design/UI_AND_FLOW.md); Map/Level/Campaign — ADR 0006; юниты data-driven — UNIT_FORMAT.
+- **Сеть** — позже; тип Remote в API; в UI пункты мультиплеера / «пригласить по сети» — **greyed**. Хотсит (локальные игроки) — рабочий сценарий без ИИ.
+- **Идеи (не канон)** — [docs/ideas/](../../docs/ideas/) (напр. frosted glass UI).
 
 ```mermaid
 flowchart TB
@@ -129,6 +139,38 @@ flowchart TB
 
 
 **Моды рядом с установкой** — естественно на **Windows/Linux desktop**. На **Android** папка установки часто **read-only**; моды кладут в **app-specific external storage** или импорт через «выбрать папку». Архитектура та же (`IAssetResolver`), реализация путей другая — **переделывать Game не нужно**.
+
+## UI и экраны (канон)
+
+Полный текст: [docs/design/UI_AND_FLOW.md](../../docs/design/UI_AND_FLOW.md). Кратко для плана:
+
+### Ввод
+
+- Одно логическое действие → одна привязка **на устройство**; в настройках **три столбца**: клавиатура / геймпад / тач (можно переключать устройство mid-game).
+- Геймпад: **positional** (south/east/north…); в UI — иконки под Xbox/PS/Nintendo.
+- В матче: **низ** = основное, **право** = доп. (инфо), **верх** = завершить ход юнита без атаки (post-move).
+
+### Главное меню
+
+Продолжить · Новая игра · Загрузка · Контент-паки · Редактор · Настройки · Об игре · Выход.  
+Схватка: добавить локального/бота; сеть — greyed. Кампания/схватка: хотсит «добавить игрока». Мультиплеер — пункт greyed.
+
+### Экран матча
+
+| Зона | Содержимое |
+|------|------------|
+| Сверху | Статус-бар (цвет игрока, золото, номер хода) |
+| Центр | Поле; контекстные метки **в уголках клеток** |
+| Снизу | Общие подсказки (меню/пауза, конец хода игрока, …) |
+
+- Камера: central dead-zone ½ экрана; зум **nearest-neighbor** (bicubic — опция настроек позже).
+- Инфо (доп.): юнит + террейн (+ здание с tint владельца, если есть). Осн. по своему неактивному — ничего.
+- Магазин замка: окно размера central zone; fallback — полная ширина между статус-баром и нижней панелью. Спавн на замке, сразу выбран; при занятости клетки — обязан сходить.
+- Пауза: Конец хода · **Карта** (миникарта: квадрат постройки / круг юнита / камень под кругом) · Цели · Сохранить/Загрузить (solo; сеть — нет; хотсит — открытый вопрос) · Меню (в главное).
+
+### Редактор / паки / сеть
+
+В меню — экраны и заглушки. Детали формата пака, пайплайна редактора v1 и протокола сети — **открытые вопросы** (не канон, уточнять перед реализацией этих шагов).
 
 ## Моды (сейчас → цель)
 
@@ -197,7 +239,6 @@ Custom `Effect` (HLSL → MGFX): в pixel shader, если цвет пиксел
 
 ### Итог для плана
 
-
 | Решение              | Выбор                                            |
 | -------------------- | ------------------------------------------------ |
 | Формат ассетов       | **base + mask** PNG на перекрашиваемые зоны      |
@@ -205,6 +246,8 @@ Custom `Effect` (HLSL → MGFX): в pixel shader, если цвет пиксел
 | Затемнение «походил» | `Color * dimFactor`, один draw path              |
 | Шейдер               | опционально позже (ADR), если захотите один слой |
 | Bake текстур         | только кэш по желанию, не по умолчанию           |
+
+**Статус кода:** в демо уже `PlayerPalette` + `TeamMaskedSprite` + terrain в `Content/Images/`. Осталось: dimFactor «походил», color picker в Gum, выбор цвета в лобби схватки.
 
 
 ## Карты, уровни и кампании
@@ -339,23 +382,25 @@ ScriptOptions.Default
 1. Engine + Content + Game + Desktop; **IUserDataPaths**, **IAssetResolver** — **выполнено** (Core убран, ADR 0007).
 2. docs/ + GDD (`GAME_DESIGN.md`, design/*, UNIT/LEVEL formats, ADR 0006) — **выполнено**.
 3. Gum + MGE screens — **выполнено**.
-4. Слой команд ввода + pointer — **выполнено**.
-5. ECS + минимальный match (демо ≠ полный GDD) — **выполнено**.
-6. layer-split Screens + MatchState/MatchScene — **выполнено**.
-7. `.map.zip` / **Level** загрузчики + сближение матча с GDD.
-8. **MapScriptContext** + Roslyn sandbox + хуки.
-9. **Content-моды** (UNIT_FORMAT + ассеты); редактор карт/уровней.
-10. Кампании и сохранения — после playable loop.
-11. **Сеть** — позже (Remote в API игроков заранее).
+4. Слой команд ввода + pointer; канон positional / 3 столбца биндов (`UI_AND_FLOW`) — **выполнено** (полный UI биндов — впереди).
+5. ECS + минимальный match + демо-арты terrain/base+mask — **выполнено** (демо ≠ полный GDD).
+6. layer-split Screens + MatchState/MatchScene; ADR 0007 Game/Engine — **выполнено**.
+7. `UI_AND_FLOW.md` (экраны, HUD, пауза, магазин) — **выполнено** (канон); реализация матч-UI — pending.
+8. `.map.zip` / **Level** загрузчики + сближение матча с GDD.
+9. **MapScriptContext** + Roslyn sandbox + хуки.
+10. Матч UI по канону (статус-бар, пауза/миникарта, магазин, хотсит) + playable loop.
+11. **Content-моды** + экран паков; редактор (после уточнения открытых вопросов).
+12. Кампании и сохранения — после playable loop.
+13. **Сеть** — позже (Remote в API; UI пока greyed).
 
 ## Документация в репозитории
 
-- `docs/ARCHITECTURE.md`, `docs/GAME_DESIGN.md`, `docs/design/*`
-- `docs/ideas/` — отложенные идеи (**не** канон; см. README там)
+- `docs/ARCHITECTURE.md`, `docs/GAME_DESIGN.md`, `docs/design/*` (**в т.ч. `UI_AND_FLOW.md`**, `TURN_AND_UI.md`)
+- `docs/ideas/` — отложенные идеи (**не** канон; напр. frosted glass)
 - `docs/MAP_FORMAT.md`, `docs/LEVEL_FORMAT.md`, `docs/UNIT_FORMAT.md`, `docs/CAMPAIGN_FORMAT.md`
-- `docs/SCRIPTING.md`, `docs/SAVE_FORMAT.md`
+- `docs/SCRIPTING.md`, `docs/SAVE_FORMAT.md`, `docs/ARTIST_GUIDE.md`
 - `docs/adr/` — в т.ч. 0005 (слои), **0006 (Map/Level/Campaign)**, **0007 (Game / Engine)**
-- `AGENTS.md` — git-workflow без auto-commit/push; ссылка на GDD; актуальные проекты Engine/Game/…
+- `AGENTS.md` — git-workflow без auto-commit/push; проекты Engine/Game/…
 
 ## Риски
 

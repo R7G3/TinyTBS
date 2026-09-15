@@ -1,6 +1,6 @@
 # Ход и управление юнитами
 
-Канон: [GAME_DESIGN.md](../GAME_DESIGN.md). Пиксельная вёрстка UI — не здесь (слой представления).
+Канон: [GAME_DESIGN.md](../GAME_DESIGN.md). Экраны / HUD / пауза: [UI_AND_FLOW.md](UI_AND_FLOW.md). Пиксельная вёрстка Gum — не здесь.
 
 ## Активность
 
