@@ -136,9 +136,9 @@ flowchart TB
 
 ## Моды
 
-**Сейчас:** `IAssetResolver` — активный мод → fallback на bundled Content (`Images/`, `Sounds/`, опц. `mod.json`).
+**Сейчас:** `IAssetResolver` — активный мод → fallback на bundled Content (`Images/`, `Sounds/`, опц. манифест).
 
-**Цель (GDD):** мод = **content pack** — юниты ([UNIT_FORMAT.md](UNIT_FORMAT.md)), строения/баланс, maps/levels/campaigns, скрипты, ассеты. Vanilla — тот же формат данных. Нестандартные юниты — конфиг + declarative `special` / abilities, не отдельный бой-движок.
+**Цель (GDD):** мод = **content pack** [CONTENT_PACK_FORMAT.md](CONTENT_PACK_FORMAT.md) (`.tinypack.zip` / то же дерево папкой) — юниты, строения, maps/levels/campaign, скрипты, ассеты. Vanilla — тот же формат. Нестандартные юниты — конфиг + declarative `special` / abilities, не отдельный бой-движок.
 
 ## Цвета игроков на спрайтах
 
@@ -193,11 +193,11 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 4. Слой команд ввода — **выполнено**.
 5. ECS + минимальный match — **выполнено** (демо ≠ полный GDD).
 6. Слои Screens + split `MatchState`/`MatchScene` + pointer — **выполнено**.
-7. `.map.zip` / Level загрузчики + сближение матча с GDD.
+7. Загрузчики map/level + `.tinypack.zip` + сближение матча с GDD.
 8. MapScriptContext + Roslyn sandbox.
-9. Content-моды (данные юнитов + ассеты); редактор карт/уровней.
+9. Content-моды (данные юнитов + ассеты); редактор пака (Undo, полный UI unit/building, скрипт текст+шаблон, Save локально; Publish greyed).
 10. Кампании и сохранения — после playable loop.
-11. **Сеть** — позже (типы игроков Remote закладывать заранее).
+11. **Сеть** — позже (Remote в API заранее; UI greyed только; протокол не проектируем до этапа).
 
 ## Связанные ADR
 

@@ -60,13 +60,13 @@ todos:
     content: Версионируемые сохранения (match + campaign progress); docs/SAVE_FORMAT.md
     status: pending
   - id: map-editor
-    content: Редактор карт/уровней → user Maps/ (детали v1 — открытые вопросы)
+    content: "Редактор пака: Undo, полный UI unit/building, скрипт текст+шаблон, Save локально; Publish greyed"
     status: pending
   - id: player-colors
     content: "Color picker в Gum + dimFactor «походил»; база tint в демо уже есть"
     status: pending
   - id: network-later
-    content: "Сеть позже: Remote в API; UI мультиплеера/приглашения — greyed"
+    content: "Сеть позже: Remote в API; UI greyed only (без проектирования протокола сейчас)"
     status: pending
   - id: repo-docs
     content: docs/ ARCHITECTURE, ADR, AGENTS (в т.ч. git-workflow без auto-commit), MAP/SCRIPT/SAVE formats
@@ -170,7 +170,15 @@ flowchart TB
 
 ### Редактор / паки / сеть
 
-В меню — экраны и заглушки. Детали формата пака, пайплайна редактора v1 и протокола сети — **открытые вопросы** (не канон, уточнять перед реализацией этих шагов).
+- **Пак** — опциональные части; редактор = плоские вкладки одного пака; **≤1 кампания на пак**.
+- Редактор v1: Undo; без playtest и без копирования областей; импорт ассетов **в пак** + проверка base+mask; полный UI UNIT/BUILDING; скрипт текст+шаблон; Save на диск; **Опубликовать greyed**.
+- Новая карта: мастер только **размер**; команды/игроки = метки владельцев; удаление метки → нейтрал; нейтрал = default / метка / «Удалить».
+- Сеть: только greyed-кнопки в UI (в т.ч. Скачать/Обновить паков); протокол не проектируем сейчас.
+- Хотсит: Save/Load разрешены.
+- Скрипты паков: Уровень 1 + валидация по Уровню 2.
+- Карты — в паке у уровней. User `Maps/` — отдельно.
+- Пак: `.tinypack.zip` / [CONTENT_PACK_FORMAT.md](docs/CONTENT_PACK_FORMAT.md) — `pack.json`, дерево; level → map только ref; один json на unit/building.
+- Ещё открыто (позже): валидация Save; рантайм паков (активный vs стек, конфликты id между паками).
 
 ## Моды (сейчас → цель)
 

@@ -2,7 +2,7 @@
 
 Vanilla и моды используют **один** формат. См. [design/UNITS.md](design/UNITS.md), [design/COMBAT.md](design/COMBAT.md).
 
-Сериализация: JSON (или эквивалент в пакете мода). Имена полей ниже — черновик.
+Сериализация: **один JSON-файл на тип** в контент-паке: `Units/{id}.json` ([CONTENT_PACK_FORMAT.md](CONTENT_PACK_FORMAT.md)). Пути к ассетам — от корня пака. Имена полей ниже — черновик.
 
 ## Пример (лучник)
 
@@ -47,8 +47,8 @@ Vanilla и моды используют **один** формат. См. [desig
 
 | type | Назначение |
 |------|------------|
-| `captureCastle` / `captureVillage` | захват |
-| `repairVillage` | ремонт |
+| `captureBuilding` | `{ "tags": ["castle", "village"] }` — захват строений с пересечением тегов (король); мечник: `{ "tags": ["village"] }` |
+| `repairBuilding` | `{ "tags": ["village"] }` — ремонт разрушенных с такими тегами |
 | `raiseSkeleton` | подъём с памятного камня |
 | `attackAura` | `{ value: 5, radius: 2 }` — Дух |
 | `noCounterattack` | катапульта |
@@ -56,7 +56,13 @@ Vanilla и моды используют **один** формат. См. [desig
 | `uniquePerPlayer` | король |
 | `rehireCostIncrement` | `{ amount: 200 }` — король |
 
+Устаревшие имена `captureCastle` / `captureVillage` / `repairVillage` не использовать — только теги строений ([BUILDING_FORMAT.md](BUILDING_FORMAT.md)).
+
 Новые verbs = расширение **движка** (или общий скриптовый хук), не свободный C# в каждом json.
+
+## Редактор / пак
+
+Вкладка «Юниты»: UI на **полный** набор полей; файлы `Units/{id}.json` в паке ([CONTENT_PACK_FORMAT](CONTENT_PACK_FORMAT.md)); ассеты base+mask (импорт копирует в пак, с проверкой пары — [ARTIST_GUIDE](ARTIST_GUIDE.md)).
 
 ## Ограничения
 

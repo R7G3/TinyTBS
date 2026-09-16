@@ -1,19 +1,16 @@
 # Формат кампании (черновик)
 
-Кампания объединяет **уровни (Level)**, не сырые map-файлы напрямую. См. [LEVEL_FORMAT.md](LEVEL_FORMAT.md), [GAME_DESIGN.md](GAME_DESIGN.md).
+Кампания объединяет **уровни (Level)**, не сырые map-файлы напрямую. См. [LEVEL_FORMAT.md](LEVEL_FORMAT.md), [CONTENT_PACK_FORMAT.md](CONTENT_PACK_FORMAT.md), [GAME_DESIGN.md](GAME_DESIGN.md).
 
-## Расположение
+## В контент-паке (предпочтительно)
 
-```
-{UserData}/Campaigns/MyCampaign/
+```text
+Campaign/
   campaign.json
-  levels/            # .level.zip или ссылки
-  campaign.script    # опционально — общая логика сценария
+  script.cs            # опционально — общая логика сценария
 ```
 
-Кампания также может жить внутри **мода** (content pack).
-
-## campaign.json (концепт)
+`campaign.json` ссылается на level **внутри того же пака** (пути от корня пака):
 
 ```json
 {
@@ -21,11 +18,17 @@
   "id": "main-story",
   "title": "Осада королевства",
   "levels": [
-    { "levelId": "chapter-01", "file": "levels/chapter-01.level.zip" },
-    { "levelId": "chapter-02", "file": "levels/chapter-02.level.zip" }
+    { "levelId": "chapter-01", "path": "Levels/chapter-01" },
+    { "levelId": "chapter-02", "path": "Levels/chapter-02" }
   ]
 }
 ```
+
+**v1: не больше одной** кампании на пак.
+
+## Вне пака (legacy / user)
+
+Допустима папка кампании с собственным списком levels; для модов канон — layout внутри `.tinypack.zip`.
 
 ## Что не класть в кампанию
 
@@ -33,13 +36,8 @@
 
 ## Переход между уровнями
 
-Условия (победа, флаги скрипта) — в `campaign.json`, `campaign.script` или скриптах level — уточнить при реализации.
+Условия (победа, флаги скрипта) — в `campaign.json`, `script.cs` или скриптах level — уточнить при реализации.
 
 ## Связь с сохранениями
 
 См. [SAVE_FORMAT.md](SAVE_FORMAT.md) — campaign save хранит прогресс по списку levels.
-
-## TODO
-
-- [ ] Формат `campaign.script` vs скрипты levels
-- [ ] Загрузка кампаний из сети (Downloads/)

@@ -1,8 +1,8 @@
-# Формат карты (.map.zip)
+# Формат карты
 
-Карта — **ZIP** (`System.IO.Compression.ZipArchive`), например `.map.zip`.
+Карта — каталог `map.json` + `script.cs` (+ опц. `assets/`). В контент-паке: `Maps/{id}/` внутри [`.tinypack.zip`](CONTENT_PACK_FORMAT.md). Вне пака / user Maps: тот же набор файлов в **`.map.zip`** (`System.IO.Compression.ZipArchive`).
 
-Иерархия контента: **Map → Level → Campaign**. Карта — доска; сценарий партии — [LEVEL_FORMAT.md](LEVEL_FORMAT.md). Канон дизайна: [GAME_DESIGN.md](GAME_DESIGN.md).
+Иерархия: **Map → Level → Campaign**. Сценарий партии — [LEVEL_FORMAT.md](LEVEL_FORMAT.md). Канон: [GAME_DESIGN.md](GAME_DESIGN.md).
 
 ## Содержимое архива
 
@@ -69,19 +69,20 @@
 
 | Место | Назначение |
 |-------|------------|
-| `{UserData}/Maps/` | Карты из редактора и установленные |
-| `{UserData}/Downloads/` | Временно после сети |
-| внутри Level-пакета | embed |
+| `Maps/{id}/` внутри `.tinypack.zip` | Карты контент-пака |
+| `{UserData}/Maps/*.map.zip` | Карты пользователя / экспорт одной карты |
+| `{UserData}/Downloads/` | Временно после сети (позже) |
 
 Не через MonoGame Content Builder — рантайм через `IFileContentProvider`.
 
 ## Редактор
 
-Встроенный редактор сохраняет в `{UserData}/Maps/` (и/или встраивает в Level).
+Карты правятся во вкладке «Карта» редактора пака ([UI_AND_FLOW](design/UI_AND_FLOW.md)): Undo есть, playtest и копирование областей — нет; скрипт — текст + шаблон. Мастер «Новая карта» задаёт **размер**; команды/игроки — метки владельцев. Level ссылается на map через **`map.ref`** (без embed). Сохранение — в дерево пака / при необходимости экспорт `.map.zip` в `{UserData}/Maps/`.
 
 ## Связанные документы
 
 - [LEVEL_FORMAT.md](LEVEL_FORMAT.md)
+- [CONTENT_PACK_FORMAT.md](CONTENT_PACK_FORMAT.md)
 - [SCRIPTING.md](SCRIPTING.md)
 - [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md)
 - [adr/0002-map-format-zip-json.md](adr/0002-map-format-zip-json.md)

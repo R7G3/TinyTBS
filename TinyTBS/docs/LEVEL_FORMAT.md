@@ -1,20 +1,27 @@
 # Формат уровня (Level) — черновик
 
-См. [GAME_DESIGN.md](GAME_DESIGN.md), [MAP_FORMAT.md](MAP_FORMAT.md), [adr/0006-map-level-campaign.md](adr/0006-map-level-campaign.md).
+См. [GAME_DESIGN.md](GAME_DESIGN.md), [MAP_FORMAT.md](MAP_FORMAT.md), [CONTENT_PACK_FORMAT.md](CONTENT_PACK_FORMAT.md), [adr/0006-map-level-campaign.md](adr/0006-map-level-campaign.md).
 
-**Level** — одна играбельная партия. **Один** формат; две упаковки map:
+**Level** — одна играбельная партия. Map к level подключается **только по ссылке (ref)** — embed map внутрь level **не используем**.
 
-1. **Embed** — внутри level-пакета лежит map (или каталог map).
-2. **Reference** — `mapId` / путь к `.map.zip`.
-
-## Содержимое пакета (концепт)
+## В контент-паке
 
 ```text
-MyLevel.level.zip
+Levels/{levelId}/
   level.json
-  map/                 # embed: содержимое как у .map.zip
-  # или без map/, если reference
 ```
+
+В `level.json` поле `map` указывает на каталог карты **в том же паке**:
+
+```json
+"map": { "ref": "Maps/crossroads" }
+```
+
+Путь — от корня пака. Ref на карты вне пака — запрещён.
+
+## Вне пака (user / экспорт)
+
+Карта как `.map.zip` (содержимое как у `Maps/{id}/`). Level может жить в паке или ссылаться на map **в том же контейнере поставки**; наружу из `.tinypack.zip` — нет.
 
 ## level.json (черновик)
 
@@ -25,7 +32,7 @@ MyLevel.level.zip
   "title": "Crossroads",
   "description": "…",
   "modes": ["skirmish", "campaign"],
-  "map": { "embed": "map/" },
+  "map": { "ref": "Maps/crossroads" },
   "players": {
     "min": 2,
     "max": 4,
@@ -43,14 +50,9 @@ MyLevel.level.zip
 }
 ```
 
-Альтернатива map:
-
-```json
-"map": { "ref": "maps/crossroads.map.zip" }
-```
-
 | Поле | Смысл |
 |------|--------|
+| `map.ref` | Путь к каталогу map (в паке — под `Maps/`) |
 | `modes` | где level допустим (`skirmish`, `campaign`, …) |
 | `defaultStartingGold` / `defaultUnitCap` | дефолты; в Схватке создатель может переопределить |
 | `teamDefeatMode` | `allMembers` (дефолт) \| `anyMember` |
