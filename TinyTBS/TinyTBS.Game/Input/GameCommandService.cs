@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using TinyTBS.Game.Input;
 
 namespace TinyTBS.Game.Input;
 

@@ -26,7 +26,7 @@ isProject: false
 
 ### Дальше
 
-- [ ] **map-format** — Maps/ в scenario-модуле + загрузчик; логические id
+- [x] **map-format** — Maps/ в scenario-модуле + загрузчик; логические id
 - [ ] **level-format** — Level + map.ref + загрузчик
 - [ ] **map-scripting** — IScriptEngine + Roslyn; MapScriptContext
 - [ ] **match-ui-gdd** — статус-бар, пауза/миникарта, магазин, инфо, хотсит

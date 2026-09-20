@@ -35,7 +35,8 @@ public sealed class GameplayScreen : GameScreen
             GraphicsDevice,
             Content,
             TinyGame.SharedSpriteBatch,
-            _assets);
+            _assets,
+            TinyGame.Files);
 
         _hudView.Build(
             _hud,

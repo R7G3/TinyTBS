@@ -40,7 +40,7 @@ public static class MatchCommandApplicator
         if (!pointer.IsPrimaryDown)
             return;
 
-        if (layout.TryScreenToCell(pointer.Position, out var x, out var y))
-            match.HandlePointer(new GridCell(x, y));
+        if (layout.TryScreenToCell(pointer.Position, out var cellX, out var cellY))
+            match.HandlePointer(new GridCell(cellX, cellY));
     }
 }

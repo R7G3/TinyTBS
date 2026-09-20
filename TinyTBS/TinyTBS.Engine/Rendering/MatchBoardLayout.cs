@@ -10,14 +10,16 @@ namespace TinyTBS.Engine.Rendering;
 public sealed class MatchBoardLayout
 {
     public const int DefaultTileSizePixels = 64;
-    public const int DefaultWidth = 8;
-    public const int DefaultHeight = 8;
 
-    public MatchBoardLayout(
-        int width = DefaultWidth,
-        int height = DefaultHeight,
-        int tileSizePixels = DefaultTileSizePixels)
+    public MatchBoardLayout(int width, int height, int tileSizePixels = DefaultTileSizePixels)
     {
+        if (width <= 0)
+            throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(height));
+        if (tileSizePixels <= 0)
+            throw new ArgumentOutOfRangeException(nameof(tileSizePixels));
+
         Width = width;
         Height = height;
         TileSize = tileSizePixels;
@@ -39,9 +41,6 @@ public sealed class MatchBoardLayout
             (viewportWidth - gridWidth) * 0.5f,
             (viewportHeight - gridHeight) * 0.5f);
     }
-
-    public Vector2 CellToWorldCenter(int cellX, int cellY) =>
-        Origin + new Vector2((cellX + 0.5f) * TileSize, (cellY + 0.5f) * TileSize);
 
     public bool TryScreenToCell(ScreenPoint screenPosition, out int cellX, out int cellY) =>
         TryScreenToCell(new Vector2(screenPosition.X, screenPosition.Y), out cellX, out cellY);

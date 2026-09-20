@@ -6,12 +6,12 @@ namespace TinyTBS.Desktop;
 
 internal static class Program
 {
-    private static void Main(string[] args)
+    private static void Main(string[] _)
     {
         var userData = new DesktopUserDataPaths();
         var files = new FileSystemContentProvider();
-        var bundledContent = Path.Combine(AppContext.BaseDirectory, "Content");
-        var assets = new ModAssetResolver(userData, files, bundledContent);
+        var bundledContentRoot = Path.Combine(AppContext.BaseDirectory, "Content");
+        var assets = new ModAssetResolver(userData, files, bundledContentRoot);
 
         using var game = new GameMain(userData, files, assets);
         game.Run();

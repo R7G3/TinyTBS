@@ -82,7 +82,7 @@ public sealed class MatchScene : IDisposable
         _unitEntityById[unit.Id] = entityId;
     }
 
-    private int CreateMaskedVisual(GridCell cell, MatchTextureAtlas.TeamSprite sprite, Color teamColor)
+    private int CreateMaskedVisual(GridCell cell, TeamSprite sprite, Color teamColor)
     {
         var entity = World.CreateEntity();
         // Same footprint as terrain tiles: sprite origin = top-left of the cell.

@@ -4,7 +4,7 @@ using TinyTBS.Game.Assets;
 
 namespace TinyTBS.Game.Match;
 
-/// <summary>Loaded textures for the demo match (terrain + base/mask pairs).</summary>
+/// <summary>Loaded textures for the match (terrain + base/mask pairs).</summary>
 public sealed class MatchTextureAtlas : IDisposable
 {
     private readonly List<LoadedTexture> _owned = [];
@@ -47,6 +47,7 @@ public sealed class MatchTextureAtlas : IDisposable
         TerrainKind.Road => Road,
         TerrainKind.Mountain => Mountain,
         TerrainKind.Bridge => Bridge,
+        // Forest uses grass art until a dedicated terrain tile exists.
         _ => Grass,
     };
 
@@ -67,35 +68,39 @@ public sealed class MatchTextureAtlas : IDisposable
         ContentManager content,
         IAssetResolver assets)
     {
-        var owned = new List<LoadedTexture>();
+        var ownedTextures = new List<LoadedTexture>();
 
-        LoadedTexture Load(string logical, string contentName)
+        LoadedTexture LoadTexture(string logicalRelativePath, string contentAssetName)
         {
             var loaded = GameTextureLoader.LoadOrFallback(
-                graphicsDevice, content, assets, logical, contentName);
-            owned.Add(loaded);
+                graphicsDevice, content, assets, logicalRelativePath, contentAssetName);
+            ownedTextures.Add(loaded);
             return loaded;
         }
 
-        TeamSprite LoadPair(string folder, string id)
+        TeamSprite LoadTeamSprite(string folder, string assetId)
         {
-            var baseTex = Load($"Images/{folder}/{id}_base.png", $"Images/{folder}/{id}_base");
-            var maskTex = Load($"Images/{folder}/{id}_mask.png", $"Images/{folder}/{id}_mask");
-            return new TeamSprite(baseTex.Texture, maskTex.Texture);
+            var baseTexture = LoadTexture(
+                $"Images/{folder}/{assetId}_base.png",
+                $"Images/{folder}/{assetId}_base");
+            var maskTexture = LoadTexture(
+                $"Images/{folder}/{assetId}_mask.png",
+                $"Images/{folder}/{assetId}_mask");
+            return new TeamSprite(baseTexture.Texture, maskTexture.Texture);
         }
 
         var atlas = new MatchTextureAtlas(
-            grass: Load("Images/terrain/grass.png", "Images/terrain/grass").Texture,
-            water: Load("Images/terrain/water.png", "Images/terrain/water").Texture,
-            road: Load("Images/terrain/road.png", "Images/terrain/road").Texture,
-            mountain: Load("Images/terrain/mountain.png", "Images/terrain/mountain").Texture,
-            bridge: Load("Images/terrain/bridge.png", "Images/terrain/bridge").Texture,
-            king: LoadPair("units", "king"),
-            swordsman: LoadPair("units", "swordsman"),
-            castle: LoadPair("buildings", "castle"),
-            village: LoadPair("buildings", "village"));
+            grass: LoadTexture("Images/terrain/grass.png", "Images/terrain/grass").Texture,
+            water: LoadTexture("Images/terrain/water.png", "Images/terrain/water").Texture,
+            road: LoadTexture("Images/terrain/road.png", "Images/terrain/road").Texture,
+            mountain: LoadTexture("Images/terrain/mountain.png", "Images/terrain/mountain").Texture,
+            bridge: LoadTexture("Images/terrain/bridge.png", "Images/terrain/bridge").Texture,
+            king: LoadTeamSprite("units", "king"),
+            swordsman: LoadTeamSprite("units", "swordsman"),
+            castle: LoadTeamSprite("buildings", "castle"),
+            village: LoadTeamSprite("buildings", "village"));
 
-        atlas._owned.AddRange(owned);
+        atlas._owned.AddRange(ownedTextures);
         return atlas;
     }
 
@@ -104,11 +109,5 @@ public sealed class MatchTextureAtlas : IDisposable
         foreach (var texture in _owned)
             texture.DisposeIfOwned();
         _owned.Clear();
-    }
-
-    public readonly struct TeamSprite(Texture2D baseTexture, Texture2D maskTexture)
-    {
-        public Texture2D Base { get; } = baseTexture;
-        public Texture2D Mask { get; } = maskTexture;
     }
 }

@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using TinyTBS.Game.Assets;
 
 namespace TinyTBS.Game.Assets;
 
@@ -16,10 +15,10 @@ internal static class GameTextureLoader
         string logicalRelativePath,
         string contentAssetName)
     {
-        var path = assets.Resolve(logicalRelativePath);
-        if (path is not null && File.Exists(path))
+        var resolvedPath = assets.Resolve(logicalRelativePath);
+        if (resolvedPath is not null && File.Exists(resolvedPath))
         {
-            using var stream = File.OpenRead(path);
+            using var stream = File.OpenRead(resolvedPath);
             return new LoadedTexture(Texture2D.FromStream(graphicsDevice, stream), disposeOnUnload: true);
         }
 
@@ -47,9 +46,9 @@ internal static class GameTextureLoader
     private static Texture2D CreateSolid(GraphicsDevice graphicsDevice, int width, int height)
     {
         var texture = new Texture2D(graphicsDevice, width, height);
-        var data = new Microsoft.Xna.Framework.Color[width * height];
-        Array.Fill(data, Microsoft.Xna.Framework.Color.White);
-        texture.SetData(data);
+        var pixels = new Microsoft.Xna.Framework.Color[width * height];
+        Array.Fill(pixels, Microsoft.Xna.Framework.Color.White);
+        texture.SetData(pixels);
         return texture;
     }
 }

@@ -7,4 +7,5 @@ public enum TerrainKind
     Road,
     Mountain,
     Bridge,
+    Forest,
 }

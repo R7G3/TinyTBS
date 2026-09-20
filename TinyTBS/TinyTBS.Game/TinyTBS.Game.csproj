@@ -13,4 +13,8 @@
   <ItemGroup>
     <ProjectReference Include="..\TinyTBS.Engine\TinyTBS.Engine.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Fixtures\**\*" />
+    <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

@@ -1,3 +1,6 @@
+using TinyTBS.Game.Maps;
+using TinyTBS.Game.Maps.Models;
+
 namespace TinyTBS.Game.Match;
 
 /// <summary>
@@ -18,44 +21,41 @@ public sealed class MatchState
         _terrain = new TerrainKind[width, height];
     }
 
-    public static MatchState CreateDemo()
+    /// <summary>Builds match state from a loaded map (vanilla/* ids → enums).</summary>
+    public static MatchState FromMap(MapDefinition map)
     {
-        var match = new MatchState(MatchDefaults.GridWidth, MatchDefaults.GridHeight)
+        ArgumentNullException.ThrowIfNull(map);
+
+        var match = new MatchState(map.Width, map.Height)
         {
-            Cursor = new GridCell(2, 2),
+            Cursor = new GridCell(
+                Math.Clamp(map.Width / 2, 0, Math.Max(0, map.Width - 1)),
+                Math.Clamp(map.Height / 2, 0, Math.Max(0, map.Height - 1))),
         };
 
-        for (var y = 0; y < match.Height; y++)
+        for (var y = 0; y < map.Height; y++)
         {
-            for (var x = 0; x < match.Width; x++)
-                match._terrain[x, y] = TerrainKind.Grass;
+            for (var x = 0; x < map.Width; x++)
+                match._terrain[x, y] = VanillaContentIds.ParseTerrain(map.Surface[x, y]);
         }
 
-        // Water column with a bridge crossing.
-        for (var y = 1; y <= 5; y++)
-            match._terrain[3, y] = TerrainKind.Water;
-        match._terrain[3, 3] = TerrainKind.Bridge;
-
-        // Road strip.
-        for (var i = 0; i < match.Width; i++)
+        foreach (var building in map.Buildings)
         {
-            if (match._terrain[i, i] == TerrainKind.Grass)
-                match._terrain[i, i] = TerrainKind.Road;
+            match._buildings.Add(new MatchBuilding(
+                VanillaContentIds.ParseBuilding(building.Type),
+                new GridCell(building.X, building.Y),
+                building.Slot));
         }
 
-        match._terrain[6, 1] = TerrainKind.Mountain;
-        match._terrain[6, 2] = TerrainKind.Mountain;
-        match._terrain[5, 1] = TerrainKind.Mountain;
+        foreach (var unit in map.Units)
+        {
+            match.AddUnit(
+                VanillaContentIds.ParseUnit(unit.Type),
+                new GridCell(unit.X, unit.Y),
+                unit.Slot);
+        }
 
-        match._buildings.Add(new MatchBuilding(BuildingKind.Castle, new GridCell(1, 1), ownerPlayerIndex: 0));
-        match._buildings.Add(new MatchBuilding(BuildingKind.Village, new GridCell(6, 6), ownerPlayerIndex: 1));
-        match._buildings.Add(new MatchBuilding(BuildingKind.Village, new GridCell(4, 1), ownerPlayerIndex: null));
-
-        match.AddUnit(UnitKind.King, new GridCell(1, 2), playerIndex: 0);
-        match.AddUnit(UnitKind.Swordsman, new GridCell(2, 1), playerIndex: 0);
-        match.AddUnit(UnitKind.King, new GridCell(6, 5), playerIndex: 1);
-        match.AddUnit(UnitKind.Swordsman, new GridCell(5, 6), playerIndex: 1);
-
+        // Memorials stay on MapDefinition for scripting; match rules do not use them yet.
         return match;
     }
 
