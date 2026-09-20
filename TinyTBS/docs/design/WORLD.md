@@ -32,7 +32,7 @@
 
 ## Строения
 
-Строения **data-driven** (vanilla и паки) — [BUILDING_FORMAT.md](../BUILDING_FORMAT.md): спрайты base+mask, доход, найм, лечение, броня клетки, захват/разрушение через теги + abilities юнитов.
+Строения **data-driven** (vanilla и модули) — [BUILDING_FORMAT.md](../BUILDING_FORMAT.md): спрайты base+mask, доход, найм, лечение, броня клетки, захват/разрушение через теги + abilities юнитов.
 
 Ниже — **числа vanilla** (замок / деревня), которые задаются конфигом тех же полей.
 

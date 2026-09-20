@@ -1,6 +1,6 @@
 ---
 name: Структура TinyTBS
-overview: "net10.0: Engine/Game/Desktop/Content (ADR 0007); GDD + UI_AND_FLOW; Map/Level/Campaign; content-моды; сеть позже (UI greyed); Gum/MGE/ECS; демо-арты base+mask."
+overview: "net10.0: Engine/Game/Desktop/Content (ADR 0007); GDD + модули (.tinymod.zip, ADR 0008); Map/Level/Campaign в scenario; сеть позже (UI greyed); Gum/MGE/ECS; демо base+mask."
 todos:
   - id: split-solution
     content: "Engine + Content + Game + Desktop (бывший Core влит; ADR 0007)"
@@ -9,10 +9,10 @@ todos:
     content: "TinyTBS.Content: исходники, C# Content Builder wildcard; .xnb → Desktop/Content"
     status: completed
   - id: asset-resolver
-    content: "IAssetResolver: Mods/ подпапки → fallback на Content; выбор мода в меню"
+    content: "IAssetResolver: библиотека Modules/ → fallback vanilla; (старый Mods/ — эволюционирует)"
     status: completed
   - id: user-data-paths
-    content: "IUserDataPaths: Maps, Campaigns, Saves, Downloads — абстракция desktop vs mobile"
+    content: "IUserDataPaths: Content/Modules, Bundles, Saves, Downloads"
     status: completed
   - id: gum-screens
     content: Gum на всех MGE-экранах; тонкий UI-state (не MVVM-архитектура)
@@ -30,19 +30,19 @@ todos:
     content: "ADR 0007: Game vs Engine; GumLayout в Engine; docs sync"
     status: completed
   - id: gdd-docs
-    content: "Канон GDD в docs/GAME_DESIGN.md + design/* + UNIT/LEVEL formats"
+    content: "Канон GDD + CONTENT_MODULE_FORMAT + ADR 0008; tinypack в archive"
     status: completed
   - id: ui-flow-docs
-    content: "docs/design/UI_AND_FLOW.md — экраны, HUD, пауза, магазин, ввод; ideas/ui-frosted-glass"
+    content: "docs/design/UI_AND_FLOW.md — экраны, HUD, пауза, магазин, ввод, менеджер модулей"
     status: completed
   - id: demo-art-render
     content: "Демо: terrain + base/mask + PlayerPalette (Content/Images); nearest zoom в каноне"
     status: completed
   - id: map-format
-    content: .map.zip + map.json; загрузчик
+    content: Maps/ в scenario-модуле + загрузчик; логические id namespace/localId
     status: pending
   - id: level-format
-    content: Level пакет (embed/ref map) + загрузчик
+    content: Level в scenario-модуле (map.ref only) + загрузчик
     status: pending
   - id: map-scripting
     content: IScriptEngine + Roslyn sandbox; хуки с MapScriptContext
@@ -51,13 +51,13 @@ todos:
     content: "Матч UI по UI_AND_FLOW: статус-бар, пауза/миникарта, магазин, инфо-панель, хотсит"
     status: pending
   - id: content-mods
-    content: Content packs — юниты/баланс/кампании (data-driven UNIT_FORMAT); экран паков
+    content: "Библиотека .tinymod.zip + Bundles; экран Контент; состав на Новая игра"
     status: pending
   - id: campaigns
-    content: campaign.json — список levels; метаданные сюжета
+    content: campaign.json в scenario-модуле; метаданные сюжета
     status: pending
   - id: save-format
-    content: Версионируемые сохранения (match + campaign progress); docs/SAVE_FORMAT.md
+    content: "Сохранения + contentSetup (модули/версии); docs/SAVE_FORMAT.md"
     status: pending
   - id: map-editor
     content: "Редактор workspace модулей: Undo, units/buildings/theme/scenario, Save/Export tinymod; Publish greyed"
@@ -90,23 +90,22 @@ isProject: false
 
 ```mermaid
 flowchart TB
-  subgraph bundled [Bundled Content]
-    DefaultAssets[Content Builder output]
+  subgraph bundled [Bundled / vanilla modules]
+    DefaultAssets[Content Builder + vanilla_*.tinymod]
   end
-  subgraph mods [Optional Mods folder]
-    ModA[Mods/ModA/Images]
-    ModB[Mods/ModB/Sounds]
+  subgraph mods [Content library]
+    ModA[Modules/scenario_…]
+    ModB[Modules/units_…]
   end
   subgraph userdata [User Data]
-    Maps[Maps/]
-    Campaigns[Campaigns/]
+    Bundles[Bundles/*.bundle.json]
     Saves[Saves/]
   end
-  Resolver[IAssetResolver]
+  Resolver[IAssetResolver / module load]
   DefaultAssets --> Resolver
   ModA --> Resolver
   ModB --> Resolver
-  Maps --> MapLoader
+  ModA --> MapLoader
   MapLoader --> ScriptHost[Sandbox ScriptHost]
   ScriptHost --> ECS
 ```
@@ -129,13 +128,12 @@ flowchart TB
 Вся работа с путями — через **`IUserDataPaths`** / **`IFileContentProvider`** (`Engine.IO`), не через `Path.Combine` к exe в игровом коде.
 
 
-| Каталог             | Desktop (типично)              | Mobile (будущее)                                      |
-| ------------------- | ------------------------------ | ----------------------------------------------------- |
-| **Mods**            | `{InstallDir}/Mods/{ModName}/` | `{AppData}/Mods/` или scoped storage (не install dir) |
-| **Maps**            | `{UserData}/Maps/`             | `{AppData}/Maps/`                                     |
-| **Campaigns**       | `{UserData}/Campaigns/`        | то же                                                 |
-| **Saves**           | `{UserData}/Saves/`            | то же                                                 |
-| **Downloads cache** | `{UserData}/Downloads/`        | то же                                                 |
+| Каталог             | Desktop (типично)                         | Mobile (будущее)      |
+| ------------------- | ----------------------------------------- | --------------------- |
+| **Modules**         | `{UserData}/Content/Modules/{moduleId}/`  | app data              |
+| **Bundles**         | `{UserData}/Content/Bundles/*.bundle.json`| app data              |
+| **Saves**           | `{UserData}/Saves/`                       | то же                 |
+| **Downloads cache** | `{UserData}/Downloads/`                   | то же (сеть позже)    |
 
 
 **Моды рядом с установкой** — естественно на **Windows/Linux desktop**. На **Android** папка установки часто **read-only**; моды кладут в **app-specific external storage** или импорт через «выбрать папку». Архитектура та же (`IAssetResolver`), реализация путей другая — **переделывать Game не нужно**.
@@ -152,8 +150,8 @@ flowchart TB
 
 ### Главное меню
 
-Продолжить · Новая игра · Загрузка · Контент-паки · Редактор · Настройки · Об игре · Выход.  
-Схватка: добавить локального/бота; сеть — greyed. Кампания/схватка: хотсит «добавить игрока». Мультиплеер — пункт greyed.
+Продолжить · Новая игра · Загрузка · Контент · Редактор · Настройки · Об игре · Выход.  
+Новая игра: scenario + состав (units/buildings/theme); сеть — greyed. Хотсит ок. Мультиплеер — greyed.
 
 ### Экран матча
 
@@ -166,7 +164,7 @@ flowchart TB
 - Камера: central dead-zone ½ экрана; зум **nearest-neighbor** (bicubic — опция настроек позже).
 - Инфо (доп.): юнит + террейн (+ здание с tint владельца, если есть). Осн. по своему неактивному — ничего.
 - Магазин замка: окно размера central zone; fallback — полная ширина между статус-баром и нижней панелью. Спавн на замке, сразу выбран; при занятости клетки — обязан сходить.
-- Пауза: Конец хода · **Карта** (миникарта: квадрат постройки / круг юнита / камень под кругом) · Цели · Сохранить/Загрузить (solo; сеть — нет; хотсит — открытый вопрос) · Меню (в главное).
+- Пауза: Конец хода · **Карта** · Цели · Сохранить/Загрузить (solo + хотсит; сеть — нет) · Меню.
 
 ### Редактор / модули / сеть
 
@@ -253,26 +251,15 @@ Custom `Effect` (HLSL → MGFX): в pixel shader, если цвет пиксел
 
 ## Карты, уровни и кампании
 
-Иерархия: **Map → Level → Campaign** (ADR 0006). Канон: `docs/GAME_DESIGN.md`, `MAP_FORMAT`, `LEVEL_FORMAT`, `CAMPAIGN_FORMAT`.
+Иерархия: **Map → Level → Campaign** внутри **scenario**-модуля (ADR 0006, 0008). Канон: `CONTENT_MODULE_FORMAT`, `MAP_FORMAT`, `LEVEL_FORMAT`, `CAMPAIGN_FORMAT`.
 
-**Map** — `.map.zip` в `{UserData}/Maps/` (или embed в Level): terrain, строения, слоты/юниты, `script.cs`.
+**Map** — каталог `Maps/{id}/` в scenario-модуле (`map.json` + `script.cs`); типы на карте — логические id `namespace/localId`.
 
-**Level** — играбельная партия: map embed **или** ref; игроки/команды; золото; лимит юнитов; win/lose; mode tags.
+**Level** — только `map.ref` внутри того же scenario-модуля (embed нет).
 
-**Кампания** — пакет/папка:
+**Кампания** — `Campaign/` в scenario-модуле (`campaign.json` + опц. script).
 
-```
-Campaigns/MyCampaign/
-  campaign.json    # id, title, порядок **levels**
-  levels/          # .level.zip или ссылки
-  campaign.script  # опц.
-```
-
-`campaign.json`: список level id (не сырые map напрямую). Схватка использует Level/Map без кампании.
-
-## Формат карты (.map.zip)
-
-ZIP + `map.json` (слои surface, buildings, units, опц. memorials) + `script.cs`. Детали — `docs/MAP_FORMAT.md`.
+Состав units/buildings/theme на старте партии — отдельно от scenario (defaults / bundle / вручную).
 
 ## Скрипты: хуки и аргументы
 
@@ -387,21 +374,22 @@ ScriptOptions.Default
 5. ECS + минимальный match + демо-арты terrain/base+mask — **выполнено** (демо ≠ полный GDD).
 6. layer-split Screens + MatchState/MatchScene; ADR 0007 Game/Engine — **выполнено**.
 7. `UI_AND_FLOW.md` (экраны, HUD, пауза, магазин) — **выполнено** (канон); реализация матч-UI — pending.
-8. `.map.zip` / **Level** загрузчики + сближение матча с GDD.
+8. Maps/Levels в scenario-модуле + загрузчики + сближение матча с GDD.
 9. **MapScriptContext** + Roslyn sandbox + хуки.
-10. Матч UI по канону (статус-бар, пауза/миникарта, магазин, хотсит) + playable loop.
-11. **Content-моды** + экран паков; редактор (после уточнения открытых вопросов).
-12. Кампании и сохранения — после playable loop.
-13. **Сеть** — позже (Remote в API; UI пока greyed).
+10. Матч UI по канону + playable loop.
+11. Библиотека `.tinymod.zip` + Bundles + экран Контент + редактор workspace.
+12. Кампании и сохранения (`contentSetup`) — после playable loop.
+13. **Сеть** — позже (Remote в API; UI greyed).
 
 ## Документация в репозитории
 
 - `docs/ARCHITECTURE.md`, `docs/GAME_DESIGN.md`, `docs/design/*` (**в т.ч. `UI_AND_FLOW.md`**, `TURN_AND_UI.md`)
+- `docs/CONTENT_MODULE_FORMAT.md`, `docs/archive/content-pack-v1/` (устаревший tinypack)
 - `docs/ideas/` — отложенные идеи (**не** канон; напр. frosted glass)
-- `docs/MAP_FORMAT.md`, `docs/LEVEL_FORMAT.md`, `docs/UNIT_FORMAT.md`, `docs/CAMPAIGN_FORMAT.md`
+- `docs/MAP_FORMAT.md`, `docs/LEVEL_FORMAT.md`, `docs/UNIT_FORMAT.md`, `docs/BUILDING_FORMAT.md`, `docs/CAMPAIGN_FORMAT.md`
 - `docs/SCRIPTING.md`, `docs/SAVE_FORMAT.md`, `docs/ARTIST_GUIDE.md`
-- `docs/adr/` — в т.ч. 0005 (слои), **0006 (Map/Level/Campaign)**, **0007 (Game / Engine)**
-- `AGENTS.md` — git-workflow без auto-commit/push; проекты Engine/Game/…
+- `docs/adr/` — 0005–**0008** (модули)
+- `AGENTS.md` — git-workflow; проекты Engine/Game/…
 
 ## Риски
 

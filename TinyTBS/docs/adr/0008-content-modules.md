@@ -24,6 +24,6 @@
 
 ## Последствия
 
-- Обновить GAME_DESIGN, UI_AND_FLOW, форматы map/level/campaign/unit/building, SAVE, SCRIPTING, ARCHITECTURE, AGENTS.
-- Уточнить ADR 0002 / 0006 (ссылки на scenario-модуль вместо tinypack).
+- Документы обновлены под модули (GAME_DESIGN, UI_AND_FLOW, форматы, SAVE, SCRIPTING, ARCHITECTURE, AGENTS); ADR 0002/0006 ссылаются на scenario-модуль.
 - Редактор = workspace нескольких модулей; shared Resources только до Save/Export.
+- Tinypack — [archive/content-pack-v1/](../archive/content-pack-v1/README.md).
