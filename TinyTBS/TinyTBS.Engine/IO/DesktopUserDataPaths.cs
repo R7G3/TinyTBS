@@ -18,18 +18,17 @@ public sealed class DesktopUserDataPaths : IUserDataPaths
     public string UserDataRoot { get; }
     public string InstallRoot { get; }
 
-    public string Maps => Path.Combine(UserDataRoot, "Maps");
-    public string Campaigns => Path.Combine(UserDataRoot, "Campaigns");
+    public string ContentRoot => Path.Combine(UserDataRoot, "Content");
+    public string Modules => Path.Combine(ContentRoot, "Modules");
+    public string Bundles => Path.Combine(ContentRoot, "Bundles");
     public string Saves => Path.Combine(UserDataRoot, "Saves");
     public string Downloads => Path.Combine(UserDataRoot, "Downloads");
-    public string Mods => Path.Combine(InstallRoot, "Mods");
 
     public void EnsureCreated()
     {
-        Directory.CreateDirectory(Maps);
-        Directory.CreateDirectory(Campaigns);
+        Directory.CreateDirectory(Modules);
+        Directory.CreateDirectory(Bundles);
         Directory.CreateDirectory(Saves);
         Directory.CreateDirectory(Downloads);
-        Directory.CreateDirectory(Mods);
     }
 }

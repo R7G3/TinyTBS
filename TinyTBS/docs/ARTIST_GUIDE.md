@@ -64,8 +64,8 @@ Images/buildings/castle_flag_mask.png
 Структура папок модов **зеркалирует** bundled Content:
 
 ```
-Mods/MyMod/Images/units/knight_base.png
-Mods/MyMod/Images/units/knight_team.png
+Content/Modules/MyMod/Resources/Images/units/knight_base.png
+Content/Modules/MyMod/Resources/Images/units/knight_team.png
 ```
 
 Если в моде нет файла — игра берёт bundled версию.

@@ -9,7 +9,7 @@ todos:
     content: "TinyTBS.Content: исходники, C# Content Builder wildcard; .xnb → Desktop/Content"
     status: completed
   - id: asset-resolver
-    content: "IAssetResolver: библиотека Modules/ → fallback vanilla; (старый Mods/ — эволюционирует)"
+    content: "IAssetResolver: overlay Modules/{id} → bundled; полный состав партии — later (content-mods)"
     status: completed
   - id: user-data-paths
     content: "IUserDataPaths: Content/Modules, Bundles, Saves, Downloads"

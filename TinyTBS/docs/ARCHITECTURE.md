@@ -106,18 +106,17 @@ flowchart TB
   subgraph bundled [Bundled Content]
     DefaultAssets[Content Builder output]
   end
-  subgraph mods [Optional Mods]
-    ModFolder[Mods/ModName/Images Sounds]
+  subgraph mods [Content library]
+    ModFolder[Modules/id/Resources]
   end
   subgraph userdata [User Data]
-    Maps[Maps/]
-    Campaigns[Campaigns/]
+    Bundles[Bundles/]
     Saves[Saves/]
   end
   Resolver[IAssetResolver]
   DefaultAssets --> Resolver
   ModFolder --> Resolver
-  Maps --> MapLoader
+  ModFolder --> MapLoader
   MapLoader --> ScriptHost[Sandbox ScriptHost]
   ScriptHost --> ECS[MGE ECS]
 ```
@@ -135,7 +134,7 @@ flowchart TB
 
 ## Моды
 
-**Сейчас:** `IAssetResolver` — активный мод → fallback на bundled Content (`Images/`, `Sounds/`).
+**Сейчас:** `IAssetResolver` — опциональный overlay из `Content/Modules/{id}/` → fallback на bundled Content. Полный состав партии (несколько модулей) — при content-mods.
 
 **Цель (GDD):** библиотека **модулей** [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md) (`.tinymod.zip`) — scenario / units / buildings / theme. Vanilla — те же модули. Нестандартные юниты — конфиг + declarative `special` / abilities.
 

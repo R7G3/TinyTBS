@@ -57,7 +57,7 @@ public sealed class MainMenuView
 
         var hint = new Label
         {
-            Text = "Vanilla uses bundled content. Mods load from Mods/ next to the game."
+            Text = "Vanilla uses bundled content. Optional overlays: Content/Modules/{id}/ (under user data)."
         };
         GumUiLayout.FillParentWidth(hint);
         contentPanel.AddChild(hint);

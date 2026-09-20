@@ -22,4 +22,4 @@
 ## Последствия
 
 - Правила для художника: [ARTIST_GUIDE.md](../ARTIST_GUIDE.md)
-- Моды подменяют те же пары файлов в `Mods/{Name}/Images/`.
+- Моды подменяют те же пары файлов в `Content/Modules/{id}/Resources/Images/` (или `…/Images/` у корня модуля).

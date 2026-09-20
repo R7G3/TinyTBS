@@ -3,7 +3,8 @@ using TinyTBS.Engine.IO;
 namespace TinyTBS.Game.Assets;
 
 /// <summary>
-/// Vanilla-first resolver: optional active mod under Mods/{id}/, then bundled content root.
+/// Resolves assets from an optional overlay module folder, then bundled content.
+/// Looks under <c>Modules/{id}/Resources/</c> and <c>Modules/{id}/</c> (legacy-style Images/).
 /// </summary>
 public sealed class ModAssetResolver : IAssetResolver
 {
@@ -27,7 +28,6 @@ public sealed class ModAssetResolver : IAssetResolver
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(logicalRelativePath);
 
-        // Accept both / and \ from callers; normalize to the OS separator once.
         var relative = logicalRelativePath
             .Replace('\\', Path.DirectorySeparatorChar)
             .Replace('/', Path.DirectorySeparatorChar)
@@ -35,9 +35,13 @@ public sealed class ModAssetResolver : IAssetResolver
 
         if (!string.IsNullOrWhiteSpace(ActiveModId))
         {
-            var modPath = _files.Combine(_paths.Mods, ActiveModId, relative);
-            if (_files.Exists(modPath))
-                return modPath;
+            var underResources = _files.Combine(_paths.Modules, ActiveModId, "Resources", relative);
+            if (_files.Exists(underResources))
+                return underResources;
+
+            var underModuleRoot = _files.Combine(_paths.Modules, ActiveModId, relative);
+            if (_files.Exists(underModuleRoot))
+                return underModuleRoot;
         }
 
         var bundled = _files.Combine(_bundledContentRoot, relative);
@@ -46,10 +50,10 @@ public sealed class ModAssetResolver : IAssetResolver
 
     public IReadOnlyList<string> ListMods()
     {
-        if (!Directory.Exists(_paths.Mods))
+        if (!Directory.Exists(_paths.Modules))
             return Array.Empty<string>();
 
-        return Directory.GetDirectories(_paths.Mods)
+        return Directory.GetDirectories(_paths.Modules)
             .Select(Path.GetFileName)
             .Where(name => !string.IsNullOrEmpty(name))
             .Cast<string>()
