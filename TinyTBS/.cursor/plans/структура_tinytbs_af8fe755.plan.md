@@ -27,7 +27,7 @@ isProject: false
 ### Дальше
 
 - [x] **map-format** — Maps/ в scenario-модуле + загрузчик; логические id
-- [ ] **level-format** — Level + map.ref + загрузчик
+- [x] **level-format** — Level + map.ref + загрузчик
 - [ ] **map-scripting** — IScriptEngine + Roslyn; MapScriptContext
 - [ ] **match-ui-gdd** — статус-бар, пауза/миникарта, магазин, инфо, хотсит
 - [ ] **content-mods** — .tinymod.zip + Bundles; экран Контент; состав на Новая игра
@@ -45,7 +45,7 @@ isProject: false
 - **Свой формат Map / Level**, встроенный редактор, скрипты в **ограниченной песочнице**.
 - **Tiled / DotTiled — не используются.**
 - **Три логических слоя** (логика / представление / движок) — ADR 0005; проекты — **Game + Engine** (ADR 0007), не «один слой = один csproj».
-- **GDD** — [docs/GAME_DESIGN.md](../../docs/GAME_DESIGN.md); UI/экраны — [docs/design/UI_AND_FLOW.md](../../docs/design/UI_AND_FLOW.md); Map/Level/Campaign — ADR 0006; юниты data-driven — UNIT_FORMAT.
+- **GDD** — [docs/GAME_DESIGN.md](../../docs/GAME_DESIGN.md); UI/экраны — [docs/design/UI_AND_FLOW.md](../../docs/design/UI_AND_FLOW.md); Map/Level/Campaign — [ADR 0006](../../docs/adr/0006-map-level-campaign.md); юниты data-driven — [UNIT_FORMAT](../../docs/UNIT_FORMAT.md).
 - **Сеть** — позже; тип Remote в API; в UI пункты мультиплеера / «пригласить по сети» — **greyed**. Хотсит (локальные игроки) — рабочий сценарий без ИИ.
 - **Идеи (не канон)** — [docs/ideas/](../../docs/ideas/) (напр. frosted glass UI).
 
@@ -129,7 +129,7 @@ flowchart TB
 
 ### Редактор / модули / сеть
 
-- Библиотека модулей `.tinymod.zip` — [CONTENT_MODULE_FORMAT.md](docs/CONTENT_MODULE_FORMAT.md); ADR 0008; tinypack в archive.
+- Библиотека модулей `.tinymod.zip` — [CONTENT_MODULE_FORMAT.md](../../docs/CONTENT_MODULE_FORMAT.md); [ADR 0008](../../docs/adr/0008-content-modules.md); tinypack в archive.
 - Редактор: workspace; shared → Export в модуль; Undo; валидация не блокирует Save; Publish greyed.
 - Новая игра: scenario + состав (defaults/bundle); типы на карте обязаны резолвиться.
 - Сеть: greyed UI only. Хотсит: Save/Load ок.
@@ -212,7 +212,7 @@ Custom `Effect` (HLSL → MGFX): в pixel shader, если цвет пиксел
 
 ## Карты, уровни и кампании
 
-Иерархия: **Map → Level → Campaign** внутри **scenario**-модуля (ADR 0006, 0008). Канон: `CONTENT_MODULE_FORMAT`, `MAP_FORMAT`, `LEVEL_FORMAT`, `CAMPAIGN_FORMAT`.
+Иерархия: **Map → Level → Campaign** внутри **scenario**-модуля ([ADR 0006](../../docs/adr/0006-map-level-campaign.md), [0008](../../docs/adr/0008-content-modules.md)). Канон: [CONTENT_MODULE_FORMAT](../../docs/CONTENT_MODULE_FORMAT.md), [MAP_FORMAT](../../docs/MAP_FORMAT.md), [LEVEL_FORMAT](../../docs/LEVEL_FORMAT.md), [CAMPAIGN_FORMAT](../../docs/CAMPAIGN_FORMAT.md).
 
 **Map** — каталог `Maps/{id}/` в scenario-модуле (`map.json` + `script.cs`); типы на карте — логические id `namespace/localId`.
 
@@ -279,7 +279,7 @@ ScriptOptions.Default
 - Запуск хука в **отдельном процессе** с IPC — дорого, но максимальная изоляция.
 - Подпись карт от доверенных авторов.
 
-**Рекомендация для плана:** старт с **Уровня 1 + 2**; в `docs/SCRIPTING.md` явно описать ограничения; для UGC-мастерской позже рассмотреть Lua или precompile.
+**Рекомендация для плана:** старт с **Уровня 1 + 2**; в [SCRIPTING.md](../../docs/SCRIPTING.md) явно описать ограничения; для UGC-мастерской позже рассмотреть Lua или precompile.
 
 ## Сохранения (формат — проработать отдельно)
 
@@ -299,7 +299,7 @@ ScriptOptions.Default
 - `**saveVersion**` в корне JSON — миграции при смене формата.
 - `**extensions**` или typed blocks — карта/кампания могут добавлять **свои** ключи (скриптовые флаги), не ломая ядро.
 - Отдельные файлы: `saves/match_{id}.json` vs `saves/campaign_{id}.json`.
-- Что именно сериализовать из ECS — решить после появления первого playable (ADR + `docs/SAVE_FORMAT.md`).
+- Что именно сериализовать из ECS — решить после появления первого playable (ADR + [SAVE_FORMAT.md](../../docs/SAVE_FORMAT.md)).
 
 ## Workflow: что будет, когда вы скажете «делай»
 
@@ -310,7 +310,7 @@ ScriptOptions.Default
 - `git commit` — **только если вы явно попросите** («закоммить», «сделай коммит»).
 - `git push` — **только если вы явно попросите** («запушь»).
 
-После работы вы **смотрите diff** в Cursor (Source Control / изменённые файлы), **осмысливаете**, при необходимости просите правки — и **сами решаете**, когда коммитить. Это будет зафиксировано в `**AGENTS.md`** при первом шаге реализации:
+После работы вы **смотрите diff** в Cursor (Source Control / изменённые файлы), **осмысливаете**, при необходимости просите правки — и **сами решаете**, когда коммитить. Это будет зафиксировано в [AGENTS.md](../../AGENTS.md) при первом шаге реализации:
 
 - Не создавать коммиты и не пушить без явной просьбы пользователя.
 - После изменений — кратко перечислить, что изменилось; пользователь ревьюит diff перед коммитом.
@@ -326,7 +326,7 @@ ScriptOptions.Default
 
 ## Порядок внедрения
 
-Согласовано с `docs/ARCHITECTURE.md`:
+Согласовано с [ARCHITECTURE.md](../../docs/ARCHITECTURE.md):
 
 1. Engine + Content + Game + Desktop; **IUserDataPaths**, **IAssetResolver** — **выполнено** (Core убран, ADR 0007).
 2. docs/ + GDD (`GAME_DESIGN.md`, design/*, UNIT/LEVEL formats, ADR 0006) — **выполнено**.
@@ -344,13 +344,13 @@ ScriptOptions.Default
 
 ## Документация в репозитории
 
-- `docs/ARCHITECTURE.md`, `docs/GAME_DESIGN.md`, `docs/design/*` (**в т.ч. `UI_AND_FLOW.md`**, `TURN_AND_UI.md`)
-- `docs/CONTENT_MODULE_FORMAT.md`, `docs/archive/content-pack-v1/` (устаревший tinypack)
-- `docs/ideas/` — отложенные идеи (**не** канон; напр. frosted glass)
-- `docs/MAP_FORMAT.md`, `docs/LEVEL_FORMAT.md`, `docs/UNIT_FORMAT.md`, `docs/BUILDING_FORMAT.md`, `docs/CAMPAIGN_FORMAT.md`
-- `docs/SCRIPTING.md`, `docs/SAVE_FORMAT.md`, `docs/ARTIST_GUIDE.md`
-- `docs/adr/` — 0005–**0008** (модули)
-- `AGENTS.md` — git-workflow; проекты Engine/Game/…
+- [ARCHITECTURE.md](../../docs/ARCHITECTURE.md), [GAME_DESIGN.md](../../docs/GAME_DESIGN.md), [docs/design/](../../docs/design/) (**в т.ч. [UI_AND_FLOW.md](../../docs/design/UI_AND_FLOW.md)**, [TURN_AND_UI.md](../../docs/design/TURN_AND_UI.md))
+- [CONTENT_MODULE_FORMAT.md](../../docs/CONTENT_MODULE_FORMAT.md), [archive/content-pack-v1/](../../docs/archive/content-pack-v1/) (устаревший tinypack)
+- [docs/ideas/](../../docs/ideas/) — отложенные идеи (**не** канон; напр. frosted glass)
+- [MAP_FORMAT.md](../../docs/MAP_FORMAT.md), [LEVEL_FORMAT.md](../../docs/LEVEL_FORMAT.md), [UNIT_FORMAT.md](../../docs/UNIT_FORMAT.md), [BUILDING_FORMAT.md](../../docs/BUILDING_FORMAT.md), [CAMPAIGN_FORMAT.md](../../docs/CAMPAIGN_FORMAT.md)
+- [SCRIPTING.md](../../docs/SCRIPTING.md), [SAVE_FORMAT.md](../../docs/SAVE_FORMAT.md), [ARTIST_GUIDE.md](../../docs/ARTIST_GUIDE.md)
+- [docs/adr/](../../docs/adr/) — 0005–**0008** (модули)
+- [AGENTS.md](../../AGENTS.md) — git-workflow; проекты Engine/Game/…
 
 ## Риски
 
