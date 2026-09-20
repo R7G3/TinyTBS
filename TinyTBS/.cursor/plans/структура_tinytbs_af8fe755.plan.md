@@ -1,80 +1,41 @@
 ---
 name: Структура TinyTBS
 overview: "net10.0: Engine/Game/Desktop/Content (ADR 0007); GDD + модули (.tinymod.zip, ADR 0008); Map/Level/Campaign в scenario; сеть позже (UI greyed); Gum/MGE/ECS; демо base+mask."
-todos:
-  - id: split-solution
-    content: "Engine + Content + Game + Desktop (бывший Core влит; ADR 0007)"
-    status: completed
-  - id: content-project
-    content: "TinyTBS.Content: исходники, C# Content Builder wildcard; .xnb → Desktop/Content"
-    status: completed
-  - id: asset-resolver
-    content: "IAssetResolver: overlay Modules/{id} → bundled; полный состав партии — later (content-mods)"
-    status: completed
-  - id: user-data-paths
-    content: "IUserDataPaths: Content/Modules, Bundles, Saves, Downloads"
-    status: completed
-  - id: gum-screens
-    content: Gum на всех MGE-экранах; тонкий UI-state (не MVVM-архитектура)
-    status: completed
-  - id: input-commands
-    content: "Слой команд; positional геймпад; 3 столбца биндов (клава/пад/тач) — канон UI_AND_FLOW"
-    status: completed
-  - id: ecs-mge
-    content: ECS MGE + GameplayScreen
-    status: completed
-  - id: layer-split
-    content: "Разнести Screens по слоям: логика / представление / движок (образец — Gameplay)"
-    status: completed
-  - id: game-engine-split
-    content: "ADR 0007: Game vs Engine; GumLayout в Engine; docs sync"
-    status: completed
-  - id: gdd-docs
-    content: "Канон GDD + CONTENT_MODULE_FORMAT + ADR 0008; tinypack в archive"
-    status: completed
-  - id: ui-flow-docs
-    content: "docs/design/UI_AND_FLOW.md — экраны, HUD, пауза, магазин, ввод, менеджер модулей"
-    status: completed
-  - id: demo-art-render
-    content: "Демо: terrain + base/mask + PlayerPalette (Content/Images); nearest zoom в каноне"
-    status: completed
-  - id: map-format
-    content: Maps/ в scenario-модуле + загрузчик; логические id namespace/localId
-    status: pending
-  - id: level-format
-    content: Level в scenario-модуле (map.ref only) + загрузчик
-    status: pending
-  - id: map-scripting
-    content: IScriptEngine + Roslyn sandbox; хуки с MapScriptContext
-    status: pending
-  - id: match-ui-gdd
-    content: "Матч UI по UI_AND_FLOW: статус-бар, пауза/миникарта, магазин, инфо-панель, хотсит"
-    status: pending
-  - id: content-mods
-    content: "Библиотека .tinymod.zip + Bundles; экран Контент; состав на Новая игра"
-    status: pending
-  - id: campaigns
-    content: campaign.json в scenario-модуле; метаданные сюжета
-    status: pending
-  - id: save-format
-    content: "Сохранения + contentSetup (модули/версии); docs/SAVE_FORMAT.md"
-    status: pending
-  - id: map-editor
-    content: "Редактор workspace модулей: Undo, units/buildings/theme/scenario, Save/Export tinymod; Publish greyed"
-    status: pending
-  - id: player-colors
-    content: "Color picker в Gum + dimFactor «походил»; база tint в демо уже есть"
-    status: pending
-  - id: network-later
-    content: "Сеть позже: Remote в API; UI greyed only (без проектирования протокола сейчас)"
-    status: pending
-  - id: repo-docs
-    content: docs/ ARCHITECTURE, ADR, AGENTS (в т.ч. git-workflow без auto-commit), MAP/SCRIPT/SAVE formats
-    status: completed
 isProject: false
 ---
 
 # Структура проекта и инфраструктура TinyTBS
+
+## Статус (чеклист)
+
+### Сделано
+
+- [x] Engine + Content + Game + Desktop (ADR 0007)
+- [x] TinyTBS.Content + Content Builder → Desktop/Content
+- [x] IAssetResolver: overlay Modules/{id} → bundled (полный состав партии — later)
+- [x] IUserDataPaths: Content/Modules, Bundles, Saves, Downloads
+- [x] Gum на MGE-экранах
+- [x] Слой команд; positional геймпад; 3 столбца биндов
+- [x] ECS MGE + GameplayScreen
+- [x] Слои Screens: логика / представление / движок
+- [x] ADR 0007 Game vs Engine; GumLayout
+- [x] Канон GDD + CONTENT_MODULE_FORMAT + ADR 0008; tinypack в archive
+- [x] UI_AND_FLOW (экраны, HUD, пауза, магазин, менеджер модулей)
+- [x] Демо: terrain + base/mask + PlayerPalette
+- [x] docs/ ARCHITECTURE, ADR, AGENTS, MAP/SCRIPT/SAVE formats
+
+### Дальше
+
+- [ ] **map-format** — Maps/ в scenario-модуле + загрузчик; логические id
+- [ ] **level-format** — Level + map.ref + загрузчик
+- [ ] **map-scripting** — IScriptEngine + Roslyn; MapScriptContext
+- [ ] **match-ui-gdd** — статус-бар, пауза/миникарта, магазин, инфо, хотсит
+- [ ] **content-mods** — .tinymod.zip + Bundles; экран Контент; состав на Новая игра
+- [ ] **campaigns** — campaign.json в scenario-модуле
+- [ ] **save-format** — сейвы + contentSetup
+- [ ] **map-editor** — workspace модулей; Publish greyed
+- [ ] **player-colors** — color picker + dimFactor «походил»
+- [ ] **network-later** — Remote в API; UI greyed only
 
 ## Цели архитектуры
 
