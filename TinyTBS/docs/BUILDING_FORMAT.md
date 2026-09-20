@@ -2,7 +2,7 @@
 
 Vanilla и моды используют **один** формат, по аналогии с [UNIT_FORMAT.md](UNIT_FORMAT.md). Канон поведения vanilla: [design/WORLD.md](design/WORLD.md).
 
-Сериализация: **один JSON-файл на тип** в контент-паке: `Buildings/{id}.json` ([CONTENT_PACK_FORMAT.md](CONTENT_PACK_FORMAT.md)). Пути к ассетам — от корня пака. Имена полей — черновик.
+Сериализация: **один JSON на тип** в **buildings**-модуле: `Buildings/{localId}.json`. Полный логический id = `{namespace}/{localId}` ([CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md)). Пути к ассетам — от корня модуля. Имена полей — черновик.
 
 ## Пример (замок / деревня)
 
@@ -108,7 +108,7 @@ Vanilla и моды используют **один** формат, по ана�
 
 ## Редактор / пак
 
-Вкладка «Строения»: UI на **полный** набор полей; файлы `Buildings/{id}.json` в паке ([CONTENT_PACK_FORMAT](CONTENT_PACK_FORMAT.md)); ассеты base+mask (импорт копирует в пак, с проверкой пары — [ARTIST_GUIDE](ARTIST_GUIDE.md)). На карте кладётся **id типа** + владелец/state.
+Вкладка / мастер **buildings**-модуля: полный UI; файлы `Buildings/{localId}.json`; base+mask в модуль + проверка пары. На карте — логический id типа + владелец/state. Опционально `recruitFromTags` — [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md).
 
 ## Ограничения v1
 

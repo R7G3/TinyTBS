@@ -60,7 +60,7 @@ todos:
     content: Версионируемые сохранения (match + campaign progress); docs/SAVE_FORMAT.md
     status: pending
   - id: map-editor
-    content: "Редактор пака: Undo, полный UI unit/building, скрипт текст+шаблон, Save локально; Publish greyed"
+    content: "Редактор workspace модулей: Undo, units/buildings/theme/scenario, Save/Export tinymod; Publish greyed"
     status: pending
   - id: player-colors
     content: "Color picker в Gum + dimFactor «походил»; база tint в демо уже есть"
@@ -168,25 +168,18 @@ flowchart TB
 - Магазин замка: окно размера central zone; fallback — полная ширина между статус-баром и нижней панелью. Спавн на замке, сразу выбран; при занятости клетки — обязан сходить.
 - Пауза: Конец хода · **Карта** (миникарта: квадрат постройки / круг юнита / камень под кругом) · Цели · Сохранить/Загрузить (solo; сеть — нет; хотсит — открытый вопрос) · Меню (в главное).
 
-### Редактор / паки / сеть
+### Редактор / модули / сеть
 
-- **Пак** — опциональные части; редактор = плоские вкладки одного пака; **≤1 кампания на пак**.
-- Редактор v1: Undo; без playtest и без копирования областей; импорт ассетов **в пак** + проверка base+mask; полный UI UNIT/BUILDING; скрипт текст+шаблон; Save на диск; **Опубликовать greyed**.
-- Новая карта: мастер только **размер**; команды/игроки = метки владельцев; удаление метки → нейтрал; нейтрал = default / метка / «Удалить».
-- Сеть: только greyed-кнопки в UI (в т.ч. Скачать/Обновить паков); протокол не проектируем сейчас.
-- Хотсит: Save/Load разрешены.
-- Скрипты паков: Уровень 1 + валидация по Уровню 2.
-- Карты — в паке у уровней. User `Maps/` — отдельно.
-- Пак: `.tinypack.zip` / [CONTENT_PACK_FORMAT.md](docs/CONTENT_PACK_FORMAT.md) — `pack.json`, дерево; level → map только ref; один json на unit/building.
-- Ещё открыто (позже): валидация Save; рантайм паков (активный vs стек, конфликты id между паками).
+- Библиотека модулей `.tinymod.zip` — [CONTENT_MODULE_FORMAT.md](docs/CONTENT_MODULE_FORMAT.md); ADR 0008; tinypack в archive.
+- Редактор: workspace; shared → Export в модуль; Undo; валидация не блокирует Save; Publish greyed.
+- Новая игра: scenario + состав (defaults/bundle); типы на карте обязаны резолвиться.
+- Сеть: greyed UI only. Хотсит: Save/Load ок.
 
 ## Моды (сейчас → цель)
 
-**Сейчас:** `IAssetResolver` — Images/Sounds override, `mod.json`, выбор в меню.
+**Сейчас:** `IAssetResolver` — Images/Sounds override.
 
-**Цель (GDD / content packs):** юниты (UNIT_FORMAT), баланс, maps/levels/campaigns, скрипты, ассеты. Vanilla — тот же формат данных. Локализация модов (resx) — позже.
-
-На mobile корневые пути модов другие — контракт тот же, реализация `IUserDataPaths` / install dir.
+**Цель:** модули scenario/units/buildings/theme; vanilla — те же модули.
 
 ## Цвета игроков на спрайтах (юниты и строения)
 

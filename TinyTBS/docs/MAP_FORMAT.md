@@ -1,16 +1,16 @@
 # Формат карты
 
-Карта — каталог `map.json` + `script.cs` (+ опц. `assets/`). В контент-паке: `Maps/{id}/` внутри [`.tinypack.zip`](CONTENT_PACK_FORMAT.md). Вне пака / user Maps: тот же набор файлов в **`.map.zip`** (`System.IO.Compression.ZipArchive`).
+Карта — каталог `map.json` + `script.cs` (+ опц. `assets/`). В **scenario**-модуле: `Maps/{id}/` ([CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md)).
 
-Иерархия: **Map → Level → Campaign**. Сценарий партии — [LEVEL_FORMAT.md](LEVEL_FORMAT.md). Канон: [GAME_DESIGN.md](GAME_DESIGN.md).
+Иерархия: **Map → Level → Campaign** внутри scenario-модуля. [LEVEL_FORMAT.md](LEVEL_FORMAT.md), [GAME_DESIGN.md](GAME_DESIGN.md).
 
-## Содержимое архива
+## Содержимое
 
 | Файл | Обязательный | Описание |
 |------|--------------|----------|
 | `map.json` | да | Слои и метаданные |
 | `script.cs` | да | Логика доски (C#, Roslyn) |
-| `assets/` | нет | Спрайты, уникальные для карты |
+| `assets/` | нет | Уникальные для карты ассеты |
 
 ## map.json (черновик схемы)
 
@@ -34,32 +34,26 @@
 
 Типы местности (GDD): `road`, `grass`, `forest`, `mountain`, `water`, `bridge`.
 
-Стоимость хода и защита — в данных игры / мода (см. [design/WORLD.md](design/WORLD.md)), не обязательно дублировать в каждой клетке.
-
-Представление: плоский массив `width × height` с id типа **или** список `{ "x", "y", "type" }` — уточнить при реализации загрузчика.
-
 ### Слой `buildings`
 
 ```json
-{ "type": "castle", "x": 5, "y": 10, "slot": 0 }
-{ "type": "village", "x": 8, "y": 4, "slot": null, "state": "intact" }
+{ "type": "vanilla/castle", "x": 5, "y": 10, "slot": 0 }
+{ "type": "vanilla/village", "x": 8, "y": 4, "slot": null, "state": "intact" }
 ```
 
-- `slot`: индекс слота игрока для стартового владения (назначается при старте Level/Схватки). `null` — нейтраль / без привязки.
-- Для кампании с фиксированными владельцами допустим явный `ownerId` **или** заполнение слотов level'ом — выбрать одно при реализации.
+- `type` — **логический id** `{namespace}/{localId}` ([CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md)).
+- `slot`: слот владельца; `null` — нейтраль.
 - `state` для деревни: `intact` \| `ruined`.
 
 ### Слой `units`
 
 ```json
-{ "type": "swordsman", "x": 3, "y": 8, "slot": 0, "hp": 100, "xp": 0 }
+{ "type": "vanilla/swordsman", "x": 3, "y": 8, "slot": 0, "hp": 100, "xp": 0 }
 ```
 
-`type` — id из [UNIT_FORMAT.md](UNIT_FORMAT.md) / пакета контента.
+При старте матча каждый `type` должен резолвиться в выбранном составе units/buildings.
 
 ### Слой `memorials` (опционально)
-
-Стартовые экземпляры памятных камней. Правила жизни/подъёма — в логике ([design/COMBAT.md](design/COMBAT.md)), не в map.
 
 ```json
 { "x": 4, "y": 7 }
@@ -69,21 +63,21 @@
 
 | Место | Назначение |
 |-------|------------|
-| `Maps/{id}/` внутри `.tinypack.zip` | Карты контент-пака |
-| `{UserData}/Maps/*.map.zip` | Карты пользователя / экспорт одной карты |
-| `{UserData}/Downloads/` | Временно после сети (позже) |
+| `Maps/{id}/` в scenario-модуле | Канон |
+| `{UserData}/Content/Modules/…` | Установленные / свои scenario-модули |
 
-Не через MonoGame Content Builder — рантайм через `IFileContentProvider`.
+Отдельного «мира» `{UserData}/Maps/` как особого формата нет: своя карта = scenario-модуль.
 
 ## Редактор
 
-Карты правятся во вкладке «Карта» редактора пака ([UI_AND_FLOW](design/UI_AND_FLOW.md)): Undo есть, playtest и копирование областей — нет; скрипт — текст + шаблон. Мастер «Новая карта» задаёт **размер**; команды/игроки — метки владельцев. Level ссылается на map через **`map.ref`** (без embed). Сохранение — в дерево пака / при необходимости экспорт `.map.zip` в `{UserData}/Maps/`.
+В проекте редактора ([UI_AND_FLOW](design/UI_AND_FLOW.md)): Undo; без playtest и копирования областей; скрипт — текст + шаблон; мастер новой карты — размер; метки игроков. Level → `map.ref` внутри scenario-модуля.
 
 ## Связанные документы
 
 - [LEVEL_FORMAT.md](LEVEL_FORMAT.md)
-- [CONTENT_PACK_FORMAT.md](CONTENT_PACK_FORMAT.md)
+- [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md)
 - [SCRIPTING.md](SCRIPTING.md)
 - [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md)
 - [adr/0002-map-format-zip-json.md](adr/0002-map-format-zip-json.md)
 - [adr/0006-map-level-campaign.md](adr/0006-map-level-campaign.md)
+- [adr/0008-content-modules.md](adr/0008-content-modules.md)

@@ -4,7 +4,7 @@
 
 **Жанр:** пошаговая стратегия с упором на тактику.
 
-Связанная архитектура: [ARCHITECTURE.md](ARCHITECTURE.md). Форматы: [MAP_FORMAT.md](MAP_FORMAT.md), [LEVEL_FORMAT.md](LEVEL_FORMAT.md), [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md), [UNIT_FORMAT.md](UNIT_FORMAT.md).
+Связанная архитектура: [ARCHITECTURE.md](ARCHITECTURE.md). Форматы: [MAP_FORMAT.md](MAP_FORMAT.md), [LEVEL_FORMAT.md](LEVEL_FORMAT.md), [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md), [UNIT_FORMAT.md](UNIT_FORMAT.md), [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md).
 
 ## Ключевой цикл
 
@@ -32,7 +32,8 @@
 | [design/UNITS.md](design/UNITS.md) | Vanilla-юниты и data-driven моды |
 | [design/COMBAT.md](design/COMBAT.md) | Формула урона, контратака, XP, памятный камень |
 | [design/TURN_AND_UI.md](design/TURN_AND_UI.md) | Ход, активность юнита, контекстное меню |
-| [design/UI_AND_FLOW.md](design/UI_AND_FLOW.md) | Экраны, ввод, HUD матча, пауза, магазин |
+| [design/UI_AND_FLOW.md](design/UI_AND_FLOW.md) | Экраны, ввод, HUD матча, пауза, магазин, модули |
+| [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md) | Модули `.tinymod.zip`, bundles, рантайм состава |
 | [UNIT_FORMAT.md](UNIT_FORMAT.md) | Схема конфига юнита (vanilla = тот же формат, что мод) |
 | [BUILDING_FORMAT.md](BUILDING_FORMAT.md) | Схема конфига строения (data-driven, как юниты) |
 
@@ -42,11 +43,11 @@
 
 | Сущность | Роль |
 |----------|------|
-| **Map** | Доска: terrain, строения, слоты/стартовые юниты, скрипт доски; опционально стартовые памятные камни. В паке — `Maps/{id}/`. |
-| **Level** | Играбельная партия: **ref** на map в том же паке; игроки/команды; золото; лимит юнитов; win/lose; теги skirmish/campaign; диалоги. Embed map не используем. |
-| **Campaign** | Порядок levels, сюжет/метапрогресс, campaign script — не лобби схватки; в паке ≤1. |
+| **Map** | Доска: terrain, строения, слоты/стартовые юниты, скрипт; в **scenario**-модуле — `Maps/{id}/`. |
+| **Level** | Партия: **ref** на map в том же scenario-модуле; игроки/команды; золото; лимит; win/lose; теги; диалоги. Embed map нет. |
+| **Campaign** | Порядок levels, сюжет/метапрогресс; внутри scenario-модуля. |
 
-Один формат данных; поставка map в level — только reference. Подробнее: [LEVEL_FORMAT.md](LEVEL_FORMAT.md), [CONTENT_PACK_FORMAT.md](CONTENT_PACK_FORMAT.md), [adr/0006-map-level-campaign.md](adr/0006-map-level-campaign.md).
+Поставка map в level — только reference. Моддинг: [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md), [LEVEL_FORMAT.md](LEVEL_FORMAT.md), [adr/0006-map-level-campaign.md](adr/0006-map-level-campaign.md), [adr/0008-content-modules.md](adr/0008-content-modules.md).
 
 ## Игроки и режимы
 
@@ -54,37 +55,31 @@
 
 **Команды:** союзники не атакуют друг друга. Поражение команды по умолчанию — когда побеждены **все** участники; опция уровня/мода — поражение **любого** = поражение команды.
 
-**Кампания** — наборы levels + опциональная метапрогрессия; может быть частью мода.
+**Кампания** — наборы levels + опциональная метапрогрессия; часть **scenario**-модуля.
 
-**Схватка** — один level/map; создатель задаёт состав игроков/команд и может переопределить стартовое золото и лимит юнитов.
+**Схватка** — один level/map из scenario-модуля; создатель задаёт игроков/команды и может переопределить золото и лимит юнитов; состав units/buildings/theme — отдельно (defaults сценария или вручную).
 
-## Моды = content packs
+## Моды = библиотека модулей
 
-Мод (контент-пак) — **`.tinypack.zip`** (или рабочая папка с тем же деревом) «игры на движке» в том же формате данных, что и vanilla. Может содержать любые сочетания частей; **необязательно** заполнять всё.
-
-Канон структуры: [CONTENT_PACK_FORMAT.md](CONTENT_PACK_FORMAT.md).
+Контент — **модули** `.tinymod.zip` с ролью: `scenario` | `units` | `buildings` | `theme`. Канон: [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md).
 
 ```text
-*.tinypack.zip
-  pack.json
-  Resources/          # опционально
-  Units/{id}.json     # опционально, один файл на тип
-  Buildings/{id}.json # опционально, один файл на тип
-  Maps/{id}/          # опционально: map.json + script.cs
-  Levels/{id}/        # опционально: level.json → map.ref
-  Campaign/           # опционально, ≤1 на пак (v1)
+Modules/{moduleId}/     # или *.tinymod.zip при установке
+  module.json
+  …данные по типу…
+
+Bundles/*.bundle.json   # пресеты defaults, не контейнер геймплея
 ```
 
-- Автор может выпустить пак **только с ассетами**, **только с уровнем**, уровень+ассеты и т.д.
-- **v1: один пак ≤ одна кампания**.
-- Карты — в `Maps/` пака; **общей библиотеки карт на все паки нет**. Level ссылается на map только **ref** внутри пака (без embed). User `{UserData}/Maps/` — отдельно (`.map.zip`), не shared между чужими паками.
-- Пути в JSON — от корня пака.
-
-Vanilla TinyTBS — тоже content pack в **том же** формате.
+- Новая игра: **сценарий** + **состав** (units / buildings / theme); пресет из scenario.defaults или bundle; можно изменить.
+- Логические id: `{namespace}/{localId}`; по умолчанию namespace = module.id.
+- Типы на карте должны резолвиться в выбранном составе — иначе старт запрещён.
+- User-контент (своя карта) — тоже scenario-модуль.
+- Vanilla — модули того же формата (`vanilla/knight` и т.д.).
 
 Нестандартный юнит — конфиг (статы + verbs + `special`), не отдельный бой-движок. См. [UNITS.md](design/UNITS.md), [UNIT_FORMAT.md](UNIT_FORMAT.md).
 
-Сейчас в коде в основном override графики/звука; полные content-моды — целевая архитектура. Экраны «Контент-паки» / «Редактор» — [UI_AND_FLOW.md](design/UI_AND_FLOW.md).
+Экраны менеджера контента / редактора — [UI_AND_FLOW.md](design/UI_AND_FLOW.md). Архив старой модели tinypack: [archive/content-pack-v1/](archive/content-pack-v1/README.md).
 
 ## Победа и поражение (стандарт)
 

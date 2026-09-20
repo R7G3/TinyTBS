@@ -128,17 +128,16 @@ flowchart TB
 
 | Каталог | Desktop | Mobile (будущее) |
 |---------|---------|------------------|
-| Mods | `{InstallDir}/Mods/{Name}/` | app data / scoped storage |
-| Maps | `{UserData}/Maps/` | app data |
-| Campaigns | `{UserData}/Campaigns/` | app data |
+| Mods / Modules | `{UserData}/Content/Modules/{moduleId}/` | app data |
+| Bundles | `{UserData}/Content/Bundles/*.bundle.json` | app data |
 | Saves | `{UserData}/Saves/` | app data |
-| Downloads | `{UserData}/Downloads/` | app data |
+| Downloads | `{UserData}/Downloads/` | app data (сеть — позже) |
 
 ## Моды
 
-**Сейчас:** `IAssetResolver` — активный мод → fallback на bundled Content (`Images/`, `Sounds/`, опц. манифест).
+**Сейчас:** `IAssetResolver` — активный мод → fallback на bundled Content (`Images/`, `Sounds/`).
 
-**Цель (GDD):** мод = **content pack** [CONTENT_PACK_FORMAT.md](CONTENT_PACK_FORMAT.md) (`.tinypack.zip` / то же дерево папкой) — юниты, строения, maps/levels/campaign, скрипты, ассеты. Vanilla — тот же формат. Нестандартные юниты — конфиг + declarative `special` / abilities, не отдельный бой-движок.
+**Цель (GDD):** библиотека **модулей** [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md) (`.tinymod.zip`) — scenario / units / buildings / theme. Vanilla — те же модули. Нестандартные юниты — конфиг + declarative `special` / abilities.
 
 ## Цвета игроков на спрайтах
 
@@ -193,11 +192,11 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 4. Слой команд ввода — **выполнено**.
 5. ECS + минимальный match — **выполнено** (демо ≠ полный GDD).
 6. Слои Screens + split `MatchState`/`MatchScene` + pointer — **выполнено**.
-7. Загрузчики map/level + `.tinypack.zip` + сближение матча с GDD.
+7. Загрузчики map/level + библиотека `.tinymod.zip` + сближение матча с GDD.
 8. MapScriptContext + Roslyn sandbox.
-9. Content-моды (данные юнитов + ассеты); редактор пака (Undo, полный UI unit/building, скрипт текст+шаблон, Save локально; Publish greyed).
+9. Content-модули (scenario/units/buildings/theme); редактор workspace.
 10. Кампании и сохранения — после playable loop.
-11. **Сеть** — позже (Remote в API заранее; UI greyed только; протокол не проектируем до этапа).
+11. **Сеть** — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
 
 ## Связанные ADR
 
@@ -208,3 +207,4 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 - [0005 — три слоя: логика / представление / движок](adr/0005-three-layers-logic-presentation-engine.md)
 - [0006 — Map / Level / Campaign](adr/0006-map-level-campaign.md)
 - [0007 — проекты Game и Engine](adr/0007-game-and-engine-projects.md)
+- [0008 — контент-модули вместо tinypack](adr/0008-content-modules.md)

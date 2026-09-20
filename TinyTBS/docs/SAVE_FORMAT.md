@@ -12,15 +12,19 @@
 ## Match save (ожидаемое содержимое)
 
 - `saveVersion`
-- id карты, seed, номер хода
-- состояние ECS: юниты, здания, деньги, владельцы
+- id карты / scenario, seed, номер хода
+- **`contentSetup`**: scenario module id, списки units/buildings/theme module ids, `moduleVersions`
+- состояние ECS: юниты, здания, деньги, владельцы (логические id типов)
 - состояние RNG
 - блок `extensions` — флаги скриптов карты
+
+При загрузке: если версия модуля изменилась — предупреждение → попытка → неудача → в меню. См. [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md).
 
 ## Campaign save (ожидаемое содержимое)
 
 - `saveVersion`
-- id кампании, индекс текущей карты
+- id кампании / scenario-модуля, индекс текущей карты
+- тот же **`contentSetup`**
 - сюжетные флаги
 - переносимые между картами ресурсы (если задумано)
 - ссылка на match save или встроенный snapshot

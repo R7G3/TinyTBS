@@ -2,7 +2,7 @@
 
 Vanilla и моды используют **один** формат. См. [design/UNITS.md](design/UNITS.md), [design/COMBAT.md](design/COMBAT.md).
 
-Сериализация: **один JSON-файл на тип** в контент-паке: `Units/{id}.json` ([CONTENT_PACK_FORMAT.md](CONTENT_PACK_FORMAT.md)). Пути к ассетам — от корня пака. Имена полей ниже — черновик.
+Сериализация: **один JSON на тип** в **units**-модуле: `Units/{localId}.json`. Полный логический id = `{namespace}/{localId}` ([CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md)). Пути к ассетам — от корня модуля. Имена полей — черновик.
 
 ## Пример (лучник)
 
@@ -62,7 +62,7 @@ Vanilla и моды используют **один** формат. См. [desig
 
 ## Редактор / пак
 
-Вкладка «Юниты»: UI на **полный** набор полей; файлы `Units/{id}.json` в паке ([CONTENT_PACK_FORMAT](CONTENT_PACK_FORMAT.md)); ассеты base+mask (импорт копирует в пак, с проверкой пары — [ARTIST_GUIDE](ARTIST_GUIDE.md)).
+Вкладка / мастер **units**-модуля: UI на полный набор полей; файлы `Units/{localId}.json`; ассеты base+mask (импорт в модуль + проверка пары — [ARTIST_GUIDE](ARTIST_GUIDE.md)). Найм: `recruitable` + `tags` — [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md).
 
 ## Ограничения
 

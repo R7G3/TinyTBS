@@ -14,7 +14,7 @@
 - **JSON** — `map.json`, слои `surface`, `buildings`, `units`.
 - **script.cs** — логика карты в том же архиве.
 
-Расширение вне пака: `.map.zip` (или `.tbsmap`). Внутри `.tinypack.zip` тот же набор файлов лежит как каталог `Maps/{id}/` — см. [CONTENT_PACK_FORMAT.md](../CONTENT_PACK_FORMAT.md).
+Расширение вне модулей (legacy/экспорт): `.map.zip`. В scenario-модуле — каталог `Maps/{id}/` — [CONTENT_MODULE_FORMAT.md](../CONTENT_MODULE_FORMAT.md).
 
 ## Альтернативы
 

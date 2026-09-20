@@ -16,9 +16,9 @@
 2. **Level** — сценарий партии: **только ref** на map; игроки/команды; золото; лимит юнитов; win/lose; mode tags; диалоги. Embed map внутрь level **не используем**.
 3. **Campaign** — упорядоченные level id, метапрогресс, campaign script; в паке — `Campaign/` (≤1 на пак в v1).
 
-Контент-пак: [CONTENT_PACK_FORMAT.md](../CONTENT_PACK_FORMAT.md) (`.tinypack.zip`). Ref map **наружу из пака** запрещён.
+Контент-модули: [CONTENT_MODULE_FORMAT.md](../CONTENT_MODULE_FORMAT.md) (`.tinymod.zip`). Map живёт в scenario-модуле как каталог `Maps/{id}/`. Ref map наружу из модуля запрещён.
 
 ## Последствия
 
-- Документы: [LEVEL_FORMAT.md](../LEVEL_FORMAT.md), [MAP_FORMAT.md](../MAP_FORMAT.md), [CAMPAIGN_FORMAT.md](../CAMPAIGN_FORMAT.md), [CONTENT_PACK_FORMAT.md](../CONTENT_PACK_FORMAT.md), [GAME_DESIGN.md](../GAME_DESIGN.md).
+- Документы: [LEVEL_FORMAT.md](../LEVEL_FORMAT.md), [MAP_FORMAT.md](../MAP_FORMAT.md), [CAMPAIGN_FORMAT.md](../CAMPAIGN_FORMAT.md), [CONTENT_MODULE_FORMAT.md](../CONTENT_MODULE_FORMAT.md), [GAME_DESIGN.md](../GAME_DESIGN.md), [adr/0008-content-modules.md](0008-content-modules.md).
 - Загрузчик level всегда резолвит `map.ref` относительно корня пака (или контейнера поставки).
