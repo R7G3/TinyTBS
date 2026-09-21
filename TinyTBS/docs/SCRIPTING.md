@@ -2,24 +2,29 @@
 
 Логика отдельной карты — **`script.cs`** рядом с `map.json` в scenario-модуле (`Maps/{id}/`).
 
+**Статус в коде:** загрузка + компиляция + хуки в матче работают (`TinyTBS.Game.Scripting`). Демо: `Fixtures/Maps/demo/script.cs`.
+
 ## Движок
 
-- Сейчас: **C#** через `Microsoft.CodeAnalysis.CSharp.Scripting` (Roslyn).
+- Сейчас: **C#** через Roslyn **`Microsoft.CodeAnalysis.CSharp`** (компиляция в DLL в памяти → `IMapScriptHooks`).
 - Абстракция **`IScriptEngine`** — для Lua / JavaScript / Python в будущем.
+- Хост: `MapScriptHost` (таймаут на хук); матч вызывает хуки через `GameplaySession` (старт / конец хода / confirm).
 
 ## Хуки
 
 | Хук | Когда вызывается |
 |-----|------------------|
-| `OnPlayerTurnStart` | В начале хода игрока |
-| `OnAfterPlayerAction` | После каждого действия игрока (ход, атака, захват и т.д.) |
+| `OnPlayerTurnStart` | Старт матча (ход игрока 0) и после `EndTurn` |
+| `OnAfterPlayerAction` | После успешного действия (сейчас: выбор юнита, ход на 1 клетку) |
 
-Сигнатуры (концепт):
+Сигнатуры (в исходнике карты — **`public`** методы; хост вставляет их в сгенерированный класс):
 
 ```csharp
-void OnPlayerTurnStart(MapScriptContext context);
-void OnAfterPlayerAction(MapScriptContext context);
+public void OnPlayerTurnStart(MapScriptContext context);
+public void OnAfterPlayerAction(MapScriptContext context);
 ```
+
+Пустой / только-комментарии `script.cs` → no-op. Файл отсутствует → no-op.
 
 ## MapScriptContext
 
@@ -29,17 +34,17 @@ void OnAfterPlayerAction(MapScriptContext context);
 |------|----------|
 | `PlayerId` | Чей ход / кто совершил действие |
 | `Money` | Ресурсы текущего игрока |
-| `MoneyByPlayer` | Readonly по всем игрокам (опционально) |
+| `MoneyByPlayer` | Readonly по всем игрокам |
 | `Map` | Readonly: размер, surface |
-| `Units` | id, type, position, hp, owner, flags |
+| `Units` | id, type, position, hp, owner |
 | `Buildings` | type, position, owner, state |
 | `LastAction` | Только в `OnAfterPlayerAction`: тип, источник, цель, результат |
+| `WinnerPlayerIndex` / `VictoryReason` | После `SetVictory` |
 
-**Чтение** — через свойства контекста. **Изменение** — только через методы API, например:
+**Чтение** — через свойства контекста. **Изменение** — только через методы API:
 
 - `context.AddMoney(playerId, amount)`
 - `context.SetVictory(playerId, reason)`
-- (полный список — при реализации)
 
 ## Песочница
 
@@ -47,14 +52,15 @@ void OnAfterPlayerAction(MapScriptContext context);
 
 - файловой системе (`File`, `Directory`);
 - сети (`HttpClient`, …);
-- процессам, произвольной загрузке сборок.
+- процессам, произвольной загрузке сборок;
+- нативному / JNI-коду (Linux/Android).
 
 ### Политика для модулей (зафиксировано)
 
 Для скриптов в **любых** модулях (vanilla, установленные):
 
 1. **Уровень 1** — обязательно.
-2. **Уровень 2** — валидация текста + ScriptOptions / таймаут / запрет `#r`.
+2. **Уровень 2** — валидация текста + ограниченный набор metadata references / таймаут / запрет `#r`.
 
 В скриптах предпочитать **теги и слоты**, не жёсткие логические id (иначе replace/смена состава ломает сюжет). Перед хуками мир уже после replaces.
 
@@ -83,6 +89,8 @@ void OnAfterPlayerAction(MapScriptContext context);
 | Обход `using`-фильтра | `global::System.IO.File…` без import | обе |
 
 Статический разбор **не заменяет** изоляцию процесса: для публичного UGC на Android предпочтительнее Lua/JS или precompile DLL без Roslyn в рантайме.
+
+Cold start Roslyn при первом матче — [ideas/match-loading-roslyn-progress.md](ideas/match-loading-roslyn-progress.md).
 
 ### Если C# недостаточно изолирован
 

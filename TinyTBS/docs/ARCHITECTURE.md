@@ -59,7 +59,7 @@ flowchart LR
 
 **Где в solution:**
 
-- Логика + представление — `TinyTBS.Game/` (`Match/`, `Screens/`, `Presentation/`, `ViewModels/`, `Input/` команд, `Assets/`)
+- Логика + представление — `TinyTBS.Game/` (`Match/`, `Maps/`, `Levels/`, `Scripting/`, `Screens/`, `Presentation/`, `ViewModels/`, `Input/` команд, `Assets/`)
 - Инфраструктура кадра / файлов — `TinyTBS.Engine/` (`Rendering/`, `Ecs/`, `GumLayout/`, `Input/` pointer, `IO/`)
 - Склейка матча (`MatchScene`, session factory) — в Game, вызывает Engine
 
@@ -95,8 +95,8 @@ Bundled pipeline: исходники в **TinyTBS.Content** → builder пише
 | Расширения | MonoGame.Extended 6 (экраны, ECS) |
 | UI | Gum.MonoGame + тонкий UI-state (ручная синхронизация; не MVVM-архитектура) |
 | Контент | C# Content Builder (`TinyTbsContentBuilder`, RegexRule), .xnb → Desktop |
-| Карты | ZIP + JSON + script.cs |
-| Скрипты | Roslyn (C#), IScriptEngine для других языков позже |
+| Карты / уровни | Каталог `Maps/{id}/`, `Levels/{id}/` в scenario; JSON + `script.cs` (ZIP `.map.zip` — legacy/экспорт) |
+| Скрипты | Roslyn `Microsoft.CodeAnalysis.CSharp` → `IMapScriptHooks`; `IScriptEngine` для других языков позже |
 | Локализация | resx |
 
 ## Потоки данных
@@ -148,9 +148,11 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 ## ECS (MGE)
 
-- `TinyTBS.Game.Match`: `GridCell`, `MatchDefaults` (без пикселей), `MatchUnit`, `MatchState` — **логика** (демо; полный GDD — впереди)
+- `TinyTBS.Game.Match`: `GridCell`, `MatchDefaults`, `MatchUnit` / `MatchBuilding`, `MatchState` — **логика** (демо-правила; полный GDD — впереди)
+- `TinyTBS.Game.Maps` / `Levels`: загрузка `map.json` / `level.json` (`map.ref` → map); фикстуры в `Game/Fixtures/`
+- `TinyTBS.Game.Scripting`: `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost`, `MapScriptContext` + валидатор песочницы
 - `TinyTBS.Engine.Ecs`: `TilemapDrawSystem`, `TeamMaskedSpriteDrawSystem` (base + tint mask)
-- `MatchScene` / `GameplaySessionFactory` — в Game: атлас текстур + демо-карта; `MatchCommandApplicator` — команды/pointer→логика
+- `MatchScene` / `GameplaySessionFactory` — в Game: level → map → скрипт → атлас → сцена; `MatchCommandApplicator` — команды/pointer→логика (+ хуки скрипта)
 - `GameplayScreen` / `MainMenuScreen` — тонкая склейка lifecycle; Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
 
 ## Ввод
@@ -191,11 +193,12 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 4. Слой команд ввода — **выполнено**.
 5. ECS + минимальный match — **выполнено** (демо ≠ полный GDD).
 6. Слои Screens + split `MatchState`/`MatchScene` + pointer — **выполнено**.
-7. Загрузчики map/level + библиотека `.tinymod.zip` + сближение матча с GDD.
-8. MapScriptContext + Roslyn sandbox.
-9. Content-модули (scenario/units/buildings/theme); редактор workspace.
-10. Кампании и сохранения — после playable loop.
-11. **Сеть** — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
+7. Загрузчики map + level (`map.ref`) + фикстуры; старт матча из level — **выполнено** (библиотека `.tinymod.zip` — ещё нет).
+8. `MapScriptContext` + Roslyn sandbox + хуки в матче — **выполнено** (cold start Roslyn — см. [ideas/match-loading-roslyn-progress.md](ideas/match-loading-roslyn-progress.md)).
+9. Матч UI по канону GDD + сближение правил с GDD — **впереди**.
+10. Content-модули (scenario/units/buildings/theme) + `.tinymod.zip` + Bundles; редактор workspace.
+11. Кампании и сохранения — после playable loop.
+12. **Сеть** — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
 
 ## Связанные ADR
 

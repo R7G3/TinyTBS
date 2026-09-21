@@ -1,8 +1,10 @@
-# Формат уровня (Level) — черновик
+# Формат уровня (Level)
 
 См. [GAME_DESIGN.md](GAME_DESIGN.md), [MAP_FORMAT.md](MAP_FORMAT.md), [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md), [adr/0006-map-level-campaign.md](adr/0006-map-level-campaign.md).
 
 **Level** — одна играбельная партия внутри **scenario**-модуля. Map подключается только по **`map.ref`** (embed нет).
+
+**Статус в коде:** парсер/лоадер (`TinyTBS.Game.Levels`), резолв `map.ref` только внутри модуля; демо `Fixtures/Levels/demo/` → `Maps/demo`. Старт матча идёт через level.
 
 ## В scenario-модуле
 
@@ -17,7 +19,7 @@ Levels/{levelId}/
 
 Путь — от корня **этого** scenario-модуля.
 
-## level.json (черновик)
+## level.json (схема v1)
 
 ```json
 {

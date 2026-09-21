@@ -335,8 +335,8 @@ ScriptOptions.Default
 5. ECS + минимальный match + демо-арты terrain/base+mask — **выполнено** (демо ≠ полный GDD).
 6. layer-split Screens + MatchState/MatchScene; ADR 0007 Game/Engine — **выполнено**.
 7. `UI_AND_FLOW.md` (экраны, HUD, пауза, магазин) — **выполнено** (канон); реализация матч-UI — pending.
-8. Maps/Levels в scenario-модуле + загрузчики + сближение матча с GDD.
-9. **MapScriptContext** + Roslyn sandbox + хуки.
+8. Maps/Levels загрузчики + фикстуры; старт матча из level — **выполнено** (`.tinymod.zip` / полный GDD-матч — впереди).
+9. **MapScriptContext** + Roslyn sandbox + хуки — **выполнено**.
 10. Матч UI по канону + playable loop.
 11. Библиотека `.tinymod.zip` + Bundles + экран Контент + редактор workspace.
 12. Кампании и сохранения (`contentSetup`) — после playable loop.
@@ -346,7 +346,7 @@ ScriptOptions.Default
 
 - [ARCHITECTURE.md](../../docs/ARCHITECTURE.md), [GAME_DESIGN.md](../../docs/GAME_DESIGN.md), [docs/design/](../../docs/design/) (**в т.ч. [UI_AND_FLOW.md](../../docs/design/UI_AND_FLOW.md)**, [TURN_AND_UI.md](../../docs/design/TURN_AND_UI.md))
 - [CONTENT_MODULE_FORMAT.md](../../docs/CONTENT_MODULE_FORMAT.md), [archive/content-pack-v1/](../../docs/archive/content-pack-v1/) (устаревший tinypack)
-- [docs/ideas/](../../docs/ideas/) — отложенные идеи (**не** канон; напр. frosted glass)
+- [docs/ideas/](../../docs/ideas/) — отложенные идеи (**не** канон; frosted glass, [загрузка матча / Roslyn](../../docs/ideas/match-loading-roslyn-progress.md))
 - [MAP_FORMAT.md](../../docs/MAP_FORMAT.md), [LEVEL_FORMAT.md](../../docs/LEVEL_FORMAT.md), [UNIT_FORMAT.md](../../docs/UNIT_FORMAT.md), [BUILDING_FORMAT.md](../../docs/BUILDING_FORMAT.md), [CAMPAIGN_FORMAT.md](../../docs/CAMPAIGN_FORMAT.md)
 - [SCRIPTING.md](../../docs/SCRIPTING.md), [SAVE_FORMAT.md](../../docs/SAVE_FORMAT.md), [ARTIST_GUIDE.md](../../docs/ARTIST_GUIDE.md)
 - [docs/adr/](../../docs/adr/) — 0005–**0008** (модули)

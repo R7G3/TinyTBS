@@ -16,11 +16,15 @@
 | Документ | Содержание |
 |----------|------------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архитектура, стек, порядок внедрения |
+| [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) | Геймдизайн (канон) |
+| [docs/CONTENT_MODULE_FORMAT.md](docs/CONTENT_MODULE_FORMAT.md) | Контент-модули `.tinymod.zip` |
 | [docs/ARTIST_GUIDE.md](docs/ARTIST_GUIDE.md) | Правила для художника (PNG, base + mask) |
-| [docs/MAP_FORMAT.md](docs/MAP_FORMAT.md) | Формат карты `.map.zip` |
+| [docs/MAP_FORMAT.md](docs/MAP_FORMAT.md) | Формат карты (`Maps/{id}/`) |
+| [docs/LEVEL_FORMAT.md](docs/LEVEL_FORMAT.md) | Формат уровня (`Levels/{id}/`, `map.ref`) |
 | [docs/SCRIPTING.md](docs/SCRIPTING.md) | Скрипты карт, хуки, песочница |
 | [docs/CAMPAIGN_FORMAT.md](docs/CAMPAIGN_FORMAT.md) | Кампании (черновик) |
 | [docs/SAVE_FORMAT.md](docs/SAVE_FORMAT.md) | Сохранения (черновик) |
+| [docs/ideas/](docs/ideas/) | Отложенные идеи (не канон) |
 | [docs/adr/](docs/adr/) | Architecture Decision Records |
 | [AGENTS.md](AGENTS.md) | Правила для AI и разработчиков |
 
@@ -28,11 +32,9 @@
 
 ```bash
 cd D:\Sources\TinyTBS\TinyTBS
-dotnet build
-dotnet run
+dotnet build TinyTBS.Desktop/TinyTBS.Desktop.csproj
+dotnet run --project TinyTBS.Desktop/TinyTBS.Desktop.csproj
 ```
-
-(Точная команда может измениться после разнесения на несколько проектов — см. ARCHITECTURE.md.)
 
 ## Стек (целевой)
 
