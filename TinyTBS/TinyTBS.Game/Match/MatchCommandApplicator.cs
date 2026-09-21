@@ -5,24 +5,25 @@ using TinyTBS.Game.Input;
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Applies logical game commands / pointer picks to <see cref="MatchState"/> (no devices, no draw).
+/// Applies logical game commands / pointer picks to a <see cref="GameplaySession"/> (no devices, no draw).
 /// </summary>
 public static class MatchCommandApplicator
 {
     /// <summary>
     /// Returns true when the player requested leaving the match (Back).
     /// </summary>
-    public static bool Apply(MatchState match, IGameCommandSource commands)
+    public static bool Apply(GameplaySession session, IGameCommandSource commands)
     {
         if (commands.WasPressed(GameCommand.Back))
             return true;
 
         if (commands.WasPressed(GameCommand.EndTurn))
-            match.EndTurn();
+            session.EndTurn();
 
         if (commands.WasPressed(GameCommand.Confirm))
-            match.HandleConfirm();
+            session.Confirm();
 
+        var match = session.State;
         if (commands.WasPressed(GameCommand.NavigateUp))
             match.MoveCursor(0, -1);
         if (commands.WasPressed(GameCommand.NavigateDown))

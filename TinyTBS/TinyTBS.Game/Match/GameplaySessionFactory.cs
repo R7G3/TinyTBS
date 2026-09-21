@@ -4,6 +4,7 @@ using TinyTBS.Engine.IO;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Levels;
+using TinyTBS.Game.Scripting;
 
 namespace TinyTBS.Game.Match;
 
@@ -23,11 +24,23 @@ public static class GameplaySessionFactory
     {
         var fixturesRoot = files.Combine(AppContext.BaseDirectory, "Fixtures");
         var level = LevelFolderLoader.LoadFromModuleLevels(fixturesRoot, DemoLevelId, files);
-        var state = MatchState.FromMap(level.Map);
+        var state = MatchState.FromMap(
+            level.Map,
+            playerCount: level.Players.DefaultSlots,
+            startingGold: level.DefaultStartingGold);
+
+        var scriptEngine = new RoslynMapScriptEngine();
+        var scriptHost = MapScriptHost.LoadForMap(
+            state,
+            level.Map.ScriptPath,
+            files,
+            scriptEngine);
+        scriptHost.NotifyMatchStarted(state);
+
         var textures = MatchTextureAtlas.Load(graphicsDevice, content, assets);
         var scene = new MatchScene(state, graphicsDevice, spriteBatch, textures);
         var cursorHighlight = new CursorHighlightRenderer(graphicsDevice);
 
-        return new GameplaySession(state, scene, cursorHighlight, textures);
+        return new GameplaySession(state, scene, cursorHighlight, textures, scriptHost);
     }
 }

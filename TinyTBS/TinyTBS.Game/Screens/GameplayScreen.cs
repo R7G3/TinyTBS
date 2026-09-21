@@ -40,7 +40,7 @@ public sealed class GameplayScreen : GameScreen
 
         _hudView.Build(
             _hud,
-            onEndTurn: () => _session?.State.EndTurn(),
+            onEndTurn: () => _session?.EndTurn(),
             onMenu: ReturnToMenu);
         SyncHud();
     }
@@ -58,12 +58,11 @@ public sealed class GameplayScreen : GameScreen
         if (_session is null)
             return;
 
-        var match = _session.State;
         var scene = _session.Scene;
 
         scene.PrepareFrame(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
 
-        if (MatchCommandApplicator.Apply(match, TinyGame.Commands))
+        if (MatchCommandApplicator.Apply(_session, TinyGame.Commands))
         {
             ReturnToMenu();
             return;
@@ -72,7 +71,7 @@ public sealed class GameplayScreen : GameScreen
         if (_session is null)
             return;
 
-        MatchCommandApplicator.ApplyPointer(match, TinyGame.Pointer, scene.Layout);
+        MatchCommandApplicator.ApplyPointer(_session.State, TinyGame.Pointer, scene.Layout);
 
         if (_session is null)
             return;

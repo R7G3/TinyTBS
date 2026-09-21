@@ -65,11 +65,24 @@ void OnAfterPlayerAction(MapScriptContext context);
 
 ### Уровень 2 — Roslyn + валидация текста
 
-- Минимальные `ScriptOptions.WithReferences` / `WithImports`.
+- Минимальные ссылки компиляции / без произвольных `using`.
 - Шаблон без `using System.IO`.
-- **Статический разбор** исходника: отклонять небезопасные `using` и вызовы (IO, сеть, процессы, загрузка сборок и т.п.).
+- **Статический разбор** исходника (`MapScriptSourceValidator`): IO, сеть, процессы, reflection/emit, P/Invoke, `unsafe`, Linux `/proc|/sys|/dev`, Android/JNI (`Java.*`, `Android.*`, `content://`, …).
 - **Таймаут** на каждый вызов.
 - Запрет `#r` где возможно.
+
+#### Риски на Linux / Android (зачем эти проверки)
+
+| Риск | Пример | Платформа |
+|------|--------|-----------|
+| Чтение системы / секретов | `File` → `/proc`, `/etc`; `Environment.GetEnvironmentVariable` | Linux, Android |
+| Запуск процессов | `Process.Start`, `Os.exec` | Linux, Android |
+| Нативный код | `DllImport("libc")`, `libandroid`, `NativeLibrary` | обе |
+| JNI / смена Activity | `Intent`, `JNIEnv`, `Java.Lang.Runtime` | Android |
+| DoS / зависание хука | бесконечный цикл, `Thread` — частично таймаутом | обе |
+| Обход `using`-фильтра | `global::System.IO.File…` без import | обе |
+
+Статический разбор **не заменяет** изоляцию процесса: для публичного UGC на Android предпочтительнее Lua/JS или precompile DLL без Roslyn в рантайме.
 
 ### Если C# недостаточно изолирован
 
@@ -80,15 +93,17 @@ void OnAfterPlayerAction(MapScriptContext context);
 
 ## Шаблон script.cs
 
+Методы компилируются как члены сгенерированного класса `IMapScriptHooks` — объявляйте их **`public`**.
+
 ```csharp
 // Без using System.IO и System.Net
 
-void OnPlayerTurnStart(MapScriptContext context)
+public void OnPlayerTurnStart(MapScriptContext context)
 {
     // ...
 }
 
-void OnAfterPlayerAction(MapScriptContext context)
+public void OnAfterPlayerAction(MapScriptContext context)
 {
     // var action = context.LastAction;
 }

@@ -10,6 +10,12 @@ public static class LevelMapRefResolver
 {
     public const string MapsFolderName = "Maps";
 
+    private static readonly char[] LogicalPathSeparators =
+    [
+        Path.DirectorySeparatorChar,
+        Path.AltDirectorySeparatorChar,
+    ];
+
     public static string ResolveMapDirectory(
         string scenarioModuleRoot,
         string mapRef,
@@ -19,22 +25,18 @@ public static class LevelMapRefResolver
         ArgumentException.ThrowIfNullOrWhiteSpace(mapRef);
         ArgumentNullException.ThrowIfNull(files);
 
-        var normalizedRef = mapRef
-            .Replace('\\', '/')
-            .Trim()
-            .TrimStart('/');
-
-        if (normalizedRef.Length == 0)
+        var trimmedRef = mapRef.Trim().TrimStart(LogicalPathSeparators);
+        if (trimmedRef.Length == 0)
             throw new LevelLoadException("map.ref is empty.");
 
-        if (normalizedRef.Contains("..", StringComparison.Ordinal)
+        if (trimmedRef.Contains("..", StringComparison.Ordinal)
             || Path.IsPathRooted(mapRef))
         {
             throw new LevelLoadException(
                 $"map.ref '{mapRef}' must be a relative path inside the scenario module (no '..' or absolute paths).");
         }
 
-        var segments = normalizedRef.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var segments = trimmedRef.Split(LogicalPathSeparators, StringSplitOptions.RemoveEmptyEntries);
         if (segments.Length < 2
             || !string.Equals(segments[0], MapsFolderName, StringComparison.OrdinalIgnoreCase))
         {
@@ -46,7 +48,11 @@ public static class LevelMapRefResolver
         var fullScenarioRoot = Path.GetFullPath(scenarioModuleRoot);
         var fullMapDirectory = Path.GetFullPath(mapDirectory);
 
-        if (!fullMapDirectory.StartsWith(fullScenarioRoot, StringComparison.OrdinalIgnoreCase))
+        // Ensure trailing separator so "Maps/demo2" is not treated as inside "Maps/demo".
+        var scenarioRootPrefix = fullScenarioRoot.TrimEnd(LogicalPathSeparators)
+            + Path.DirectorySeparatorChar;
+        if (!fullMapDirectory.StartsWith(scenarioRootPrefix, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(fullMapDirectory, fullScenarioRoot, StringComparison.OrdinalIgnoreCase))
         {
             throw new LevelLoadException(
                 $"map.ref '{mapRef}' resolves outside the scenario module root.");

@@ -28,7 +28,7 @@ isProject: false
 
 - [x] **map-format** — Maps/ в scenario-модуле + загрузчик; логические id
 - [x] **level-format** — Level + map.ref + загрузчик
-- [ ] **map-scripting** — IScriptEngine + Roslyn; MapScriptContext
+- [x] **map-scripting** — IScriptEngine + Roslyn; MapScriptContext
 - [ ] **match-ui-gdd** — статус-бар, пауза/миникарта, магазин, инфо, хотсит
 - [ ] **content-mods** — .tinymod.zip + Bundles; экран Контент; состав на Новая игра
 - [ ] **campaigns** — campaign.json в scenario-модуле

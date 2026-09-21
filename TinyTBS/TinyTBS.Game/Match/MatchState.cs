@@ -12,7 +12,9 @@ public sealed class MatchState
     private readonly TerrainKind[,] _terrain;
     private readonly List<MatchBuilding> _buildings = [];
     private readonly List<MatchUnit> _units = [];
+    private readonly Dictionary<int, int> _moneyByPlayer = new();
     private int _nextUnitId;
+    private int _playerCount = MatchDefaults.PlayerCount;
 
     private MatchState(int width, int height)
     {
@@ -22,16 +24,25 @@ public sealed class MatchState
     }
 
     /// <summary>Builds match state from a loaded map (vanilla/* ids → enums).</summary>
-    public static MatchState FromMap(MapDefinition map)
+    public static MatchState FromMap(
+        MapDefinition map,
+        int playerCount = MatchDefaults.PlayerCount,
+        int startingGold = 0)
     {
         ArgumentNullException.ThrowIfNull(map);
+        if (playerCount < 1)
+            throw new ArgumentOutOfRangeException(nameof(playerCount));
 
         var match = new MatchState(map.Width, map.Height)
         {
             Cursor = new GridCell(
                 Math.Clamp(map.Width / 2, 0, Math.Max(0, map.Width - 1)),
                 Math.Clamp(map.Height / 2, 0, Math.Max(0, map.Height - 1))),
+            _playerCount = playerCount,
         };
+
+        for (var playerIndex = 0; playerIndex < playerCount; playerIndex++)
+            match._moneyByPlayer[playerIndex] = startingGold;
 
         for (var y = 0; y < map.Height; y++)
         {
@@ -67,26 +78,60 @@ public sealed class MatchState
 
     public IReadOnlyList<MatchUnit> Units => _units;
 
+    public IReadOnlyDictionary<int, int> MoneyByPlayer => _moneyByPlayer;
+
     public int CurrentPlayer { get; private set; }
 
     public int? SelectedUnitId { get; private set; }
 
     public GridCell Cursor { get; private set; }
 
+    public MatchPlayerAction? LastAction { get; private set; }
+
+    public int? WinnerPlayerIndex { get; private set; }
+
+    public string? VictoryReason { get; private set; }
+
     public TerrainKind GetTerrain(GridCell cell) => _terrain[cell.X, cell.Y];
 
     public TerrainKind GetTerrain(int x, int y) => _terrain[x, y];
+
+    public int GetMoney(int playerIndex)
+    {
+        EnsureKnownPlayer(playerIndex);
+        return _moneyByPlayer[playerIndex];
+    }
+
+    public void AddMoney(int playerIndex, int amount)
+    {
+        EnsureKnownPlayer(playerIndex);
+        _moneyByPlayer[playerIndex] = checked(_moneyByPlayer[playerIndex] + amount);
+    }
+
+    public void SetVictory(int playerIndex, string reason)
+    {
+        EnsureKnownPlayer(playerIndex);
+        WinnerPlayerIndex = playerIndex;
+        VictoryReason = string.IsNullOrWhiteSpace(reason) ? "victory" : reason.Trim();
+    }
 
     public string StatusText
     {
         get
         {
-            if (SelectedUnitId is int unitId && TryGetUnit(unitId, out var unit))
+            if (WinnerPlayerIndex is int winner)
             {
-                return $"P{CurrentPlayer + 1} — {unit.Kind} at {unit.Cell} ({GetTerrain(unit.Cell)})";
+                var reason = string.IsNullOrWhiteSpace(VictoryReason) ? "victory" : VictoryReason;
+                return $"P{winner + 1} wins ({reason})";
             }
 
-            return $"P{CurrentPlayer + 1} — select a unit ({GetTerrain(Cursor)} @ {Cursor})";
+            var gold = GetMoney(CurrentPlayer);
+            if (SelectedUnitId is int unitId && TryGetUnit(unitId, out var unit))
+            {
+                return $"P{CurrentPlayer + 1} · {gold}g — {unit.Kind} at {unit.Cell} ({GetTerrain(unit.Cell)})";
+            }
+
+            return $"P{CurrentPlayer + 1} · {gold}g — select a unit ({GetTerrain(Cursor)} @ {Cursor})";
         }
     }
 
@@ -99,6 +144,8 @@ public sealed class MatchState
 
     public void HandleConfirm()
     {
+        LastAction = null;
+
         if (SelectedUnitId is null)
         {
             TrySelectUnitAt(Cursor);
@@ -112,8 +159,15 @@ public sealed class MatchState
 
     public void EndTurn()
     {
-        CurrentPlayer = (CurrentPlayer + 1) % MatchDefaults.PlayerCount;
+        LastAction = null;
+        CurrentPlayer = (CurrentPlayer + 1) % _playerCount;
         SelectedUnitId = null;
+    }
+
+    private void EnsureKnownPlayer(int playerIndex)
+    {
+        if (!_moneyByPlayer.ContainsKey(playerIndex))
+            throw new ArgumentOutOfRangeException(nameof(playerIndex), playerIndex, "Unknown player.");
     }
 
     private MatchUnit AddUnit(UnitKind kind, GridCell cell, int playerIndex)
@@ -149,6 +203,14 @@ public sealed class MatchState
                 return;
 
             SelectedUnitId = unit.Id;
+            LastAction = new MatchPlayerAction
+            {
+                Kind = MatchPlayerActionKind.SelectUnit,
+                PlayerIndex = CurrentPlayer,
+                UnitId = unit.Id,
+                Source = cell,
+                Target = cell,
+            };
             return;
         }
     }
@@ -164,8 +226,17 @@ public sealed class MatchState
         if (IsOccupiedByUnit(destination, exceptUnitId: unitId))
             return;
 
+        var source = unit.Cell;
         unit.Cell = destination;
         SelectedUnitId = null;
+        LastAction = new MatchPlayerAction
+        {
+            Kind = MatchPlayerActionKind.MoveUnit,
+            PlayerIndex = CurrentPlayer,
+            UnitId = unitId,
+            Source = source,
+            Target = destination,
+        };
     }
 
     private bool IsOccupiedByUnit(GridCell cell, int? exceptUnitId = null)
