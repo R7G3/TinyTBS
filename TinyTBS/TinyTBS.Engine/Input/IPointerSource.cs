@@ -19,5 +19,11 @@ public interface IPointerSource
     /// <summary>True if primary, secondary, or middle became pressed this frame.</summary>
     bool WasAnyButtonPressed { get; }
 
+    /// <summary>
+    /// Mouse wheel delta this frame (MonoGame: positive = scroll up / away from user).
+    /// Zero when unchanged.
+    /// </summary>
+    int ScrollWheelDelta { get; }
+
     ScreenPoint Position { get; }
 }

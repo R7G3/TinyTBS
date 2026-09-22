@@ -40,7 +40,7 @@ public sealed class MatchScene : IDisposable
 
         World = new WorldBuilder()
             .AddSystem(new TilemapDrawSystem(graphicsDevice, spriteBatch, _layout, tiles))
-            .AddSystem(new TeamMaskedSpriteDrawSystem(spriteBatch))
+            .AddSystem(new TeamMaskedSpriteDrawSystem(spriteBatch, _layout))
             .Build();
 
         foreach (var building in state.Buildings)

@@ -86,6 +86,16 @@ public sealed class GameplayMatchController
             return;
 
         var scene = _session.Scene;
+        var boardInputEnabled = !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud);
+
+        // Zoom before layout prepare so hit-tests and draws use the updated tile size.
+        MatchCommandApplicator.ApplyZoom(
+            scene.Layout,
+            _game.Commands,
+            _game.Pointer,
+            gameTime,
+            boardInputEnabled);
+
         scene.PrepareFrame(_graphicsDevice.Viewport.Width, _graphicsDevice.Viewport.Height);
 
         HandleOverlayCommands();
@@ -122,7 +132,6 @@ public sealed class GameplayMatchController
         if (_session is null)
             return;
 
-        var boardInputEnabled = !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud);
         var allowBoardConfirm = !uiHeldConfirm && !TryConsumeCastleUnitActionChooserOpen();
 
         MatchCommandApplicator.Apply(

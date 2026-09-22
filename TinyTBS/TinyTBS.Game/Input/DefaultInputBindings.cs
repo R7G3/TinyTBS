@@ -48,6 +48,11 @@ internal static class DefaultInputBindings
 
             GameCommand.EndTurn => keyboard.IsKeyDown(Keys.E),
 
+            // Analog triggers: held while past deadzone (continuous zoom in ApplyZoom).
+            GameCommand.ZoomIn => gamePad.Triggers.Right > 0.25f,
+
+            GameCommand.ZoomOut => gamePad.Triggers.Left > 0.25f,
+
             _ => false,
         };
     }

@@ -15,4 +15,6 @@ public enum GameCommand
     Pause,
     Info,
     EndTurn,
+    ZoomIn,
+    ZoomOut,
 }

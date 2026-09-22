@@ -4,10 +4,10 @@
 
 ## Важно: два solution в одном репозитории
 
-| Путь | Назначение | Работаем здесь? |
+| Путь (от корня git-репозитория) | Назначение | Работаем здесь? |
 |------|------------|-----------------|
-| `D:\Sources\TinyTBS\TinyTBS\` | **MonoGame** — основной проект | **Да** |
-| `D:\Sources\TinyTBS\Tiny TBS Unity\` | Unity (отдельная ветка экспериментов) | **Нет — не изменять** |
+| `TinyTBS/` | **MonoGame** — основной проект | **Да** |
+| `Tiny TBS Unity/` | Unity (отдельная ветка экспериментов) | **Нет — не изменять** |
 
 Все изменения кода, документации и ассетов для текущей разработки — только в каталоге **TinyTBS** (MonoGame).
 
@@ -31,7 +31,7 @@
 ## Сборка
 
 ```bash
-cd D:\Sources\TinyTBS\TinyTBS
+cd TinyTBS
 dotnet build TinyTBS.Desktop/TinyTBS.Desktop.csproj
 dotnet run --project TinyTBS.Desktop/TinyTBS.Desktop.csproj
 ```

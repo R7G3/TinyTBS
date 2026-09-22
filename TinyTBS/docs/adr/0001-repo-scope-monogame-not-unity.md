@@ -6,7 +6,7 @@
 
 ## Контекст
 
-Git-репозиторий `D:\Sources\TinyTBS\` содержит два solution:
+Git-репозиторий содержит два solution:
 
 - `TinyTBS/` — MonoGame (.NET 10)
 - `Tiny TBS Unity/` — Unity

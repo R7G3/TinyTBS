@@ -13,6 +13,8 @@ public sealed class PointerInputService : IPointerSource
     private bool _previousSecondary;
     private bool _currentMiddle;
     private bool _previousMiddle;
+    private int _scrollWheelValue;
+    private int _previousScrollWheelValue;
     private ScreenPoint _position;
 
     public bool IsPrimaryDown => _currentPrimary;
@@ -26,6 +28,8 @@ public sealed class PointerInputService : IPointerSource
     public bool WasAnyButtonPressed =>
         WasPrimaryPressed || WasSecondaryPressed || WasMiddlePressed;
 
+    public int ScrollWheelDelta => _scrollWheelValue - _previousScrollWheelValue;
+
     public ScreenPoint Position => _position;
 
     public void Update()
@@ -33,11 +37,13 @@ public sealed class PointerInputService : IPointerSource
         _previousPrimary = _currentPrimary;
         _previousSecondary = _currentSecondary;
         _previousMiddle = _currentMiddle;
+        _previousScrollWheelValue = _scrollWheelValue;
 
         var mouse = Mouse.GetState();
         _currentPrimary = mouse.LeftButton == ButtonState.Pressed;
         _currentSecondary = mouse.RightButton == ButtonState.Pressed;
         _currentMiddle = mouse.MiddleButton == ButtonState.Pressed;
+        _scrollWheelValue = mouse.ScrollWheelValue;
         _position = new ScreenPoint(mouse.X, mouse.Y);
     }
 }
