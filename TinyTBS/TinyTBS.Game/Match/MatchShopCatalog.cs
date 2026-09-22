@@ -7,5 +7,10 @@ public static class MatchShopCatalog
     [
         new MatchShopOffer(UnitKind.Swordsman, cost: 100),
         new MatchShopOffer(UnitKind.King, cost: 400),
+        // TEMP: duplicate rows to exercise shop list scrolling — remove after scroll QA.
+        new MatchShopOffer(UnitKind.Swordsman, cost: 100),
+        new MatchShopOffer(UnitKind.King, cost: 400),
+        new MatchShopOffer(UnitKind.Swordsman, cost: 100),
+        new MatchShopOffer(UnitKind.King, cost: 400),
     ];
 }

@@ -60,6 +60,26 @@ public static class GumUiLayout
         element.Visual.MaxWidth = maxPixels;
     }
 
+    /// <summary>
+    /// Same idea as <see cref="SetBoundedWidth"/> for height (percent of parent, capped in pixels).
+    /// </summary>
+    public static void SetBoundedHeight(
+        FrameworkElement element,
+        float maxPixels,
+        float parentPercent = 92f)
+    {
+        element.Visual.Height = parentPercent;
+        element.Visual.HeightUnits = DimensionUnitType.PercentageOfParent;
+        element.Visual.MaxHeight = maxPixels;
+    }
+
+    public static void SetAbsoluteHeight(FrameworkElement element, float pixels)
+    {
+        element.Visual.Height = pixels;
+        element.Visual.HeightUnits = DimensionUnitType.Absolute;
+        element.Visual.MaxHeight = pixels;
+    }
+
     public static void CenterInParent(FrameworkElement element, float xPercent = 50f, float yPercent = 50f)
     {
         element.Visual.X = xPercent;

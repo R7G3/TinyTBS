@@ -2,6 +2,7 @@ using Gum;
 using Gum.Forms.Controls;
 using Gum.GueDeriving;
 using Gum.Wireframe;
+using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Presentation.Match.Hud;
 using TinyTBS.Game.Presentation.Match.Overlays;
@@ -91,6 +92,9 @@ public sealed class GameplayHudComposer
 
     public void SyncShopIcons(MatchTextureAtlas textures, int currentPlayerIndex) =>
         _shop.SyncIcons(textures, currentPlayerIndex);
+
+    public void HandleShopGamepadNavigation(IGameCommandSource commands) =>
+        _shop.HandleGamepadNavigation(commands);
 
     public void ClearUiFocus()
     {

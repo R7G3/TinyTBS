@@ -123,6 +123,9 @@ public sealed class GameplayMatchController
 
         GumService.Default.Update(gameTime);
 
+        if (_hudSync.Hud.IsShopVisible)
+            _hudComposer.HandleShopGamepadNavigation(_game.Commands);
+
         if (_pendingPauseMenuFocus)
         {
             _pendingPauseMenuFocus = false;
