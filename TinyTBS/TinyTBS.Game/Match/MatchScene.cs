@@ -15,6 +15,8 @@ public sealed class MatchScene : IDisposable
 {
     private readonly MatchState _state;
     private readonly MatchBoardLayout _layout;
+    private readonly MatchTextureAtlas _textures;
+    private readonly SpriteBatch _spriteBatch;
     private readonly List<int> _buildingEntityIds = [];
     private readonly Dictionary<int, int> _unitEntityById = new();
 
@@ -25,6 +27,8 @@ public sealed class MatchScene : IDisposable
         MatchTextureAtlas textures)
     {
         _state = state;
+        _textures = textures;
+        _spriteBatch = spriteBatch;
         _layout = new MatchBoardLayout(state.Width, state.Height);
 
         var tiles = new Texture2D[state.Width * state.Height];
@@ -66,7 +70,23 @@ public sealed class MatchScene : IDisposable
 
     public void Update(GameTime gameTime) => World.Update(gameTime);
 
-    public void Draw(GameTime gameTime) => World.Draw(gameTime);
+    /// <summary>
+    /// One SpriteBatch pass for tiles, team sprites, and optional overlays (e.g. cursor).
+    /// </summary>
+    public void Draw(GameTime gameTime, Action<SpriteBatch, MatchBoardLayout>? afterEntities = null)
+    {
+        _spriteBatch.Begin(
+            SpriteSortMode.Deferred,
+            BlendState.AlphaBlend,
+            SamplerState.PointClamp,
+            DepthStencilState.None,
+            RasterizerState.CullNone);
+
+        World.Draw(gameTime);
+        afterEntities?.Invoke(_spriteBatch, _layout);
+
+        _spriteBatch.End();
+    }
 
     public void Dispose() => World.Dispose();
 
@@ -113,6 +133,9 @@ public sealed class MatchScene : IDisposable
     {
         foreach (var unit in _state.Units)
         {
+            if (!_unitEntityById.ContainsKey(unit.Id))
+                CreateUnitVisual(unit, _textures);
+
             if (!_unitEntityById.TryGetValue(unit.Id, out var entityId))
                 continue;
 

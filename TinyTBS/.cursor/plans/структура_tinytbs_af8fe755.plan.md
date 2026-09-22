@@ -29,7 +29,7 @@ isProject: false
 - [x] **map-format** — Maps/ в scenario-модуле + загрузчик; логические id
 - [x] **level-format** — Level + map.ref + загрузчик
 - [x] **map-scripting** — IScriptEngine + Roslyn; MapScriptContext
-- [ ] **match-ui-gdd** — статус-бар, пауза/миникарта, магазин, инфо, хотсит
+- [x] **match-ui-gdd** — статус-бар, пауза/миникарта, магазин, инфо, хотсит
 - [ ] **content-mods** — .tinymod.zip + Bundles; экран Контент; состав на Новая игра
 - [ ] **campaigns** — campaign.json в scenario-модуле
 - [ ] **save-format** — сейвы + contentSetup
@@ -337,7 +337,7 @@ ScriptOptions.Default
 7. `UI_AND_FLOW.md` (экраны, HUD, пауза, магазин) — **выполнено** (канон); реализация матч-UI — pending.
 8. Maps/Levels загрузчики + фикстуры; старт матча из level — **выполнено** (`.tinymod.zip` / полный GDD-матч — впереди).
 9. **MapScriptContext** + Roslyn sandbox + хуки — **выполнено**.
-10. Матч UI по канону + playable loop.
+10. Матч UI по канону + playable loop — **частично** (HUD GDD: статус-бар, пауза/карта/цели, инфо, магазин; бой/post-move — впереди).
 11. Библиотека `.tinymod.zip` + Bundles + экран Контент + редактор workspace.
 12. Кампании и сохранения (`contentSetup`) — после playable loop.
 13. **Сеть** — позже (Remote в API; UI greyed).

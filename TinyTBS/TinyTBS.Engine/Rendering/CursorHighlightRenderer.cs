@@ -20,21 +20,37 @@ public sealed class CursorHighlightRenderer : IDisposable
         _pixel.SetData([Color.White]);
     }
 
+    /// <param name="manageBatch">
+    /// When true, opens/closes its own SpriteBatch. When false, draws into an already-begun batch
+    /// (board pass shared with tiles and units).
+    /// </param>
     public void Draw(
         SpriteBatch spriteBatch,
         MatchBoardLayout layout,
         int cursorX,
         int cursorY,
-        bool hasSelection)
+        bool hasSelection,
+        bool manageBatch = true)
     {
         var topLeft = layout.Origin + new Vector2(cursorX * layout.TileSize, cursorY * layout.TileSize);
         var rect = new Rectangle((int)topLeft.X, (int)topLeft.Y, layout.TileSize, layout.TileSize);
         var borderColor = hasSelection ? SelectedBorder : IdleBorder;
 
-        spriteBatch.Begin();
+        if (manageBatch)
+        {
+            spriteBatch.Begin(
+                SpriteSortMode.Deferred,
+                BlendState.AlphaBlend,
+                SamplerState.PointClamp,
+                DepthStencilState.None,
+                RasterizerState.CullNone);
+        }
+
         spriteBatch.Draw(_pixel, rect, Color.White * 0.18f);
         SpriteBatchPrimitives.DrawRectBorder(spriteBatch, _pixel, rect, borderColor, thickness: 2);
-        spriteBatch.End();
+
+        if (manageBatch)
+            spriteBatch.End();
     }
 
     public void Dispose() => _pixel.Dispose();

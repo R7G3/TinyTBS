@@ -6,7 +6,8 @@ using TinyTBS.Engine.Rendering;
 namespace TinyTBS.Engine.Ecs.Systems;
 
 /// <summary>
-/// Draws one texture per cell from a row-major tile array. Expects layout prepared for the viewport.
+/// Draws one texture per cell from a row-major tile array. Expects an open SpriteBatch
+/// and layout prepared for the viewport.
 /// </summary>
 public sealed class TilemapDrawSystem : DrawSystem
 {
@@ -35,8 +36,6 @@ public sealed class TilemapDrawSystem : DrawSystem
 
     public override void Draw(GameTime gameTime)
     {
-        _spriteBatch.Begin();
-
         for (var y = 0; y < _layout.Height; y++)
         {
             for (var x = 0; x < _layout.Width; x++)
@@ -56,7 +55,5 @@ public sealed class TilemapDrawSystem : DrawSystem
             _layout.Width * _layout.TileSize,
             _layout.Height * _layout.TileSize);
         SpriteBatchPrimitives.DrawRectBorder(_spriteBatch, _pixel, bounds, Border, thickness: 2);
-
-        _spriteBatch.End();
     }
 }

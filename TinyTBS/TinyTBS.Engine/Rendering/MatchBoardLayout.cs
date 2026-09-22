@@ -66,4 +66,8 @@ public sealed class MatchBoardLayout
 
         return true;
     }
+
+    /// <summary>Top-center of a cell in screen pixels (for anchoring UI above the tile).</summary>
+    public Vector2 GetCellTopCenter(int cellX, int cellY) =>
+        Origin + new Vector2((cellX + 0.5f) * TileSize, cellY * TileSize);
 }

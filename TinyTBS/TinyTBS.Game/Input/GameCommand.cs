@@ -13,5 +13,6 @@ public enum GameCommand
     NavigateLeft,
     NavigateRight,
     Pause,
+    Info,
     EndTurn,
 }

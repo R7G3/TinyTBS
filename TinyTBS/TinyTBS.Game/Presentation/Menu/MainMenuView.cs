@@ -4,11 +4,9 @@ using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.ViewModels;
 
-namespace TinyTBS.Game.Presentation;
+namespace TinyTBS.Game.Presentation.Menu;
 
-/// <summary>
-/// Presentation: Gum tree for the main menu.
-/// </summary>
+/// <summary>Presentation: Gum tree for the main menu.</summary>
 public sealed class MainMenuView
 {
     private Panel? _rootPanel;

@@ -82,6 +82,9 @@ public sealed class MatchState
 
     public int CurrentPlayer { get; private set; }
 
+    /// <summary>Round number: increments when play returns to player 0.</summary>
+    public int TurnNumber { get; private set; } = 1;
+
     public int? SelectedUnitId { get; private set; }
 
     public GridCell Cursor { get; private set; }
@@ -128,10 +131,10 @@ public sealed class MatchState
             var gold = GetMoney(CurrentPlayer);
             if (SelectedUnitId is int unitId && TryGetUnit(unitId, out var unit))
             {
-                return $"P{CurrentPlayer + 1} · {gold}g — {unit.Kind} at {unit.Cell} ({GetTerrain(unit.Cell)})";
+                return $"P{CurrentPlayer + 1} · {gold}g · T{TurnNumber} — {unit.Kind} at {unit.Cell}";
             }
 
-            return $"P{CurrentPlayer + 1} · {gold}g — select a unit ({GetTerrain(Cursor)} @ {Cursor})";
+            return $"P{CurrentPlayer + 1} · {gold}g · T{TurnNumber} — {GetTerrain(Cursor)} @ {Cursor}";
         }
     }
 
@@ -161,7 +164,90 @@ public sealed class MatchState
     {
         LastAction = null;
         CurrentPlayer = (CurrentPlayer + 1) % _playerCount;
+        if (CurrentPlayer == 0)
+            TurnNumber++;
         SelectedUnitId = null;
+    }
+
+    public bool TryGetUnitAt(GridCell cell, out MatchUnit unit)
+    {
+        foreach (var candidate in _units)
+        {
+            if (candidate.Cell != cell)
+                continue;
+
+            unit = candidate;
+            return true;
+        }
+
+        unit = null!;
+        return false;
+    }
+
+    public bool TryGetBuildingAt(GridCell cell, out MatchBuilding building)
+    {
+        foreach (var candidate in _buildings)
+        {
+            if (candidate.Cell != cell)
+                continue;
+
+            building = candidate;
+            return true;
+        }
+
+        building = null!;
+        return false;
+    }
+
+    public bool IsOwnCastleAt(GridCell cell) =>
+        TryGetBuildingAt(cell, out var building)
+        && building.Kind == BuildingKind.Castle
+        && building.OwnerPlayerIndex == CurrentPlayer;
+
+    /// <summary>
+    /// Own castle with an own unit on it and nothing selected yet — Confirm should offer Move vs Buy.
+    /// </summary>
+    public bool NeedsCastleUnitActionChooser(GridCell cell) =>
+        SelectedUnitId is null
+        && IsOwnCastleAt(cell)
+        && TryGetOwnUnitAt(cell, out _);
+
+    public bool TryGetOwnUnitAt(GridCell cell, out MatchUnit unit)
+    {
+        if (!TryGetUnitAt(cell, out unit))
+            return false;
+
+        if (unit.PlayerIndex != CurrentPlayer)
+        {
+            unit = null!;
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>Recruit a unit onto an owned castle cell if gold and space allow.</summary>
+    public bool TryRecruitAtCastle(UnitKind kind, int cost, GridCell castleCell)
+    {
+        if (!IsOwnCastleAt(castleCell))
+            return false;
+        if (IsOccupiedByUnit(castleCell))
+            return false;
+        if (GetMoney(CurrentPlayer) < cost)
+            return false;
+
+        AddMoney(CurrentPlayer, -cost);
+        AddUnit(kind, castleCell, CurrentPlayer);
+        LastAction = new MatchPlayerAction
+        {
+            Kind = MatchPlayerActionKind.SelectUnit,
+            PlayerIndex = CurrentPlayer,
+            UnitId = _units[^1].Id,
+            Source = castleCell,
+            Target = castleCell,
+        };
+        SelectedUnitId = _units[^1].Id;
+        return true;
     }
 
     private void EnsureKnownPlayer(int playerIndex)

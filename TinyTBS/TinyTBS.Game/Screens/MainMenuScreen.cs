@@ -4,7 +4,7 @@ using MonoGame.Extended.Screens;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Presentation;
+using TinyTBS.Game.Presentation.Menu;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Screens;

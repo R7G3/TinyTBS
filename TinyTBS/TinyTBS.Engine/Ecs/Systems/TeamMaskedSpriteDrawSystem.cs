@@ -8,7 +8,7 @@ using TinyTBS.Engine.Ecs.Components;
 namespace TinyTBS.Engine.Ecs.Systems;
 
 /// <summary>
-/// Draws base (white) then team mask (tinted). Positions synced outside Draw.
+/// Draws base (white) then team mask (tinted). Expects an open SpriteBatch; positions synced outside Draw.
 /// </summary>
 public sealed class TeamMaskedSpriteDrawSystem : EntityDrawSystem
 {
@@ -32,8 +32,6 @@ public sealed class TeamMaskedSpriteDrawSystem : EntityDrawSystem
     {
         if (_transformMapper is null || _spriteMapper is null)
             return;
-
-        _spriteBatch.Begin();
 
         foreach (var entityId in ActiveEntities)
         {
@@ -63,7 +61,5 @@ public sealed class TeamMaskedSpriteDrawSystem : EntityDrawSystem
                 SpriteEffects.None,
                 layerDepth: 0f);
         }
-
-        _spriteBatch.End();
     }
 }

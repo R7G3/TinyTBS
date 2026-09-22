@@ -40,7 +40,24 @@ public static class GameplaySessionFactory
         var textures = MatchTextureAtlas.Load(graphicsDevice, content, assets);
         var scene = new MatchScene(state, graphicsDevice, spriteBatch, textures);
         var cursorHighlight = new CursorHighlightRenderer(graphicsDevice);
+        var minimap = new MinimapRenderer(graphicsDevice);
+        var levelBrief = new MatchLevelBrief
+        {
+            LevelId = level.Id,
+            Title = level.Title,
+            Description = level.Description,
+            VictoryType = level.Victory.Type,
+            DefeatType = level.Defeat.Type,
+            TeamDefeatMode = level.TeamDefeatMode,
+        };
 
-        return new GameplaySession(state, scene, cursorHighlight, textures, scriptHost);
+        return new GameplaySession(
+            state,
+            scene,
+            cursorHighlight,
+            textures,
+            scriptHost,
+            levelBrief,
+            minimap);
     }
 }

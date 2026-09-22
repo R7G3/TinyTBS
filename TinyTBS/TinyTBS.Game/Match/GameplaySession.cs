@@ -15,12 +15,16 @@ public sealed class GameplaySession : IDisposable
         MatchScene scene,
         CursorHighlightRenderer cursorHighlight,
         MatchTextureAtlas textures,
-        MapScriptHost scriptHost)
+        MapScriptHost scriptHost,
+        MatchLevelBrief levelBrief,
+        MinimapRenderer minimap)
     {
         State = state;
         Scene = scene;
         CursorHighlight = cursorHighlight;
         ScriptHost = scriptHost;
+        LevelBrief = levelBrief;
+        Minimap = minimap;
         _textures = textures;
     }
 
@@ -31,6 +35,12 @@ public sealed class GameplaySession : IDisposable
     public CursorHighlightRenderer CursorHighlight { get; }
 
     public MapScriptHost ScriptHost { get; }
+
+    public MatchLevelBrief LevelBrief { get; }
+
+    public MinimapRenderer Minimap { get; }
+
+    public MatchTextureAtlas Textures => _textures;
 
     public void EndTurn()
     {
@@ -45,10 +55,25 @@ public sealed class GameplaySession : IDisposable
             ScriptHost.NotifyAfterPlayerAction(State, action);
     }
 
+    public bool TryBuyShopOffer(int offerIndex, GridCell castleCell)
+    {
+        if (offerIndex < 0 || offerIndex >= MatchShopCatalog.Offers.Count)
+            return false;
+
+        var offer = MatchShopCatalog.Offers[offerIndex];
+        if (!State.TryRecruitAtCastle(offer.UnitKind, offer.Cost, castleCell))
+            return false;
+
+        if (State.LastAction is { } action)
+            ScriptHost.NotifyAfterPlayerAction(State, action);
+        return true;
+    }
+
     public void Dispose()
     {
         Scene.Dispose();
         CursorHighlight.Dispose();
+        Minimap.Dispose();
         _textures.Dispose();
     }
 }

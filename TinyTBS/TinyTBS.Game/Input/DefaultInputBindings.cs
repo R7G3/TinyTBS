@@ -15,11 +15,10 @@ internal static class DefaultInputBindings
                 || keyboard.IsKeyDown(Keys.Space)
                 || gamePad.Buttons.A == ButtonState.Pressed,
 
-            GameCommand.Cancel => keyboard.IsKeyDown(Keys.Escape)
-                || gamePad.Buttons.B == ButtonState.Pressed,
+            // Backspace — Escape opens Pause in match; face east (B) is Info.
+            GameCommand.Cancel => keyboard.IsKeyDown(Keys.Back),
 
-            GameCommand.Back => keyboard.IsKeyDown(Keys.Escape)
-                || gamePad.Buttons.Back == ButtonState.Pressed,
+            GameCommand.Back => gamePad.Buttons.Back == ButtonState.Pressed,
 
             GameCommand.NavigateUp => keyboard.IsKeyDown(Keys.Up)
                 || keyboard.IsKeyDown(Keys.W)
@@ -41,8 +40,11 @@ internal static class DefaultInputBindings
                 || gamePad.DPad.Right == ButtonState.Pressed
                 || gamePad.ThumbSticks.Left.X > 0.5f,
 
-            GameCommand.Pause => keyboard.IsKeyDown(Keys.P)
+            GameCommand.Pause => keyboard.IsKeyDown(Keys.Escape)
                 || gamePad.Buttons.Start == ButtonState.Pressed,
+
+            GameCommand.Info => keyboard.IsKeyDown(Keys.I)
+                || gamePad.Buttons.B == ButtonState.Pressed,
 
             GameCommand.EndTurn => keyboard.IsKeyDown(Keys.E),
 

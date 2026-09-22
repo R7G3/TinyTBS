@@ -1,8 +1,10 @@
 using Gum.Converters;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
+using Gum.GueDeriving;
 using Gum.Managers;
 using Gum.Wireframe;
+using Microsoft.Xna.Framework;
 using RenderingLibrary.Graphics;
 
 namespace TinyTBS.Engine.GumLayout;
@@ -12,6 +14,20 @@ namespace TinyTBS.Engine.GumLayout;
 /// </summary>
 public static class GumUiLayout
 {
+    /// <summary>
+    /// Solid fill behind panel children. Events are off so the rectangle does not steal clicks.
+    /// </summary>
+    public static RectangleRuntime AddSolidBackground(Panel panel, Color color)
+    {
+        var background = new RectangleRuntime();
+        background.Dock(Dock.Fill);
+        background.FillColor = color;
+        background.IsFilled = true;
+        // Added first so later siblings (buttons/labels) sit above for hit-testing.
+        panel.AddChild(background);
+        return background;
+    }
+
     public static void FillParentWidth(FrameworkElement element, float horizontalInset = 0)
     {
         element.Visual.WidthUnits = DimensionUnitType.RelativeToParent;
@@ -32,6 +48,31 @@ public static class GumUiLayout
         element.Visual.Y = yPercent;
         element.Visual.YUnits = GeneralUnitType.Percentage;
         element.Visual.YOrigin = VerticalAlignment.Center;
+    }
+
+    /// <summary>
+    /// Centers horizontally in the parent at the top edge (safe for RelativeToChildren parents).
+    /// Use stack children for vertical padding so parent height includes it.
+    /// </summary>
+    public static void CenterHorizontallyInParent(FrameworkElement element)
+    {
+        element.Visual.X = 50f;
+        element.Visual.XUnits = GeneralUnitType.Percentage;
+        element.Visual.XOrigin = HorizontalAlignment.Center;
+        element.Y = 0;
+        element.Visual.YOrigin = VerticalAlignment.Top;
+    }
+
+    /// <summary>Fixed-height spacer for vertical stacks (counts toward RelativeToChildren height).</summary>
+    public static void AddVerticalSpacer(Panel stack, float heightPixels)
+    {
+        var spacer = new Panel();
+        spacer.Visual.HasEvents = false;
+        spacer.Visual.Height = heightPixels;
+        spacer.Visual.HeightUnits = DimensionUnitType.Absolute;
+        spacer.Visual.WidthUnits = DimensionUnitType.RelativeToParent;
+        spacer.Visual.Width = 0;
+        stack.AddChild(spacer);
     }
 
     /// <summary>

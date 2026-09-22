@@ -10,17 +10,22 @@ namespace TinyTBS.Game.Match;
 public static class MatchCommandApplicator
 {
     /// <summary>
-    /// Returns true when the player requested leaving the match (Back).
+    /// Applies board commands when the match is not blocked by pause/shop UI.
+    /// Leave-to-menu is only via the pause menu item, not a board command.
     /// </summary>
-    public static bool Apply(GameplaySession session, IGameCommandSource commands)
+    public static void Apply(
+        GameplaySession session,
+        IGameCommandSource commands,
+        bool boardInputEnabled,
+        bool allowConfirm = true)
     {
-        if (commands.WasPressed(GameCommand.Back))
-            return true;
+        if (!boardInputEnabled)
+            return;
 
         if (commands.WasPressed(GameCommand.EndTurn))
             session.EndTurn();
 
-        if (commands.WasPressed(GameCommand.Confirm))
+        if (allowConfirm && commands.WasPressed(GameCommand.Confirm))
             session.Confirm();
 
         var match = session.State;
@@ -32,16 +37,52 @@ public static class MatchCommandApplicator
             match.MoveCursor(-1, 0);
         if (commands.WasPressed(GameCommand.NavigateRight))
             match.MoveCursor(1, 0);
-
-        return false;
     }
 
-    public static void ApplyPointer(MatchState match, IPointerSource pointer, MatchBoardLayout layout)
+    /// <summary>
+    /// Primary press on a cell: move cursor and confirm (select/move/shop). Hold-drag only moves cursor.
+    /// </summary>
+    public static void ApplyPointer(
+        GameplaySession session,
+        IPointerSource pointer,
+        MatchBoardLayout layout,
+        bool allowConfirm = true)
     {
+        var match = session.State;
+
+        if (pointer.WasPrimaryPressed)
+        {
+            if (layout.TryScreenToCell(pointer.Position, out var cellX, out var cellY))
+            {
+                match.HandlePointer(new GridCell(cellX, cellY));
+                if (allowConfirm)
+                    session.Confirm();
+            }
+
+            return;
+        }
+
         if (!pointer.IsPrimaryDown)
             return;
 
+        if (layout.TryScreenToCell(pointer.Position, out var dragX, out var dragY))
+            match.HandlePointer(new GridCell(dragX, dragY));
+    }
+
+    /// <summary>
+    /// Moves the cursor under the secondary press (right mouse). Returns true when that frame had a secondary press.
+    /// </summary>
+    public static bool TryApplySecondaryPointer(
+        MatchState match,
+        IPointerSource pointer,
+        MatchBoardLayout layout)
+    {
+        if (!pointer.WasSecondaryPressed)
+            return false;
+
         if (layout.TryScreenToCell(pointer.Position, out var cellX, out var cellY))
             match.HandlePointer(new GridCell(cellX, cellY));
+
+        return true;
     }
 }
