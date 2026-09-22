@@ -23,7 +23,7 @@ public sealed class MatchTileDetailOverlayView
 
     public void Build(Panel root, GameplayHudViewModel hud)
     {
-        _panel = GumMatchOverlayPanel.Create(root, widthPercent: 56f, centerXPercent: 50f, centerYPercent: 50f, MatchUiColors.OverlayDark);
+        _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 400f, centerXPercent: 50f, centerYPercent: 50f, MatchUiColors.OverlayDark);
         var stack = GumMatchOverlayPanel.AddContentStack(_panel, spacing: 14f);
 
         GumUiLayout.AddVerticalSpacer(stack, 14f);

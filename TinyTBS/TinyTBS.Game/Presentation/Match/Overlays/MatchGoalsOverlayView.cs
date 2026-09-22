@@ -12,7 +12,7 @@ public sealed class MatchGoalsOverlayView
 
     public void Build(Panel root, GameplayHudViewModel hud)
     {
-        _panel = GumMatchOverlayPanel.Create(root, widthPercent: 42f, centerXPercent: 50f, centerYPercent: 55f, MatchUiColors.OverlayShop);
+        _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 360f, centerXPercent: 50f, centerYPercent: 55f, MatchUiColors.OverlayShop);
         var stack = GumMatchOverlayPanel.AddContentStack(_panel, spacing: 10f);
 
         GumUiLayout.AddVerticalSpacer(stack, 14f);

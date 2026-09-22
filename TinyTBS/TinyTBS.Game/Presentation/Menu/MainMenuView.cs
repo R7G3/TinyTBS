@@ -29,6 +29,7 @@ public sealed class MainMenuView
         _rootPanel.AddChild(bodyPanel);
 
         var contentPanel = GumUiLayout.CreateVerticalStackPanel(spacing: 14f, widthPercent: 90f);
+        GumUiLayout.SetBoundedWidth(contentPanel, maxPixels: 480f, parentPercent: 90f);
         GumUiLayout.CenterInParent(contentPanel, xPercent: 50f, yPercent: 45f);
         bodyPanel.AddChild(contentPanel);
 
@@ -66,7 +67,7 @@ public sealed class MainMenuView
         contentPanel.AddChild(startButton);
 
         var exitButton = new Button { Text = "Exit" };
-        GumUiLayout.PinToBottomRight(exitButton, insetPixels: 24f, widthPercent: 14f);
+        GumUiLayout.PinToBottomRight(exitButton, insetPixels: 24f, widthPixels: 120f);
         exitButton.Click += (_, _) => onExit();
         _rootPanel.AddChild(exitButton);
 

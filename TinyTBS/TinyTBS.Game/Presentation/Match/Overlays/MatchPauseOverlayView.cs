@@ -19,7 +19,7 @@ public sealed class MatchPauseOverlayView
         Action onClosePause,
         Action onReturnToMenu)
     {
-        _panel = GumMatchOverlayPanel.Create(root, widthPercent: 36f, centerXPercent: 50f, centerYPercent: 48f, MatchUiColors.OverlayDark);
+        _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 320f, centerXPercent: 50f, centerYPercent: 48f, MatchUiColors.OverlayDark);
         var stack = GumMatchOverlayPanel.AddContentStack(_panel, spacing: 10f);
 
         GumUiLayout.AddVerticalSpacer(stack, 14f);

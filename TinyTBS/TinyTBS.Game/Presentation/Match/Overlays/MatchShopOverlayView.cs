@@ -21,7 +21,7 @@ public sealed class MatchShopOverlayView
 
     public void Build(Panel root, GameplayHudViewModel hud, Action onCloseShop, Action<int> onBuyOffer)
     {
-        _panel = GumMatchOverlayPanel.Create(root, widthPercent: 52f, centerXPercent: 50f, centerYPercent: 50f, MatchUiColors.OverlayShop);
+        _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 420f, centerXPercent: 50f, centerYPercent: 50f, MatchUiColors.OverlayShop);
         var stack = GumMatchOverlayPanel.AddContentStack(_panel, spacing: 8f);
 
         GumUiLayout.AddVerticalSpacer(stack, 14f);

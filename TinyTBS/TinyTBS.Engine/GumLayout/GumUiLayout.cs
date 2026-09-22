@@ -40,6 +40,26 @@ public static class GumUiLayout
         element.Visual.WidthUnits = DimensionUnitType.PercentageOfParent;
     }
 
+    public static void SetAbsoluteWidth(FrameworkElement element, float pixels)
+    {
+        element.Visual.Width = pixels;
+        element.Visual.WidthUnits = DimensionUnitType.Absolute;
+    }
+
+    /// <summary>
+    /// Tracks a parent percentage on narrow windows, but never exceeds
+    /// <paramref name="maxPixels"/> so menus stay content-sized on wide / fullscreen.
+    /// </summary>
+    public static void SetBoundedWidth(
+        FrameworkElement element,
+        float maxPixels,
+        float parentPercent = 92f)
+    {
+        element.Visual.Width = parentPercent;
+        element.Visual.WidthUnits = DimensionUnitType.PercentageOfParent;
+        element.Visual.MaxWidth = maxPixels;
+    }
+
     public static void CenterInParent(FrameworkElement element, float xPercent = 50f, float yPercent = 50f)
     {
         element.Visual.X = xPercent;
@@ -83,13 +103,12 @@ public static class GumUiLayout
     public static void PinToBottomRight(
         FrameworkElement element,
         float insetPixels,
-        float widthPercent)
+        float widthPixels)
     {
         element.Anchor(Anchor.BottomRight);
         element.X = -insetPixels;
         element.Y = -insetPixels;
-        element.Visual.Width = widthPercent;
-        element.Visual.WidthUnits = DimensionUnitType.PercentageOfParent;
+        SetAbsoluteWidth(element, widthPixels);
     }
 
     public static Panel CreateVerticalStackPanel(float spacing = 12f, float widthPercent = 92f)
