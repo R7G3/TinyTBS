@@ -21,6 +21,8 @@ public sealed class PointerInputService : IPointerSource
 
     public bool WasPrimaryPressed => _currentPrimary && !_previousPrimary;
 
+    public bool WasPrimaryReleased => !_currentPrimary && _previousPrimary;
+
     public bool WasSecondaryPressed => _currentSecondary && !_previousSecondary;
 
     public bool WasMiddlePressed => _currentMiddle && !_previousMiddle;

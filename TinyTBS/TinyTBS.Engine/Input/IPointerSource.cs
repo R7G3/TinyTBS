@@ -10,6 +10,9 @@ public interface IPointerSource
     /// <summary>True only on the frame the primary button became pressed.</summary>
     bool WasPrimaryPressed { get; }
 
+    /// <summary>True only on the frame the primary button was released.</summary>
+    bool WasPrimaryReleased { get; }
+
     /// <summary>True only on the frame the secondary button became pressed (e.g. right mouse).</summary>
     bool WasSecondaryPressed { get; }
 

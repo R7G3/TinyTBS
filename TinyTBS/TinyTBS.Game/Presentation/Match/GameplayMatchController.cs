@@ -88,8 +88,15 @@ public sealed class GameplayMatchController
         var scene = _session.Scene;
         var boardInputEnabled = !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud);
 
-        // Zoom before layout prepare so hit-tests and draws use the updated tile size.
+        // Zoom / pan before layout prepare so hit-tests and draws use the updated camera.
         MatchCommandApplicator.ApplyZoom(
+            scene.Layout,
+            _game.Commands,
+            _game.Pointer,
+            gameTime,
+            boardInputEnabled);
+        MatchCommandApplicator.ApplyCameraPan(
+            _session.State,
             scene.Layout,
             _game.Commands,
             _game.Pointer,
@@ -140,6 +147,8 @@ public sealed class GameplayMatchController
         MatchCommandApplicator.Apply(
             _session,
             _game.Commands,
+            scene.Layout,
+            gameTime,
             boardInputEnabled && !uiHeldConfirm,
             allowConfirm: allowBoardConfirm);
 
