@@ -260,6 +260,10 @@ public sealed class GameplayMatchController
                 return;
             }
 
+            // Esc / Start: first press clears unit selection; second opens pause.
+            if (_session is not null && _session.State.ClearSelection())
+                return;
+
             if (hud.IsPauseVisible)
                 ClosePause();
             else
@@ -301,10 +305,21 @@ public sealed class GameplayMatchController
         if (wantsBack && TryGoBackFromOverlay())
             return;
 
+        // Info (I / east): deselect if a unit is selected; otherwise open tile detail.
         if (commands.WasPressed(GameCommand.Info)
             && !GameplayHudOverlayState.BlocksBoardInput(hud))
         {
+            if (_session is not null && _session.State.ClearSelection())
+                return;
+
             OpenTileDetail();
+        }
+
+        // Backspace cancel on the board: deselect only.
+        if (commands.WasPressed(GameCommand.Cancel)
+            && !GameplayHudOverlayState.BlocksBoardInput(hud))
+        {
+            _session?.State.ClearSelection();
         }
     }
 

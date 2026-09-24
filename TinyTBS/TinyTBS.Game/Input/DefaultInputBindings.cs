@@ -15,7 +15,7 @@ internal static class DefaultInputBindings
                 || keyboard.IsKeyDown(Keys.Space)
                 || gamePad.Buttons.A == ButtonState.Pressed,
 
-            // Backspace — Escape opens Pause in match; face east (B) is Info.
+            // Backspace — Escape opens Pause; face east (B) is Info (also closes overlays / deselects).
             GameCommand.Cancel => keyboard.IsKeyDown(Keys.Back),
 
             GameCommand.Back => gamePad.Buttons.Back == ButtonState.Pressed,

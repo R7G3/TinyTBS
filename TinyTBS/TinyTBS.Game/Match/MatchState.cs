@@ -181,6 +181,17 @@ public sealed class MatchState
         TryMoveSelectedUnitTo(Cursor);
     }
 
+    /// <summary>Clears the selected unit (e.g. Esc / east cancel). Returns true if there was a selection.</summary>
+    public bool ClearSelection()
+    {
+        if (SelectedUnitId is null)
+            return false;
+
+        SelectedUnitId = null;
+        LastAction = null;
+        return true;
+    }
+
     public void HandlePointer(GridCell cell) => Cursor = cell;
 
     public void EndTurn()
