@@ -1,0 +1,28 @@
+﻿{
+  "formatVersion": 1,
+  "id": "archer",
+  "displayNameKey": "units.archer",
+  "movementClass": "foot",
+  "tags": [],
+  "recruitable": true,
+  "attack": 45,
+  "defence": 5,
+  "maxHealth": 100,
+  "attackRangeMin": 1,
+  "attackRangeMax": 3,
+  "speed": 5,
+  "cost": 250,
+  "abilities": [
+    { "type": "noCounterattackWhenRangeAtLeast", "minRange": 2 }
+  ],
+  "specialCoefficients": [
+    { "when": { "targetHasTag": "flying" }, "multiply": 1.4 },
+    { "when": { "manhattanRange": 1 }, "multiply": 0.8 },
+    { "when": { "default": true }, "multiply": 1.0 }
+  ],
+  "leavesMemorial": true,
+  "sprites": {
+    "base": "Resources/Images/units/archer_base.png",
+    "mask": "Resources/Images/units/archer_mask.png"
+  }
+}

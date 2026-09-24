@@ -1,0 +1,22 @@
+﻿{
+  "formatVersion": 1,
+  "id": "demo",
+  "title": "Demo Skirmish",
+  "description": "Compact smoke-test level: all terrain types, castles, intact/ruined/neutral villages, core units, memorial, map script.",
+  "modes": ["skirmish"],
+  "map": { "ref": "Maps/demo" },
+  "players": {
+    "min": 2,
+    "max": 2,
+    "defaultSlots": 2
+  },
+  "defaultStartingGold": 500,
+  "defaultUnitCap": 25,
+  "teamDefeatMode": "allMembers",
+  "victory": { "type": "standard" },
+  "defeat": { "type": "standard" },
+  "dialogs": {
+    "start": null,
+    "end": null
+  }
+}

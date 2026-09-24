@@ -1,0 +1,9 @@
+﻿{
+  "formatVersion": 1,
+  "id": "vanilla_buildings",
+  "type": "buildings",
+  "namespace": "vanilla",
+  "title": "Vanilla Buildings",
+  "version": "1.0.0",
+  "content": { "buildingsDir": "Buildings/" }
+}

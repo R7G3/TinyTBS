@@ -1,0 +1,22 @@
+﻿{
+  "formatVersion": 1,
+  "id": "proving-grounds",
+  "title": "Proving Grounds",
+  "description": "Full vanilla roster on both sides, ruined villages, memorials, all terrain — primary QA map.",
+  "modes": ["skirmish"],
+  "map": { "ref": "Maps/proving-grounds" },
+  "players": {
+    "min": 2,
+    "max": 2,
+    "defaultSlots": 2
+  },
+  "defaultStartingGold": 800,
+  "defaultUnitCap": 25,
+  "teamDefeatMode": "allMembers",
+  "victory": { "type": "standard" },
+  "defeat": { "type": "standard" },
+  "dialogs": {
+    "start": null,
+    "end": null
+  }
+}

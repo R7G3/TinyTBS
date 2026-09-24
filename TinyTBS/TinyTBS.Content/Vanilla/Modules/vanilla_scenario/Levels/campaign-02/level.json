@@ -1,0 +1,22 @@
+﻿{
+  "formatVersion": 1,
+  "id": "campaign-02",
+  "title": "Campaign 02 — Proving Grounds",
+  "description": "Second campaign mission; full roster map.",
+  "modes": ["campaign"],
+  "map": { "ref": "Maps/proving-grounds" },
+  "players": {
+    "min": 2,
+    "max": 2,
+    "defaultSlots": 2
+  },
+  "defaultStartingGold": 600,
+  "defaultUnitCap": 25,
+  "teamDefeatMode": "allMembers",
+  "victory": { "type": "standard" },
+  "defeat": { "type": "standard" },
+  "dialogs": {
+    "start": null,
+    "end": null
+  }
+}

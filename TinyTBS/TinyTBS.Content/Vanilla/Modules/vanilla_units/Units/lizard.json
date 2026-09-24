@@ -1,0 +1,24 @@
+﻿{
+  "formatVersion": 1,
+  "id": "lizard",
+  "displayNameKey": "units.lizard",
+  "movementClass": "water",
+  "tags": [],
+  "recruitable": true,
+  "attack": 50,
+  "defence": 15,
+  "maxHealth": 100,
+  "attackRangeMin": 1,
+  "attackRangeMax": 1,
+  "speed": 5,
+  "cost": 300,
+  "abilities": [],
+  "specialCoefficients": [
+    { "when": { "default": true }, "multiply": 1.0 }
+  ],
+  "leavesMemorial": true,
+  "sprites": {
+    "base": "Resources/Images/units/lizard_base.png",
+    "mask": "Resources/Images/units/lizard_mask.png"
+  }
+}

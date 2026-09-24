@@ -1,0 +1,26 @@
+﻿{
+  "formatVersion": 1,
+  "id": "witch",
+  "displayNameKey": "units.witch",
+  "movementClass": "foot",
+  "tags": [],
+  "recruitable": true,
+  "attack": 40,
+  "defence": 20,
+  "maxHealth": 100,
+  "attackRangeMin": 1,
+  "attackRangeMax": 1,
+  "speed": 5,
+  "cost": 400,
+  "abilities": [
+    { "type": "raiseSkeleton" }
+  ],
+  "specialCoefficients": [
+    { "when": { "default": true }, "multiply": 1.0 }
+  ],
+  "leavesMemorial": true,
+  "sprites": {
+    "base": "Resources/Images/units/witch_base.png",
+    "mask": "Resources/Images/units/witch_mask.png"
+  }
+}

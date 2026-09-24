@@ -1,0 +1,70 @@
+﻿{
+  "formatVersion": 1,
+  "id": "demo",
+  "title": "Demo",
+  "width": 10,
+  "height": 8,
+  "layers": {
+    "surface": [
+      { "x": 0, "y": 0, "type": "road" },
+      { "x": 1, "y": 0, "type": "road" },
+      { "x": 2, "y": 0, "type": "road" },
+      { "x": 3, "y": 0, "type": "road" },
+      { "x": 4, "y": 0, "type": "road" },
+      { "x": 5, "y": 0, "type": "road" },
+      { "x": 6, "y": 0, "type": "road" },
+      { "x": 7, "y": 0, "type": "road" },
+      { "x": 8, "y": 0, "type": "road" },
+      { "x": 9, "y": 0, "type": "road" },
+      { "x": 0, "y": 3, "type": "water" },
+      { "x": 1, "y": 3, "type": "water" },
+      { "x": 2, "y": 3, "type": "bridge" },
+      { "x": 3, "y": 3, "type": "water" },
+      { "x": 4, "y": 3, "type": "water" },
+      { "x": 5, "y": 3, "type": "water" },
+      { "x": 6, "y": 3, "type": "bridge" },
+      { "x": 7, "y": 3, "type": "water" },
+      { "x": 8, "y": 3, "type": "water" },
+      { "x": 9, "y": 3, "type": "water" },
+      { "x": 4, "y": 1, "type": "forest" },
+      { "x": 5, "y": 1, "type": "forest" },
+      { "x": 4, "y": 5, "type": "forest" },
+      { "x": 5, "y": 5, "type": "forest" },
+      { "x": 8, "y": 1, "type": "mountain" },
+      { "x": 9, "y": 1, "type": "mountain" },
+      { "x": 8, "y": 2, "type": "mountain" },
+      { "x": 0, "y": 6, "type": "mountain" },
+      { "x": 1, "y": 6, "type": "mountain" },
+      { "x": 1, "y": 1, "type": "road" },
+      { "x": 1, "y": 2, "type": "road" },
+      { "x": 2, "y": 2, "type": "road" },
+      { "x": 2, "y": 4, "type": "road" },
+      { "x": 2, "y": 5, "type": "road" },
+      { "x": 6, "y": 2, "type": "road" },
+      { "x": 6, "y": 4, "type": "road" },
+      { "x": 6, "y": 5, "type": "road" },
+      { "x": 7, "y": 5, "type": "road" },
+      { "x": 8, "y": 5, "type": "road" },
+      { "x": 8, "y": 6, "type": "road" }
+    ],
+    "buildings": [
+      { "type": "vanilla/castle", "x": 1, "y": 1, "slot": 0 },
+      { "type": "vanilla/castle", "x": 8, "y": 6, "slot": 1 },
+      { "type": "vanilla/village", "x": 3, "y": 1, "slot": 0, "state": "intact" },
+      { "type": "vanilla/village", "x": 6, "y": 6, "slot": 1, "state": "intact" },
+      { "type": "vanilla/village", "x": 5, "y": 4, "slot": null, "state": "intact" },
+      { "type": "vanilla/village", "x": 4, "y": 6, "slot": null, "state": "ruined" }
+    ],
+    "units": [
+      { "type": "vanilla/king", "x": 1, "y": 2, "slot": 0, "hp": 100, "xp": 0 },
+      { "type": "vanilla/swordsman", "x": 2, "y": 1, "slot": 0, "hp": 100, "xp": 0 },
+      { "type": "vanilla/archer", "x": 2, "y": 2, "slot": 0, "hp": 80, "xp": 10 },
+      { "type": "vanilla/king", "x": 8, "y": 5, "slot": 1, "hp": 100, "xp": 0 },
+      { "type": "vanilla/swordsman", "x": 7, "y": 6, "slot": 1, "hp": 100, "xp": 0 },
+      { "type": "vanilla/archer", "x": 7, "y": 5, "slot": 1, "hp": 60, "xp": 25 }
+    ],
+    "memorials": [
+      { "x": 3, "y": 5 }
+    ]
+  }
+}

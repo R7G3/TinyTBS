@@ -1,0 +1,22 @@
+﻿{
+  "formatVersion": 1,
+  "id": "vanilla_units",
+  "type": "units",
+  "namespace": "vanilla",
+  "title": "Vanilla Units",
+  "version": "1.0.0",
+  "content": { "unitsDir": "Units/" },
+  "recruit": {
+    "addsToPool": [
+      "vanilla/king",
+      "vanilla/swordsman",
+      "vanilla/archer",
+      "vanilla/lizard",
+      "vanilla/witch",
+      "vanilla/wisp",
+      "vanilla/golem",
+      "vanilla/catapult",
+      "vanilla/wyvern"
+    ]
+  }
+}

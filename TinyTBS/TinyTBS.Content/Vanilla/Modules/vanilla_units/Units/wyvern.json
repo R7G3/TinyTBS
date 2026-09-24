@@ -1,0 +1,24 @@
+﻿{
+  "formatVersion": 1,
+  "id": "wyvern",
+  "displayNameKey": "units.wyvern",
+  "movementClass": "fly",
+  "tags": ["flying"],
+  "recruitable": true,
+  "attack": 70,
+  "defence": 25,
+  "maxHealth": 100,
+  "attackRangeMin": 1,
+  "attackRangeMax": 1,
+  "speed": 7,
+  "cost": 1000,
+  "abilities": [],
+  "specialCoefficients": [
+    { "when": { "default": true }, "multiply": 1.0 }
+  ],
+  "leavesMemorial": true,
+  "sprites": {
+    "base": "Resources/Images/units/wyvern_base.png",
+    "mask": "Resources/Images/units/wyvern_mask.png"
+  }
+}

@@ -1,0 +1,18 @@
+﻿{
+  "formatVersion": 1,
+  "id": "vanilla_scenario",
+  "type": "scenario",
+  "namespace": "vanilla_scenario",
+  "title": "Vanilla Scenario",
+  "version": "1.0.0",
+  "defaults": {
+    "units": ["vanilla_units"],
+    "buildings": ["vanilla_buildings"],
+    "theme": "vanilla_theme"
+  },
+  "requires": {
+    "units": ["vanilla_units"],
+    "buildings": ["vanilla_buildings"]
+  },
+  "content": { "campaign": "Campaign/campaign.json" }
+}

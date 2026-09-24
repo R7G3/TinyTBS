@@ -1,0 +1,24 @@
+﻿{
+  "formatVersion": 1,
+  "id": "skeleton",
+  "displayNameKey": "units.skeleton",
+  "movementClass": "foot",
+  "tags": [],
+  "recruitable": false,
+  "attack": 45,
+  "defence": 5,
+  "maxHealth": 100,
+  "attackRangeMin": 1,
+  "attackRangeMax": 1,
+  "speed": 4,
+  "cost": 0,
+  "abilities": [],
+  "specialCoefficients": [
+    { "when": { "default": true }, "multiply": 1.0 }
+  ],
+  "leavesMemorial": false,
+  "sprites": {
+    "base": "Resources/Images/units/skeleton_base.png",
+    "mask": "Resources/Images/units/skeleton_mask.png"
+  }
+}

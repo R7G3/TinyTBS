@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -25,5 +25,7 @@
   <ItemGroup>
     <None Include="Images\**\*" />
     <None Include="Sounds\**\*" />
+    <Compile Remove="Vanilla\**\*" />
+    <None Include="Vanilla\**\*" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,26 @@
+﻿{
+  "formatVersion": 1,
+  "id": "wisp",
+  "displayNameKey": "units.wisp",
+  "movementClass": "foot",
+  "tags": [],
+  "recruitable": true,
+  "attack": 50,
+  "defence": 20,
+  "maxHealth": 100,
+  "attackRangeMin": 1,
+  "attackRangeMax": 1,
+  "speed": 5,
+  "cost": 500,
+  "abilities": [
+    { "type": "attackAura", "value": 10, "radius": 2 }
+  ],
+  "specialCoefficients": [
+    { "when": { "default": true }, "multiply": 1.0 }
+  ],
+  "leavesMemorial": false,
+  "sprites": {
+    "base": "Resources/Images/units/wisp_base.png",
+    "mask": "Resources/Images/units/wisp_mask.png"
+  }
+}

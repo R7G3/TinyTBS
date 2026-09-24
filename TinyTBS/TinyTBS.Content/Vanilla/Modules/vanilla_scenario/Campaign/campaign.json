@@ -1,0 +1,9 @@
+﻿{
+  "formatVersion": 1,
+  "id": "vanilla-main",
+  "title": "Vanilla Campaign",
+  "levels": [
+    { "levelId": "campaign-01", "path": "Levels/campaign-01" },
+    { "levelId": "campaign-02", "path": "Levels/campaign-02" }
+  ]
+}

@@ -32,3 +32,7 @@ dotnet run --project TinyTBS.Content -- \
 ## Mods
 
 Raw PNG/OGG overrides for mods are resolved by `IAssetResolver` from disk and are **not** required to go through this builder.
+
+## Vanilla modules
+
+See [Vanilla/README.md](Vanilla/README.md): tinymod-shaped sources + bundle used for development and QA (`Vanilla/Modules`, `Vanilla/Bundles`).

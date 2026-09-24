@@ -1,0 +1,27 @@
+﻿{
+  "formatVersion": 1,
+  "id": "catapult",
+  "displayNameKey": "units.catapult",
+  "movementClass": "foot",
+  "tags": [],
+  "recruitable": true,
+  "attack": 75,
+  "defence": 10,
+  "maxHealth": 100,
+  "attackRangeMin": 3,
+  "attackRangeMax": 5,
+  "speed": 3,
+  "cost": 800,
+  "abilities": [
+    { "type": "noCounterattack" },
+    { "type": "moveOrAttackExclusive" }
+  ],
+  "specialCoefficients": [
+    { "when": { "default": true }, "multiply": 1.0 }
+  ],
+  "leavesMemorial": true,
+  "sprites": {
+    "base": "Resources/Images/units/catapult_base.png",
+    "mask": "Resources/Images/units/catapult_mask.png"
+  }
+}

@@ -1,0 +1,29 @@
+﻿{
+  "formatVersion": 1,
+  "id": "king",
+  "displayNameKey": "units.king",
+  "movementClass": "foot",
+  "tags": [],
+  "recruitable": true,
+  "attack": 65,
+  "defence": 20,
+  "maxHealth": 100,
+  "attackRangeMin": 1,
+  "attackRangeMax": 1,
+  "speed": 5,
+  "cost": 400,
+  "abilities": [
+    { "type": "uniquePerPlayer" },
+    { "type": "rehireCostIncrement", "amount": 200 },
+    { "type": "captureBuilding", "tags": ["castle", "village"] },
+    { "type": "repairBuilding", "tags": ["village"] }
+  ],
+  "specialCoefficients": [
+    { "when": { "default": true }, "multiply": 1.0 }
+  ],
+  "leavesMemorial": true,
+  "sprites": {
+    "base": "Resources/Images/units/king_base.png",
+    "mask": "Resources/Images/units/king_mask.png"
+  }
+}

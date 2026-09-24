@@ -1,0 +1,17 @@
+﻿{
+  "formatVersion": 1,
+  "id": "vanilla",
+  "title": "Vanilla",
+  "modules": [
+    "vanilla_scenario",
+    "vanilla_units",
+    "vanilla_buildings",
+    "vanilla_theme"
+  ],
+  "defaults": {
+    "scenario": "vanilla_scenario",
+    "units": ["vanilla_units"],
+    "buildings": ["vanilla_buildings"],
+    "theme": "vanilla_theme"
+  }
+}

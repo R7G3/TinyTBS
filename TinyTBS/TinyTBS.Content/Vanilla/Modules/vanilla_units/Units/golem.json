@@ -1,0 +1,24 @@
+﻿{
+  "formatVersion": 1,
+  "id": "golem",
+  "displayNameKey": "units.golem",
+  "movementClass": "foot",
+  "tags": [],
+  "recruitable": true,
+  "attack": 65,
+  "defence": 25,
+  "maxHealth": 100,
+  "attackRangeMin": 1,
+  "attackRangeMax": 1,
+  "speed": 5,
+  "cost": 600,
+  "abilities": [],
+  "specialCoefficients": [
+    { "when": { "default": true }, "multiply": 1.0 }
+  ],
+  "leavesMemorial": true,
+  "sprites": {
+    "base": "Resources/Images/units/golem_base.png",
+    "mask": "Resources/Images/units/golem_mask.png"
+  }
+}
