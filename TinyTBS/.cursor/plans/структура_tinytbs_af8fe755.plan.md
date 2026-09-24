@@ -30,8 +30,18 @@ isProject: false
 - [x] **level-format** — Level + map.ref + загрузчик
 - [x] **map-scripting** — IScriptEngine + Roslyn; MapScriptContext
 - [x] **match-ui-gdd** — статус-бар, пауза/миникарта, магазин, инфо, хотсит
-- [ ] **content-mods** — .tinymod.zip + Bundles; экран Контент; состав на Новая игра
-- [ ] **campaigns** — campaign.json в scenario-модуле
+- [x] **vanilla-modules** — `TinyTBS.Content/Vanilla/` (scenario/units/buildings/theme + bundle); старт из scenario
+- [x] **content-catalog** — лоадеры units/buildings → `MatchContentCatalog`; магазин/UI/HP/найм/спрайты сущностей из модулей
+- [ ] **content-id-bridge** — матч на `ContentId` (сузить/убрать `UnitKind`·`BuildingKind` + `VanillaContentIds`)
+- [ ] **theme-terrain** — theme-модуль в рантайме; terrain (+ memorial art) из theme `Resources/`
+- [ ] **party-composition** — состав партии scenario + units + buildings + theme; конфликты id / «тип не резолвится»
+- [ ] **tinymod-install** — установка `.tinymod.zip` → `Modules/{id}/`; сканирование библиотеки
+- [ ] **bundles-runtime** — загрузка `Bundles/*.bundle.json` как пресет defaults
+- [ ] **content-ui** — экран Контент (установить/удалить; Скачать/Обновить greyed)
+- [ ] **new-game-flow** — UI «Новая игра»: выбор scenario + состав (defaults из bundle/scenario)
+- [ ] **match-combat-gdd** — бой/формула GDD; abilities / special из `UnitDefinition`
+- [ ] **match-economy-capture** — доход/хил строений, захват/ремонт по tags, post-move цели (TURN_AND_UI)
+- [ ] **campaigns** — campaign.json в scenario-модуле + прохождение по главам
 - [ ] **save-format** — сейвы + contentSetup
 - [ ] **map-editor** — workspace модулей; Publish greyed
 - [ ] **player-colors** — color picker + dimFactor «походил»
@@ -337,10 +347,13 @@ ScriptOptions.Default
 7. `UI_AND_FLOW.md` (экраны, HUD, пауза, магазин) — **выполнено** (канон); реализация матч-UI — pending.
 8. Maps/Levels загрузчики + фикстуры; старт матча из level — **выполнено** (`.tinymod.zip` / полный GDD-матч — впереди).
 9. **MapScriptContext** + Roslyn sandbox + хуки — **выполнено**.
-10. Матч UI по канону + playable loop — **частично** (HUD GDD: статус-бар, пауза/карта/цели, инфо, магазин; бой/post-move — впереди).
-11. Библиотека `.tinymod.zip` + Bundles + экран Контент + редактор workspace.
-12. Кампании и сохранения (`contentSetup`) — после playable loop.
-13. **Сеть** — позже (Remote в API; UI greyed).
+10. Матч UI (HUD GDD) — **выполнено** (`match-ui-gdd`); playable loop / бой — см. ниже.
+11. Vanilla modules + content catalog (shop/HP/sprites из JSON) — **выполнено** (`vanilla-modules`, `content-catalog`).
+12. Content pipeline по срезам: `content-id-bridge` → `theme-terrain` → `party-composition` → `tinymod-install` → `bundles-runtime` → `content-ui` → `new-game-flow`.
+13. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
+14. `campaigns` + `save-format` — после playable loop.
+15. `map-editor` — workspace модулей.
+16. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
 
 ## Документация в репозитории
 
