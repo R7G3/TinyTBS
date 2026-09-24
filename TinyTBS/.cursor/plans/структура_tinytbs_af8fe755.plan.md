@@ -23,15 +23,15 @@ isProject: false
 - [x] UI_AND_FLOW (экраны, HUD, пауза, магазин, менеджер модулей)
 - [x] Демо: terrain + base/mask + PlayerPalette
 - [x] docs/ ARCHITECTURE, ADR, AGENTS, MAP/SCRIPT/SAVE formats
-
-### Дальше
-
 - [x] **map-format** — Maps/ в scenario-модуле + загрузчик; логические id
 - [x] **level-format** — Level + map.ref + загрузчик
 - [x] **map-scripting** — IScriptEngine + Roslyn; MapScriptContext
 - [x] **match-ui-gdd** — статус-бар, пауза/миникарта, магазин, инфо, хотсит
 - [x] **vanilla-modules** — `TinyTBS.Content/Vanilla/` (scenario/units/buildings/theme + bundle); старт из scenario
 - [x] **content-catalog** — лоадеры units/buildings → `MatchContentCatalog`; магазин/UI/HP/найм/спрайты сущностей из модулей
+
+### Дальше
+
 - [ ] **content-id-bridge** — матч на `ContentId` (сузить/убрать `UnitKind`·`BuildingKind` + `VanillaContentIds`)
 - [ ] **theme-terrain** — theme-модуль в рантайме; terrain (+ memorial art) из theme `Resources/`
 - [ ] **party-composition** — состав партии scenario + units + buildings + theme; конфликты id / «тип не резолвится»
