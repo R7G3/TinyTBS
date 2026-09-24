@@ -91,7 +91,7 @@ public sealed class MatchTileDetailOverlayView
             && _buildingIcon?.MaskSprite is not null
             && match.TryGetBuildingAt(match.Cursor, out var building))
         {
-            var sprite = textures.Building(building.Kind);
+            var sprite = textures.Building(building.Kind, building.IsRuined);
             _buildingIcon.BaseSprite.Texture = sprite.Base;
             _buildingIcon.MaskSprite.Texture = sprite.Mask;
             _buildingIcon.MaskSprite.Color = PlayerPalette.ForOwner(building.OwnerPlayerIndex);

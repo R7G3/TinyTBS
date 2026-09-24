@@ -55,7 +55,8 @@ public sealed class MatchState
             match._buildings.Add(new MatchBuilding(
                 VanillaContentIds.ParseBuilding(building.Type),
                 new GridCell(building.X, building.Y),
-                building.Slot));
+                building.Slot,
+                VanillaContentIds.IsRuinedBuildingState(building.State)));
         }
 
         foreach (var unit in map.Units)

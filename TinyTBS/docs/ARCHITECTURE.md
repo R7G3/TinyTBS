@@ -149,7 +149,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 ## ECS (MGE)
 
 - `TinyTBS.Game.Match`: `GridCell`, `MatchDefaults`, `MatchUnit` / `MatchBuilding`, `MatchState` — **логика** (демо-правила; полный GDD — впереди)
-- `TinyTBS.Game.Maps` / `Levels`: загрузка `map.json` / `level.json` (`map.ref` → map); фикстуры в `Game/Fixtures/`
+- `TinyTBS.Game.Maps` / `Levels`: загрузка `map.json` / `level.json` (`map.ref` → map); канон vanilla — `TinyTBS.Content/Vanilla/` (копируется в output)
 - `TinyTBS.Game.Scripting`: `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost`, `MapScriptContext` + валидатор песочницы
 - `TinyTBS.Engine.Ecs`: `TilemapDrawSystem`, `TeamMaskedSpriteDrawSystem` (base + tint mask)
 - `MatchScene` / `GameplaySessionFactory` — в Game: level → map → скрипт → атлас → сцена; `MatchCommandApplicator` — команды/pointer→логика (+ хуки скрипта)

@@ -8,6 +8,10 @@ namespace TinyTBS.Game.Match;
 public sealed class MatchTextureAtlas : IDisposable
 {
     private readonly List<LoadedTexture> _owned = [];
+    private readonly Dictionary<UnitKind, TeamSprite> _units;
+    private readonly TeamSprite _castle;
+    private readonly TeamSprite _village;
+    private readonly TeamSprite _villageRuined;
 
     private MatchTextureAtlas(
         Texture2D grass,
@@ -15,20 +19,22 @@ public sealed class MatchTextureAtlas : IDisposable
         Texture2D road,
         Texture2D mountain,
         Texture2D bridge,
-        TeamSprite king,
-        TeamSprite swordsman,
+        Texture2D forest,
+        Dictionary<UnitKind, TeamSprite> units,
         TeamSprite castle,
-        TeamSprite village)
+        TeamSprite village,
+        TeamSprite villageRuined)
     {
         Grass = grass;
         Water = water;
         Road = road;
         Mountain = mountain;
         Bridge = bridge;
-        King = king;
-        Swordsman = swordsman;
-        Castle = castle;
-        Village = village;
+        Forest = forest;
+        _units = units;
+        _castle = castle;
+        _village = village;
+        _villageRuined = villageRuined;
     }
 
     public Texture2D Grass { get; }
@@ -36,10 +42,12 @@ public sealed class MatchTextureAtlas : IDisposable
     public Texture2D Road { get; }
     public Texture2D Mountain { get; }
     public Texture2D Bridge { get; }
-    public TeamSprite King { get; }
-    public TeamSprite Swordsman { get; }
-    public TeamSprite Castle { get; }
-    public TeamSprite Village { get; }
+    public Texture2D Forest { get; }
+
+    public TeamSprite King => Unit(UnitKind.King);
+    public TeamSprite Swordsman => Unit(UnitKind.Swordsman);
+    public TeamSprite Castle => _castle;
+    public TeamSprite Village => _village;
 
     public Texture2D Terrain(TerrainKind kind) => kind switch
     {
@@ -47,20 +55,18 @@ public sealed class MatchTextureAtlas : IDisposable
         TerrainKind.Road => Road,
         TerrainKind.Mountain => Mountain,
         TerrainKind.Bridge => Bridge,
-        // Forest uses grass art until a dedicated terrain tile exists.
+        TerrainKind.Forest => Forest,
         _ => Grass,
     };
 
-    public TeamSprite Unit(UnitKind kind) => kind switch
-    {
-        UnitKind.King => King,
-        _ => Swordsman,
-    };
+    public TeamSprite Unit(UnitKind kind) =>
+        _units.TryGetValue(kind, out var sprite) ? sprite : _units[UnitKind.Swordsman];
 
-    public TeamSprite Building(BuildingKind kind) => kind switch
+    public TeamSprite Building(BuildingKind kind, bool isRuined = false) => kind switch
     {
-        BuildingKind.Castle => Castle,
-        _ => Village,
+        BuildingKind.Castle => _castle,
+        BuildingKind.Village when isRuined => _villageRuined,
+        _ => _village,
     };
 
     public static MatchTextureAtlas Load(
@@ -89,16 +95,31 @@ public sealed class MatchTextureAtlas : IDisposable
             return new TeamSprite(baseTexture.Texture, maskTexture.Texture);
         }
 
+        var units = new Dictionary<UnitKind, TeamSprite>
+        {
+            [UnitKind.King] = LoadTeamSprite("units", "king"),
+            [UnitKind.Swordsman] = LoadTeamSprite("units", "swordsman"),
+            [UnitKind.Archer] = LoadTeamSprite("units", "archer"),
+            [UnitKind.Lizard] = LoadTeamSprite("units", "lizard"),
+            [UnitKind.Witch] = LoadTeamSprite("units", "witch"),
+            [UnitKind.Wisp] = LoadTeamSprite("units", "wisp"),
+            [UnitKind.Golem] = LoadTeamSprite("units", "golem"),
+            [UnitKind.Catapult] = LoadTeamSprite("units", "catapult"),
+            [UnitKind.Wyvern] = LoadTeamSprite("units", "wyvern"),
+            [UnitKind.Skeleton] = LoadTeamSprite("units", "skeleton"),
+        };
+
         var atlas = new MatchTextureAtlas(
             grass: LoadTexture("Images/terrain/grass.png", "Images/terrain/grass").Texture,
             water: LoadTexture("Images/terrain/water.png", "Images/terrain/water").Texture,
             road: LoadTexture("Images/terrain/road.png", "Images/terrain/road").Texture,
             mountain: LoadTexture("Images/terrain/mountain.png", "Images/terrain/mountain").Texture,
             bridge: LoadTexture("Images/terrain/bridge.png", "Images/terrain/bridge").Texture,
-            king: LoadTeamSprite("units", "king"),
-            swordsman: LoadTeamSprite("units", "swordsman"),
+            forest: LoadTexture("Images/terrain/forest.png", "Images/terrain/forest").Texture,
+            units: units,
             castle: LoadTeamSprite("buildings", "castle"),
-            village: LoadTeamSprite("buildings", "village"));
+            village: LoadTeamSprite("buildings", "village"),
+            villageRuined: LoadTeamSprite("buildings", "village_ruined"));
 
         atlas._owned.AddRange(ownedTextures);
         return atlas;

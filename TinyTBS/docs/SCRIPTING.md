@@ -2,7 +2,7 @@
 
 Логика отдельной карты — **`script.cs`** рядом с `map.json` в scenario-модуле (`Maps/{id}/`).
 
-**Статус в коде:** загрузка + компиляция + хуки в матче работают (`TinyTBS.Game.Scripting`). Демо: `Fixtures/Maps/demo/script.cs`.
+**Статус в коде:** загрузка + компиляция + хуки в матче работают (`TinyTBS.Game.Scripting`). Демо-скрипты: `Vanilla/Modules/vanilla_scenario/Maps/*/script.cs`.
 
 ## Движок
 

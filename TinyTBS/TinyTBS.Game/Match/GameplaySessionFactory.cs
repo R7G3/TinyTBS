@@ -9,21 +9,43 @@ using TinyTBS.Game.Scripting;
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Loads match textures via <see cref="IAssetResolver"/> and builds a session from a level fixture.
+/// Loads match textures via <see cref="IAssetResolver"/> and builds a session from a vanilla scenario level.
 /// </summary>
 public static class GameplaySessionFactory
 {
+    /// <summary>Compact smoke-test level under <c>vanilla_scenario</c>.</summary>
     public const string DemoLevelId = "demo";
+
+    /// <summary>Full-roster QA level under <c>vanilla_scenario</c> (default Start match).</summary>
+    public const string ProvingGroundsLevelId = "proving-grounds";
+
+    /// <summary>Relative path from app base to the bundled vanilla scenario module root.</summary>
+    public const string VanillaScenarioRelativePath = "Vanilla/Modules/vanilla_scenario";
 
     public static GameplaySession CreateDemo(
         GraphicsDevice graphicsDevice,
         ContentManager content,
         SpriteBatch spriteBatch,
         IAssetResolver assets,
-        IFileContentProvider files)
+        IFileContentProvider files) =>
+        CreateFromVanillaLevel(
+            graphicsDevice,
+            content,
+            spriteBatch,
+            assets,
+            files,
+            ProvingGroundsLevelId);
+
+    public static GameplaySession CreateFromVanillaLevel(
+        GraphicsDevice graphicsDevice,
+        ContentManager content,
+        SpriteBatch spriteBatch,
+        IAssetResolver assets,
+        IFileContentProvider files,
+        string levelId)
     {
-        var fixturesRoot = files.Combine(AppContext.BaseDirectory, "Fixtures");
-        var level = LevelFolderLoader.LoadFromModuleLevels(fixturesRoot, DemoLevelId, files);
+        var scenarioRoot = files.Combine(AppContext.BaseDirectory, VanillaScenarioRelativePath);
+        var level = LevelFolderLoader.LoadFromModuleLevels(scenarioRoot, levelId, files);
         var state = MatchState.FromMap(
             level.Map,
             playerCount: level.Players.DefaultSlots,

@@ -15,7 +15,10 @@
     <ProjectReference Include="..\TinyTBS.Engine\TinyTBS.Engine.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Remove="Fixtures\**\*" />
-    <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Bundled vanilla tinymod sources (from TinyTBS.Content/Vanilla). Map scripts are data for Roslyn, not project compile. -->
+    <Compile Remove="..\TinyTBS.Content\Vanilla\**\*" />
+    <None Include="..\TinyTBS.Content\Vanilla\**\*"
+          Link="Vanilla\%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

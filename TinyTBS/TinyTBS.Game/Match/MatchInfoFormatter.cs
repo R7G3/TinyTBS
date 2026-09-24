@@ -53,11 +53,19 @@ public static class MatchInfoFormatter
         builder.AppendLine("Building");
         builder.AppendLine($"{building.Kind}");
         builder.AppendLine($"Owner: {OwnerLabel(building.OwnerPlayerIndex)}");
+        if (building.IsRuined)
+            builder.AppendLine("State: ruined");
         if (building.Kind == BuildingKind.Castle)
         {
             builder.AppendLine("Income: 50g / turn (from turn 2)");
             builder.AppendLine("Heal: +20 HP / turn (allied)");
             builder.Append("Defence bonus: +15");
+        }
+        else if (building.IsRuined)
+        {
+            builder.AppendLine("Income: 0");
+            builder.AppendLine("Heal: none");
+            builder.Append("Defence bonus: +10");
         }
         else
         {

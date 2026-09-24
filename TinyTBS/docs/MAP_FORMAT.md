@@ -4,7 +4,7 @@
 
 Иерархия: **Map → Level → Campaign** внутри scenario-модуля. [LEVEL_FORMAT.md](LEVEL_FORMAT.md), [GAME_DESIGN.md](GAME_DESIGN.md).
 
-**Статус в коде:** парсер/лоадер (`TinyTBS.Game.Maps`), демо-фикстура `Fixtures/Maps/demo/`. Surface: dense (все клетки) или sparse (остальное = `grass`).
+**Статус в коде:** парсер/лоадер (`TinyTBS.Game.Maps`); канон данных — `TinyTBS.Content/Vanilla/Modules/vanilla_scenario/Maps/`. Surface: dense (все клетки) или sparse (остальное = `grass`).
 
 ## Содержимое
 

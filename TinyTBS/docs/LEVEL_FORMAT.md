@@ -4,7 +4,7 @@
 
 **Level** — одна играбельная партия внутри **scenario**-модуля. Map подключается только по **`map.ref`** (embed нет).
 
-**Статус в коде:** парсер/лоадер (`TinyTBS.Game.Levels`), резолв `map.ref` только внутри модуля; демо `Fixtures/Levels/demo/` → `Maps/demo`. Старт матча идёт через level.
+**Статус в коде:** парсер/лоадер (`TinyTBS.Game.Levels`), резолв `map.ref` только внутри модуля; канон — `Vanilla/Modules/vanilla_scenario` (`demo`, `proving-grounds`, campaign levels). Старт матча по умолчанию — `proving-grounds`.
 
 ## В scenario-модуле
 

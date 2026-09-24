@@ -4,7 +4,7 @@ using TinyTBS.Game.Match;
 namespace TinyTBS.Game.Maps;
 
 /// <summary>
-/// Resolves vanilla/* logical ids to demo match enums until full unit/building modules exist.
+/// Resolves vanilla/* logical ids to match enums until full module-driven catalogs replace this bridge.
 /// </summary>
 public static class VanillaContentIds
 {
@@ -44,13 +44,24 @@ public static class VanillaContentIds
         {
             "king" => UnitKind.King,
             "swordsman" => UnitKind.Swordsman,
+            "archer" => UnitKind.Archer,
+            "lizard" => UnitKind.Lizard,
+            "witch" => UnitKind.Witch,
+            "wisp" => UnitKind.Wisp,
+            "golem" => UnitKind.Golem,
+            "catapult" => UnitKind.Catapult,
+            "wyvern" => UnitKind.Wyvern,
+            "skeleton" => UnitKind.Skeleton,
             _ => throw Unresolved(contentId, "unit"),
         };
     }
+
+    public static bool IsRuinedBuildingState(string? state) =>
+        string.Equals(state, "ruined", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsVanilla(ContentId contentId) =>
         string.Equals(contentId.Namespace, "vanilla", StringComparison.OrdinalIgnoreCase);
 
     private static MapLoadException Unresolved(ContentId contentId, string contentKind) =>
-        new($"Unresolved {contentKind} type '{contentId.Full}'. Only vanilla/* ids are supported until content-mods.");
+        new($"Unresolved {contentKind} type '{contentId.Full}'.");
 }

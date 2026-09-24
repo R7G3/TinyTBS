@@ -47,7 +47,7 @@ public sealed class MatchScene : IDisposable
         {
             var entityId = CreateMaskedVisual(
                 building.Cell,
-                textures.Building(building.Kind),
+                textures.Building(building.Kind, building.IsRuined),
                 PlayerPalette.ForOwner(building.OwnerPlayerIndex));
             World.GetEntity(entityId).Attach(new GridPosition(building.Cell.X, building.Cell.Y));
             _buildingEntityIds.Add(entityId);

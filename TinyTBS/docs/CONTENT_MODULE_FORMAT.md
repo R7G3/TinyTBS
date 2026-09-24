@@ -175,7 +175,9 @@ ocean_theme.tinymod.zip
 
 ## Vanilla
 
-Модули того же формата, например `vanilla_units`, `vanilla_buildings`, `vanilla_scenario`, `vanilla_theme`, с `"namespace": "vanilla"` где нужны общие id (`vanilla/knight`). В коде — fallback на эти модули.
+Модули того же формата: `vanilla_units`, `vanilla_buildings`, `vanilla_scenario`, `vanilla_theme`, с `"namespace": "vanilla"` у units/buildings (`vanilla/king`, …).
+
+**Исходники в репо:** [`TinyTBS.Content/Vanilla/`](../TinyTBS.Content/Vanilla/README.md) — `Modules/*` + `Bundles/vanilla.bundle.json`. Копируются в output игры; Start match грузит `vanilla_scenario` / `proving-grounds`. В коде пока fallback id→enum (`VanillaContentIds`); полный резолв состава модулей — на шаге content-mods.
 
 ## Связанные документы
 
