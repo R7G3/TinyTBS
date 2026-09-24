@@ -177,7 +177,9 @@ ocean_theme.tinymod.zip
 
 Модули того же формата: `vanilla_units`, `vanilla_buildings`, `vanilla_scenario`, `vanilla_theme`, с `"namespace": "vanilla"` у units/buildings (`vanilla/king`, …).
 
-**Исходники в репо:** [`TinyTBS.Content/Vanilla/`](../TinyTBS.Content/Vanilla/README.md) — `Modules/*` + `Bundles/vanilla.bundle.json`. Копируются в output игры; Start match грузит `vanilla_scenario` / `proving-grounds`. В коде пока fallback id→enum (`VanillaContentIds`); полный резолв состава модулей — на шаге content-mods.
+**Исходники в репо:** [`TinyTBS.Content/Vanilla/`](../TinyTBS.Content/Vanilla/README.md) — `Modules/*` + `Bundles/vanilla.bundle.json`. Копируются в output игры; Start match грузит `vanilla_scenario` / `proving-grounds`.
+
+**Загрузка в коде:** `UnitModuleLoader` / `BuildingModuleLoader` → `MatchContentCatalog`. Магазин, статы UI, HP спавна/найма и спрайты юнитов/строений (в т.ч. ruined) берутся из модулей. Terrain пока из bundled Content. `VanillaContentIds` + `UnitKind` — тонкий мост map id ↔ матч; abilities/бой data-driven и theme/bundle composition — следующие срезы.
 
 ## Связанные документы
 

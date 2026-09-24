@@ -4,7 +4,7 @@ using TinyTBS.Game.Scripting;
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Bundle for a running match: logic handle, scene, overlays, scripts, owned textures.
+/// Bundle for a running match: logic handle, scene, overlays, scripts, owned textures, content catalog.
 /// </summary>
 public sealed class GameplaySession : IDisposable
 {
@@ -17,7 +17,8 @@ public sealed class GameplaySession : IDisposable
         MatchTextureAtlas textures,
         MapScriptHost scriptHost,
         MatchLevelBrief levelBrief,
-        MinimapRenderer minimap)
+        MinimapRenderer minimap,
+        MatchContentCatalog contentCatalog)
     {
         State = state;
         Scene = scene;
@@ -25,6 +26,7 @@ public sealed class GameplaySession : IDisposable
         ScriptHost = scriptHost;
         LevelBrief = levelBrief;
         Minimap = minimap;
+        ContentCatalog = contentCatalog;
         _textures = textures;
     }
 
@@ -39,6 +41,8 @@ public sealed class GameplaySession : IDisposable
     public MatchLevelBrief LevelBrief { get; }
 
     public MinimapRenderer Minimap { get; }
+
+    public MatchContentCatalog ContentCatalog { get; }
 
     public MatchTextureAtlas Textures => _textures;
 
@@ -57,11 +61,18 @@ public sealed class GameplaySession : IDisposable
 
     public bool TryBuyShopOffer(int offerIndex, GridCell castleCell)
     {
-        if (offerIndex < 0 || offerIndex >= MatchShopCatalog.Offers.Count)
+        if (offerIndex < 0 || offerIndex >= ContentCatalog.ShopOffers.Count)
             return false;
 
-        var offer = MatchShopCatalog.Offers[offerIndex];
-        if (!State.TryRecruitAtCastle(offer.UnitKind, offer.Cost, castleCell))
+        var offer = ContentCatalog.ShopOffers[offerIndex];
+        if (!ContentCatalog.TryGetUnit(offer.UnitKind, out var unitDefinition))
+            return false;
+
+        if (!State.TryRecruitAtCastle(
+                offer.UnitKind,
+                offer.Cost,
+                unitDefinition.MaxHealth,
+                castleCell))
             return false;
 
         if (State.LastAction is { } action)

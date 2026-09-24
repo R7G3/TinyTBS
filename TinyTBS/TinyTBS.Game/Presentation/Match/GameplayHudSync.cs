@@ -30,11 +30,11 @@ public sealed class GameplayHudSync
         _hud.GoldText = $"{match.GetMoney(match.CurrentPlayer)}g";
         _hud.TurnText = $"Turn {match.TurnNumber}";
         _hud.StatusBarColor = PlayerPalette.ForPlayer(match.CurrentPlayer);
-        _hud.CompactInfoText = MatchInfoFormatter.FormatCompact(match);
+        _hud.CompactInfoText = MatchInfoFormatter.FormatCompact(match, session.ContentCatalog);
         _hud.DetailHeaderText = MatchInfoFormatter.FormatDetailHeader(match);
         _hud.DetailTerrainText = MatchInfoFormatter.FormatTerrainDetail(match);
-        _hud.DetailBuildingText = MatchInfoFormatter.FormatBuildingDetail(match);
-        _hud.DetailUnitText = MatchInfoFormatter.FormatUnitDetail(match);
+        _hud.DetailBuildingText = MatchInfoFormatter.FormatBuildingDetail(match, session.ContentCatalog);
+        _hud.DetailUnitText = MatchInfoFormatter.FormatUnitDetail(match, session.ContentCatalog);
         _hud.HasDetailBuilding = !string.IsNullOrEmpty(_hud.DetailBuildingText);
         _hud.HasDetailUnit = !string.IsNullOrEmpty(_hud.DetailUnitText);
         _hud.InfoPreferLeft = match.Cursor.X >= match.Width / 2;
@@ -47,12 +47,13 @@ public sealed class GameplayHudSync
             _hud.CellActionChooserAnchorY = anchor.Y;
         }
 
-        _hud.ShopOffers = MatchShopCatalog.Offers
+        var catalog = session.ContentCatalog;
+        _hud.ShopOffers = catalog.ShopOffers
             .Select((offer, index) => new GameplayShopOfferViewModel
             {
                 UnitKind = offer.UnitKind,
-                Name = MatchUnitCatalog.DisplayName(offer.UnitKind),
-                StatsText = MatchUnitCatalog.FormatCombatStats(offer.UnitKind),
+                Name = catalog.DisplayName(offer.UnitKind),
+                StatsText = catalog.FormatCombatStats(offer.UnitKind),
                 Cost = offer.Cost,
                 CanAfford = match.GetMoney(match.CurrentPlayer) >= offer.Cost,
                 OfferIndex = index,

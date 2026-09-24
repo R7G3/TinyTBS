@@ -17,10 +17,7 @@ internal static class GameTextureLoader
     {
         var resolvedPath = assets.Resolve(logicalRelativePath);
         if (resolvedPath is not null && File.Exists(resolvedPath))
-        {
-            using var stream = File.OpenRead(resolvedPath);
-            return new LoadedTexture(Texture2D.FromStream(graphicsDevice, stream), disposeOnUnload: true);
-        }
+            return LoadFromFile(graphicsDevice, resolvedPath);
 
         try
         {
@@ -32,6 +29,27 @@ internal static class GameTextureLoader
         }
     }
 
+    /// <summary>
+    /// Loads a PNG from an absolute file path, or falls back to bundled content using a derived asset name.
+    /// </summary>
+    public static LoadedTexture? TryLoadModuleSprite(
+        GraphicsDevice graphicsDevice,
+        ContentManager content,
+        IAssetResolver assets,
+        string absoluteFilePath,
+        string moduleRelativePath)
+    {
+        if (File.Exists(absoluteFilePath))
+            return LoadFromFile(graphicsDevice, absoluteFilePath);
+
+        var contentAssetName = ModuleSpritePath.ToContentAssetName(moduleRelativePath);
+        if (contentAssetName is null)
+            return null;
+
+        var logicalRelativePath = contentAssetName + ".png";
+        return TryLoad(graphicsDevice, content, assets, logicalRelativePath, contentAssetName);
+    }
+
     public static LoadedTexture LoadOrFallback(
         GraphicsDevice graphicsDevice,
         ContentManager content,
@@ -41,6 +59,28 @@ internal static class GameTextureLoader
     {
         return TryLoad(graphicsDevice, content, assets, logicalRelativePath, contentAssetName)
             ?? new LoadedTexture(CreateSolid(graphicsDevice, 16, 16), disposeOnUnload: true);
+    }
+
+    public static LoadedTexture LoadModuleSpriteOrFallback(
+        GraphicsDevice graphicsDevice,
+        ContentManager content,
+        IAssetResolver assets,
+        string absoluteFilePath,
+        string moduleRelativePath)
+    {
+        return TryLoadModuleSprite(
+                graphicsDevice,
+                content,
+                assets,
+                absoluteFilePath,
+                moduleRelativePath)
+            ?? new LoadedTexture(CreateSolid(graphicsDevice, 16, 16), disposeOnUnload: true);
+    }
+
+    private static LoadedTexture LoadFromFile(GraphicsDevice graphicsDevice, string absoluteFilePath)
+    {
+        using var stream = File.OpenRead(absoluteFilePath);
+        return new LoadedTexture(Texture2D.FromStream(graphicsDevice, stream), disposeOnUnload: true);
     }
 
     private static Texture2D CreateSolid(GraphicsDevice graphicsDevice, int width, int height)

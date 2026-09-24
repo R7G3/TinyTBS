@@ -3,13 +3,15 @@ using Microsoft.Xna.Framework.Graphics;
 using TinyTBS.Engine.IO;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
+using TinyTBS.Game.Buildings;
 using TinyTBS.Game.Levels;
 using TinyTBS.Game.Scripting;
+using TinyTBS.Game.Units;
 
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Loads match textures via <see cref="IAssetResolver"/> and builds a session from a vanilla scenario level.
+/// Loads match textures via <see cref="IAssetResolver"/> and builds a session from vanilla modules.
 /// </summary>
 public static class GameplaySessionFactory
 {
@@ -19,8 +21,11 @@ public static class GameplaySessionFactory
     /// <summary>Full-roster QA level under <c>vanilla_scenario</c> (default Start match).</summary>
     public const string ProvingGroundsLevelId = "proving-grounds";
 
-    /// <summary>Relative path from app base to the bundled vanilla scenario module root.</summary>
     public const string VanillaScenarioRelativePath = "Vanilla/Modules/vanilla_scenario";
+
+    public const string VanillaUnitsRelativePath = "Vanilla/Modules/vanilla_units";
+
+    public const string VanillaBuildingsRelativePath = "Vanilla/Modules/vanilla_buildings";
 
     public static GameplaySession CreateDemo(
         GraphicsDevice graphicsDevice,
@@ -44,10 +49,13 @@ public static class GameplaySessionFactory
         IFileContentProvider files,
         string levelId)
     {
+        var contentCatalog = LoadVanillaContentCatalog(files);
+
         var scenarioRoot = files.Combine(AppContext.BaseDirectory, VanillaScenarioRelativePath);
         var level = LevelFolderLoader.LoadFromModuleLevels(scenarioRoot, levelId, files);
         var state = MatchState.FromMap(
             level.Map,
+            contentCatalog,
             playerCount: level.Players.DefaultSlots,
             startingGold: level.DefaultStartingGold);
 
@@ -59,7 +67,7 @@ public static class GameplaySessionFactory
             scriptEngine);
         scriptHost.NotifyMatchStarted(state);
 
-        var textures = MatchTextureAtlas.Load(graphicsDevice, content, assets);
+        var textures = MatchTextureAtlas.Load(graphicsDevice, content, assets, contentCatalog);
         var scene = new MatchScene(state, graphicsDevice, spriteBatch, textures);
         var cursorHighlight = new CursorHighlightRenderer(graphicsDevice);
         var minimap = new MinimapRenderer(graphicsDevice);
@@ -80,6 +88,16 @@ public static class GameplaySessionFactory
             textures,
             scriptHost,
             levelBrief,
-            minimap);
+            minimap,
+            contentCatalog);
+    }
+
+    public static MatchContentCatalog LoadVanillaContentCatalog(IFileContentProvider files)
+    {
+        var unitsRoot = files.Combine(AppContext.BaseDirectory, VanillaUnitsRelativePath);
+        var buildingsRoot = files.Combine(AppContext.BaseDirectory, VanillaBuildingsRelativePath);
+        var unitsModule = UnitModuleLoader.Load(unitsRoot, files);
+        var buildingsModule = BuildingModuleLoader.Load(buildingsRoot, files);
+        return new MatchContentCatalog(unitsModule, buildingsModule);
     }
 }

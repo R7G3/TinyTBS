@@ -34,7 +34,11 @@ Campaign: `Campaign/campaign.json` (`vanilla-main`).
 
 ## Runtime
 
-`TinyTBS.Game` copies this tree to output as `Vanilla/`. `GameplaySessionFactory` loads `Vanilla/Modules/vanilla_scenario` (default level: `proving-grounds`).
+`TinyTBS.Game` copies this tree to output as `Vanilla/`. `GameplaySessionFactory` loads:
+
+- scenario: `Vanilla/Modules/vanilla_scenario` (default level: `proving-grounds`)
+- units / buildings JSON → `MatchContentCatalog` (shop, inspect, spawn HP, recruit cost)
+- unit/building sprites from module `Resources/` (fallback to bundled `.xnb`)
 
 ## What this exercises
 

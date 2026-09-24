@@ -23,13 +23,15 @@ public sealed class MatchState
         _terrain = new TerrainKind[width, height];
     }
 
-    /// <summary>Builds match state from a loaded map (vanilla/* ids → enums).</summary>
+    /// <summary>Builds match state from a loaded map; types must resolve in <paramref name="contentCatalog"/>.</summary>
     public static MatchState FromMap(
         MapDefinition map,
+        MatchContentCatalog contentCatalog,
         int playerCount = MatchDefaults.PlayerCount,
         int startingGold = 0)
     {
         ArgumentNullException.ThrowIfNull(map);
+        ArgumentNullException.ThrowIfNull(contentCatalog);
         if (playerCount < 1)
             throw new ArgumentOutOfRangeException(nameof(playerCount));
 
@@ -52,6 +54,12 @@ public sealed class MatchState
 
         foreach (var building in map.Buildings)
         {
+            if (!contentCatalog.TryGetBuilding(building.Type, out _))
+            {
+                throw new InvalidOperationException(
+                    $"Map building type '{building.Type.Full}' is not in the match content catalog.");
+            }
+
             match._buildings.Add(new MatchBuilding(
                 VanillaContentIds.ParseBuilding(building.Type),
                 new GridCell(building.X, building.Y),
@@ -61,10 +69,24 @@ public sealed class MatchState
 
         foreach (var unit in map.Units)
         {
+            if (!contentCatalog.TryGetUnit(unit.Type, out var unitDefinition))
+            {
+                throw new InvalidOperationException(
+                    $"Map unit type '{unit.Type.Full}' is not in the match content catalog.");
+            }
+
+            var unitKind = VanillaContentIds.ParseUnit(unit.Type);
+            var maxHealth = unitDefinition.MaxHealth;
+            var hitPoints = unit.Hp is int hitPointValue
+                ? Math.Clamp(hitPointValue, 1, maxHealth)
+                : maxHealth;
+
             match.AddUnit(
-                VanillaContentIds.ParseUnit(unit.Type),
+                unitKind,
                 new GridCell(unit.X, unit.Y),
-                unit.Slot);
+                unit.Slot,
+                maxHealth,
+                hitPoints);
         }
 
         // Memorials stay on MapDefinition for scripting; match rules do not use them yet.
@@ -228,7 +250,7 @@ public sealed class MatchState
     }
 
     /// <summary>Recruit a unit onto an owned castle cell if gold and space allow.</summary>
-    public bool TryRecruitAtCastle(UnitKind kind, int cost, GridCell castleCell)
+    public bool TryRecruitAtCastle(UnitKind kind, int cost, int maxHealth, GridCell castleCell)
     {
         if (!IsOwnCastleAt(castleCell))
             return false;
@@ -236,9 +258,11 @@ public sealed class MatchState
             return false;
         if (GetMoney(CurrentPlayer) < cost)
             return false;
+        if (maxHealth <= 0)
+            return false;
 
         AddMoney(CurrentPlayer, -cost);
-        AddUnit(kind, castleCell, CurrentPlayer);
+        AddUnit(kind, castleCell, CurrentPlayer, maxHealth, maxHealth);
         LastAction = new MatchPlayerAction
         {
             Kind = MatchPlayerActionKind.SelectUnit,
@@ -257,9 +281,9 @@ public sealed class MatchState
             throw new ArgumentOutOfRangeException(nameof(playerIndex), playerIndex, "Unknown player.");
     }
 
-    private MatchUnit AddUnit(UnitKind kind, GridCell cell, int playerIndex)
+    private MatchUnit AddUnit(UnitKind kind, GridCell cell, int playerIndex, int maxHealth, int hitPoints)
     {
-        var unit = new MatchUnit(_nextUnitId++, kind, cell, playerIndex);
+        var unit = new MatchUnit(_nextUnitId++, kind, cell, playerIndex, maxHealth, hitPoints);
         _units.Add(unit);
         return unit;
     }
