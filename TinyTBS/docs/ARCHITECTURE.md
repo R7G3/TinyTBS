@@ -134,9 +134,9 @@ flowchart TB
 
 ## Моды
 
-**Сейчас:** `IAssetResolver` — опциональный overlay из `Content/Modules/{id}/` → fallback на bundled Content. Полный состав контента матча (несколько модулей) — `MatchContentComposition` / `match-content-composition`.
+**Сейчас:** `IAssetResolver` — опциональный overlay из `Content/Modules/{id}/` → fallback на bundled Content. Полный состав контента матча — `MatchContentComposition`. Установка `.tinymod.zip` → `{UserData}/Content/Modules/{id}/` (`TinymodInstaller`); сканирование user + bundled (`ContentModuleLibrary`).
 
-**Цель (GDD):** библиотека **модулей** [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md) (`.tinymod.zip`) — scenario / units / buildings / theme. Vanilla — те же модули. Нестандартные юниты — конфиг + declarative `special` / abilities.
+**Цель (GDD):** библиотека **модулей** [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md) — scenario / units / buildings / theme. Vanilla — те же модули. Нестандартные юниты — конфиг + declarative `special` / abilities. UI менеджера модулей — `content-ui`.
 
 ## Цвета игроков на спрайтах
 
@@ -149,7 +149,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 ## ECS (MGE)
 
 - `TinyTBS.Game.Match`: `GridCell`, `MatchDefaults`, `MatchUnit` / `MatchBuilding`, `MatchState` — **логика** (демо-правила; полный GDD — впереди)
-- `TinyTBS.Game.Maps` / `Levels` / `Units` / `Buildings` / `Themes` / `Modules`: загрузка map/level и модулей; `MatchContentCompositionLoader` + `ContentModuleLocator` → `MatchContentCatalog`
+- `TinyTBS.Game.Maps` / `Levels` / `Units` / `Buildings` / `Themes` / `Modules`: загрузка map/level и модулей; `MatchContentCompositionLoader` + `ContentModuleLocator` → `MatchContentCatalog`; `TinymodInstaller` / `ContentModuleLibrary`
 - `TinyTBS.Game.Scripting`: `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost`, `MapScriptContext` + валидатор песочницы
 - `TinyTBS.Engine.Ecs`: `TilemapDrawSystem`, `TeamMaskedSpriteDrawSystem` (base + tint mask)
 - `MatchScene` / `GameplaySessionFactory` / `MatchSessionLoadPipeline` — в Game: level → map → скрипт → атлас → сцена (этапы для loading screen); `MatchCommandApplicator` — команды/pointer→логика (+ хуки скрипта)
@@ -193,7 +193,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 4. Слой команд ввода — **выполнено**.
 5. ECS + минимальный match — **выполнено** (демо ≠ полный GDD).
 6. Слои Screens + split `MatchState`/`MatchScene` + pointer — **выполнено**.
-7. Загрузчики map + level (`map.ref`) + фикстуры; старт матча из level — **выполнено** (библиотека `.tinymod.zip` — ещё нет).
+7. Загрузчики map + level (`map.ref`) + фикстуры; старт матча из level — **выполнено**.
 8. `MapScriptContext` + Roslyn sandbox + хуки в матче — **выполнено** (cold start Roslyn — см. [ideas/match-loading-roslyn-progress.md](ideas/match-loading-roslyn-progress.md)).
 9. Матч UI по канону GDD — **выполнено** (статус-бар, пауза/миникарта/цели, инфо, магазин); полный бой / post-move / dimFactor — впереди (`match-combat-gdd`, `match-economy-capture`, `player-colors`).
 10. Vanilla modules + `MatchContentCatalog` (units/buildings → магазин/HP/спрайты) — **выполнено** (`vanilla-modules`, `content-catalog`).
@@ -201,13 +201,13 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 12. Theme + terrain/gravestone из модуля — **выполнено** (`theme-terrain`).
 13. Главное меню (GDD + greyed) + экран загрузки матча с этапами — **выполнено** (`menu-shell-loading`).
 14. Состав контента матча + валидация id / replaces — **выполнено** (`match-content-composition`).
-15. Content pipeline (срезы):
-    - `tinymod-install` — `.tinymod.zip` → библиотека
+15. Установка `.tinymod.zip` + сканирование библиотеки — **выполнено** (`tinymod-install`: `TinymodInstaller`, `ContentModuleLibrary`).
+16. Content pipeline (срезы):
     - `bundles-runtime` — пресеты bundle
     - `content-ui` / `new-game-flow` — экраны Контент и Новая игра
-16. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
-17. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
-18. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
+17. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
+18. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
+19. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
 
 ## Связанные ADR
 

@@ -39,5 +39,5 @@ public sealed class ContentModuleLocator
     }
 
     private bool HasModuleJson(string moduleRoot) =>
-        _files.Exists(_files.Combine(moduleRoot, ScenarioModuleLoader.ModuleJsonFileName));
+        _files.Exists(_files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName));
 }

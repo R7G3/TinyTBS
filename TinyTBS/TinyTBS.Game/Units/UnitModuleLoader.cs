@@ -1,5 +1,6 @@
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Maps.Models;
+using TinyTBS.Game.Modules;
 using TinyTBS.Game.Units.Models;
 
 namespace TinyTBS.Game.Units;
@@ -7,8 +8,6 @@ namespace TinyTBS.Game.Units;
 /// <summary>Loads a units module folder (<c>module.json</c> + <c>Units/*.json</c>).</summary>
 public static class UnitModuleLoader
 {
-    public const string ModuleJsonFileName = "module.json";
-
     public static UnitModuleDefinition Load(string moduleRoot, IFileContentProvider files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRoot);
@@ -17,9 +16,9 @@ public static class UnitModuleLoader
         if (!Directory.Exists(moduleRoot))
             throw new UnitLoadException($"Units module folder not found: {moduleRoot}");
 
-        var moduleJsonPath = files.Combine(moduleRoot, ModuleJsonFileName);
+        var moduleJsonPath = files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
         if (!files.Exists(moduleJsonPath))
-            throw new UnitLoadException($"Missing {ModuleJsonFileName} in {moduleRoot}");
+            throw new UnitLoadException($"Missing {ContentModuleFiles.ModuleJsonFileName} in {moduleRoot}");
 
         string moduleId;
         string contentNamespace;

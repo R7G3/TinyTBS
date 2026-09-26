@@ -189,7 +189,8 @@ ocean_theme.tinymod.zip
 `ScenarioModuleLoader` + `MatchContentCompositionLoader` → `MatchContentComposition` (defaults/requires/replaces) → `MatchContentCatalog`.
 Конфликт одинаковых `ContentId` в составе и нерезолвящиеся типы на карте — ошибка со списком.
 `UnitModuleLoader` / `BuildingModuleLoader` / `ThemeModuleLoader` грузят модули по id через `ContentModuleLocator` (user `Modules/` → bundled `Vanilla/Modules`).
-Terrain/gravestone — из theme. Bundle UI / tinymod install / abilities/бой — следующие срезы.
+`TinymodInstaller` ставит `{id}.tinymod.zip` в user `Modules/{module.id}/` (замена по id); `ContentModuleLibrary` сканирует user + bundled.
+Terrain/gravestone — из theme. Bundle UI / content-ui / abilities/бой — следующие срезы.
 
 ## Связанные документы
 

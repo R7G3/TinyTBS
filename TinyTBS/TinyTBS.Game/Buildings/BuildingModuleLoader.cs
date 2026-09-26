@@ -1,14 +1,13 @@
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Buildings.Models;
 using TinyTBS.Game.Maps.Models;
+using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Buildings;
 
 /// <summary>Loads a buildings module folder (<c>module.json</c> + <c>Buildings/*.json</c>).</summary>
 public static class BuildingModuleLoader
 {
-    public const string ModuleJsonFileName = "module.json";
-
     public static BuildingModuleDefinition Load(string moduleRoot, IFileContentProvider files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRoot);
@@ -17,9 +16,9 @@ public static class BuildingModuleLoader
         if (!Directory.Exists(moduleRoot))
             throw new BuildingLoadException($"Buildings module folder not found: {moduleRoot}");
 
-        var moduleJsonPath = files.Combine(moduleRoot, ModuleJsonFileName);
+        var moduleJsonPath = files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
         if (!files.Exists(moduleJsonPath))
-            throw new BuildingLoadException($"Missing {ModuleJsonFileName} in {moduleRoot}");
+            throw new BuildingLoadException($"Missing {ContentModuleFiles.ModuleJsonFileName} in {moduleRoot}");
 
         string moduleId;
         string contentNamespace;

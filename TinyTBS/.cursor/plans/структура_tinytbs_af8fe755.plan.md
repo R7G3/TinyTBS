@@ -33,10 +33,10 @@ isProject: false
 - [x] **theme-terrain** — theme-модуль в рантайме; terrain (+ gravestone art) из theme `Resources/`
 - [x] **menu-shell-loading** — главное меню (GDD + greyed); экран загрузки матча с этапами/шкалой
 - [x] **match-content-composition** — состав контента матча (scenario + units + buildings + theme); конфликты id / «тип не резолвится»
+- [x] **tinymod-install** — установка `.tinymod.zip` → `Modules/{id}/`; сканирование библиотеки
 
 ### Дальше
 
-- [ ] **tinymod-install** — установка `.tinymod.zip` → `Modules/{id}/`; сканирование библиотеки
 - [ ] **bundles-runtime** — загрузка `Bundles/*.bundle.json` как пресет defaults
 - [ ] **content-ui** — экран Контент (установить/удалить; Скачать/Обновить greyed)
 - [ ] **new-game-flow** — UI «Новая игра»: выбор scenario + состав (defaults из bundle/scenario)
@@ -353,11 +353,12 @@ ScriptOptions.Default
 12. `content-id-bridge` + `theme-terrain` — **выполнено**.
 13. Главное меню (GDD + greyed) + loading screen с этапами — **выполнено** (`menu-shell-loading`).
 14. Состав контента матча + валидация id / replaces — **выполнено** (`match-content-composition`).
-15. Content pipeline дальше: `tinymod-install` → `bundles-runtime` → `content-ui` → `new-game-flow`.
-16. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
-17. `campaigns` + `save-format` — после playable loop.
-18. `map-editor` — workspace модулей.
-19. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
+15. Установка `.tinymod.zip` + сканирование библиотеки — **выполнено** (`tinymod-install`).
+16. Content pipeline дальше: `bundles-runtime` → `content-ui` → `new-game-flow`.
+17. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
+18. `campaigns` + `save-format` — после playable loop.
+19. `map-editor` — workspace модулей.
+20. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
 
 ## Документация в репозитории
 

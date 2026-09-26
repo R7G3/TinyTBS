@@ -1,5 +1,6 @@
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Maps.Models;
+using TinyTBS.Game.Modules;
 using TinyTBS.Game.Themes.Models;
 
 namespace TinyTBS.Game.Themes;
@@ -7,8 +8,6 @@ namespace TinyTBS.Game.Themes;
 /// <summary>Loads a theme module folder (<c>module.json</c> + <c>Resources/</c>).</summary>
 public static class ThemeModuleLoader
 {
-    public const string ModuleJsonFileName = "module.json";
-
     public static ThemeModuleDefinition Load(string moduleRoot, IFileContentProvider files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRoot);
@@ -17,9 +16,9 @@ public static class ThemeModuleLoader
         if (!Directory.Exists(moduleRoot))
             throw new ThemeLoadException($"Theme module folder not found: {moduleRoot}");
 
-        var moduleJsonPath = files.Combine(moduleRoot, ModuleJsonFileName);
+        var moduleJsonPath = files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
         if (!files.Exists(moduleJsonPath))
-            throw new ThemeLoadException($"Missing {ModuleJsonFileName} in {moduleRoot}");
+            throw new ThemeLoadException($"Missing {ContentModuleFiles.ModuleJsonFileName} in {moduleRoot}");
 
         string moduleId;
         string contentNamespace;

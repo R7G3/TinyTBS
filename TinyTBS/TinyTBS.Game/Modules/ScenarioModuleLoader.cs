@@ -6,8 +6,6 @@ namespace TinyTBS.Game.Modules;
 /// <summary>Loads a scenario module folder (<c>module.json</c> + Maps/Levels).</summary>
 public static class ScenarioModuleLoader
 {
-    public const string ModuleJsonFileName = "module.json";
-
     public static ScenarioModuleDefinition Load(string moduleRoot, IFileContentProvider files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRoot);
@@ -16,9 +14,10 @@ public static class ScenarioModuleLoader
         if (!Directory.Exists(moduleRoot))
             throw new MatchContentCompositionException($"Scenario module folder not found: {moduleRoot}");
 
-        var moduleJsonPath = files.Combine(moduleRoot, ModuleJsonFileName);
+        var moduleJsonPath = files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
         if (!files.Exists(moduleJsonPath))
-            throw new MatchContentCompositionException($"Missing {ModuleJsonFileName} in {moduleRoot}");
+            throw new MatchContentCompositionException(
+                $"Missing {ContentModuleFiles.ModuleJsonFileName} in {moduleRoot}");
 
         using var moduleStream = files.OpenRead(moduleJsonPath);
         return ScenarioJsonParser.ParseModuleManifest(moduleStream, moduleRoot);
