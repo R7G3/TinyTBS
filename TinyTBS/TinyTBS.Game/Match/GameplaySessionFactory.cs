@@ -6,6 +6,7 @@ using TinyTBS.Game.Assets;
 using TinyTBS.Game.Buildings;
 using TinyTBS.Game.Levels;
 using TinyTBS.Game.Scripting;
+using TinyTBS.Game.Themes;
 using TinyTBS.Game.Units;
 
 namespace TinyTBS.Game.Match;
@@ -26,6 +27,8 @@ public static class GameplaySessionFactory
     public const string VanillaUnitsRelativePath = "Vanilla/Modules/vanilla_units";
 
     public const string VanillaBuildingsRelativePath = "Vanilla/Modules/vanilla_buildings";
+
+    public const string VanillaThemeRelativePath = "Vanilla/Modules/vanilla_theme";
 
     public static GameplaySession CreateDemo(
         GraphicsDevice graphicsDevice,
@@ -96,8 +99,10 @@ public static class GameplaySessionFactory
     {
         var unitsRoot = files.Combine(AppContext.BaseDirectory, VanillaUnitsRelativePath);
         var buildingsRoot = files.Combine(AppContext.BaseDirectory, VanillaBuildingsRelativePath);
+        var themeRoot = files.Combine(AppContext.BaseDirectory, VanillaThemeRelativePath);
         var unitsModule = UnitModuleLoader.Load(unitsRoot, files);
         var buildingsModule = BuildingModuleLoader.Load(buildingsRoot, files);
-        return new MatchContentCatalog(unitsModule, buildingsModule);
+        var themeModule = ThemeModuleLoader.Load(themeRoot, files);
+        return new MatchContentCatalog(unitsModule, buildingsModule, themeModule);
     }
 }

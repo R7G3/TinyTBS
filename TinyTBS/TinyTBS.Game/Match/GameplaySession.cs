@@ -65,11 +65,11 @@ public sealed class GameplaySession : IDisposable
             return false;
 
         var offer = ContentCatalog.ShopOffers[offerIndex];
-        if (!ContentCatalog.TryGetUnit(offer.UnitKind, out var unitDefinition))
+        if (!ContentCatalog.TryGetUnit(offer.UnitTypeId, out var unitDefinition))
             return false;
 
         if (!State.TryRecruitAtCastle(
-                offer.UnitKind,
+                offer.UnitTypeId,
                 offer.Cost,
                 unitDefinition.MaxHealth,
                 castleCell))

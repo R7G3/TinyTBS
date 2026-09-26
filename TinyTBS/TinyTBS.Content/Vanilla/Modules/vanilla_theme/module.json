@@ -1,9 +1,13 @@
-﻿{
+{
   "formatVersion": 1,
   "id": "vanilla_theme",
   "type": "theme",
   "namespace": "vanilla_theme",
   "title": "Vanilla Theme",
   "version": "1.0.0",
+  "content": {
+    "terrainDir": "Resources/Images/terrain/",
+    "gravestone": "Resources/Images/misc/gravestone.png"
+  },
   "remaps": {}
 }

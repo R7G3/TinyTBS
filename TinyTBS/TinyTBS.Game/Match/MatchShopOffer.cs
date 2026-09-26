@@ -1,14 +1,16 @@
+using TinyTBS.Game.Maps.Models;
+
 namespace TinyTBS.Game.Match;
 
 public sealed class MatchShopOffer
 {
-    public MatchShopOffer(UnitKind unitKind, int cost)
+    public MatchShopOffer(ContentId unitTypeId, int cost)
     {
-        UnitKind = unitKind;
+        UnitTypeId = unitTypeId;
         Cost = cost;
     }
 
-    public UnitKind UnitKind { get; }
+    public ContentId UnitTypeId { get; }
 
     public int Cost { get; }
 }

@@ -24,7 +24,7 @@ public static class MapScriptContextFactory
             units.Add(new MapScriptUnitView
             {
                 Id = unit.Id,
-                Type = unit.Kind.ToString().ToLowerInvariant(),
+                Type = unit.TypeId.Full,
                 X = unit.Cell.X,
                 Y = unit.Cell.Y,
                 OwnerPlayerIndex = unit.PlayerIndex,
@@ -36,7 +36,7 @@ public static class MapScriptContextFactory
         {
             buildings.Add(new MapScriptBuildingView
             {
-                Type = building.Kind.ToString().ToLowerInvariant(),
+                Type = building.TypeId.Full,
                 X = building.Cell.X,
                 Y = building.Cell.Y,
                 OwnerPlayerIndex = building.OwnerPlayerIndex,

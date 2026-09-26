@@ -1,4 +1,4 @@
-﻿{
+{
   "formatVersion": 1,
   "id": "golem",
   "displayNameKey": "units.golem",
@@ -16,7 +16,7 @@
   "specialCoefficients": [
     { "when": { "default": true }, "multiply": 1.0 }
   ],
-  "leavesMemorial": true,
+  "leavesGravestone": true,
   "sprites": {
     "base": "Resources/Images/units/golem_base.png",
     "mask": "Resources/Images/units/golem_mask.png"

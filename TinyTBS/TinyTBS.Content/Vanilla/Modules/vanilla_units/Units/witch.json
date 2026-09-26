@@ -1,4 +1,4 @@
-﻿{
+{
   "formatVersion": 1,
   "id": "witch",
   "displayNameKey": "units.witch",
@@ -18,7 +18,7 @@
   "specialCoefficients": [
     { "when": { "default": true }, "multiply": 1.0 }
   ],
-  "leavesMemorial": true,
+  "leavesGravestone": true,
   "sprites": {
     "base": "Resources/Images/units/witch_base.png",
     "mask": "Resources/Images/units/witch_mask.png"

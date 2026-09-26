@@ -151,7 +151,7 @@ public static class UnitJsonParser
             Speed = document.Speed,
             Cost = document.Cost,
             Abilities = abilities,
-            LeavesMemorial = document.LeavesMemorial ?? true,
+            LeavesGravestone = document.LeavesGravestone ?? true,
             Sprites = sprites,
         };
     }

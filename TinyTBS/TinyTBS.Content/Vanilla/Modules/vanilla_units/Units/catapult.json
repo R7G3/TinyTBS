@@ -1,4 +1,4 @@
-﻿{
+{
   "formatVersion": 1,
   "id": "catapult",
   "displayNameKey": "units.catapult",
@@ -19,7 +19,7 @@
   "specialCoefficients": [
     { "when": { "default": true }, "multiply": 1.0 }
   ],
-  "leavesMemorial": true,
+  "leavesGravestone": true,
   "sprites": {
     "base": "Resources/Images/units/catapult_base.png",
     "mask": "Resources/Images/units/catapult_mask.png"

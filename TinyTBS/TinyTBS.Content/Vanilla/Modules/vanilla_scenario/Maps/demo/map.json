@@ -1,4 +1,4 @@
-﻿{
+{
   "formatVersion": 1,
   "id": "demo",
   "title": "Demo",
@@ -63,7 +63,7 @@
       { "type": "vanilla/swordsman", "x": 7, "y": 6, "slot": 1, "hp": 100, "xp": 0 },
       { "type": "vanilla/archer", "x": 7, "y": 5, "slot": 1, "hp": 60, "xp": 25 }
     ],
-    "memorials": [
+    "gravestones": [
       { "x": 3, "y": 5 }
     ]
   }

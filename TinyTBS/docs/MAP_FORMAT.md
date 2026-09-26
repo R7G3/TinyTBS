@@ -29,7 +29,7 @@
     "surface": [],
     "buildings": [],
     "units": [],
-    "memorials": []
+    "gravestones": []
   }
 }
 ```
@@ -57,7 +57,7 @@
 
 При старте матча каждый `type` должен резолвиться в выбранном составе units/buildings.
 
-### Слой `memorials` (опционально)
+### Слой `gravestones` (опционально)
 
 ```json
 { "x": 4, "y": 7 }

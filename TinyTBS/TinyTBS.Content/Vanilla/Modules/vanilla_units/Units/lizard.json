@@ -1,4 +1,4 @@
-﻿{
+{
   "formatVersion": 1,
   "id": "lizard",
   "displayNameKey": "units.lizard",
@@ -16,7 +16,7 @@
   "specialCoefficients": [
     { "when": { "default": true }, "multiply": 1.0 }
   ],
-  "leavesMemorial": true,
+  "leavesGravestone": true,
   "sprites": {
     "base": "Resources/Images/units/lizard_base.png",
     "mask": "Resources/Images/units/lizard_mask.png"

@@ -20,7 +20,7 @@ public static class MatchInfoFormatter
         if (match.TryGetBuildingAt(cell, out var building))
         {
             builder.AppendLine();
-            builder.Append(contentCatalog.DisplayName(building.Kind));
+            builder.Append(contentCatalog.DisplayName(building.TypeId));
             if (building.IsRuined)
                 builder.Append(" (ruined)");
             builder.Append(" · ");
@@ -30,7 +30,7 @@ public static class MatchInfoFormatter
         if (match.TryGetUnitAt(cell, out var unit))
         {
             builder.AppendLine();
-            builder.Append(contentCatalog.DisplayName(unit.Kind));
+            builder.Append(contentCatalog.DisplayName(unit.TypeId));
             builder.Append(" · P");
             builder.Append(unit.PlayerIndex + 1);
         }
@@ -56,7 +56,7 @@ public static class MatchInfoFormatter
         if (!match.TryGetBuildingAt(match.Cursor, out var building))
             return string.Empty;
 
-        if (!contentCatalog.TryGetBuilding(building.Kind, out var definition))
+        if (!contentCatalog.TryGetBuilding(building.TypeId, out var definition))
             return string.Empty;
 
         var builder = new StringBuilder();
@@ -78,8 +78,8 @@ public static class MatchInfoFormatter
             return string.Empty;
 
         var status = unit.PlayerIndex == match.CurrentPlayer ? "yours" : "enemy";
-        var name = contentCatalog.DisplayName(unit.Kind);
-        var stats = contentCatalog.FormatCombatStats(unit.Kind);
+        var name = contentCatalog.DisplayName(unit.TypeId);
+        var stats = contentCatalog.FormatCombatStats(unit.TypeId);
         var statsBlock = string.IsNullOrEmpty(stats) ? "Stats: unknown" : stats;
 
         return $"Unit{Environment.NewLine}"

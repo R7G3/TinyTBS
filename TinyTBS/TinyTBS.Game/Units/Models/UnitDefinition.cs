@@ -31,7 +31,7 @@ public sealed class UnitDefinition
 
     public IReadOnlyList<UnitAbilityDefinition> Abilities { get; init; } = [];
 
-    public bool LeavesMemorial { get; init; } = true;
+    public bool LeavesGravestone { get; init; } = true;
 
     public UnitSpritesDefinition? Sprites { get; init; }
 }

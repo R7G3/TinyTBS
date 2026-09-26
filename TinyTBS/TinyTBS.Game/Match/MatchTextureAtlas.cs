@@ -1,18 +1,17 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using TinyTBS.Game.Assets;
-using TinyTBS.Game.Buildings.Models;
-using TinyTBS.Game.Units.Models;
+using TinyTBS.Game.Maps.Models;
 
 namespace TinyTBS.Game.Match;
 
-/// <summary>Loaded textures for the match (terrain + base/mask pairs from content modules).</summary>
+/// <summary>Loaded textures for the match (terrain/gravestone from theme; unit/building sprites from modules).</summary>
 public sealed class MatchTextureAtlas : IDisposable
 {
     private readonly List<LoadedTexture> _owned = [];
-    private readonly Dictionary<UnitKind, TeamSprite> _units;
-    private readonly Dictionary<BuildingKind, TeamSprite> _buildingsIntact;
-    private readonly Dictionary<BuildingKind, TeamSprite> _buildingsRuined;
+    private readonly Dictionary<ContentId, TeamSprite> _units;
+    private readonly Dictionary<ContentId, TeamSprite> _buildingsIntact;
+    private readonly Dictionary<ContentId, TeamSprite> _buildingsRuined;
 
     private MatchTextureAtlas(
         Texture2D grass,
@@ -21,9 +20,10 @@ public sealed class MatchTextureAtlas : IDisposable
         Texture2D mountain,
         Texture2D bridge,
         Texture2D forest,
-        Dictionary<UnitKind, TeamSprite> units,
-        Dictionary<BuildingKind, TeamSprite> buildingsIntact,
-        Dictionary<BuildingKind, TeamSprite> buildingsRuined)
+        Texture2D gravestone,
+        Dictionary<ContentId, TeamSprite> units,
+        Dictionary<ContentId, TeamSprite> buildingsIntact,
+        Dictionary<ContentId, TeamSprite> buildingsRuined)
     {
         Grass = grass;
         Water = water;
@@ -31,6 +31,7 @@ public sealed class MatchTextureAtlas : IDisposable
         Mountain = mountain;
         Bridge = bridge;
         Forest = forest;
+        Gravestone = gravestone;
         _units = units;
         _buildingsIntact = buildingsIntact;
         _buildingsRuined = buildingsRuined;
@@ -43,6 +44,9 @@ public sealed class MatchTextureAtlas : IDisposable
     public Texture2D Bridge { get; }
     public Texture2D Forest { get; }
 
+    /// <summary>Gravestone marker from the theme module.</summary>
+    public Texture2D Gravestone { get; }
+
     public Texture2D Terrain(TerrainKind kind) => kind switch
     {
         TerrainKind.Water => Water,
@@ -53,23 +57,23 @@ public sealed class MatchTextureAtlas : IDisposable
         _ => Grass,
     };
 
-    public TeamSprite Unit(UnitKind kind)
+    public TeamSprite Unit(ContentId typeId)
     {
-        if (_units.TryGetValue(kind, out var sprite))
+        if (_units.TryGetValue(typeId, out var sprite))
             return sprite;
 
-        throw new InvalidOperationException($"No unit sprite loaded for '{kind}'.");
+        throw new InvalidOperationException($"No unit sprite loaded for '{typeId.Full}'.");
     }
 
-    public TeamSprite Building(BuildingKind kind, bool isRuined = false)
+    public TeamSprite Building(ContentId typeId, bool isRuined = false)
     {
-        if (isRuined && _buildingsRuined.TryGetValue(kind, out var ruined))
+        if (isRuined && _buildingsRuined.TryGetValue(typeId, out var ruined))
             return ruined;
 
-        if (_buildingsIntact.TryGetValue(kind, out var intact))
+        if (_buildingsIntact.TryGetValue(typeId, out var intact))
             return intact;
 
-        throw new InvalidOperationException($"No building sprite loaded for '{kind}'.");
+        throw new InvalidOperationException($"No building sprite loaded for '{typeId.Full}'.");
     }
 
     public static MatchTextureAtlas Load(
@@ -81,14 +85,7 @@ public sealed class MatchTextureAtlas : IDisposable
         ArgumentNullException.ThrowIfNull(catalog);
 
         var ownedTextures = new List<LoadedTexture>();
-
-        LoadedTexture LoadBundled(string logicalRelativePath, string contentAssetName)
-        {
-            var loaded = GameTextureLoader.LoadOrFallback(
-                graphicsDevice, content, assets, logicalRelativePath, contentAssetName);
-            ownedTextures.Add(loaded);
-            return loaded;
-        }
+        var theme = catalog.ThemeModule;
 
         TeamSprite LoadModulePair(string moduleRoot, string baseRelativePath, string maskRelativePath)
         {
@@ -103,8 +100,31 @@ public sealed class MatchTextureAtlas : IDisposable
             return new TeamSprite(baseTexture.Texture, maskTexture.Texture);
         }
 
-        var units = new Dictionary<UnitKind, TeamSprite>();
-        foreach (var (unitKind, unitDefinition) in EnumerateUnits(catalog))
+        Texture2D LoadThemeTexture(string moduleRelativePath)
+        {
+            var absolutePath = ModuleSpritePath.CombineModuleFile(theme.ModuleRootPath, moduleRelativePath);
+            var loaded = GameTextureLoader.LoadModuleSpriteOrFallback(
+                graphicsDevice, content, assets, absolutePath, moduleRelativePath);
+            ownedTextures.Add(loaded);
+            return loaded.Texture;
+        }
+
+        TeamSprite ResolvePair(
+            ContentId contentId,
+            string owningModuleRoot,
+            string baseRelativePath,
+            string maskRelativePath)
+        {
+            if (theme.Remaps.TryGetValue(contentId, out var remap))
+            {
+                return LoadModulePair(theme.ModuleRootPath, remap.BasePath, remap.MaskPath);
+            }
+
+            return LoadModulePair(owningModuleRoot, baseRelativePath, maskRelativePath);
+        }
+
+        var units = new Dictionary<ContentId, TeamSprite>();
+        foreach (var unitDefinition in catalog.UnitsModule.UnitsById.Values)
         {
             if (unitDefinition.Sprites is null)
             {
@@ -112,17 +132,19 @@ public sealed class MatchTextureAtlas : IDisposable
                     $"Unit '{unitDefinition.ContentId.Full}' has no sprites in the units module.");
             }
 
-            units[unitKind] = LoadModulePair(
+            units[unitDefinition.ContentId] = ResolvePair(
+                unitDefinition.ContentId,
                 catalog.UnitsModule.ModuleRootPath,
                 unitDefinition.Sprites.BasePath,
                 unitDefinition.Sprites.MaskPath);
         }
 
-        var buildingsIntact = new Dictionary<BuildingKind, TeamSprite>();
-        var buildingsRuined = new Dictionary<BuildingKind, TeamSprite>();
-        foreach (var (buildingKind, buildingDefinition) in EnumerateBuildings(catalog))
+        var buildingsIntact = new Dictionary<ContentId, TeamSprite>();
+        var buildingsRuined = new Dictionary<ContentId, TeamSprite>();
+        foreach (var buildingDefinition in catalog.BuildingsModule.BuildingsById.Values)
         {
-            buildingsIntact[buildingKind] = LoadModulePair(
+            buildingsIntact[buildingDefinition.ContentId] = ResolvePair(
+                buildingDefinition.ContentId,
                 catalog.BuildingsModule.ModuleRootPath,
                 buildingDefinition.Sprites.BasePath,
                 buildingDefinition.Sprites.MaskPath);
@@ -130,7 +152,7 @@ public sealed class MatchTextureAtlas : IDisposable
             if (!string.IsNullOrWhiteSpace(buildingDefinition.Sprites.RuinedBasePath)
                 && !string.IsNullOrWhiteSpace(buildingDefinition.Sprites.RuinedMaskPath))
             {
-                buildingsRuined[buildingKind] = LoadModulePair(
+                buildingsRuined[buildingDefinition.ContentId] = LoadModulePair(
                     catalog.BuildingsModule.ModuleRootPath,
                     buildingDefinition.Sprites.RuinedBasePath,
                     buildingDefinition.Sprites.RuinedMaskPath);
@@ -138,38 +160,19 @@ public sealed class MatchTextureAtlas : IDisposable
         }
 
         var atlas = new MatchTextureAtlas(
-            grass: LoadBundled("Images/terrain/grass.png", "Images/terrain/grass").Texture,
-            water: LoadBundled("Images/terrain/water.png", "Images/terrain/water").Texture,
-            road: LoadBundled("Images/terrain/road.png", "Images/terrain/road").Texture,
-            mountain: LoadBundled("Images/terrain/mountain.png", "Images/terrain/mountain").Texture,
-            bridge: LoadBundled("Images/terrain/bridge.png", "Images/terrain/bridge").Texture,
-            forest: LoadBundled("Images/terrain/forest.png", "Images/terrain/forest").Texture,
+            grass: LoadThemeTexture(theme.TerrainRelativePath("grass.png")),
+            water: LoadThemeTexture(theme.TerrainRelativePath("water.png")),
+            road: LoadThemeTexture(theme.TerrainRelativePath("road.png")),
+            mountain: LoadThemeTexture(theme.TerrainRelativePath("mountain.png")),
+            bridge: LoadThemeTexture(theme.TerrainRelativePath("bridge.png")),
+            forest: LoadThemeTexture(theme.TerrainRelativePath("forest.png")),
+            gravestone: LoadThemeTexture(theme.GravestoneRelativePath),
             units: units,
             buildingsIntact: buildingsIntact,
             buildingsRuined: buildingsRuined);
 
         atlas._owned.AddRange(ownedTextures);
         return atlas;
-    }
-
-    private static IEnumerable<(UnitKind Kind, UnitDefinition Definition)> EnumerateUnits(
-        MatchContentCatalog catalog)
-    {
-        foreach (UnitKind kind in Enum.GetValues<UnitKind>())
-        {
-            if (catalog.TryGetUnit(kind, out var definition))
-                yield return (kind, definition);
-        }
-    }
-
-    private static IEnumerable<(BuildingKind Kind, BuildingDefinition Definition)> EnumerateBuildings(
-        MatchContentCatalog catalog)
-    {
-        foreach (BuildingKind kind in Enum.GetValues<BuildingKind>())
-        {
-            if (catalog.TryGetBuilding(kind, out var definition))
-                yield return (kind, definition);
-        }
     }
 
     public void Dispose()

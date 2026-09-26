@@ -51,9 +51,9 @@ public sealed class GameplayHudSync
         _hud.ShopOffers = catalog.ShopOffers
             .Select((offer, index) => new GameplayShopOfferViewModel
             {
-                UnitKind = offer.UnitKind,
-                Name = catalog.DisplayName(offer.UnitKind),
-                StatsText = catalog.FormatCombatStats(offer.UnitKind),
+                UnitTypeId = offer.UnitTypeId,
+                Name = catalog.DisplayName(offer.UnitTypeId),
+                StatsText = catalog.FormatCombatStats(offer.UnitTypeId),
                 Cost = offer.Cost,
                 CanAfford = match.GetMoney(match.CurrentPlayer) >= offer.Cost,
                 OfferIndex = index,

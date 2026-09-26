@@ -1,9 +1,17 @@
+using TinyTBS.Game.Maps.Models;
+
 namespace TinyTBS.Game.Match;
 
 /// <summary>Logical unit on the match grid (no rendering).</summary>
 public sealed class MatchUnit
 {
-    public MatchUnit(int id, UnitKind kind, GridCell cell, int playerIndex, int maxHealth, int hitPoints)
+    public MatchUnit(
+        int id,
+        ContentId typeId,
+        GridCell cell,
+        int playerIndex,
+        int maxHealth,
+        int hitPoints)
     {
         if (maxHealth <= 0)
             throw new ArgumentOutOfRangeException(nameof(maxHealth));
@@ -11,7 +19,7 @@ public sealed class MatchUnit
             throw new ArgumentOutOfRangeException(nameof(hitPoints));
 
         Id = id;
-        Kind = kind;
+        TypeId = typeId;
         Cell = cell;
         PlayerIndex = playerIndex;
         MaxHealth = maxHealth;
@@ -20,7 +28,7 @@ public sealed class MatchUnit
 
     public int Id { get; }
 
-    public UnitKind Kind { get; }
+    public ContentId TypeId { get; }
 
     public GridCell Cell { get; set; }
 

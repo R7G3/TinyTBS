@@ -3,7 +3,7 @@ namespace TinyTBS.Game.Assets;
 /// <summary>
 /// Resolves logical asset paths (e.g. Images/units/knight_base.png) to a physical file.
 /// Prefers an optional overlay module under Content/Modules/{id}/, then bundled content.
-/// Full multi-module composition (scenario + units + theme) comes with content-mods work;
+/// Full multi-module composition (scenario + units + theme) comes with party-composition work;
 /// this keeps a transitional single-overlay for graphics until then.
 /// </summary>
 public interface IAssetResolver

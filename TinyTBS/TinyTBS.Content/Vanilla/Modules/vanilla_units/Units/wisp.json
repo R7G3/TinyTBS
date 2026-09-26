@@ -1,4 +1,4 @@
-﻿{
+{
   "formatVersion": 1,
   "id": "wisp",
   "displayNameKey": "units.wisp",
@@ -18,7 +18,7 @@
   "specialCoefficients": [
     { "when": { "default": true }, "multiply": 1.0 }
   ],
-  "leavesMemorial": false,
+  "leavesGravestone": false,
   "sprites": {
     "base": "Resources/Images/units/wisp_base.png",
     "mask": "Resources/Images/units/wisp_mask.png"

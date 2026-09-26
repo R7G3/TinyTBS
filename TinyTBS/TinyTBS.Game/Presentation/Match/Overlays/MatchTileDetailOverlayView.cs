@@ -91,7 +91,7 @@ public sealed class MatchTileDetailOverlayView
             && _buildingIcon?.MaskSprite is not null
             && match.TryGetBuildingAt(match.Cursor, out var building))
         {
-            var sprite = textures.Building(building.Kind, building.IsRuined);
+            var sprite = textures.Building(building.TypeId, building.IsRuined);
             _buildingIcon.BaseSprite.Texture = sprite.Base;
             _buildingIcon.MaskSprite.Texture = sprite.Mask;
             _buildingIcon.MaskSprite.Color = PlayerPalette.ForOwner(building.OwnerPlayerIndex);
@@ -101,7 +101,7 @@ public sealed class MatchTileDetailOverlayView
             && _unitIcon?.MaskSprite is not null
             && match.TryGetUnitAt(match.Cursor, out var unit))
         {
-            var sprite = textures.Unit(unit.Kind);
+            var sprite = textures.Unit(unit.TypeId);
             _unitIcon.BaseSprite.Texture = sprite.Base;
             _unitIcon.MaskSprite.Texture = sprite.Mask;
             _unitIcon.MaskSprite.Color = PlayerPalette.ForPlayer(unit.PlayerIndex);

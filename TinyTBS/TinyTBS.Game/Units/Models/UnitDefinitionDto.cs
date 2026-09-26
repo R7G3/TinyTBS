@@ -46,8 +46,8 @@ internal sealed class UnitDefinitionDto
     [JsonPropertyName("abilities")]
     public List<UnitAbilityDto>? Abilities { get; set; }
 
-    [JsonPropertyName("leavesMemorial")]
-    public bool? LeavesMemorial { get; set; }
+    [JsonPropertyName("leavesGravestone")]
+    public bool? LeavesGravestone { get; set; }
 
     [JsonPropertyName("sprites")]
     public UnitSpritesDto? Sprites { get; set; }

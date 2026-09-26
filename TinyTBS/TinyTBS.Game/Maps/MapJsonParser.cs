@@ -66,7 +66,7 @@ public static class MapJsonParser
         var surface = ParseSurface(mapDocument.Layers.Surface, mapDocument.Width, mapDocument.Height);
         var buildings = ParseBuildings(mapDocument.Layers.Buildings, mapDocument.Width, mapDocument.Height);
         var units = ParseUnits(mapDocument.Layers.Units, mapDocument.Width, mapDocument.Height);
-        var memorials = ParseMemorials(mapDocument.Layers.Memorials, mapDocument.Width, mapDocument.Height);
+        var gravestones = ParseGravestones(mapDocument.Layers.Gravestones, mapDocument.Width, mapDocument.Height);
 
         var mapId = mapDocument.Id.Trim();
         return new MapDefinition
@@ -79,7 +79,7 @@ public static class MapJsonParser
             Surface = surface,
             Buildings = buildings,
             Units = units,
-            Memorials = memorials,
+            Gravestones = gravestones,
             ScriptPath = scriptPath,
             SourceDirectory = sourceDirectory,
         };
@@ -239,20 +239,20 @@ public static class MapJsonParser
         return placements;
     }
 
-    private static List<MapMemorialPlacement> ParseMemorials(
-        List<MapMemorialDto>? memorialEntries,
+    private static List<MapGravestonePlacement> ParseGravestones(
+        List<MapGravestoneDto>? gravestoneEntries,
         int width,
         int height)
     {
-        if (memorialEntries is null || memorialEntries.Count == 0)
+        if (gravestoneEntries is null || gravestoneEntries.Count == 0)
             return [];
 
-        var placements = new List<MapMemorialPlacement>(memorialEntries.Count);
-        for (var i = 0; i < memorialEntries.Count; i++)
+        var placements = new List<MapGravestonePlacement>(gravestoneEntries.Count);
+        for (var i = 0; i < gravestoneEntries.Count; i++)
         {
-            var memorialEntry = memorialEntries[i];
-            EnsureInBounds(memorialEntry.X, memorialEntry.Y, width, height, $"memorials[{i}]");
-            placements.Add(new MapMemorialPlacement { X = memorialEntry.X, Y = memorialEntry.Y });
+            var gravestoneEntry = gravestoneEntries[i];
+            EnsureInBounds(gravestoneEntry.X, gravestoneEntry.Y, width, height, $"gravestones[{i}]");
+            placements.Add(new MapGravestonePlacement { X = gravestoneEntry.X, Y = gravestoneEntry.Y });
         }
 
         return placements;

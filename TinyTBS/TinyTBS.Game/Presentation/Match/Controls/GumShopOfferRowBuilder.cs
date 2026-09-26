@@ -68,7 +68,7 @@ namespace TinyTBS.Game.Presentation.Match.Controls;
             content.AddChild(iconColumn);
 
             var iconSlot = GumTeamIconSlot.AddCenteredInColumn(iconColumn, withTeamMask: true, iconSize);
-            offerIcons.Add(new ShopOfferRowIcon(offer.UnitKind, iconSlot.BaseSprite, iconSlot.MaskSprite!));
+            offerIcons.Add(new ShopOfferRowIcon(offer.UnitTypeId, iconSlot.BaseSprite, iconSlot.MaskSprite!));
 
             var textColumn = new Panel();
             textColumn.Visual.HasEvents = false;
@@ -120,7 +120,7 @@ namespace TinyTBS.Game.Presentation.Match.Controls;
         for (var index = 0; index < left.Count; index++)
         {
             if (left[index].OfferIndex != right[index].OfferIndex
-                || left[index].UnitKind != right[index].UnitKind
+                || left[index].UnitTypeId != right[index].UnitTypeId
                 || left[index].Cost != right[index].Cost
                 || left[index].CanAfford != right[index].CanAfford
                 || left[index].Name != right[index].Name

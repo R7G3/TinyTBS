@@ -1,10 +1,10 @@
-using TinyTBS.Game.Match;
+using TinyTBS.Game.Maps.Models;
 
 namespace TinyTBS.Game.ViewModels;
 
 public sealed class GameplayShopOfferViewModel
 {
-    public required UnitKind UnitKind { get; init; }
+    public required ContentId UnitTypeId { get; init; }
 
     public required string Name { get; init; }
 

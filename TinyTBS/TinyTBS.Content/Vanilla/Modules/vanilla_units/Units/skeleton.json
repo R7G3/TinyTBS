@@ -1,4 +1,4 @@
-﻿{
+{
   "formatVersion": 1,
   "id": "skeleton",
   "displayNameKey": "units.skeleton",
@@ -16,7 +16,7 @@
   "specialCoefficients": [
     { "when": { "default": true }, "multiply": 1.0 }
   ],
-  "leavesMemorial": false,
+  "leavesGravestone": false,
   "sprites": {
     "base": "Resources/Images/units/skeleton_base.png",
     "mask": "Resources/Images/units/skeleton_mask.png"

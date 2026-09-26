@@ -136,6 +136,10 @@ ocean_theme.tinymod.zip
   "namespace": "sw_theme",
   "title": "SW Look",
   "version": "1.0.0",
+  "content": {
+    "terrainDir": "Resources/Images/terrain/",
+    "gravestone": "Resources/Images/misc/gravestone.png"
+  },
   "remaps": {
     "vanilla/knight": {
       "base": "Resources/Images/units/trooper_base.png",
@@ -144,6 +148,8 @@ ocean_theme.tinymod.zip
   }
 }
 ```
+
+По умолчанию (если `content` не задан): terrain — `Resources/Images/terrain/{grass|water|road|mountain|bridge|forest}.png`, gravestone — `Resources/Images/misc/gravestone.png`.
 
 ## Bundles
 
@@ -179,7 +185,7 @@ ocean_theme.tinymod.zip
 
 **Исходники в репо:** [`TinyTBS.Content/Vanilla/`](../TinyTBS.Content/Vanilla/README.md) — `Modules/*` + `Bundles/vanilla.bundle.json`. Копируются в output игры; Start match грузит `vanilla_scenario` / `proving-grounds`.
 
-**Загрузка в коде:** `UnitModuleLoader` / `BuildingModuleLoader` → `MatchContentCatalog`. Магазин, статы UI, HP спавна/найма и спрайты юнитов/строений (в т.ч. ruined) берутся из модулей. Terrain пока из bundled Content. `VanillaContentIds` + `UnitKind` — тонкий мост map id ↔ матч; abilities/бой data-driven и theme/bundle composition — следующие срезы.
+**Загрузка в коде:** `UnitModuleLoader` / `BuildingModuleLoader` / `ThemeModuleLoader` → `MatchContentCatalog`. Магазин, статы UI, HP спавна/найма и спрайты юнитов/строений (в т.ч. ruined) — из units/buildings. Terrain и gravestone — из theme `Resources/` (опц. `content.terrainDir` / `content.gravestone`; remaps подменяют base/mask по `ContentId`). Сущности матча хранят `ContentId`. Состав партии / bundle / abilities/бой — следующие срезы.
 
 ## Связанные документы
 

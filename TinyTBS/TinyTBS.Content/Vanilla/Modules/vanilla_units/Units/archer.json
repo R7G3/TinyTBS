@@ -1,4 +1,4 @@
-﻿{
+{
   "formatVersion": 1,
   "id": "archer",
   "displayNameKey": "units.archer",
@@ -20,7 +20,7 @@
     { "when": { "manhattanRange": 1 }, "multiply": 0.8 },
     { "when": { "default": true }, "multiply": 1.0 }
   ],
-  "leavesMemorial": true,
+  "leavesGravestone": true,
   "sprites": {
     "base": "Resources/Images/units/archer_base.png",
     "mask": "Resources/Images/units/archer_mask.png"

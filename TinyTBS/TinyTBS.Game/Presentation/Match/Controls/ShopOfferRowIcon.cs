@@ -1,11 +1,11 @@
 using Gum.GueDeriving;
-using TinyTBS.Game.Match;
+using TinyTBS.Game.Maps.Models;
 
 namespace TinyTBS.Game.Presentation.Match.Controls;
 
-internal sealed class ShopOfferRowIcon(UnitKind unitKind, SpriteRuntime baseSprite, SpriteRuntime maskSprite)
+internal sealed class ShopOfferRowIcon(ContentId unitTypeId, SpriteRuntime baseSprite, SpriteRuntime maskSprite)
 {
-    public UnitKind UnitKind { get; } = unitKind;
+    public ContentId UnitTypeId { get; } = unitTypeId;
 
     public SpriteRuntime BaseSprite { get; } = baseSprite;
 

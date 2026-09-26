@@ -1,4 +1,4 @@
-﻿{
+{
   "formatVersion": 1,
   "id": "proving-grounds",
   "title": "Proving Grounds",
@@ -132,7 +132,7 @@
       { "type": "vanilla/wyvern", "x": 10, "y": 10, "slot": 1, "hp": 100, "xp": 0 },
       { "type": "vanilla/skeleton", "x": 11, "y": 7, "slot": 1, "hp": 40, "xp": 0 }
     ],
-    "memorials": [
+    "gravestones": [
       { "x": 5, "y": 3 },
       { "x": 6, "y": 4 },
       { "x": 9, "y": 6 },

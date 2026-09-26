@@ -9,7 +9,7 @@ using TinyTBS.Engine.Rendering;
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Visual side of a match: tilemap, buildings, units synced from <see cref="MatchState"/>.
+/// Visual side of a match: tilemap, gravestones, buildings, units synced from <see cref="MatchState"/>.
 /// </summary>
 public sealed class MatchScene : IDisposable
 {
@@ -17,6 +17,7 @@ public sealed class MatchScene : IDisposable
     private readonly MatchBoardLayout _layout;
     private readonly MatchTextureAtlas _textures;
     private readonly SpriteBatch _spriteBatch;
+    private readonly List<int> _gravestoneEntityIds = [];
     private readonly List<int> _buildingEntityIds = [];
     private readonly Dictionary<int, int> _unitEntityById = new();
 
@@ -43,11 +44,22 @@ public sealed class MatchScene : IDisposable
             .AddSystem(new TeamMaskedSpriteDrawSystem(spriteBatch, _layout))
             .Build();
 
+        foreach (var gravestoneCell in state.Gravestones)
+        {
+            // Gravestone art has no team mask; transparent tint skips the second draw pass.
+            var entityId = CreateMaskedVisual(
+                gravestoneCell,
+                new TeamSprite(textures.Gravestone, textures.Gravestone),
+                Color.Transparent);
+            World.GetEntity(entityId).Attach(new GridPosition(gravestoneCell.X, gravestoneCell.Y));
+            _gravestoneEntityIds.Add(entityId);
+        }
+
         foreach (var building in state.Buildings)
         {
             var entityId = CreateMaskedVisual(
                 building.Cell,
-                textures.Building(building.Kind, building.IsRuined),
+                textures.Building(building.TypeId, building.IsRuined),
                 PlayerPalette.ForOwner(building.OwnerPlayerIndex));
             World.GetEntity(entityId).Attach(new GridPosition(building.Cell.X, building.Cell.Y));
             _buildingEntityIds.Add(entityId);
@@ -64,6 +76,7 @@ public sealed class MatchScene : IDisposable
     public void PrepareFrame(int viewportWidth, int viewportHeight)
     {
         _layout.UpdateForViewport(viewportWidth, viewportHeight);
+        SyncGravestoneTransforms();
         SyncBuildingTransforms();
         SyncUnitTransformsFromState();
     }
@@ -94,7 +107,7 @@ public sealed class MatchScene : IDisposable
     {
         var entityId = CreateMaskedVisual(
             unit.Cell,
-            textures.Unit(unit.Kind),
+            textures.Unit(unit.TypeId),
             PlayerPalette.ForPlayer(unit.PlayerIndex));
 
         World.GetEntity(entityId).Attach(new UnitOwner(unit.PlayerIndex));
@@ -115,6 +128,19 @@ public sealed class MatchScene : IDisposable
 
     private Vector2 CellTopLeft(int cellX, int cellY) =>
         _layout.Origin + new Vector2(cellX * _layout.TileSize, cellY * _layout.TileSize);
+
+    private void SyncGravestoneTransforms()
+    {
+        for (var i = 0; i < _gravestoneEntityIds.Count; i++)
+        {
+            var cell = _state.Gravestones[i];
+            var entity = World.GetEntity(_gravestoneEntityIds[i]);
+            var grid = entity.Get<GridPosition>();
+            grid.X = cell.X;
+            grid.Y = cell.Y;
+            entity.Get<Transform2>().Position = CellTopLeft(cell.X, cell.Y);
+        }
+    }
 
     private void SyncBuildingTransforms()
     {

@@ -29,11 +29,11 @@ isProject: false
 - [x] **match-ui-gdd** — статус-бар, пауза/миникарта, магазин, инфо, хотсит
 - [x] **vanilla-modules** — `TinyTBS.Content/Vanilla/` (scenario/units/buildings/theme + bundle); старт из scenario
 - [x] **content-catalog** — лоадеры units/buildings → `MatchContentCatalog`; магазин/UI/HP/найм/спрайты сущностей из модулей
+- [x] **content-id-bridge** — матч на `ContentId` (убраны `UnitKind`·`BuildingKind` + `VanillaContentIds`)
+- [x] **theme-terrain** — theme-модуль в рантайме; terrain (+ gravestone art) из theme `Resources/`
 
 ### Дальше
 
-- [ ] **content-id-bridge** — матч на `ContentId` (сузить/убрать `UnitKind`·`BuildingKind` + `VanillaContentIds`)
-- [ ] **theme-terrain** — theme-модуль в рантайме; terrain (+ memorial art) из theme `Resources/`
 - [ ] **party-composition** — состав партии scenario + units + buildings + theme; конфликты id / «тип не резолвится»
 - [ ] **tinymod-install** — установка `.tinymod.zip` → `Modules/{id}/`; сканирование библиотеки
 - [ ] **bundles-runtime** — загрузка `Bundles/*.bundle.json` как пресет defaults

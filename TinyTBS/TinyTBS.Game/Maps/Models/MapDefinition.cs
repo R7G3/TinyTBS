@@ -11,7 +11,7 @@ public sealed class MapDefinition
     public required string[,] Surface { get; init; }
     public required IReadOnlyList<MapBuildingPlacement> Buildings { get; init; }
     public required IReadOnlyList<MapUnitPlacement> Units { get; init; }
-    public required IReadOnlyList<MapMemorialPlacement> Memorials { get; init; }
+    public required IReadOnlyList<MapGravestonePlacement> Gravestones { get; init; }
 
     /// <summary>Absolute path to script.cs when present.</summary>
     public string? ScriptPath { get; init; }

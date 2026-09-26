@@ -156,7 +156,7 @@ public sealed class MatchShopOverlayView
         var teamColor = PlayerPalette.ForPlayer(currentPlayerIndex);
         foreach (var icon in _offerIcons)
         {
-            var sprite = textures.Unit(icon.UnitKind);
+            var sprite = textures.Unit(icon.UnitTypeId);
             icon.BaseSprite.Texture = sprite.Base;
             icon.MaskSprite.Texture = sprite.Mask;
             icon.MaskSprite.Color = teamColor;

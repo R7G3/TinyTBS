@@ -197,15 +197,16 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 8. `MapScriptContext` + Roslyn sandbox + хуки в матче — **выполнено** (cold start Roslyn — см. [ideas/match-loading-roslyn-progress.md](ideas/match-loading-roslyn-progress.md)).
 9. Матч UI по канону GDD — **выполнено** (статус-бар, пауза/миникарта/цели, инфо, магазин); полный бой / post-move / dimFactor — впереди (`match-combat-gdd`, `match-economy-capture`, `player-colors`).
 10. Vanilla modules + `MatchContentCatalog` (units/buildings → магазин/HP/спрайты) — **выполнено** (`vanilla-modules`, `content-catalog`).
-11. Content pipeline (срезы вместо монолита content-mods):
-    - `content-id-bridge` — матч на `ContentId`
-    - `theme-terrain` — theme + terrain из модуля
+11. Матч на `ContentId` — **выполнено** (`content-id-bridge`).
+12. Theme + terrain/gravestone из модуля — **выполнено** (`theme-terrain`).
+13. Content pipeline (срезы):
     - `party-composition` — состав партии + валидация id
     - `tinymod-install` — `.tinymod.zip` → библиотека
     - `bundles-runtime` — пресеты bundle
     - `content-ui` / `new-game-flow` — экраны Контент и Новая игра
-12. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
-13. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
+14. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
+15. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
+16. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
 
 ## Связанные ADR
 

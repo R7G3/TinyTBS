@@ -15,6 +15,6 @@ internal sealed class MapLayersDto
     [JsonPropertyName("units")]
     public List<MapUnitDto>? Units { get; set; }
 
-    [JsonPropertyName("memorials")]
-    public List<MapMemorialDto>? Memorials { get; set; }
+    [JsonPropertyName("gravestones")]
+    public List<MapGravestoneDto>? Gravestones { get; set; }
 }

@@ -28,7 +28,7 @@ Vanilla и моды используют **один** формат. См. [desig
     { "when": { "manhattanRange": 1 }, "multiply": 0.8 },
     { "when": { "default": true }, "multiply": 1.0 }
   ],
-  "leavesMemorial": true
+  "leavesGravestone": true
 }
 ```
 
@@ -41,7 +41,7 @@ Vanilla и моды используют **один** формат. См. [desig
 | статы | attack, defence, maxHealth, range, speed, cost |
 | `abilities` | verbs движка (захват, ремонт, аура, moveOrAttackOnly, …) |
 | `specialCoefficients` | упорядоченный список; **первое** `when` → `multiply` |
-| `leavesMemorial` | false у скелета и духа |
+| `leavesGravestone` | false у скелета и духа |
 
 ## Способности (примеры verbs)
 
@@ -49,7 +49,7 @@ Vanilla и моды используют **один** формат. См. [desig
 |------|------------|
 | `captureBuilding` | `{ "tags": ["castle", "village"] }` — захват строений с пересечением тегов (король); мечник: `{ "tags": ["village"] }` |
 | `repairBuilding` | `{ "tags": ["village"] }` — ремонт разрушенных с такими тегами |
-| `raiseSkeleton` | подъём с памятного камня |
+| `raiseSkeleton` | подъём с gravestone |
 | `attackAura` | `{ value: 5, radius: 2 }` — Дух |
 | `noCounterattack` | катапульта |
 | `moveOrAttackExclusive` | катапульта |
