@@ -2,7 +2,6 @@ using Gum;
 using Gum.Forms.Controls;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using TinyTBS.Game.Assets;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.ViewModels;
@@ -13,7 +12,6 @@ namespace TinyTBS.Game.Presentation.Match;
 public sealed class GameplayMatchController
 {
     private readonly GameMain _game;
-    private readonly IAssetResolver _assets;
     private readonly GraphicsDevice _graphicsDevice;
     private readonly GameplayHudSync _hudSync;
     private readonly GameplayHudComposer _hudComposer;
@@ -26,27 +24,22 @@ public sealed class GameplayMatchController
 
     public GameplayMatchController(
         GameMain game,
-        IAssetResolver assets,
         GraphicsDevice graphicsDevice,
         GameplayHudViewModel hud,
         GameplayHudComposer hudComposer)
     {
         _game = game;
-        _assets = assets;
         _graphicsDevice = graphicsDevice;
         _hudComposer = hudComposer;
         _hudSync = new GameplayHudSync(hud, hudComposer);
     }
 
-    public void LoadContent(Action returnToMenu)
+    public void LoadContent(GameplaySession session, Action returnToMenu)
     {
+        ArgumentNullException.ThrowIfNull(session);
+
         _returnToMenu = returnToMenu;
-        _session = GameplaySessionFactory.CreateDemo(
-            _graphicsDevice,
-            _game.Content,
-            _game.SharedSpriteBatch,
-            _assets,
-            _game.Files);
+        _session = session;
 
         _hudSync.Hud.LevelTitle = _session.LevelBrief.Title;
         _hudSync.SetGoalsFromLevel(_session.LevelBrief);

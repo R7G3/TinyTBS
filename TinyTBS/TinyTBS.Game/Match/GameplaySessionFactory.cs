@@ -1,11 +1,8 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using TinyTBS.Engine.IO;
-using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Buildings;
-using TinyTBS.Game.Levels;
-using TinyTBS.Game.Scripting;
 using TinyTBS.Game.Themes;
 using TinyTBS.Game.Units;
 
@@ -19,7 +16,7 @@ public static class GameplaySessionFactory
     /// <summary>Compact smoke-test level under <c>vanilla_scenario</c>.</summary>
     public const string DemoLevelId = "demo";
 
-    /// <summary>Full-roster QA level under <c>vanilla_scenario</c> (default Start match).</summary>
+    /// <summary>Full-roster QA level under <c>vanilla_scenario</c> (default New Game / Start match).</summary>
     public const string ProvingGroundsLevelId = "proving-grounds";
 
     public const string VanillaScenarioRelativePath = "Vanilla/Modules/vanilla_scenario";
@@ -52,47 +49,14 @@ public static class GameplaySessionFactory
         IFileContentProvider files,
         string levelId)
     {
-        var contentCatalog = LoadVanillaContentCatalog(files);
-
-        var scenarioRoot = files.Combine(AppContext.BaseDirectory, VanillaScenarioRelativePath);
-        var level = LevelFolderLoader.LoadFromModuleLevels(scenarioRoot, levelId, files);
-        var state = MatchState.FromMap(
-            level.Map,
-            contentCatalog,
-            playerCount: level.Players.DefaultSlots,
-            startingGold: level.DefaultStartingGold);
-
-        var scriptEngine = new RoslynMapScriptEngine();
-        var scriptHost = MapScriptHost.LoadForMap(
-            state,
-            level.Map.ScriptPath,
+        var pipeline = new MatchSessionLoadPipeline(
+            graphicsDevice,
+            content,
+            spriteBatch,
+            assets,
             files,
-            scriptEngine);
-        scriptHost.NotifyMatchStarted(state);
-
-        var textures = MatchTextureAtlas.Load(graphicsDevice, content, assets, contentCatalog);
-        var scene = new MatchScene(state, graphicsDevice, spriteBatch, textures);
-        var cursorHighlight = new CursorHighlightRenderer(graphicsDevice);
-        var minimap = new MinimapRenderer(graphicsDevice);
-        var levelBrief = new MatchLevelBrief
-        {
-            LevelId = level.Id,
-            Title = level.Title,
-            Description = level.Description,
-            VictoryType = level.Victory.Type,
-            DefeatType = level.Defeat.Type,
-            TeamDefeatMode = level.TeamDefeatMode,
-        };
-
-        return new GameplaySession(
-            state,
-            scene,
-            cursorHighlight,
-            textures,
-            scriptHost,
-            levelBrief,
-            minimap,
-            contentCatalog);
+            levelId);
+        return pipeline.RunToCompletion();
     }
 
     public static MatchContentCatalog LoadVanillaContentCatalog(IFileContentProvider files)

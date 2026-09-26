@@ -4,6 +4,7 @@ using MonoGame.Extended.Screens;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Input;
+using TinyTBS.Game.Match;
 using TinyTBS.Game.Presentation.Menu;
 using TinyTBS.Game.ViewModels;
 
@@ -32,15 +33,27 @@ public sealed class MainMenuScreen : GameScreen
     {
         base.LoadContent();
 
-        _viewModel.RefreshMods(_assets);
-        _viewModel.ApplyModSelection(_assets);
+        // Saves / content library / editor / settings / about arrive in later plan steps.
+        _viewModel.CanContinue = false;
+        _viewModel.CanLoadGame = false;
+        _viewModel.CanOpenContent = false;
+        _viewModel.CanOpenEditor = false;
+        _viewModel.CanOpenSettings = false;
+        _viewModel.CanOpenAbout = false;
+        _viewModel.CanStartNewGame = true;
+
         _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
 
         _view.Build(
             _viewModel,
-            onStartMatch: StartMatch,
-            onExit: () => Game.Exit(),
-            onModSelectionChanged: OnModSelectionChanged);
+            onContinue: () => { },
+            onNewGame: StartNewGame,
+            onLoadGame: () => { },
+            onContent: () => { },
+            onEditor: () => { },
+            onSettings: () => { },
+            onAbout: () => { },
+            onExit: () => Game.Exit());
     }
 
     public override void UnloadContent()
@@ -54,8 +67,11 @@ public sealed class MainMenuScreen : GameScreen
     public override void Update(GameTime gameTime)
     {
         GumService.Default.Update(gameTime);
+        _view.HandleGamepadNavigation(TinyGame.Commands);
 
-        if (TinyGame.Commands.WasPressed(GameCommand.Back))
+        if (TinyGame.Commands.WasPressed(GameCommand.Back)
+            || TinyGame.Commands.WasPressed(GameCommand.Cancel)
+            || TinyGame.Commands.WasPressed(GameCommand.Info))
             Game.Exit();
     }
 
@@ -77,15 +93,7 @@ public sealed class MainMenuScreen : GameScreen
         GumService.Default.Draw();
     }
 
-    private void StartMatch() =>
-        ScreenManager.ReplaceScreen(new GameplayScreen(TinyGame, _assets));
-
-    private void OnModSelectionChanged()
-    {
-        if (!_view.TryGetSelectedMod(out var selected))
-            return;
-
-        _viewModel.SelectedModOption = selected;
-        _viewModel.ApplyModSelection(_assets);
-    }
+    private void StartNewGame() =>
+        ScreenManager.ReplaceScreen(
+            new LoadingScreen(TinyGame, _assets, GameplaySessionFactory.ProvingGroundsLevelId));
 }

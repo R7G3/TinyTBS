@@ -2,21 +2,28 @@ using Gum;
 using Gum.Forms.Controls;
 using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
+using TinyTBS.Game.Input;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.Menu;
 
-/// <summary>Presentation: Gum tree for the main menu.</summary>
+/// <summary>Presentation: Gum tree for the main menu (GDD shell; unimplemented items greyed).</summary>
 public sealed class MainMenuView
 {
     private Panel? _rootPanel;
-    private ComboBox? _modComboBox;
+    private readonly List<Button> _focusableButtons = [];
+    private int _focusIndex;
 
     public void Build(
         MainMenuViewModel viewModel,
-        Action onStartMatch,
-        Action onExit,
-        Action onModSelectionChanged)
+        Action onContinue,
+        Action onNewGame,
+        Action onLoadGame,
+        Action onContent,
+        Action onEditor,
+        Action onSettings,
+        Action onAbout,
+        Action onExit)
     {
         Clear();
 
@@ -28,68 +35,125 @@ public sealed class MainMenuView
         bodyPanel.Dock(Dock.Fill);
         _rootPanel.AddChild(bodyPanel);
 
-        var contentPanel = GumUiLayout.CreateVerticalStackPanel(spacing: 14f, widthPercent: 90f);
-        GumUiLayout.SetBoundedWidth(contentPanel, maxPixels: 480f, parentPercent: 90f);
-        GumUiLayout.CenterInParent(contentPanel, xPercent: 50f, yPercent: 45f);
+        var contentPanel = GumUiLayout.CreateVerticalStackPanel(spacing: 10f, widthPercent: 90f);
+        GumUiLayout.SetBoundedWidth(contentPanel, maxPixels: 420f, parentPercent: 90f);
+        GumUiLayout.CenterInParent(contentPanel, xPercent: 50f, yPercent: 42f);
         bodyPanel.AddChild(contentPanel);
 
         var title = new Label { Text = viewModel.Title };
         GumUiLayout.FillParentWidth(title);
         contentPanel.AddChild(title);
 
-        var modLabel = new Label { Text = "Graphics mod" };
-        GumUiLayout.FillParentWidth(modLabel);
-        contentPanel.AddChild(modLabel);
-
-        _modComboBox = new ComboBox
-        {
-            Items = viewModel.ModOptions.ToList()
-        };
-        GumUiLayout.FillParentWidth(_modComboBox);
-
-        var selectedIndex = viewModel.ModOptions
-            .ToList()
-            .FindIndex(option => option == viewModel.SelectedModOption);
-        _modComboBox.SelectedIndex = Math.Max(selectedIndex, 0);
-        _modComboBox.SelectionChanged += (_, _) => onModSelectionChanged();
-        contentPanel.AddChild(_modComboBox);
-
-        var hint = new Label
-        {
-            Text = "Vanilla uses bundled content. Optional overlays: Content/Modules/{id}/ (under user data)."
-        };
-        GumUiLayout.FillParentWidth(hint);
-        contentPanel.AddChild(hint);
-
-        var startButton = new Button { Text = "Start match" };
-        GumUiLayout.FillParentWidth(startButton);
-        startButton.Click += (_, _) => onStartMatch();
-        contentPanel.AddChild(startButton);
+        AddMenuButton(contentPanel, "Continue", viewModel.CanContinue, onContinue);
+        AddMenuButton(contentPanel, "New Game", viewModel.CanStartNewGame, onNewGame);
+        AddMenuButton(contentPanel, "Load Game", viewModel.CanLoadGame, onLoadGame);
+        AddMenuButton(contentPanel, "Content", viewModel.CanOpenContent, onContent);
+        AddMenuButton(contentPanel, "Editor", viewModel.CanOpenEditor, onEditor);
+        AddMenuButton(contentPanel, "Settings", viewModel.CanOpenSettings, onSettings);
+        AddMenuButton(contentPanel, "About", viewModel.CanOpenAbout, onAbout);
 
         var exitButton = new Button { Text = "Exit" };
         GumUiLayout.PinToBottomRight(exitButton, insetPixels: 24f, widthPixels: 120f);
         exitButton.Click += (_, _) => onExit();
         _rootPanel.AddChild(exitButton);
+        _focusableButtons.Add(exitButton);
 
-        _modComboBox.IsFocused = true;
+        FocusFirst();
     }
 
-    public bool TryGetSelectedMod(out string selected)
+    /// <summary>
+    /// Call after <see cref="GumService"/> Update. Owns D-pad / stick focus so greyed items are skipped.
+    /// </summary>
+    public void HandleGamepadNavigation(IGameCommandSource commands)
     {
-        selected = string.Empty;
-        if (_modComboBox is null)
-            return false;
+        if (_focusableButtons.Count == 0)
+            return;
 
-        selected = _modComboBox.SelectedObject as string
-            ?? _modComboBox.Text
-            ?? string.Empty;
-        return !string.IsNullOrWhiteSpace(selected);
+        if (commands.WasPressed(GameCommand.NavigateDown))
+        {
+            _focusIndex = Math.Min(_focusIndex + 1, _focusableButtons.Count - 1);
+            ApplyFocusIndex();
+            return;
+        }
+
+        if (commands.WasPressed(GameCommand.NavigateUp))
+        {
+            _focusIndex = Math.Max(_focusIndex - 1, 0);
+            ApplyFocusIndex();
+            return;
+        }
+
+        MaintainFocus();
+    }
+
+    public void FocusFirst()
+    {
+        _focusIndex = 0;
+        ApplyFocusIndex();
     }
 
     public void Clear()
     {
         GumService.Default.Root.Children.Clear();
         _rootPanel = null;
-        _modComboBox = null;
+        _focusableButtons.Clear();
+        _focusIndex = 0;
+    }
+
+    private void AddMenuButton(Panel parent, string text, bool isEnabled, Action onClick)
+    {
+        var button = new Button { Text = text, IsEnabled = isEnabled };
+        GumUiLayout.FillParentWidth(button);
+        if (isEnabled)
+        {
+            button.Click += (_, _) => onClick();
+            _focusableButtons.Add(button);
+        }
+
+        parent.AddChild(button);
+    }
+
+    private void MaintainFocus()
+    {
+        SyncFocusIndexFromUi();
+        if (!IsOurFocusIntact())
+            ApplyFocusIndex();
+    }
+
+    private bool IsOurFocusIntact()
+    {
+        if (_focusIndex < 0 || _focusIndex >= _focusableButtons.Count)
+            return false;
+        return _focusableButtons[_focusIndex].IsFocused;
+    }
+
+    private void SyncFocusIndexFromUi()
+    {
+        for (var index = 0; index < _focusableButtons.Count; index++)
+        {
+            if (!_focusableButtons[index].IsFocused)
+                continue;
+            _focusIndex = index;
+            return;
+        }
+    }
+
+    private void ApplyFocusIndex()
+    {
+        if (_focusableButtons.Count == 0)
+            return;
+
+        _focusIndex = Math.Clamp(_focusIndex, 0, _focusableButtons.Count - 1);
+        ClearAllFocusFlags();
+        _focusableButtons[_focusIndex].IsFocused = true;
+    }
+
+    private void ClearAllFocusFlags()
+    {
+        foreach (var button in _focusableButtons)
+        {
+            if (button.IsFocused)
+                button.IsFocused = false;
+        }
     }
 }

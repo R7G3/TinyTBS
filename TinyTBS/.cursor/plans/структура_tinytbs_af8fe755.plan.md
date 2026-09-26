@@ -31,6 +31,7 @@ isProject: false
 - [x] **content-catalog** — лоадеры units/buildings → `MatchContentCatalog`; магазин/UI/HP/найм/спрайты сущностей из модулей
 - [x] **content-id-bridge** — матч на `ContentId` (убраны `UnitKind`·`BuildingKind` + `VanillaContentIds`)
 - [x] **theme-terrain** — theme-модуль в рантайме; terrain (+ gravestone art) из theme `Resources/`
+- [x] **menu-shell-loading** — главное меню (GDD + greyed); экран загрузки матча с этапами/шкалой
 
 ### Дальше
 
@@ -349,11 +350,13 @@ ScriptOptions.Default
 9. **MapScriptContext** + Roslyn sandbox + хуки — **выполнено**.
 10. Матч UI (HUD GDD) — **выполнено** (`match-ui-gdd`); playable loop / бой — см. ниже.
 11. Vanilla modules + content catalog (shop/HP/sprites из JSON) — **выполнено** (`vanilla-modules`, `content-catalog`).
-12. Content pipeline по срезам: `content-id-bridge` → `theme-terrain` → `party-composition` → `tinymod-install` → `bundles-runtime` → `content-ui` → `new-game-flow`.
-13. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
-14. `campaigns` + `save-format` — после playable loop.
-15. `map-editor` — workspace модулей.
-16. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
+12. `content-id-bridge` + `theme-terrain` — **выполнено**.
+13. Главное меню (GDD + greyed) + loading screen с этапами — **выполнено** (`menu-shell-loading`).
+14. Content pipeline дальше: `party-composition` → `tinymod-install` → `bundles-runtime` → `content-ui` → `new-game-flow`.
+15. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
+16. `campaigns` + `save-format` — после playable loop.
+17. `map-editor` — workspace модулей.
+18. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
 
 ## Документация в репозитории
 

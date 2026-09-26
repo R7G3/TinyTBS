@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.Screens;
 using TinyTBS.Game.Assets;
+using TinyTBS.Game.Match;
 using TinyTBS.Game.Presentation.Match;
 using TinyTBS.Game.ViewModels;
 
@@ -12,12 +12,15 @@ public sealed class GameplayScreen : GameScreen
 {
     private readonly GameplayHudViewModel _hud = new();
     private readonly GameplayHudComposer _hudComposer = new();
+    private readonly GameplaySession _session;
     private GameplayMatchController? _controller;
 
-    public GameplayScreen(GameMain game, IAssetResolver assets)
+    public GameplayScreen(GameMain game, IAssetResolver assets, GameplaySession session)
         : base(game)
     {
+        ArgumentNullException.ThrowIfNull(session);
         Assets = assets;
+        _session = session;
     }
 
     private IAssetResolver Assets { get; }
@@ -30,12 +33,12 @@ public sealed class GameplayScreen : GameScreen
 
         _controller = new GameplayMatchController(
             TinyGame,
-            Assets,
             GraphicsDevice,
             _hud,
             _hudComposer);
-        _controller.LoadContent(() =>
-            ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets)));
+        _controller.LoadContent(
+            _session,
+            () => ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets)));
     }
 
     public override void UnloadContent()
