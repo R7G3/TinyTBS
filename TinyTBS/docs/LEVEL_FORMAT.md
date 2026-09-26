@@ -2,7 +2,7 @@
 
 См. [GAME_DESIGN.md](GAME_DESIGN.md), [MAP_FORMAT.md](MAP_FORMAT.md), [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md), [adr/0006-map-level-campaign.md](adr/0006-map-level-campaign.md).
 
-**Level** — одна играбельная партия внутри **scenario**-модуля. Map подключается только по **`map.ref`** (embed нет).
+**Level** — один играбельный матч внутри **scenario**-модуля. Map подключается только по **`map.ref`** (embed нет).
 
 **Статус в коде:** парсер/лоадер (`TinyTBS.Game.Levels`), резолв `map.ref` только внутри модуля; канон — `Vanilla/Modules/vanilla_scenario` (`demo`, `proving-grounds`, campaign levels). Старт матча по умолчанию — `proving-grounds`.
 
@@ -54,4 +54,4 @@ Levels/{levelId}/
 | `teamDefeatMode` | `allMembers` \| `anyMember` |
 | `victory` / `defeat` | `standard` или кастом |
 
-Назначение слотов игрокам — при старте матча. Состав units/buildings/theme — [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md).
+Назначение слотов игрокам — при старте матча. Состав контента матча (units/buildings/theme) — [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md).

@@ -13,7 +13,7 @@
 
 - `saveVersion`
 - id карты / scenario, seed, номер хода
-- **`contentSetup`**: scenario module id, списки units/buildings/theme module ids, `moduleVersions`
+- **`contentSetup`**: снимок `MatchContentComposition` (scenario module id, списки units/buildings/theme module ids, `moduleVersions`)
 - состояние ECS: юниты, здания, деньги, владельцы (логические id типов)
 - состояние RNG
 - блок `extensions` — флаги скриптов карты

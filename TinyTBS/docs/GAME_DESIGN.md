@@ -33,7 +33,7 @@
 | [design/COMBAT.md](design/COMBAT.md) | Формула урона, контратака, XP, gravestone |
 | [design/TURN_AND_UI.md](design/TURN_AND_UI.md) | Ход, активность юнита, контекстное меню |
 | [design/UI_AND_FLOW.md](design/UI_AND_FLOW.md) | Экраны, ввод, HUD матча, пауза, магазин, модули |
-| [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md) | Модули `.tinymod.zip`, bundles, рантайм состава |
+| [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md) | Модули `.tinymod.zip`, bundles, рантайм состава контента матча |
 | [UNIT_FORMAT.md](UNIT_FORMAT.md) | Схема конфига юнита (vanilla = тот же формат, что мод) |
 | [BUILDING_FORMAT.md](BUILDING_FORMAT.md) | Схема конфига строения (data-driven, как юниты) |
 
@@ -57,7 +57,7 @@
 
 **Кампания** — наборы levels + опциональная метапрогрессия; часть **scenario**-модуля.
 
-**Схватка** — один level/map из scenario-модуля; создатель задаёт игроков/команды и может переопределить золото и лимит юнитов; состав units/buildings/theme — отдельно (defaults сценария или вручную).
+**Схватка** — один level/map из scenario-модуля; создатель задаёт игроков/команды и может переопределить золото и лимит юнитов; состав контента матча (units/buildings/theme) — отдельно (defaults сценария или вручную).
 
 ## Моды = библиотека модулей
 
@@ -71,7 +71,7 @@ Modules/{moduleId}/     # или *.tinymod.zip при установке
 Bundles/*.bundle.json   # пресеты defaults, не контейнер геймплея
 ```
 
-- Новая игра: **сценарий** + **состав** (units / buildings / theme); пресет из scenario.defaults или bundle; можно изменить.
+- Новая игра: **сценарий** + **состав контента матча** (units / buildings / theme); пресет из scenario.defaults или bundle; можно изменить.
 - Логические id: `{namespace}/{localId}`; по умолчанию namespace = module.id.
 - Типы на карте должны резолвиться в выбранном составе — иначе старт запрещён.
 - User-контент (своя карта) — тоже scenario-модуль.

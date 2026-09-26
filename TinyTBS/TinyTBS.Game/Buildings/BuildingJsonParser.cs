@@ -14,7 +14,10 @@ public static class BuildingJsonParser
         AllowTrailingCommas = true,
     };
 
-    public static BuildingDefinition ParseBuilding(Stream jsonStream, string contentNamespace)
+    public static BuildingDefinition ParseBuilding(
+        Stream jsonStream,
+        string contentNamespace,
+        string moduleRootPath)
     {
         BuildingDefinitionDto document;
         try
@@ -27,7 +30,7 @@ public static class BuildingJsonParser
             throw new BuildingLoadException("Failed to parse building JSON.", jsonException);
         }
 
-        return FromBuildingDocument(document, contentNamespace);
+        return FromBuildingDocument(document, contentNamespace, moduleRootPath);
     }
 
     public static (string ModuleId, string ContentNamespace, string Title, string Version, string BuildingsDir)
@@ -69,13 +72,16 @@ public static class BuildingJsonParser
 
     private static BuildingDefinition FromBuildingDocument(
         BuildingDefinitionDto document,
-        string contentNamespace)
+        string contentNamespace,
+        string moduleRootPath)
     {
         if (document.FormatVersion < 1)
             throw new BuildingLoadException($"Unsupported building formatVersion '{document.FormatVersion}'.");
 
         if (string.IsNullOrWhiteSpace(document.Id))
             throw new BuildingLoadException("Building JSON requires non-empty 'id'.");
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(moduleRootPath);
 
         var localId = document.Id.Trim();
         var contentId = new ContentId(contentNamespace, localId);
@@ -153,6 +159,7 @@ public static class BuildingJsonParser
             Repairable = document.Repairable,
             Ruined = ruined,
             CountsTowardPlayerDefeat = document.CountsTowardPlayerDefeat,
+            SourceModuleRootPath = moduleRootPath,
         };
     }
 }

@@ -134,7 +134,7 @@ public sealed class MatchTextureAtlas : IDisposable
 
             units[unitDefinition.ContentId] = ResolvePair(
                 unitDefinition.ContentId,
-                catalog.UnitsModule.ModuleRootPath,
+                unitDefinition.SourceModuleRootPath,
                 unitDefinition.Sprites.BasePath,
                 unitDefinition.Sprites.MaskPath);
         }
@@ -145,7 +145,7 @@ public sealed class MatchTextureAtlas : IDisposable
         {
             buildingsIntact[buildingDefinition.ContentId] = ResolvePair(
                 buildingDefinition.ContentId,
-                catalog.BuildingsModule.ModuleRootPath,
+                buildingDefinition.SourceModuleRootPath,
                 buildingDefinition.Sprites.BasePath,
                 buildingDefinition.Sprites.MaskPath);
 
@@ -153,7 +153,7 @@ public sealed class MatchTextureAtlas : IDisposable
                 && !string.IsNullOrWhiteSpace(buildingDefinition.Sprites.RuinedMaskPath))
             {
                 buildingsRuined[buildingDefinition.ContentId] = LoadModulePair(
-                    catalog.BuildingsModule.ModuleRootPath,
+                    buildingDefinition.SourceModuleRootPath,
                     buildingDefinition.Sprites.RuinedBasePath,
                     buildingDefinition.Sprites.RuinedMaskPath);
             }

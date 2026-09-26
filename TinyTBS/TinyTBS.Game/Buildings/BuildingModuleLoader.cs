@@ -43,7 +43,7 @@ public static class BuildingModuleLoader
                      SearchOption.TopDirectoryOnly))
         {
             using var buildingStream = files.OpenRead(buildingFilePath);
-            var buildingDefinition = BuildingJsonParser.ParseBuilding(buildingStream, contentNamespace);
+            var buildingDefinition = BuildingJsonParser.ParseBuilding(buildingStream, contentNamespace, moduleRoot);
             if (!buildingsById.TryAdd(buildingDefinition.ContentId, buildingDefinition))
             {
                 throw new BuildingLoadException(

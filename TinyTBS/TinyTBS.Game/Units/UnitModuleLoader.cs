@@ -41,7 +41,7 @@ public static class UnitModuleLoader
         foreach (var unitFilePath in Directory.EnumerateFiles(unitsDirectory, "*.json", SearchOption.TopDirectoryOnly))
         {
             using var unitStream = files.OpenRead(unitFilePath);
-            var unitDefinition = UnitJsonParser.ParseUnit(unitStream, contentNamespace);
+            var unitDefinition = UnitJsonParser.ParseUnit(unitStream, contentNamespace, moduleRoot);
             if (!unitsById.TryAdd(unitDefinition.ContentId, unitDefinition))
             {
                 throw new UnitLoadException(

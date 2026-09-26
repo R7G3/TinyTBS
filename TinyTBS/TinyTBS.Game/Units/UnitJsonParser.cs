@@ -14,7 +14,7 @@ public static class UnitJsonParser
         AllowTrailingCommas = true,
     };
 
-    public static UnitDefinition ParseUnit(Stream jsonStream, string contentNamespace)
+    public static UnitDefinition ParseUnit(Stream jsonStream, string contentNamespace, string moduleRootPath)
     {
         UnitDefinitionDto document;
         try
@@ -27,7 +27,7 @@ public static class UnitJsonParser
             throw new UnitLoadException("Failed to parse unit JSON.", jsonException);
         }
 
-        return FromUnitDocument(document, contentNamespace);
+        return FromUnitDocument(document, contentNamespace, moduleRootPath);
     }
 
     public static (string ModuleId, string ContentNamespace, string Title, string Version, string UnitsDir, IReadOnlyList<ContentId> RecruitPool)
@@ -78,13 +78,18 @@ public static class UnitJsonParser
         return (document.Id.Trim(), contentNamespace, title, version, unitsDir.Trim(), recruitPool);
     }
 
-    private static UnitDefinition FromUnitDocument(UnitDefinitionDto document, string contentNamespace)
+    private static UnitDefinition FromUnitDocument(
+        UnitDefinitionDto document,
+        string contentNamespace,
+        string moduleRootPath)
     {
         if (document.FormatVersion < 1)
             throw new UnitLoadException($"Unsupported unit formatVersion '{document.FormatVersion}'.");
 
         if (string.IsNullOrWhiteSpace(document.Id))
             throw new UnitLoadException("Unit JSON requires non-empty 'id'.");
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(moduleRootPath);
 
         var localId = document.Id.Trim();
         var contentId = new ContentId(contentNamespace, localId);
@@ -153,6 +158,7 @@ public static class UnitJsonParser
             Abilities = abilities,
             LeavesGravestone = document.LeavesGravestone ?? true,
             Sprites = sprites,
+            SourceModuleRootPath = moduleRootPath,
         };
     }
 }

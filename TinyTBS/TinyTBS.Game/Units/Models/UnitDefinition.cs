@@ -34,4 +34,7 @@ public sealed class UnitDefinition
     public bool LeavesGravestone { get; init; } = true;
 
     public UnitSpritesDefinition? Sprites { get; init; }
+
+    /// <summary>Absolute root of the units module that owns this definition (for Resources paths).</summary>
+    public required string SourceModuleRootPath { get; init; }
 }

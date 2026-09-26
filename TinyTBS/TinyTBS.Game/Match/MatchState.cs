@@ -1,5 +1,6 @@
 using TinyTBS.Game.Maps;
 using TinyTBS.Game.Maps.Models;
+using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Match;
 
@@ -24,10 +25,11 @@ public sealed class MatchState
         _terrain = new TerrainKind[width, height];
     }
 
-    /// <summary>Builds match state from a loaded map; types must resolve in <paramref name="contentCatalog"/>.</summary>
+    /// <summary>Builds match state from a loaded map; types must resolve in <paramref name="contentCatalog"/> (after replaces).</summary>
     public static MatchState FromMap(
         MapDefinition map,
         MatchContentCatalog contentCatalog,
+        ContentIdReplaceTable? replaces = null,
         int playerCount = MatchDefaults.PlayerCount,
         int startingGold = 0)
     {
@@ -35,6 +37,8 @@ public sealed class MatchState
         ArgumentNullException.ThrowIfNull(contentCatalog);
         if (playerCount < 1)
             throw new ArgumentOutOfRangeException(nameof(playerCount));
+
+        replaces ??= ContentIdReplaceTable.Empty;
 
         var match = new MatchState(map.Width, map.Height)
         {
@@ -55,14 +59,15 @@ public sealed class MatchState
 
         foreach (var building in map.Buildings)
         {
-            if (!contentCatalog.TryGetBuilding(building.Type, out var buildingDefinition))
+            var typeId = replaces.Resolve(building.Type);
+            if (!contentCatalog.TryGetBuilding(typeId, out var buildingDefinition))
             {
                 throw new InvalidOperationException(
                     $"Map building type '{building.Type.Full}' is not in the match content catalog.");
             }
 
             match._buildings.Add(new MatchBuilding(
-                building.Type,
+                typeId,
                 new GridCell(building.X, building.Y),
                 building.Slot,
                 MapSurfaceIds.IsRuinedBuildingState(building.State),
@@ -71,7 +76,8 @@ public sealed class MatchState
 
         foreach (var unit in map.Units)
         {
-            if (!contentCatalog.TryGetUnit(unit.Type, out var unitDefinition))
+            var typeId = replaces.Resolve(unit.Type);
+            if (!contentCatalog.TryGetUnit(typeId, out var unitDefinition))
             {
                 throw new InvalidOperationException(
                     $"Map unit type '{unit.Type.Full}' is not in the match content catalog.");
@@ -83,7 +89,7 @@ public sealed class MatchState
                 : maxHealth;
 
             match.AddUnit(
-                unit.Type,
+                typeId,
                 new GridCell(unit.X, unit.Y),
                 unit.Slot,
                 maxHealth,

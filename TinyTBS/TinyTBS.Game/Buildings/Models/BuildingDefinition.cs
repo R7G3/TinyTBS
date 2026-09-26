@@ -32,4 +32,7 @@ public sealed class BuildingDefinition
     public BuildingRuinedStatsDefinition? Ruined { get; init; }
 
     public bool CountsTowardPlayerDefeat { get; init; }
+
+    /// <summary>Absolute root of the buildings module that owns this definition (for Resources paths).</summary>
+    public required string SourceModuleRootPath { get; init; }
 }

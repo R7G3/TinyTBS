@@ -5,25 +5,32 @@ using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Levels;
 using TinyTBS.Game.Levels.Models;
+using TinyTBS.Game.Modules;
+using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Scripting;
 
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Builds a vanilla match session in discrete stages. Call <see cref="AnnounceNextStage"/>,
+/// Builds a match session in discrete stages. Call <see cref="AnnounceNextStage"/>,
 /// redraw, then <see cref="RunAnnouncedStage"/> so the UI can show the label before heavy work.
 /// </summary>
 public sealed class MatchSessionLoadPipeline
 {
+    public const string DefaultScenarioModuleId = "vanilla_scenario";
+
     private readonly GraphicsDevice _graphicsDevice;
     private readonly ContentManager _content;
     private readonly SpriteBatch _spriteBatch;
     private readonly IAssetResolver _assets;
     private readonly IFileContentProvider _files;
+    private readonly IUserDataPaths _userDataPaths;
     private readonly string _levelId;
+    private readonly string _scenarioModuleId;
+    private readonly MatchContentComposition? _compositionOverride;
     private readonly IReadOnlyList<(string Label, Action Work)> _stages;
 
-    private MatchContentCatalog? _contentCatalog;
+    private MatchContentLoadResult? _matchContent;
     private LevelDefinition? _level;
     private MatchState? _state;
     private MapScriptHost? _scriptHost;
@@ -40,7 +47,10 @@ public sealed class MatchSessionLoadPipeline
         SpriteBatch spriteBatch,
         IAssetResolver assets,
         IFileContentProvider files,
-        string levelId)
+        IUserDataPaths userDataPaths,
+        string levelId,
+        string? scenarioModuleId = null,
+        MatchContentComposition? composition = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelId);
 
@@ -49,11 +59,16 @@ public sealed class MatchSessionLoadPipeline
         _spriteBatch = spriteBatch;
         _assets = assets;
         _files = files;
+        _userDataPaths = userDataPaths;
         _levelId = levelId.Trim();
+        _scenarioModuleId = string.IsNullOrWhiteSpace(scenarioModuleId)
+            ? DefaultScenarioModuleId
+            : scenarioModuleId.Trim();
+        _compositionOverride = composition;
 
         _stages =
         [
-            ("Loading content modules…", LoadContentModules),
+            ("Loading match content…", LoadMatchContentComposition),
             ("Loading level and map…", LoadLevelAndMap),
             ("Preparing match state…", PrepareMatchState),
             ("Compiling map script…", CompileMapScript),
@@ -116,25 +131,42 @@ public sealed class MatchSessionLoadPipeline
             ?? throw new InvalidOperationException("Match load pipeline finished without a session.");
     }
 
-    private void LoadContentModules() =>
-        _contentCatalog = GameplaySessionFactory.LoadVanillaContentCatalog(_files);
+    private void LoadMatchContentComposition()
+    {
+        var locator = new ContentModuleLocator(_files, _userDataPaths);
+        MatchContentComposition composition;
+        if (_compositionOverride is not null)
+        {
+            composition = _compositionOverride;
+        }
+        else
+        {
+            var scenario = ScenarioModuleLoader.Load(locator.ResolveModuleRoot(_scenarioModuleId), _files);
+            composition = MatchContentComposition.FromScenarioDefaults(scenario);
+        }
+
+        _matchContent = MatchContentCompositionLoader.Load(composition, locator, _files);
+    }
 
     private void LoadLevelAndMap()
     {
-        var scenarioRoot = _files.Combine(
-            AppContext.BaseDirectory,
-            GameplaySessionFactory.VanillaScenarioRelativePath);
-        _level = LevelFolderLoader.LoadFromModuleLevels(scenarioRoot, _levelId, _files);
+        ArgumentNullException.ThrowIfNull(_matchContent);
+        _level = LevelFolderLoader.LoadFromModuleLevels(_matchContent.Scenario.ModuleRootPath, _levelId, _files);
+        MatchContentCompositionLoader.ValidateMapTypes(
+            _level.Map,
+            _matchContent.Catalog,
+            _matchContent.Replaces);
     }
 
     private void PrepareMatchState()
     {
         ArgumentNullException.ThrowIfNull(_level);
-        ArgumentNullException.ThrowIfNull(_contentCatalog);
+        ArgumentNullException.ThrowIfNull(_matchContent);
 
         _state = MatchState.FromMap(
             _level.Map,
-            _contentCatalog,
+            _matchContent.Catalog,
+            _matchContent.Replaces,
             playerCount: _level.Players.DefaultSlots,
             startingGold: _level.DefaultStartingGold);
     }
@@ -155,8 +187,8 @@ public sealed class MatchSessionLoadPipeline
 
     private void LoadTextures()
     {
-        ArgumentNullException.ThrowIfNull(_contentCatalog);
-        _textures = MatchTextureAtlas.Load(_graphicsDevice, _content, _assets, _contentCatalog);
+        ArgumentNullException.ThrowIfNull(_matchContent);
+        _textures = MatchTextureAtlas.Load(_graphicsDevice, _content, _assets, _matchContent.Catalog);
     }
 
     private void BuildScene()
@@ -178,7 +210,7 @@ public sealed class MatchSessionLoadPipeline
         ArgumentNullException.ThrowIfNull(_scriptHost);
         ArgumentNullException.ThrowIfNull(_level);
         ArgumentNullException.ThrowIfNull(_minimap);
-        ArgumentNullException.ThrowIfNull(_contentCatalog);
+        ArgumentNullException.ThrowIfNull(_matchContent);
 
         var levelBrief = new MatchLevelBrief
         {
@@ -198,6 +230,6 @@ public sealed class MatchSessionLoadPipeline
             _scriptHost,
             levelBrief,
             _minimap,
-            _contentCatalog);
+            _matchContent.Catalog);
     }
 }

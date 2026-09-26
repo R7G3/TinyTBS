@@ -7,7 +7,7 @@
 ## Идея
 
 Установленный контент — **библиотека модулей** с ролью (`type`).  
-Новая игра = **сценарий** + **состав** (units / buildings / theme), с пресетами и возможностью изменить.  
+Новая игра = **сценарий** + **состав контента матча** (units / buildings / theme), с пресетами и возможностью изменить.  
 Vanilla — обычные модули того же формата (fallback в коде на них, не хардкод данных).
 
 ## Единица установки
@@ -38,7 +38,7 @@ Vanilla — обычные модули того же формата (fallback �
 - **Логический id** сущности: `{namespace}/{localId}` (на карте, в найме, скриптах, replace).
 - **Путь в `Resources/`** — только файл внутри модуля; на карту не пишется.
 
-Два автора «про SW» → разные namespace → `starwars_units/trooper` и `units_from_sw/stormtrooper` без конфликта. В одной партии нельзя выбрать состав, где один полный id определён дважды.
+Два автора «про SW» → разные namespace → `starwars_units/trooper` и `units_from_sw/stormtrooper` без конфликта. В одном матче нельзя выбрать состав контента, где один полный id определён дважды.
 
 ## Layout `.tinymod.zip`
 
@@ -158,18 +158,18 @@ ocean_theme.tinymod.zip
   sw_universe.bundle.json
 ```
 
-Только JSON-пресет (id набора, title, список module id, defaults). Не содержит карт/юнитов. На старте партии подставляет defaults; состав можно изменить. Микс модулей из разных наборов не запрещён правилами bundle.
+Только JSON-пресет (id набора, title, список module id, defaults). Не содержит карт/юнитов. На старте матча подставляет defaults; состав контента можно изменить. Микс модулей из разных наборов не запрещён правилами bundle.
 
-## Рантайм партии
+## Рантайм матча
 
 1. Выбран scenario (кампания / skirmish map из scenario-модуля; user-контент тоже scenario-модуль).
-2. Состав: units / buildings / theme (+ vanilla-модули по defaults или вручную).
+2. Состав контента матча: units / buildings / theme (+ vanilla-модули по defaults или вручную).
 3. Конфликт одинаковых логических id в составе → запрет.
 4. Каждый `type` на карте должен **резолвиться** в составе (после replaces); иначе старт запрещён, список ошибок (без молчаливой подмены).
 5. Theme: remap ассетов для логических id; иначе спрайты из модуля, где объявлен тип.
 6. Найм: `recruitable` + `tags` (пересечение с `recruitFromTags` здания; пустые теги у здания → все recruitable).
 
-Сейв хранит снимок состава и версий модулей. При загрузке: предупреждение о смене версии → попытка → неудача → сообщение и в меню. Обновление модуля в библиотеке = замена по `module.id`.
+Сейв хранит снимок состава контента и версий модулей. При загрузке: предупреждение о смене версии → попытка → неудача → сообщение и в меню. Обновление модуля в библиотеке = замена по `module.id`.
 
 ## Редактор
 
@@ -185,7 +185,11 @@ ocean_theme.tinymod.zip
 
 **Исходники в репо:** [`TinyTBS.Content/Vanilla/`](../TinyTBS.Content/Vanilla/README.md) — `Modules/*` + `Bundles/vanilla.bundle.json`. Копируются в output игры; Start match грузит `vanilla_scenario` / `proving-grounds`.
 
-**Загрузка в коде:** `UnitModuleLoader` / `BuildingModuleLoader` / `ThemeModuleLoader` → `MatchContentCatalog`. Магазин, статы UI, HP спавна/найма и спрайты юнитов/строений (в т.ч. ruined) — из units/buildings. Terrain и gravestone — из theme `Resources/` (опц. `content.terrainDir` / `content.gravestone`; remaps подменяют base/mask по `ContentId`). Сущности матча хранят `ContentId`. Состав партии / bundle / abilities/бой — следующие срезы.
+**Загрузка в коде:**
+`ScenarioModuleLoader` + `MatchContentCompositionLoader` → `MatchContentComposition` (defaults/requires/replaces) → `MatchContentCatalog`.
+Конфликт одинаковых `ContentId` в составе и нерезолвящиеся типы на карте — ошибка со списком.
+`UnitModuleLoader` / `BuildingModuleLoader` / `ThemeModuleLoader` грузят модули по id через `ContentModuleLocator` (user `Modules/` → bundled `Vanilla/Modules`).
+Terrain/gravestone — из theme. Bundle UI / tinymod install / abilities/бой — следующие срезы.
 
 ## Связанные документы
 

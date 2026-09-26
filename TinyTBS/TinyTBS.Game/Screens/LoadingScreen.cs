@@ -59,6 +59,7 @@ public sealed class LoadingScreen : GameScreen
             TinyGame.SharedSpriteBatch,
             _assets,
             TinyGame.Files,
+            TinyGame.UserDataPaths,
             _levelId);
 
         ApplyProgress(_pipeline.Progress);

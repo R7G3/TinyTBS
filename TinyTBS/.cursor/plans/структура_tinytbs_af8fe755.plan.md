@@ -12,7 +12,7 @@ isProject: false
 
 - [x] Engine + Content + Game + Desktop (ADR 0007)
 - [x] TinyTBS.Content + Content Builder → Desktop/Content
-- [x] IAssetResolver: overlay Modules/{id} → bundled (полный состав партии — later)
+- [x] IAssetResolver: overlay Modules/{id} → bundled (полный состав контента матча — `match-content-composition`)
 - [x] IUserDataPaths: Content/Modules, Bundles, Saves, Downloads
 - [x] Gum на MGE-экранах
 - [x] Слой команд; positional геймпад; 3 столбца биндов
@@ -32,10 +32,10 @@ isProject: false
 - [x] **content-id-bridge** — матч на `ContentId` (убраны `UnitKind`·`BuildingKind` + `VanillaContentIds`)
 - [x] **theme-terrain** — theme-модуль в рантайме; terrain (+ gravestone art) из theme `Resources/`
 - [x] **menu-shell-loading** — главное меню (GDD + greyed); экран загрузки матча с этапами/шкалой
+- [x] **match-content-composition** — состав контента матча (scenario + units + buildings + theme); конфликты id / «тип не резолвится»
 
 ### Дальше
 
-- [ ] **party-composition** — состав партии scenario + units + buildings + theme; конфликты id / «тип не резолвится»
 - [ ] **tinymod-install** — установка `.tinymod.zip` → `Modules/{id}/`; сканирование библиотеки
 - [ ] **bundles-runtime** — загрузка `Bundles/*.bundle.json` как пресет defaults
 - [ ] **content-ui** — экран Контент (установить/удалить; Скачать/Обновить greyed)
@@ -231,7 +231,7 @@ Custom `Effect` (HLSL → MGFX): в pixel shader, если цвет пиксел
 
 **Кампания** — `Campaign/` в scenario-модуле (`campaign.json` + опц. script).
 
-Состав units/buildings/theme на старте партии — отдельно от scenario (defaults / bundle / вручную).
+Состав units/buildings/theme на старте матча — отдельно от scenario (defaults / bundle / вручную).
 
 ## Скрипты: хуки и аргументы
 
@@ -352,11 +352,12 @@ ScriptOptions.Default
 11. Vanilla modules + content catalog (shop/HP/sprites из JSON) — **выполнено** (`vanilla-modules`, `content-catalog`).
 12. `content-id-bridge` + `theme-terrain` — **выполнено**.
 13. Главное меню (GDD + greyed) + loading screen с этапами — **выполнено** (`menu-shell-loading`).
-14. Content pipeline дальше: `party-composition` → `tinymod-install` → `bundles-runtime` → `content-ui` → `new-game-flow`.
-15. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
-16. `campaigns` + `save-format` — после playable loop.
-17. `map-editor` — workspace модулей.
-18. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
+14. Состав контента матча + валидация id / replaces — **выполнено** (`match-content-composition`).
+15. Content pipeline дальше: `tinymod-install` → `bundles-runtime` → `content-ui` → `new-game-flow`.
+16. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
+17. `campaigns` + `save-format` — после playable loop.
+18. `map-editor` — workspace модулей.
+19. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
 
 ## Документация в репозитории
 

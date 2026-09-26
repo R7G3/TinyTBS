@@ -134,7 +134,7 @@ flowchart TB
 
 ## Моды
 
-**Сейчас:** `IAssetResolver` — опциональный overlay из `Content/Modules/{id}/` → fallback на bundled Content. Полный состав партии (несколько модулей) — при content-mods.
+**Сейчас:** `IAssetResolver` — опциональный overlay из `Content/Modules/{id}/` → fallback на bundled Content. Полный состав контента матча (несколько модулей) — `MatchContentComposition` / `match-content-composition`.
 
 **Цель (GDD):** библиотека **модулей** [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md) (`.tinymod.zip`) — scenario / units / buildings / theme. Vanilla — те же модули. Нестандартные юниты — конфиг + declarative `special` / abilities.
 
@@ -149,7 +149,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 ## ECS (MGE)
 
 - `TinyTBS.Game.Match`: `GridCell`, `MatchDefaults`, `MatchUnit` / `MatchBuilding`, `MatchState` — **логика** (демо-правила; полный GDD — впереди)
-- `TinyTBS.Game.Maps` / `Levels` / `Units` / `Buildings`: загрузка map/level и units/buildings JSON из `TinyTBS.Content/Vanilla/` (копируется в output); `MatchContentCatalog` — магазин/UI из модулей
+- `TinyTBS.Game.Maps` / `Levels` / `Units` / `Buildings` / `Themes` / `Modules`: загрузка map/level и модулей; `MatchContentCompositionLoader` + `ContentModuleLocator` → `MatchContentCatalog`
 - `TinyTBS.Game.Scripting`: `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost`, `MapScriptContext` + валидатор песочницы
 - `TinyTBS.Engine.Ecs`: `TilemapDrawSystem`, `TeamMaskedSpriteDrawSystem` (base + tint mask)
 - `MatchScene` / `GameplaySessionFactory` / `MatchSessionLoadPipeline` — в Game: level → map → скрипт → атлас → сцена (этапы для loading screen); `MatchCommandApplicator` — команды/pointer→логика (+ хуки скрипта)
@@ -200,14 +200,14 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 11. Матч на `ContentId` — **выполнено** (`content-id-bridge`).
 12. Theme + terrain/gravestone из модуля — **выполнено** (`theme-terrain`).
 13. Главное меню (GDD + greyed) + экран загрузки матча с этапами — **выполнено** (`menu-shell-loading`).
-14. Content pipeline (срезы):
-    - `party-composition` — состав партии + валидация id
+14. Состав контента матча + валидация id / replaces — **выполнено** (`match-content-composition`).
+15. Content pipeline (срезы):
     - `tinymod-install` — `.tinymod.zip` → библиотека
     - `bundles-runtime` — пресеты bundle
     - `content-ui` / `new-game-flow` — экраны Контент и Новая игра
-15. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
-16. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
-17. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
+16. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
+17. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
+18. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
 
 ## Связанные ADR
 

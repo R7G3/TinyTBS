@@ -2,52 +2,51 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Assets;
-using TinyTBS.Game.Buildings;
-using TinyTBS.Game.Themes;
-using TinyTBS.Game.Units;
+using TinyTBS.Game.Modules;
+using TinyTBS.Game.Modules.Models;
 
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Loads match textures via <see cref="IAssetResolver"/> and builds a session from vanilla modules.
+/// Convenience entry points for building a session from vanilla scenario defaults.
 /// </summary>
 public static class GameplaySessionFactory
 {
     /// <summary>Compact smoke-test level under <c>vanilla_scenario</c>.</summary>
     public const string DemoLevelId = "demo";
 
-    /// <summary>Full-roster QA level under <c>vanilla_scenario</c> (default New Game / Start match).</summary>
+    /// <summary>Full-roster QA level under <c>vanilla_scenario</c> (default New Game).</summary>
     public const string ProvingGroundsLevelId = "proving-grounds";
 
-    public const string VanillaScenarioRelativePath = "Vanilla/Modules/vanilla_scenario";
-
-    public const string VanillaUnitsRelativePath = "Vanilla/Modules/vanilla_units";
-
-    public const string VanillaBuildingsRelativePath = "Vanilla/Modules/vanilla_buildings";
-
-    public const string VanillaThemeRelativePath = "Vanilla/Modules/vanilla_theme";
+    public const string VanillaScenarioModuleId = MatchSessionLoadPipeline.DefaultScenarioModuleId;
 
     public static GameplaySession CreateDemo(
         GraphicsDevice graphicsDevice,
         ContentManager content,
         SpriteBatch spriteBatch,
         IAssetResolver assets,
-        IFileContentProvider files) =>
-        CreateFromVanillaLevel(
+        IFileContentProvider files,
+        IUserDataPaths userDataPaths) =>
+        CreateFromScenarioLevel(
             graphicsDevice,
             content,
             spriteBatch,
             assets,
             files,
+            userDataPaths,
+            VanillaScenarioModuleId,
             ProvingGroundsLevelId);
 
-    public static GameplaySession CreateFromVanillaLevel(
+    public static GameplaySession CreateFromScenarioLevel(
         GraphicsDevice graphicsDevice,
         ContentManager content,
         SpriteBatch spriteBatch,
         IAssetResolver assets,
         IFileContentProvider files,
-        string levelId)
+        IUserDataPaths userDataPaths,
+        string scenarioModuleId,
+        string levelId,
+        MatchContentComposition? composition = null)
     {
         var pipeline = new MatchSessionLoadPipeline(
             graphicsDevice,
@@ -55,18 +54,22 @@ public static class GameplaySessionFactory
             spriteBatch,
             assets,
             files,
-            levelId);
+            userDataPaths,
+            levelId,
+            scenarioModuleId,
+            composition);
         return pipeline.RunToCompletion();
     }
 
-    public static MatchContentCatalog LoadVanillaContentCatalog(IFileContentProvider files)
+    /// <summary>Loads match content catalog from scenario defaults (for tests / tooling).</summary>
+    public static MatchContentCatalog LoadCatalogFromScenarioDefaults(
+        string scenarioModuleId,
+        IFileContentProvider files,
+        IUserDataPaths userDataPaths)
     {
-        var unitsRoot = files.Combine(AppContext.BaseDirectory, VanillaUnitsRelativePath);
-        var buildingsRoot = files.Combine(AppContext.BaseDirectory, VanillaBuildingsRelativePath);
-        var themeRoot = files.Combine(AppContext.BaseDirectory, VanillaThemeRelativePath);
-        var unitsModule = UnitModuleLoader.Load(unitsRoot, files);
-        var buildingsModule = BuildingModuleLoader.Load(buildingsRoot, files);
-        var themeModule = ThemeModuleLoader.Load(themeRoot, files);
-        return new MatchContentCatalog(unitsModule, buildingsModule, themeModule);
+        var locator = new ContentModuleLocator(files, userDataPaths);
+        var scenario = ScenarioModuleLoader.Load(locator.ResolveModuleRoot(scenarioModuleId), files);
+        var composition = MatchContentComposition.FromScenarioDefaults(scenario);
+        return MatchContentCompositionLoader.Load(composition, locator, files).Catalog;
     }
 }

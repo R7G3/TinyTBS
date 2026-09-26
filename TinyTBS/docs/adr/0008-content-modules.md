@@ -13,7 +13,7 @@
 ## Решение
 
 1. Единица контента — **модуль** `.tinymod.zip` с `type`: `scenario` | `units` | `buildings` | `theme`.
-2. Библиотека модулей; на старте партии — scenario + состав (defaults / ручной выбор).
+2. Библиотека модулей; на старте матча — scenario + состав контента (defaults / ручной выбор).
 3. Логические id `{namespace}/{localId}`; по умолчанию namespace = module.id.
 4. `Bundles/*.bundle.json` — только пресеты, не контейнер геймплея.
 5. Vanilla — модули того же формата.

@@ -34,12 +34,7 @@ Campaign: `Campaign/campaign.json` (`vanilla-main`).
 
 ## Runtime
 
-`TinyTBS.Game` copies this tree to output as `Vanilla/`. `GameplaySessionFactory` loads:
-
-- scenario: `Vanilla/Modules/vanilla_scenario` (default level: `proving-grounds`)
-- units / buildings / theme → `MatchContentCatalog`
-- unit/building sprites from module `Resources/` (theme remaps override when set)
-- terrain + gravestone from `vanilla_theme` `Resources/` (fallback to bundled `.xnb`)
+`TinyTBS.Game` copies this tree to output as `Vanilla/`. Match start loads `MatchContentComposition` from `vanilla_scenario` defaults via `ContentModuleLocator` + `MatchContentCompositionLoader`, then level `proving-grounds`, with a staged loading screen.
 
 ## What this exercises
 
