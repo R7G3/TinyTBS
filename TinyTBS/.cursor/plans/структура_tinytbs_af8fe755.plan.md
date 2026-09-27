@@ -39,7 +39,7 @@ isProject: false
 
 ### Дальше
 
-- [x] **new-game-flow** — вкладки Mode → Scenario → Level → Composition → Lobby; Hotseat; gold/unit cap ± (hold gamepad + mouse)
+- [x] **new-game-flow** — вкладки Mode → Scenario → Level → Composition → Lobby; слоты Local (+ Bot/Remote greyed); gold/unit cap ± (hold gamepad + mouse)
 - [ ] **settings-ui** — экран **Настройки** (сейчас greyed): графика (в т.ч. `ui-scale-hidpi`), ввод (3 столбца биндов), профиль цветов игрока; persist JSON. Канон: [UI_AND_FLOW § Настройки](../../docs/design/UI_AND_FLOW.md#настройки)
 - [ ] **ui-scale-hidpi** — масштаб UI и поля под HiDPI / 4K (часть графики в `settings-ui`). Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](../../docs/ideas/ui-scale-hidpi.md)
 - [ ] **match-combat-gdd** — бой/формула GDD; abilities / special из `UnitDefinition`
@@ -59,7 +59,7 @@ isProject: false
 - **Tiled / DotTiled — не используются.**
 - **Три логических слоя** (логика / представление / движок) — ADR 0005; проекты — **Game + Engine** (ADR 0007), не «один слой = один csproj».
 - **GDD** — [docs/GAME_DESIGN.md](../../docs/GAME_DESIGN.md); UI/экраны — [docs/design/UI_AND_FLOW.md](../../docs/design/UI_AND_FLOW.md); Map/Level/Campaign — [ADR 0006](../../docs/adr/0006-map-level-campaign.md); юниты data-driven — [UNIT_FORMAT](../../docs/UNIT_FORMAT.md).
-- **Сеть** — позже; тип Remote в API; в UI пункты мультиплеера / «пригласить по сети» — **greyed**. Хотсит (локальные игроки) — рабочий сценарий без ИИ.
+- **Сеть** — позже; тип Remote в API и в chooser слота лобби — **greyed**. Несколько Local на одном устройстве (пошаговый матч) — рабочий сценарий без ИИ.
 - **Идеи (не канон)** — [docs/ideas/](../../docs/ideas/) (напр. frosted glass UI).
 
 ```mermaid

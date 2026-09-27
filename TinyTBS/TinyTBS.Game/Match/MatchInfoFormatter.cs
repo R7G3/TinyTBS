@@ -38,9 +38,6 @@ public static class MatchInfoFormatter
         return builder.ToString().TrimEnd();
     }
 
-    public static string FormatDetailHeader(MatchState match) =>
-        $"Cell {match.Cursor.X},{match.Cursor.Y}";
-
     public static string FormatTerrainDetail(MatchState match)
     {
         var terrain = match.GetTerrain(match.Cursor);

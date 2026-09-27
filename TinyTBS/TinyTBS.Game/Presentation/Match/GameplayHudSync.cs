@@ -28,10 +28,10 @@ public sealed class GameplayHudSync
 
         _hud.PlayerLabel = $"P{match.CurrentPlayer + 1}";
         _hud.GoldText = $"{match.GetMoney(match.CurrentPlayer)}g";
+        _hud.UnitsText = $"{match.CountUnitsForPlayer(match.CurrentPlayer)}/{session.LevelBrief.UnitCap}";
         _hud.TurnText = $"Turn {match.TurnNumber}";
         _hud.StatusBarColor = PlayerPalette.ForPlayer(match.CurrentPlayer);
         _hud.CompactInfoText = MatchInfoFormatter.FormatCompact(match, session.ContentCatalog);
-        _hud.DetailHeaderText = MatchInfoFormatter.FormatDetailHeader(match);
         _hud.DetailTerrainText = MatchInfoFormatter.FormatTerrainDetail(match);
         _hud.DetailBuildingText = MatchInfoFormatter.FormatBuildingDetail(match, session.ContentCatalog);
         _hud.DetailUnitText = MatchInfoFormatter.FormatUnitDetail(match, session.ContentCatalog);

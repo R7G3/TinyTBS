@@ -15,6 +15,7 @@ public sealed class MatchStatusBarView
     private Panel? _labelRow;
     private Label? _playerLabel;
     private Label? _goldLabel;
+    private Label? _unitsLabel;
     private Label? _turnLabel;
 
     public void Build(Panel root, GameplayHudViewModel hud)
@@ -43,6 +44,9 @@ public sealed class MatchStatusBarView
         _goldLabel = new Label { Text = hud.GoldText };
         _labelRow.AddChild(_goldLabel);
 
+        _unitsLabel = new Label { Text = hud.UnitsText };
+        _labelRow.AddChild(_unitsLabel);
+
         _turnLabel = new Label { Text = hud.TurnText };
         _labelRow.AddChild(_turnLabel);
     }
@@ -53,6 +57,8 @@ public sealed class MatchStatusBarView
             _playerLabel.Text = hud.PlayerLabel;
         if (_goldLabel is not null)
             _goldLabel.Text = hud.GoldText;
+        if (_unitsLabel is not null)
+            _unitsLabel.Text = hud.UnitsText;
         if (_turnLabel is not null)
             _turnLabel.Text = hud.TurnText;
         if (_background is not null)

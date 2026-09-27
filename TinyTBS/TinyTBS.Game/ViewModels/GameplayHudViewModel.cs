@@ -9,6 +9,8 @@ public sealed class GameplayHudViewModel
 
     public string GoldText { get; set; } = "0g";
 
+    public string UnitsText { get; set; } = "0/0";
+
     public string TurnText { get; set; } = "Turn 1";
 
     public Color StatusBarColor { get; set; } = Color.CornflowerBlue;
@@ -18,8 +20,6 @@ public sealed class GameplayHudViewModel
 
     /// <summary>Always-on corner summary for the cursor tile.</summary>
     public string CompactInfoText { get; set; } = string.Empty;
-
-    public string DetailHeaderText { get; set; } = string.Empty;
 
     public string DetailTerrainText { get; set; } = string.Empty;
 

@@ -141,6 +141,13 @@ public static class GumScrollListLayout
             return;
         }
 
+        // Topmost list focusable: jump to absolute top so non-focusable headers above stay visible.
+        if (focusIndex == listFocusStartIndex)
+        {
+            listScroll.VerticalScrollBarValue = 0f;
+            return;
+        }
+
         if (!TryMeasureItemInList(
                 listPanel,
                 focusedVisual,

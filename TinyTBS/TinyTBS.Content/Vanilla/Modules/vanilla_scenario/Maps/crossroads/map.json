@@ -1,0 +1,257 @@
+{
+
+  "formatVersion": 1,
+
+  "id": "crossroads",
+
+  "title": "Crossroads",
+
+  "width": 12,
+
+  "height": 12,
+
+  "layers": {
+
+    "surface": [
+
+      { "x": 0, "y": 0, "type": "road" },
+
+      { "x": 1, "y": 0, "type": "road" },
+
+      { "x": 2, "y": 0, "type": "road" },
+
+      { "x": 3, "y": 0, "type": "road" },
+
+      { "x": 4, "y": 0, "type": "road" },
+
+      { "x": 5, "y": 0, "type": "road" },
+
+      { "x": 6, "y": 0, "type": "road" },
+
+      { "x": 7, "y": 0, "type": "road" },
+
+      { "x": 8, "y": 0, "type": "road" },
+
+      { "x": 9, "y": 0, "type": "road" },
+
+      { "x": 10, "y": 0, "type": "road" },
+
+      { "x": 11, "y": 0, "type": "road" },
+
+      { "x": 0, "y": 11, "type": "road" },
+
+      { "x": 1, "y": 11, "type": "road" },
+
+      { "x": 2, "y": 11, "type": "road" },
+
+      { "x": 3, "y": 11, "type": "road" },
+
+      { "x": 4, "y": 11, "type": "road" },
+
+      { "x": 5, "y": 11, "type": "road" },
+
+      { "x": 6, "y": 11, "type": "road" },
+
+      { "x": 7, "y": 11, "type": "road" },
+
+      { "x": 8, "y": 11, "type": "road" },
+
+      { "x": 9, "y": 11, "type": "road" },
+
+      { "x": 10, "y": 11, "type": "road" },
+
+      { "x": 11, "y": 11, "type": "road" },
+
+      { "x": 5, "y": 1, "type": "road" },
+
+      { "x": 5, "y": 2, "type": "road" },
+
+      { "x": 5, "y": 3, "type": "road" },
+
+      { "x": 5, "y": 4, "type": "road" },
+
+      { "x": 5, "y": 6, "type": "road" },
+
+      { "x": 5, "y": 7, "type": "road" },
+
+      { "x": 5, "y": 8, "type": "road" },
+
+      { "x": 5, "y": 9, "type": "road" },
+
+      { "x": 5, "y": 10, "type": "road" },
+
+      { "x": 6, "y": 1, "type": "road" },
+
+      { "x": 6, "y": 2, "type": "road" },
+
+      { "x": 6, "y": 3, "type": "road" },
+
+      { "x": 6, "y": 4, "type": "road" },
+
+      { "x": 6, "y": 6, "type": "road" },
+
+      { "x": 6, "y": 7, "type": "road" },
+
+      { "x": 6, "y": 8, "type": "road" },
+
+      { "x": 6, "y": 9, "type": "road" },
+
+      { "x": 6, "y": 10, "type": "road" },
+
+      { "x": 0, "y": 6, "type": "road" },
+
+      { "x": 1, "y": 6, "type": "road" },
+
+      { "x": 2, "y": 6, "type": "road" },
+
+      { "x": 3, "y": 6, "type": "road" },
+
+      { "x": 4, "y": 6, "type": "road" },
+
+      { "x": 7, "y": 6, "type": "road" },
+
+      { "x": 8, "y": 6, "type": "road" },
+
+      { "x": 9, "y": 6, "type": "road" },
+
+      { "x": 10, "y": 6, "type": "road" },
+
+      { "x": 11, "y": 6, "type": "road" },
+
+      { "x": 0, "y": 5, "type": "water" },
+
+      { "x": 1, "y": 5, "type": "water" },
+
+      { "x": 2, "y": 5, "type": "water" },
+
+      { "x": 3, "y": 5, "type": "bridge" },
+
+      { "x": 4, "y": 5, "type": "water" },
+
+      { "x": 5, "y": 5, "type": "bridge" },
+
+      { "x": 6, "y": 5, "type": "bridge" },
+
+      { "x": 7, "y": 5, "type": "water" },
+
+      { "x": 8, "y": 5, "type": "bridge" },
+
+      { "x": 9, "y": 5, "type": "water" },
+
+      { "x": 10, "y": 5, "type": "water" },
+
+      { "x": 11, "y": 5, "type": "water" },
+
+      { "x": 2, "y": 2, "type": "forest" },
+
+      { "x": 3, "y": 2, "type": "forest" },
+
+      { "x": 8, "y": 2, "type": "forest" },
+
+      { "x": 9, "y": 2, "type": "forest" },
+
+      { "x": 2, "y": 9, "type": "forest" },
+
+      { "x": 3, "y": 9, "type": "forest" },
+
+      { "x": 8, "y": 9, "type": "forest" },
+
+      { "x": 9, "y": 9, "type": "forest" },
+
+      { "x": 0, "y": 3, "type": "mountain" },
+
+      { "x": 0, "y": 4, "type": "mountain" },
+
+      { "x": 11, "y": 3, "type": "mountain" },
+
+      { "x": 11, "y": 4, "type": "mountain" },
+
+      { "x": 0, "y": 7, "type": "mountain" },
+
+      { "x": 0, "y": 8, "type": "mountain" },
+
+      { "x": 11, "y": 7, "type": "mountain" },
+
+      { "x": 11, "y": 8, "type": "mountain" },
+
+      { "x": 1, "y": 1, "type": "road" },
+
+      { "x": 1, "y": 2, "type": "road" },
+
+      { "x": 2, "y": 1, "type": "road" },
+
+      { "x": 10, "y": 1, "type": "road" },
+
+      { "x": 10, "y": 2, "type": "road" },
+
+      { "x": 9, "y": 1, "type": "road" },
+
+      { "x": 1, "y": 10, "type": "road" },
+
+      { "x": 1, "y": 9, "type": "road" },
+
+      { "x": 2, "y": 10, "type": "road" },
+
+      { "x": 10, "y": 10, "type": "road" },
+
+      { "x": 10, "y": 9, "type": "road" },
+
+      { "x": 9, "y": 10, "type": "road" }
+
+    ],
+
+    "buildings": [
+
+      { "type": "vanilla/castle", "x": 1, "y": 1, "slot": 0 },
+
+      { "type": "vanilla/castle", "x": 10, "y": 1, "slot": 1 },
+
+      { "type": "vanilla/castle", "x": 1, "y": 10, "slot": 2 },
+
+      { "type": "vanilla/castle", "x": 10, "y": 10, "slot": 3 },
+
+      { "type": "vanilla/village", "x": 3, "y": 1, "slot": 0, "state": "intact" },
+
+      { "type": "vanilla/village", "x": 8, "y": 1, "slot": 1, "state": "intact" },
+
+      { "type": "vanilla/village", "x": 3, "y": 10, "slot": 2, "state": "intact" },
+
+      { "type": "vanilla/village", "x": 8, "y": 10, "slot": 3, "state": "intact" },
+
+      { "type": "vanilla/village", "x": 4, "y": 4, "slot": null, "state": "intact" },
+
+      { "type": "vanilla/village", "x": 7, "y": 7, "slot": null, "state": "ruined" }
+
+    ],
+
+    "units": [
+
+      { "type": "vanilla/king", "x": 1, "y": 2, "slot": 0, "hp": 100, "xp": 0 },
+
+      { "type": "vanilla/swordsman", "x": 2, "y": 1, "slot": 0, "hp": 100, "xp": 0 },
+
+      { "type": "vanilla/king", "x": 10, "y": 2, "slot": 1, "hp": 100, "xp": 0 },
+
+      { "type": "vanilla/swordsman", "x": 9, "y": 1, "slot": 1, "hp": 100, "xp": 0 },
+
+      { "type": "vanilla/king", "x": 1, "y": 9, "slot": 2, "hp": 100, "xp": 0 },
+
+      { "type": "vanilla/swordsman", "x": 2, "y": 10, "slot": 2, "hp": 100, "xp": 0 },
+
+      { "type": "vanilla/king", "x": 10, "y": 9, "slot": 3, "hp": 100, "xp": 0 },
+
+      { "type": "vanilla/swordsman", "x": 9, "y": 10, "slot": 3, "hp": 100, "xp": 0 }
+
+    ],
+
+    "gravestones": [
+
+      { "x": 4, "y": 7 }
+
+    ]
+
+  }
+
+}
+
+

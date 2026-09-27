@@ -18,6 +18,9 @@ public static class GameplaySessionFactory
     /// <summary>Full-roster QA level under <c>vanilla_scenario</c> (default New Game).</summary>
     public const string ProvingGroundsLevelId = "proving-grounds";
 
+    /// <summary>Four-corner skirmish (2–4 players) under <c>vanilla_scenario</c>.</summary>
+    public const string CrossroadsLevelId = "crossroads";
+
     public const string VanillaScenarioModuleId = MatchSessionLoadPipeline.DefaultScenarioModuleId;
 
     public const string VanillaBundleId = "vanilla";

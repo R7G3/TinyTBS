@@ -13,7 +13,7 @@ namespace TinyTBS.Game.Presentation.NewGame;
 
 /// <summary>
 /// New Game shell: Mode → Scenario → Level → Composition → Lobby tabs,
-/// one tall scroll list, Start / Multiplayer / Back.
+/// one tall scroll list, Start / Back.
 /// Tab list bodies live in <c>NewGame*TabBody</c>;
 /// scroll measure in <see cref="GumScrollListLayout"/>; focus chrome in <see cref="GumScrollViewerChrome"/>.
 /// </summary>
@@ -55,8 +55,9 @@ public sealed class NewGameView
     private int _listFocusCount;
     private int _actionFocusStartIndex = -1;
     private int _actionFocusCount;
-    private int _lobbySessionFocusIndex = -1;
     private int _addPlayerFocusIndex = -1;
+    private int _addPlayerTypeLocalFocusIndex = -1;
+    private int _cancelAddPlayerTypeFocusIndex = -1;
     private int _removePlayerFocusIndex = -1;
     private int _goldDecreaseFocusIndex = -1;
     private int _goldIncreaseFocusIndex = -1;
@@ -72,9 +73,10 @@ public sealed class NewGameView
         Action<string> onSelectScenario,
         Action<string> onSelectLevel,
         Action<string> onSelectComposition,
-        Action<NewGameLobbySessionMode> onSelectLobbySession,
-        Action onAddPlayer,
-        Action onRemovePlayer,
+        Action onOpenAddPlayerChooser,
+        Action onAddLocalPlayer,
+        Action onCancelAddPlayerChooser,
+        Action<int> onRemovePlayerAt,
         Action onDecreaseGold,
         Action onIncreaseGold,
         Action onDecreaseUnitCap,
@@ -149,9 +151,10 @@ public sealed class NewGameView
             onSelectScenario,
             onSelectLevel,
             onSelectComposition,
-            onSelectLobbySession,
-            onAddPlayer,
-            onRemovePlayer,
+            onOpenAddPlayerChooser,
+            onAddLocalPlayer,
+            onCancelAddPlayerChooser,
+            onRemovePlayerAt,
             onDecreaseGold,
             onIncreaseGold,
             onDecreaseUnitCap,
@@ -335,8 +338,9 @@ public sealed class NewGameView
         _listFocusCount = 0;
         _actionFocusStartIndex = -1;
         _actionFocusCount = 0;
-        _lobbySessionFocusIndex = -1;
         _addPlayerFocusIndex = -1;
+        _addPlayerTypeLocalFocusIndex = -1;
+        _cancelAddPlayerTypeFocusIndex = -1;
         _removePlayerFocusIndex = -1;
         _goldDecreaseFocusIndex = -1;
         _goldIncreaseFocusIndex = -1;
@@ -352,9 +356,10 @@ public sealed class NewGameView
         Action<string> onSelectScenario,
         Action<string> onSelectLevel,
         Action<string> onSelectComposition,
-        Action<NewGameLobbySessionMode> onSelectLobbySession,
-        Action onAddPlayer,
-        Action onRemovePlayer,
+        Action onOpenAddPlayerChooser,
+        Action onAddLocalPlayer,
+        Action onCancelAddPlayerChooser,
+        Action<int> onRemovePlayerAt,
         Action onDecreaseGold,
         Action onIncreaseGold,
         Action onDecreaseUnitCap,
@@ -383,9 +388,10 @@ public sealed class NewGameView
                     NewGameLobbyTabBody.Populate(
                         list,
                         viewModel,
-                        onSelectLobbySession,
-                        onAddPlayer,
-                        onRemovePlayer,
+                        onOpenAddPlayerChooser,
+                        onAddLocalPlayer,
+                        onCancelAddPlayerChooser,
+                        onRemovePlayerAt,
                         onDecreaseGold,
                         onIncreaseGold,
                         onDecreaseUnitCap,
@@ -396,9 +402,10 @@ public sealed class NewGameView
 
     private void ApplyLobbyResult(NewGameLobbyTabBodyResult result)
     {
-        _lobbySessionFocusIndex = result.LobbySessionFocusIndex;
         _addPlayerFocusIndex = result.AddPlayerFocusIndex;
-        _removePlayerFocusIndex = result.RemovePlayerFocusIndex;
+        _addPlayerTypeLocalFocusIndex = result.AddPlayerTypeLocalFocusIndex;
+        _cancelAddPlayerTypeFocusIndex = result.CancelAddPlayerTypeFocusIndex;
+        _removePlayerFocusIndex = result.FirstRemovePlayerFocusIndex;
         _goldDecreaseFocusIndex = result.GoldStepper?.DecreaseFocusIndex ?? -1;
         _goldIncreaseFocusIndex = result.GoldStepper?.IncreaseFocusIndex ?? -1;
         _unitCapDecreaseFocusIndex = result.UnitCapStepper?.DecreaseFocusIndex ?? -1;
@@ -423,7 +430,6 @@ public sealed class NewGameView
 
         _actionFocusStartIndex = _focusableEntries.Count;
         GumMenuChrome.AddActionButton(_actionButtons, _focusableEntries, "Start", canStart, onStart, index => _startFocusIndex = index);
-        GumMenuChrome.AddActionButton(_actionButtons, _focusableEntries, "Multiplayer", false, () => { });
         GumMenuChrome.AddActionButton(_actionButtons, _focusableEntries, "Back", true, onBack);
         _actionFocusCount = _focusableEntries.Count - _actionFocusStartIndex;
     }
@@ -500,10 +506,12 @@ public sealed class NewGameView
                 return FindSelectedLevelFocusIndex(viewModel);
             case NewGameFocusAnchor.SelectedComposition:
                 return FindSelectedCompositionFocusIndex(viewModel);
-            case NewGameFocusAnchor.LobbySession:
-                return _lobbySessionFocusIndex;
             case NewGameFocusAnchor.AddPlayer:
                 return _addPlayerFocusIndex;
+            case NewGameFocusAnchor.AddPlayerTypeLocal:
+                return _addPlayerTypeLocalFocusIndex;
+            case NewGameFocusAnchor.CancelAddPlayerType:
+                return _cancelAddPlayerTypeFocusIndex;
             case NewGameFocusAnchor.RemovePlayer:
                 return _removePlayerFocusIndex;
             case NewGameFocusAnchor.GoldDecrease:
@@ -523,10 +531,24 @@ public sealed class NewGameView
                     NewGameTab.Scenario => FindSelectedScenarioFocusIndex(viewModel),
                     NewGameTab.Level => FindSelectedLevelFocusIndex(viewModel),
                     NewGameTab.Composition => FindSelectedCompositionFocusIndex(viewModel),
-                    NewGameTab.Lobby => _lobbySessionFocusIndex,
+                    NewGameTab.Lobby => PreferLobbyFocusIndex(),
                     _ => -1,
                 };
         }
+    }
+
+    private int PreferLobbyFocusIndex()
+    {
+        if (_addPlayerTypeLocalFocusIndex >= 0)
+            return _addPlayerTypeLocalFocusIndex;
+        // Prefer first slot X so the Players header stays in view (not gold/± far below).
+        if (_removePlayerFocusIndex >= 0)
+            return _removePlayerFocusIndex;
+        if (_addPlayerFocusIndex >= 0)
+            return _addPlayerFocusIndex;
+        if (_goldDecreaseFocusIndex >= 0)
+            return _goldDecreaseFocusIndex;
+        return -1;
     }
 
     private int FindSelectedModeFocusIndex(NewGameViewModel viewModel)

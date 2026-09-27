@@ -21,11 +21,6 @@ public sealed class NewGameViewModel
 
     public IReadOnlyList<NewGamePlayerSlotViewModel> PlayerSlots { get; set; } = [];
 
-    public IReadOnlyList<NewGameLobbySessionRowViewModel> LobbySessionOptions { get; set; } = [];
-
-    public NewGameLobbySessionMode SelectedLobbySessionMode { get; set; } =
-        NewGameLobbySessionMode.Hotseat;
-
     public string? SelectedScenarioModuleId { get; set; }
 
     public string? SelectedLevelId { get; set; }
@@ -40,8 +35,11 @@ public sealed class NewGameViewModel
     /// <summary>Empty-state / hint text when the active tab has no rows yet.</summary>
     public string TabEmptyHint { get; set; } = string.Empty;
 
-    /// <summary>True when Mode is Skirmish (lobby steppers and local slots).</summary>
+    /// <summary>True when Mode is Skirmish (lobby steppers and editable slots).</summary>
     public bool ShowSkirmishLobby { get; set; }
+
+    /// <summary>True while the Add-player type chooser (Local / Bot / Remote) is open.</summary>
+    public bool ShowAddPlayerTypeChooser { get; set; }
 
     public int StartingGold { get; set; }
 
@@ -64,3 +62,4 @@ public sealed class NewGameViewModel
         && StartingGold >= 0
         && UnitCap >= 1;
 }
+

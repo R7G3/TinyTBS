@@ -27,6 +27,7 @@ PNG masters also live under `TinyTBS.Content/Images/` for the Content Builder (`
 |----------|-----|-------|---------|
 | `demo` | `Maps/demo` (10×8) | skirmish | Smoke test: all terrain, castles, intact/ruined/neutral villages, core units, gravestone, script |
 | `proving-grounds` | `Maps/proving-grounds` (16×12) | skirmish | **Default Start match** — full roster both sides, ruined villages, gravestones, all terrain |
+| `crossroads` | `Maps/crossroads` (12×12) | skirmish | **4-player lobby QA** — min 2 / max 4 / defaultSlots 4; castles in corners |
 | `campaign-01` | demo map | campaign | Campaign chapter 1 |
 | `campaign-02` | proving-grounds | campaign | Campaign chapter 2 |
 

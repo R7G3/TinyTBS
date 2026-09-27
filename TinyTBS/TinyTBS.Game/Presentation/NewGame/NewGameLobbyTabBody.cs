@@ -1,16 +1,18 @@
+using TinyTBS.Game.Match;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.NewGame;
 
-/// <summary>Lobby tab list body (session, skirmish players, gold / unit-cap steppers).</summary>
+/// <summary>Lobby tab list body (player slots with X, +, type chooser, gold / unit-cap).</summary>
 internal static class NewGameLobbyTabBody
 {
     public static NewGameLobbyTabBodyResult Populate(
         NewGameListBuilder list,
         NewGameViewModel viewModel,
-        Action<NewGameLobbySessionMode> onSelectLobbySession,
-        Action onAddPlayer,
-        Action onRemovePlayer,
+        Action onOpenAddPlayerChooser,
+        Action onAddLocalPlayer,
+        Action onCancelAddPlayerChooser,
+        Action<int> onRemovePlayerAt,
         Action onDecreaseGold,
         Action onIncreaseGold,
         Action onDecreaseUnitCap,
@@ -18,9 +20,10 @@ internal static class NewGameLobbyTabBody
     {
         ArgumentNullException.ThrowIfNull(list);
         ArgumentNullException.ThrowIfNull(viewModel);
-        ArgumentNullException.ThrowIfNull(onSelectLobbySession);
-        ArgumentNullException.ThrowIfNull(onAddPlayer);
-        ArgumentNullException.ThrowIfNull(onRemovePlayer);
+        ArgumentNullException.ThrowIfNull(onOpenAddPlayerChooser);
+        ArgumentNullException.ThrowIfNull(onAddLocalPlayer);
+        ArgumentNullException.ThrowIfNull(onCancelAddPlayerChooser);
+        ArgumentNullException.ThrowIfNull(onRemovePlayerAt);
         ArgumentNullException.ThrowIfNull(onDecreaseGold);
         ArgumentNullException.ThrowIfNull(onIncreaseGold);
         ArgumentNullException.ThrowIfNull(onDecreaseUnitCap);
@@ -32,63 +35,57 @@ internal static class NewGameLobbyTabBody
             return new NewGameLobbyTabBodyResult();
         }
 
-        var lobbySessionFocusIndex = -1;
-        var addPlayerFocusIndex = -1;
-        var removePlayerFocusIndex = -1;
-
-        list.AddHint("Session");
-        foreach (var option in viewModel.LobbySessionOptions)
-        {
-            if (option.IsEnabled)
-            {
-                var mode = option.Mode;
-                list.AddRow(option.SummaryLine, () => onSelectLobbySession(mode));
-                if (option.IsSelected)
-                    lobbySessionFocusIndex = list.FocusableCount - 1;
-            }
-            else
-            {
-                list.AddDisabledRow(option.SummaryLine);
-            }
-        }
-
         if (!string.IsNullOrWhiteSpace(viewModel.LobbyNote))
             list.AddHint(viewModel.LobbyNote);
+
+        list.AddHint("Players");
+
+        var firstRemoveFocusIndex = -1;
+        var canRemove = viewModel.ShowSkirmishLobby && viewModel.CanRemovePlayer;
+        foreach (var slot in viewModel.PlayerSlots)
+        {
+            var slotIndex = slot.SlotIndex;
+            var removeFocus = list.AddPlayerSlotRow(
+                slot.SummaryLine,
+                PlayerPalette.ForPlayer(slot.PaletteIndex),
+                showRemove: viewModel.ShowSkirmishLobby,
+                canRemove: canRemove,
+                onRemove: () => onRemovePlayerAt(slotIndex));
+            if (firstRemoveFocusIndex < 0 && removeFocus >= 0)
+                firstRemoveFocusIndex = removeFocus;
+        }
+
+        var addPlayerFocusIndex = -1;
+        var addPlayerTypeLocalFocusIndex = -1;
+        var cancelAddPlayerTypeFocusIndex = -1;
 
         if (!viewModel.ShowSkirmishLobby)
         {
             return new NewGameLobbyTabBodyResult
             {
-                LobbySessionFocusIndex = lobbySessionFocusIndex,
+                FirstRemovePlayerFocusIndex = firstRemoveFocusIndex,
             };
         }
 
-        list.AddHint("Players");
-        foreach (var slot in viewModel.PlayerSlots)
-            list.AddHint(slot.SummaryLine);
-
-        if (viewModel.CanAddPlayer)
+        if (viewModel.ShowAddPlayerTypeChooser && viewModel.CanAddPlayer)
         {
-            list.AddRow("Add player", onAddPlayer);
+            list.AddHint("Add as");
+            list.AddRow("Local", onAddLocalPlayer);
+            addPlayerTypeLocalFocusIndex = list.FocusableCount - 1;
+            list.AddDisabledRow("Bot (soon)");
+            list.AddDisabledRow("Remote (soon)");
+            list.AddRow("Cancel", onCancelAddPlayerChooser);
+            cancelAddPlayerTypeFocusIndex = list.FocusableCount - 1;
+        }
+        else if (viewModel.CanAddPlayer)
+        {
+            list.AddRow("+", onOpenAddPlayerChooser);
             addPlayerFocusIndex = list.FocusableCount - 1;
         }
         else
         {
-            list.AddDisabledRow("Add player");
+            list.AddDisabledRow("+");
         }
-
-        if (viewModel.CanRemovePlayer)
-        {
-            list.AddRow("Remove player", onRemovePlayer);
-            removePlayerFocusIndex = list.FocusableCount - 1;
-        }
-        else
-        {
-            list.AddDisabledRow("Remove player");
-        }
-
-        list.AddDisabledRow("Invite (soon)");
-        list.AddDisabledRow("Bot (soon)");
 
         var goldStepper = list.AddValueStepper(
             "Gold",
@@ -103,11 +100,13 @@ internal static class NewGameLobbyTabBody
 
         return new NewGameLobbyTabBodyResult
         {
-            LobbySessionFocusIndex = lobbySessionFocusIndex,
             AddPlayerFocusIndex = addPlayerFocusIndex,
-            RemovePlayerFocusIndex = removePlayerFocusIndex,
+            AddPlayerTypeLocalFocusIndex = addPlayerTypeLocalFocusIndex,
+            CancelAddPlayerTypeFocusIndex = cancelAddPlayerTypeFocusIndex,
+            FirstRemovePlayerFocusIndex = firstRemoveFocusIndex,
             GoldStepper = goldStepper,
             UnitCapStepper = unitCapStepper,
         };
     }
 }
+

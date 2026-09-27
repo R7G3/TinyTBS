@@ -1,8 +1,13 @@
 namespace TinyTBS.Game.ViewModels;
 
-/// <summary>Local hotseat slot kind on the New Game lobby (bot is UI-only until AI exists).</summary>
+/// <summary>
+/// How a lobby slot is filled. Match is always turn-based;
+/// Local = this device, Bot = AI (soon), Remote = network (soon).
+/// </summary>
 public enum NewGamePlayerKind
 {
     Local = 0,
     Bot = 1,
+    Remote = 2,
 }
+

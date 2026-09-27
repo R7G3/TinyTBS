@@ -31,7 +31,7 @@
 
 Продолжить (если есть сохранения) · Новая игра · Загрузка · Контент · Редактор · Настройки · Об игре · Выход.
 
-**Сейчас в коде:** оболочка пунктов; **Новая игра** — вкладки Mode → Scenario → Level → Composition → Lobby (Left/Right как в Контенте; Start / Multiplayer greyed / Back); фильтр уровней по mode+scenario; composition = scenario defaults / bundle; лобби: кампания hotseat-заметка, схватка Local + gold/unit cap (Bot / Invite greyed) → loading; **Контент** — панель-библиотека (Modules/Bundles; детальный попап + Remove; Install: From device через `IExternalFilePicker`, From catalog greyed; очередь `{UserData}/Downloads`; Download/Update greyed). **Настройки** / Загрузка / Редактор / Об игре / Продолжить — greyed (план: `settings-ui` и др.).
+**Сейчас в коде:** оболочка пунктов; **Новая игра** — вкладки Mode → Scenario → Level → Composition → Lobby (Left/Right как в Контенте; Start / Back); фильтр уровней по mode+scenario; composition = scenario defaults / bundle; лобби: слоты (цвет · подпись · X) + **+** (chooser Local / Bot·Remote greyed), схватка — gold/unit cap → loading; **Контент** — панель-библиотека (Modules/Bundles; детальный попап + Remove; Install: From device через `IExternalFilePicker`, From catalog greyed; очередь `{UserData}/Downloads`; Download/Update greyed). **Настройки** / Загрузка / Редактор / Об игре / Продолжить — greyed (план: `settings-ui` и др.).
 
 Фоны главного меню / настроек / загрузки / «Об игре»: изображение с плавным сдвигом (камера «летит» над полем). Идея матового стекла панелей — [ideas/ui-frosted-glass.md](../ideas/ui-frosted-glass.md).
 
@@ -51,9 +51,10 @@
 
 ### Новая игра
 
-- Вкладки (по порядку): **Mode** (Campaign / Skirmish) → **Scenario** (модули с уровнями выбранного mode) → **Level** (только уровни выбранного scenario + mode) → **Composition** (scenario.defaults или `*.bundle.json`) → **Lobby** (сессия: **Hotseat** выбираем, Network greyed; схватка: слоты Local, золото, unit cap; Bot / Invite greyed).
-- **Мультиплеер** — пункт есть, **greyed**.
-- Навигация: Up/Down по списку вкладки; Left/Right — вкладки (или нижние кнопки, если фокус на action bar); Confirm — выбор. На входе в Lobby фокус на Hotseat, чтобы шапка лобби оставалась в кадре.
+- Вкладки (по порядку): **Mode** (Campaign / Skirmish) → **Scenario** (модули с уровнями выбранного mode) → **Level** (только уровни выбранного scenario + mode) → **Composition** (scenario.defaults или `*.bundle.json`) → **Lobby** (слоты игроков: Local / Bot / Remote; матч всегда пошаговый — отдельного режима «Hotseat» нет).
+- **Слоты:** ряд на игрока — цвет · подпись · **X** (удалить; greyed у минимума игроков). Внизу списка — **+** → chooser типа (**Local** / Bot greyed / Remote greyed). Схватка: золото и unit cap. Кампания: слоты без X/+ (read-only).
+- Нижняя панель: **Start** / **Back** (отдельного пункта Multiplayer нет — Remote только в chooser слота).
+- Навигация: Up/Down по списку вкладки; Left/Right — вкладки (или нижние кнопки, если фокус на action bar); Confirm — выбор. На входе в Lobby фокус на первом **X** (или **+**), чтобы шапка Players оставалась в кадре.
 
 ### Загрузка / сохранения
 
@@ -155,8 +156,8 @@
 
 ## Сеть (UI / продукт, зафиксировано)
 
-- Тип игрока **Remote** зарезервирован в GDD.
-- В UI закладываем **неактивные (greyed)** пункты (мультиплеер, «пригласить по сети», «Опубликовать» в редакторе, **Скачать** / **Обновить** в менеджере контента), чтобы вёрстка их учитывала.
+- Тип игрока **Remote** зарезервирован в GDD и в chooser **Add player** (greyed).
+- В UI закладываем **неактивные (greyed)** пункты (Remote в лобби, «Опубликовать» в редакторе, **Скачать** / **Обновить** в менеджере контента), чтобы вёрстка их учитывала.
 - **Протокол / лобби / транспорт не проектируем**, пока не дойдём до сетевого этапа roadmap. Никаких решений lockstep/P2P и т.п. в каноне нет.
 
 ## Масштаб / разрешение

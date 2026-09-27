@@ -1,6 +1,5 @@
 using Gum.Forms.Controls;
 using Gum.Wireframe;
-using Gum.GueDeriving;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Presentation.Match.Controls;
@@ -9,9 +8,9 @@ using TinyTBS.Game.ViewModels;
 namespace TinyTBS.Game.Presentation.Match.Overlays;
 
 public sealed class MatchTileDetailOverlayView
+
 {
     private Panel? _panel;
-    private Label? _headerLabel;
     private Label? _terrainLabel;
     private Label? _buildingLabel;
     private Label? _unitLabel;
@@ -27,14 +26,6 @@ public sealed class MatchTileDetailOverlayView
         var stack = GumMatchOverlayPanel.AddContentStack(_panel, spacing: 14f);
 
         GumUiLayout.AddVerticalSpacer(stack, 14f);
-
-        var title = new Label { Text = "Tile detail" };
-        GumUiLayout.FillParentWidth(title);
-        stack.AddChild(title);
-
-        _headerLabel = new Label { Text = hud.DetailHeaderText };
-        GumUiLayout.FillParentWidth(_headerLabel);
-        stack.AddChild(_headerLabel);
 
         GumDetailContentRow.Add(
             stack,
@@ -65,12 +56,12 @@ public sealed class MatchTileDetailOverlayView
 
     public void Sync(GameplayHudViewModel hud)
     {
-        if (_headerLabel is not null)
-            _headerLabel.Text = hud.DetailHeaderText;
         if (_terrainLabel is not null)
             _terrainLabel.Text = hud.DetailTerrainText;
+
         if (_buildingLabel is not null)
             _buildingLabel.Text = hud.DetailBuildingText;
+
         if (_unitLabel is not null)
             _unitLabel.Text = hud.DetailUnitText;
 

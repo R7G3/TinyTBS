@@ -14,7 +14,7 @@ namespace TinyTBS.Game.Screens;
 
 /// <summary>
 /// New Game tabbed flow: Mode → Scenario → Level → Composition → Lobby → loading.
-/// Multiplayer remains greyed.
+/// Lobby slots are Local / Bot / Remote (Bot and Remote greyed until AI / network).
 /// </summary>
 public sealed class NewGameScreen : GameScreen
 {
@@ -83,6 +83,14 @@ public sealed class NewGameScreen : GameScreen
             TinyGame.Pointer);
         _view.HandlePointerScroll(TinyGame.Pointer.ScrollWheelDelta);
 
+        if (_viewModel.ShowAddPlayerTypeChooser
+            && (TinyGame.Commands.WasPressed(GameCommand.Back)
+                || TinyGame.Commands.WasPressed(GameCommand.Cancel)))
+        {
+            CancelAddPlayerChooser();
+            return;
+        }
+
         if (TinyGame.Commands.WasPressed(GameCommand.Back)
             || TinyGame.Commands.WasPressed(GameCommand.Cancel)
             || TinyGame.Commands.WasPressed(GameCommand.Info)
@@ -125,7 +133,7 @@ public sealed class NewGameScreen : GameScreen
             {
                 Mode = NewGamePlayMode.Campaign,
                 Title = "Campaign",
-                DetailLine = "local hotseat",
+                DetailLine = "story levels, local turns",
                 IsSelected = _viewModel.SelectedMode == NewGamePlayMode.Campaign,
             },
             new NewGameModeRowViewModel
@@ -197,9 +205,10 @@ public sealed class NewGameScreen : GameScreen
             onSelectScenario: SelectScenario,
             onSelectLevel: SelectLevel,
             onSelectComposition: SelectComposition,
-            onSelectLobbySession: SelectLobbySession,
-            onAddPlayer: AddPlayer,
-            onRemovePlayer: RemovePlayer,
+            onOpenAddPlayerChooser: OpenAddPlayerChooser,
+            onAddLocalPlayer: AddLocalPlayer,
+            onCancelAddPlayerChooser: CancelAddPlayerChooser,
+            onRemovePlayerAt: RemovePlayerAt,
             onDecreaseGold: () => AdjustGold(-GoldStep),
             onIncreaseGold: () => AdjustGold(GoldStep),
             onDecreaseUnitCap: () => AdjustUnitCap(-UnitCapStep),
@@ -330,8 +339,6 @@ public sealed class NewGameScreen : GameScreen
     private void ApplyLobbyFromLevel(ScenarioLevelInfo? level)
     {
         _viewModel.ShowSkirmishLobby = _viewModel.SelectedMode == NewGamePlayMode.Skirmish;
-        _viewModel.SelectedLobbySessionMode = NewGameLobbySessionMode.Hotseat;
-        _viewModel.LobbySessionOptions = BuildLobbySessionOptions();
 
         if (level is null)
         {
@@ -342,6 +349,7 @@ public sealed class NewGameScreen : GameScreen
             _viewModel.UnitCap = MinUnitCap;
             _playerKinds.Clear();
             _viewModel.PlayerSlots = [];
+            _viewModel.ShowAddPlayerTypeChooser = false;
             _lobbyInitializedForLevel = false;
             return;
         }
@@ -358,20 +366,25 @@ public sealed class NewGameScreen : GameScreen
             for (var index = 0; index < slotCount; index++)
                 _playerKinds.Add(NewGamePlayerKind.Local);
             _lobbyInitializedForLevel = true;
+            _viewModel.ShowAddPlayerTypeChooser = false;
         }
 
         ClampPlayerSlots();
 
+        if (_playerKinds.Count >= _viewModel.PlayersMax)
+            _viewModel.ShowAddPlayerTypeChooser = false;
+
         if (_viewModel.ShowSkirmishLobby)
         {
-            _viewModel.LobbyNote = "Local players share this device and take turns.";
+            _viewModel.LobbyNote = "Players take turns on this device. Add Local now; Bot and Remote later.";
         }
         else
         {
             _viewModel.LobbyNote =
-                "Campaign uses hotseat on this device. Gold and unit cap come from the level.";
+                "Campaign uses local players on this device. Gold and unit cap come from the level.";
             _viewModel.StartingGold = level.DefaultStartingGold;
             _viewModel.UnitCap = level.DefaultUnitCap;
+            _viewModel.ShowAddPlayerTypeChooser = false;
         }
 
         _viewModel.PlayerSlots = _playerKinds
@@ -379,29 +392,10 @@ public sealed class NewGameScreen : GameScreen
             {
                 SlotIndex = index,
                 Kind = kind,
+                PaletteIndex = index,
             })
             .ToArray();
     }
-
-    private IReadOnlyList<NewGameLobbySessionRowViewModel> BuildLobbySessionOptions() =>
-    [
-        new NewGameLobbySessionRowViewModel
-        {
-            Mode = NewGameLobbySessionMode.Hotseat,
-            Title = "Hotseat",
-            DetailLine = "local players take turns",
-            IsSelected = _viewModel.SelectedLobbySessionMode == NewGameLobbySessionMode.Hotseat,
-            IsEnabled = true,
-        },
-        new NewGameLobbySessionRowViewModel
-        {
-            Mode = NewGameLobbySessionMode.Network,
-            Title = "Network",
-            DetailLine = "soon",
-            IsSelected = false,
-            IsEnabled = false,
-        },
-    ];
 
     private void ClampPlayerSlots()
     {
@@ -508,8 +502,11 @@ public sealed class NewGameScreen : GameScreen
     private void SelectTab(NewGameTab tab)
     {
         _viewModel.ActiveTab = tab;
+        if (tab != NewGameTab.Lobby)
+            _viewModel.ShowAddPlayerTypeChooser = false;
+
         _focusAnchor = tab == NewGameTab.Lobby
-            ? NewGameFocusAnchor.LobbySession
+            ? NewGameFocusAnchor.RemovePlayer
             : NewGameFocusAnchor.Auto;
         Refresh(StatusForTab(tab));
     }
@@ -571,37 +568,59 @@ public sealed class NewGameScreen : GameScreen
     {
         _viewModel.SelectedCompositionSourceId = sourceId;
         _viewModel.ActiveTab = NewGameTab.Lobby;
-        _focusAnchor = NewGameFocusAnchor.LobbySession;
+        _focusAnchor = NewGameFocusAnchor.RemovePlayer;
         Refresh("Composition updated. Review lobby, then Start.");
     }
 
-    private void SelectLobbySession(NewGameLobbySessionMode mode)
+    private void OpenAddPlayerChooser()
     {
-        if (mode != NewGameLobbySessionMode.Hotseat)
+        if (!_viewModel.CanAddPlayer)
             return;
 
-        _viewModel.SelectedLobbySessionMode = mode;
-        _focusAnchor = NewGameFocusAnchor.LobbySession;
-        Refresh("Hotseat selected. Adjust players and gold if needed, then Start.");
+        _viewModel.ShowAddPlayerTypeChooser = true;
+        _focusAnchor = NewGameFocusAnchor.AddPlayerTypeLocal;
+        Refresh("Choose player type.");
     }
 
-    private void AddPlayer()
+    private void AddLocalPlayer()
     {
         if (!_viewModel.CanAddPlayer)
             return;
 
         _playerKinds.Add(NewGamePlayerKind.Local);
-        _focusAnchor = NewGameFocusAnchor.AddPlayer;
-        Refresh("Player added.");
+        _viewModel.ShowAddPlayerTypeChooser = false;
+        _focusAnchor = _playerKinds.Count > _viewModel.PlayersMin
+            ? NewGameFocusAnchor.RemovePlayer
+            : NewGameFocusAnchor.AddPlayer;
+        Refresh("Local player added.");
     }
 
-    private void RemovePlayer()
+    private void CancelAddPlayerChooser()
     {
-        if (!_viewModel.CanRemovePlayer)
+        if (!_viewModel.ShowAddPlayerTypeChooser)
             return;
 
-        _playerKinds.RemoveAt(_playerKinds.Count - 1);
-        _focusAnchor = NewGameFocusAnchor.RemovePlayer;
+        _viewModel.ShowAddPlayerTypeChooser = false;
+        _focusAnchor = _playerKinds.Count > _viewModel.PlayersMin
+            ? NewGameFocusAnchor.RemovePlayer
+            : NewGameFocusAnchor.AddPlayer;
+        Refresh("Add player cancelled.");
+    }
+
+    private void RemovePlayerAt(int slotIndex)
+    {
+        if (!_viewModel.CanRemovePlayer
+            || slotIndex < 0
+            || slotIndex >= _playerKinds.Count)
+        {
+            return;
+        }
+
+        _playerKinds.RemoveAt(slotIndex);
+        _viewModel.ShowAddPlayerTypeChooser = false;
+        _focusAnchor = _playerKinds.Count > _viewModel.PlayersMin
+            ? NewGameFocusAnchor.RemovePlayer
+            : NewGameFocusAnchor.AddPlayer;
         Refresh("Player removed.");
     }
 

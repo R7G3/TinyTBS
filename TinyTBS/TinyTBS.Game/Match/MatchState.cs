@@ -66,16 +66,24 @@ public sealed class MatchState
                     $"Map building type '{building.Type.Full}' is not in the match content catalog.");
             }
 
+            // Unused lobby slots: keep the building, drop ownership (and skip its units below).
+            var ownerPlayerIndex = building.Slot is int buildingSlot && buildingSlot >= playerCount
+                ? null
+                : building.Slot;
+
             match._buildings.Add(new MatchBuilding(
                 typeId,
                 new GridCell(building.X, building.Y),
-                building.Slot,
+                ownerPlayerIndex,
                 MapSurfaceIds.IsRuinedBuildingState(building.State),
                 buildingDefinition.AllowsRecruit));
         }
 
         foreach (var unit in map.Units)
         {
+            if (unit.Slot >= playerCount)
+                continue;
+
             var typeId = replaces.Resolve(unit.Type);
             if (!contentCatalog.TryGetUnit(typeId, out var unitDefinition))
             {
@@ -138,6 +146,18 @@ public sealed class MatchState
     {
         EnsureKnownPlayer(playerIndex);
         return _moneyByPlayer[playerIndex];
+    }
+
+    public int CountUnitsForPlayer(int playerIndex)
+    {
+        var count = 0;
+        for (var i = 0; i < _units.Count; i++)
+        {
+            if (_units[i].PlayerIndex == playerIndex)
+                count++;
+        }
+
+        return count;
     }
 
     public void AddMoney(int playerIndex, int amount)
