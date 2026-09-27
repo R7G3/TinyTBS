@@ -25,7 +25,7 @@ levelDefAdd = Defence × levelDefencePercent
 ### Сборка
 
 ```text
-atk = Attack + levelAtkAdd + (клетка атакующего в ауре союзного Духа ? 5 : 0)
+atk = Attack + levelAtkAdd + (клетка атакующего в ауре союзного Духа ? value способности attackAura : 0)
 
 def = Defence + levelDefAdd
     + защита местности под защитником

@@ -46,6 +46,10 @@ internal static class DefaultInputBindings
             GameCommand.Info => keyboard.IsKeyDown(Keys.I)
                 || gamePad.Buttons.B == ButtonState.Pressed,
 
+            // Face north (Y): stand / end unit activation. Keyboard Y as the same letter.
+            GameCommand.Wait => keyboard.IsKeyDown(Keys.Y)
+                || gamePad.Buttons.Y == ButtonState.Pressed,
+
             GameCommand.EndTurn => keyboard.IsKeyDown(Keys.E),
 
             // Analog triggers: held while past deadzone (continuous zoom in ApplyZoom).

@@ -24,11 +24,14 @@ public sealed class MatchBuilding
     public GridCell Cell { get; }
 
     /// <summary>Null = neutral (unowned).</summary>
-    public int? OwnerPlayerIndex { get; }
+    public int? OwnerPlayerIndex { get; set; }
 
     /// <summary>True when map/state is <c>ruined</c> (e.g. destroyed village).</summary>
-    public bool IsRuined { get; }
+    public bool IsRuined { get; set; }
 
     /// <summary>Copied from building definition at spawn (castle / recruit site).</summary>
     public bool AllowsRecruit { get; }
+
+    /// <summary>Same-turn repair lock: cannot capture after repairing this activation.</summary>
+    public bool RepairedThisOwnerTurn { get; set; }
 }

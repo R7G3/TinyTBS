@@ -1,0 +1,21 @@
+---
+description: Prevent and fix double-spaced / CRCRLF C# source files
+alwaysApply: true
+---
+
+# Line endings and blank lines in `.cs`
+
+## Problem
+
+Some tools rewrite C# so **every logical line is followed by an extra blank line** (often `CR CR LF` / double spacing). Files look twice as tall and diffs become unreadable.
+
+## After writing or editing any `.cs` file
+
+1. **Check** the result: if you see a blank line between every code line (e.g. `{` then empty line then next statement), the file is corrupted.
+2. **Fix immediately**: rewrite the file with normal single newlines (Windows CRLF `\\r\\n` is fine; do **not** insert an empty line after every line).
+3. Prefer rewriting the whole small file cleanly over many tiny patches when double-spacing appeared.
+
+## Do not
+
+- Leave double-spaced sources “for later”
+- “Normalize” by adding even more blank lines between members beyond normal C# style (one blank line between members/sections is OK; blank line after every single line is not)

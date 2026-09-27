@@ -200,13 +200,30 @@ public sealed class GameplayMatchController
             scene.Draw(
                 gameTime,
                 afterEntities: (spriteBatch, layout) =>
+                {
+                    var moveRange = match.GetSelectedUnitMoveRange();
+                    var attackTargets = match.GetSelectedUnitAttackTargets();
+                    var raiseTargets = match.GetSelectedUnitRaiseTargets();
+                    IReadOnlyList<(int X, int Y)>? moveRangeCells = moveRange.Count == 0
+                        ? null
+                        : moveRange.Select(cell => (cell.X, cell.Y)).ToArray();
+                    IReadOnlyList<(int X, int Y)>? attackTargetCells = attackTargets.Count == 0
+                        ? null
+                        : attackTargets.Select(cell => (cell.X, cell.Y)).ToArray();
+                    IReadOnlyList<(int X, int Y)>? raiseTargetCells = raiseTargets.Count == 0
+                        ? null
+                        : raiseTargets.Select(cell => (cell.X, cell.Y)).ToArray();
                     _session.CursorHighlight.Draw(
                         spriteBatch,
                         layout,
                         match.Cursor.X,
                         match.Cursor.Y,
                         hasSelection: match.SelectedUnitId is not null,
-                        manageBatch: false));
+                        moveRangeCells: moveRangeCells,
+                        attackTargetCells: attackTargetCells,
+                        raiseTargetCells: raiseTargetCells,
+                        manageBatch: false);
+                });
         }
 
         GumService.Default.Draw();
@@ -311,7 +328,7 @@ public sealed class GameplayMatchController
         if (wantsBack && TryGoBackFromOverlay())
             return;
 
-        // Info (I / east): deselect if a unit is selected; otherwise open tile detail.
+        // Info (I / east): deselect (undo move if any) if a unit is selected; otherwise open tile detail.
         if (commands.WasPressed(GameCommand.Info)
             && !GameplayHudOverlayState.BlocksBoardInput(hud))
         {
@@ -321,7 +338,7 @@ public sealed class GameplayMatchController
             OpenTileDetail();
         }
 
-        // Backspace cancel on the board: deselect only.
+        // Backspace / cancel: deselect and undo a post-move if the unit had moved.
         if (commands.WasPressed(GameCommand.Cancel)
             && !GameplayHudOverlayState.BlocksBoardInput(hud))
         {

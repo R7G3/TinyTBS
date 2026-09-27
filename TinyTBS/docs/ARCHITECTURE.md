@@ -197,7 +197,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 6. Слои Screens + split `MatchState`/`MatchScene` + pointer — **выполнено**.
 7. Загрузчики map + level (`map.ref`) + фикстуры; старт матча из level — **выполнено**.
 8. `MapScriptContext` + Roslyn sandbox + хуки в матче — **выполнено** (cold start Roslyn — см. [ideas/match-loading-roslyn-progress.md](ideas/match-loading-roslyn-progress.md)).
-9. Матч UI по канону GDD — **выполнено** (статус-бар, пауза/миникарта/цели, инфо, магазин); полный бой / post-move / dimFactor — впереди (`match-combat-gdd`, `match-economy-capture`, `player-colors`).
+9. Матч UI по канону GDD — **выполнено** (статус-бар, пауза/миникарта/цели, инфо, магазин); полный бой / экономика / post-move — впереди (`match-gdd-loop`); dimFactor — `player-colors`.
 10. Vanilla modules + `MatchContentCatalog` (units/buildings → магазин/HP/спрайты) — **выполнено** (`vanilla-modules`, `content-catalog`).
 11. Матч на `ContentId` — **выполнено** (`content-id-bridge`).
 12. Theme + terrain/gravestone из модуля — **выполнено** (`theme-terrain`).
@@ -208,12 +208,13 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 17. Экран Контент — **выполнено** (`content-ui`: библиотека; Install From device / catalog-soon; очередь Downloads; uninstall user; Download/Update greyed).
 18. Content pipeline (срезы):
     - `new-game-flow` — **выполнено** (вкладки Mode → Scenario → Level → Composition → Lobby; composition scenario-defaults/bundle; слоты Local + Bot/Remote greyed в Add-chooser; цвета слотов; unit cap в `MatchLevelBrief`, enforcement позже)
-19. Сближение матча с GDD: `match-economy-capture` (доход/захват/post-move; enforcement unit cap), `match-combat-gdd`, `player-colors` (dimFactor).
-20. `bot-search-ab` — бот схватки (вариант 2: minimax / αβ; Easy/Normal/Hard = глубина + эвристика, без читов); лобби Bot; идея: [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md). **Перед реализацией** — спросить у пользователя открытые вопросы из идеи (с пояснениями).
-21. `settings-ui` — экран **Настройки** (меню сейчас greyed): графика (разрешение/окно, UI scale / `ui-scale-hidpi`, фильтр зума nearest vs bicubic), ввод (три столбца биндов), профиль (цвета игрока; пересечение с `player-colors`). Persist в user data. Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки).
-22. `ui-scale-hidpi` — масштаб UI/поля под HiDPI и 4K (реализуется вместе с или сразу после `settings-ui`). Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](ideas/ui-scale-hidpi.md).
-23. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
-24. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
+19. **`match-gdd-loop`** — **выполнено** (economy/combat/post-move по клеткам/abilities). Бывшие `match-economy-capture` + `match-combat-gdd`.
+20. `player-colors` — color picker в лобби / профиле (отрисовка dim уже в матче).
+21. `bot-search-ab` — бот схватки (вариант 2: minimax / αβ; Easy/Normal/Hard = глубина + эвристика, без читов); лобби Bot; идея: [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md). **Перед реализацией** — спросить у пользователя открытые вопросы из идеи (с пояснениями).
+22. `settings-ui` — экран **Настройки** (меню сейчас greyed): графика (разрешение/окно, UI scale / `ui-scale-hidpi`, фильтр зума nearest vs bicubic), ввод (три столбца биндов), профиль (цвета игрока; пересечение с `player-colors`). Persist в user data. Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки).
+23. `ui-scale-hidpi` — масштаб UI/поля под HiDPI и 4K (реализуется вместе с или сразу после `settings-ui`). Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](ideas/ui-scale-hidpi.md).
+24. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
+25. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
 
 ## Связанные ADR
 

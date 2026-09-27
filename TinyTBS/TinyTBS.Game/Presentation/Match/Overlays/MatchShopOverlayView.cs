@@ -135,8 +135,11 @@ public sealed class MatchShopOverlayView
         _focusIndex = Math.Clamp(_focusIndex, 0, FocusSlotCount - 1);
         if (_focusIndex < _offerButtons.Count)
         {
-            if (_offerButtons[_focusIndex].IsEnabled)
-                _onBuyOffer?.Invoke(_focusIndex);
+            if (_offerButtons[_focusIndex].IsEnabled
+                && _focusIndex < _lastOffers.Count)
+            {
+                _onBuyOffer?.Invoke(_lastOffers[_focusIndex].OfferIndex);
+            }
             return;
         }
 

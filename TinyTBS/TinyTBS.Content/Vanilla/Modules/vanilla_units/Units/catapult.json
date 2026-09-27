@@ -14,7 +14,8 @@
   "cost": 800,
   "abilities": [
     { "type": "noCounterattack" },
-    { "type": "moveOrAttackExclusive" }
+    { "type": "moveOrAttackExclusive" },
+    { "type": "destroyBuilding", "tags": ["village"] }
   ],
   "specialCoefficients": [
     { "when": { "default": true }, "multiply": 1.0 }

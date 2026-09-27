@@ -180,7 +180,8 @@ public sealed class MatchSessionLoadPipeline
             _matchContent.Catalog,
             _matchContent.Replaces,
             playerCount: playerCount,
-            startingGold: _startingGoldOverride ?? _level.DefaultStartingGold);
+            startingGold: _startingGoldOverride ?? _level.DefaultStartingGold,
+            unitCap: _unitCapOverride ?? _level.DefaultUnitCap);
     }
 
     private void CompileMapScript()

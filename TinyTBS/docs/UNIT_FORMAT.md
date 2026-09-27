@@ -49,8 +49,9 @@ Vanilla и моды используют **один** формат. См. [desig
 |------|------------|
 | `captureBuilding` | `{ "tags": ["castle", "village"] }` — захват строений с пересечением тегов (король); мечник: `{ "tags": ["village"] }` |
 | `repairBuilding` | `{ "tags": ["village"] }` — ремонт разрушенных с такими тегами |
-| `raiseSkeleton` | подъём с gravestone |
-| `attackAura` | `{ value: 5, radius: 2 }` — Дух |
+| `raiseSkeleton` | подъём скелета с соседнего gravestone (ведьма); ход + (атака **или** подъём) |
+| `attackAura` | `{ value: 10, radius: 2 }` — бонус атаки союзникам в радиусе (Дух) |
+| `destroyBuilding` | `{ "tags": ["village"] }` — разрушить строение с пересечением тегов в радиусе атаки (катапульта) |
 | `noCounterattack` | катапульта |
 | `moveOrAttackExclusive` | катапульта |
 | `uniquePerPlayer` | король |

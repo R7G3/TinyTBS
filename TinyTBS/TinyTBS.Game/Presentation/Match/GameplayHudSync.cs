@@ -49,14 +49,21 @@ public sealed class GameplayHudSync
 
         var catalog = session.ContentCatalog;
         _hud.ShopOffers = catalog.ShopOffers
-            .Select((offer, index) => new GameplayShopOfferViewModel
+            .Select((offer, index) => (offer, index))
+            .Where(entry => !match.IsUniqueUnitOwnedByCurrentPlayer(entry.offer.UnitTypeId))
+            .Select(entry =>
             {
-                UnitTypeId = offer.UnitTypeId,
-                Name = catalog.DisplayName(offer.UnitTypeId),
-                StatsText = catalog.FormatCombatStats(offer.UnitTypeId),
-                Cost = offer.Cost,
-                CanAfford = match.GetMoney(match.CurrentPlayer) >= offer.Cost,
-                OfferIndex = index,
+                var cost = match.ResolveRecruitCost(entry.offer.UnitTypeId, entry.offer.Cost);
+                return new GameplayShopOfferViewModel
+                {
+                    UnitTypeId = entry.offer.UnitTypeId,
+                    Name = catalog.DisplayName(entry.offer.UnitTypeId),
+                    StatsText = catalog.FormatCombatStats(entry.offer.UnitTypeId),
+                    Cost = cost,
+                    CanAfford = match.GetMoney(match.CurrentPlayer) >= cost
+                        && match.CountUnitsForPlayer(match.CurrentPlayer) < match.UnitCap,
+                    OfferIndex = entry.index,
+                };
             })
             .ToArray();
 

@@ -74,17 +74,27 @@ public static class MatchInfoFormatter
         if (!match.TryGetUnitAt(match.Cursor, out var unit))
             return string.Empty;
 
+        if (!contentCatalog.TryGetUnit(unit.TypeId, out var definition))
+            return string.Empty;
+
         var status = unit.PlayerIndex == match.CurrentPlayer ? "yours" : "enemy";
-        var name = contentCatalog.DisplayName(unit.TypeId);
-        var stats = contentCatalog.FormatCombatStats(unit.TypeId);
-        var statsBlock = string.IsNullOrEmpty(stats) ? "Stats: unknown" : stats;
+        var name = contentCatalog.DisplayName(definition);
+        var auraBonus = match.GetAttackAuraBonus(unit.Cell, unit.PlayerIndex);
+        var attackText = auraBonus > 0
+            ? $"Atk: {definition.Attack} +{auraBonus}"
+            : $"Atk: {definition.Attack}";
+
+        var rangeText = definition.AttackRangeMin == definition.AttackRangeMax
+            ? definition.AttackRangeMin.ToString()
+            : $"{definition.AttackRangeMin}–{definition.AttackRangeMax}";
 
         return $"Unit{Environment.NewLine}"
             + $"{name}{Environment.NewLine}"
             + $"Owner: Player {unit.PlayerIndex + 1}{Environment.NewLine}"
             + $"Status: {status}{Environment.NewLine}"
             + $"HP: {unit.HitPoints}/{unit.MaxHealth}{Environment.NewLine}"
-            + statsBlock;
+            + $"{attackText}  Def: {definition.Defence}{Environment.NewLine}"
+            + $"Range {rangeText}  Speed {definition.Speed}";
     }
 
     private static void AppendBuildingEconomy(

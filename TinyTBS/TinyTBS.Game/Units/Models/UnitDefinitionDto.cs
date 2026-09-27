@@ -46,6 +46,9 @@ internal sealed class UnitDefinitionDto
     [JsonPropertyName("abilities")]
     public List<UnitAbilityDto>? Abilities { get; set; }
 
+    [JsonPropertyName("specialCoefficients")]
+    public List<UnitSpecialCoefficientDto>? SpecialCoefficients { get; set; }
+
     [JsonPropertyName("leavesGravestone")]
     public bool? LeavesGravestone { get; set; }
 
@@ -72,6 +75,27 @@ internal sealed class UnitAbilityDto
 
     [JsonPropertyName("tags")]
     public List<string>? Tags { get; set; }
+}
+
+internal sealed class UnitSpecialCoefficientDto
+{
+    [JsonPropertyName("when")]
+    public UnitSpecialWhenDto? When { get; set; }
+
+    [JsonPropertyName("multiply")]
+    public double Multiply { get; set; }
+}
+
+internal sealed class UnitSpecialWhenDto
+{
+    [JsonPropertyName("default")]
+    public bool? Default { get; set; }
+
+    [JsonPropertyName("targetHasTag")]
+    public string? TargetHasTag { get; set; }
+
+    [JsonPropertyName("manhattanRange")]
+    public int? ManhattanRange { get; set; }
 }
 
 internal sealed class UnitSpritesDto

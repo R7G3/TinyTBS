@@ -137,6 +137,38 @@ public static class UnitJsonParser
             }
         }
 
+        var specialCoefficients = new List<UnitSpecialCoefficientDefinition>();
+        if (document.SpecialCoefficients is not null)
+        {
+            foreach (var entry in document.SpecialCoefficients)
+            {
+                if (entry.When is null)
+                    throw new UnitLoadException($"Unit '{contentId.Full}' specialCoefficients entry needs when.");
+
+                specialCoefficients.Add(new UnitSpecialCoefficientDefinition
+                {
+                    When = new UnitSpecialWhenDefinition
+                    {
+                        IsDefault = entry.When.Default == true,
+                        TargetHasTag = string.IsNullOrWhiteSpace(entry.When.TargetHasTag)
+                            ? null
+                            : entry.When.TargetHasTag.Trim(),
+                        ManhattanRange = entry.When.ManhattanRange,
+                    },
+                    Multiply = entry.Multiply,
+                });
+            }
+        }
+
+        if (specialCoefficients.Count == 0)
+        {
+            specialCoefficients.Add(new UnitSpecialCoefficientDefinition
+            {
+                When = new UnitSpecialWhenDefinition { IsDefault = true },
+                Multiply = 1.0,
+            });
+        }
+
         return new UnitDefinition
         {
             ContentId = contentId,
@@ -156,6 +188,7 @@ public static class UnitJsonParser
             Speed = document.Speed,
             Cost = document.Cost,
             Abilities = abilities,
+            SpecialCoefficients = specialCoefficients,
             LeavesGravestone = document.LeavesGravestone ?? true,
             Sprites = sprites,
             SourceModuleRootPath = moduleRootPath,

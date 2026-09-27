@@ -44,28 +44,60 @@ public sealed class TeamMaskedSpriteDrawSystem : EntityDrawSystem
             var position = transform.Position;
             var textureWidth = Math.Max(1, visual.BaseTexture.Width);
             var scale = _layout.TileSize / (float)textureWidth;
+            var baseColor = ApplySpentUnitTint(Color.White, visual.DimFactor, visual.GreyMix);
 
             _spriteBatch.Draw(
                 visual.BaseTexture,
                 position,
                 sourceRectangle: null,
-                Color.White,
+                baseColor,
                 rotation: 0f,
                 visual.Origin,
                 scale: scale,
                 SpriteEffects.None,
                 layerDepth: 0f);
 
+            // Gravestones use Transparent team color to skip the mask pass.
+            if (visual.TeamColor.A == 0)
+                continue;
+
+            var maskColor = ApplySpentUnitTint(visual.TeamColor, visual.DimFactor, visual.GreyMix);
             _spriteBatch.Draw(
                 visual.MaskTexture,
                 position,
                 sourceRectangle: null,
-                visual.TeamColor,
+                maskColor,
                 rotation: 0f,
                 visual.Origin,
                 scale: scale,
                 SpriteEffects.None,
                 layerDepth: 0f);
         }
+    }
+
+    /// <summary>
+    /// Darkens and greys RGB while keeping the sprite fully opaque (no wash-out transparency).
+    /// </summary>
+    private static Color ApplySpentUnitTint(Color color, float dimFactor, float greyMix)
+    {
+        if (color.A == 0)
+            return Color.Transparent;
+
+        var dim = Math.Clamp(dimFactor, 0f, 1f);
+        var grey = Math.Clamp(greyMix, 0f, 1f);
+
+        var red = color.R / 255f * dim;
+        var green = color.G / 255f * dim;
+        var blue = color.B / 255f * dim;
+
+        if (grey > 0f)
+        {
+            const float midGrey = 0.48f;
+            red += (midGrey - red) * grey;
+            green += (midGrey - green) * grey;
+            blue += (midGrey - blue) * grey;
+        }
+
+        return new Color(red, green, blue, 1f);
     }
 }

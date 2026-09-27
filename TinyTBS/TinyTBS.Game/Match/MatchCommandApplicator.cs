@@ -59,6 +59,9 @@ public static class MatchCommandApplicator
         if (allowConfirm && commands.WasPressed(GameCommand.Confirm))
             session.Confirm();
 
+        if (commands.WasPressed(GameCommand.Wait))
+            session.TryWaitSelectedUnit();
+
         var match = session.State;
         var elapsedSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
         var cursorMoved = false;

@@ -59,6 +59,17 @@ public sealed class GameplaySession : IDisposable
             ScriptHost.NotifyAfterPlayerAction(State, action);
     }
 
+    /// <summary>Post-move Wait: finish selected unit without attack/capture.</summary>
+    public bool TryWaitSelectedUnit()
+    {
+        if (!State.TryWaitSelectedUnit())
+            return false;
+
+        if (State.LastAction is { } action)
+            ScriptHost.NotifyAfterPlayerAction(State, action);
+        return true;
+    }
+
     public bool TryBuyShopOffer(int offerIndex, GridCell castleCell)
     {
         if (offerIndex < 0 || offerIndex >= ContentCatalog.ShopOffers.Count)

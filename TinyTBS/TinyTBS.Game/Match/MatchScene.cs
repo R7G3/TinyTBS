@@ -44,14 +44,14 @@ public sealed class MatchScene : IDisposable
             .AddSystem(new TeamMaskedSpriteDrawSystem(spriteBatch, _layout))
             .Build();
 
-        foreach (var gravestoneCell in state.Gravestones)
+        foreach (var gravestone in state.Gravestones)
         {
             // Gravestone art has no team mask; transparent tint skips the second draw pass.
             var entityId = CreateMaskedVisual(
-                gravestoneCell,
+                gravestone.Cell,
                 new TeamSprite(textures.Gravestone, textures.Gravestone),
                 Color.Transparent);
-            World.GetEntity(entityId).Attach(new GridPosition(gravestoneCell.X, gravestoneCell.Y));
+            World.GetEntity(entityId).Attach(new GridPosition(gravestone.Cell.X, gravestone.Cell.Y));
             _gravestoneEntityIds.Add(entityId);
         }
 
@@ -131,9 +131,28 @@ public sealed class MatchScene : IDisposable
 
     private void SyncGravestoneTransforms()
     {
+        // Rebuild visuals if count diverged (combat may add stones).
+        while (_gravestoneEntityIds.Count > _state.Gravestones.Count)
+        {
+            var last = _gravestoneEntityIds[^1];
+            _gravestoneEntityIds.RemoveAt(_gravestoneEntityIds.Count - 1);
+            World.DestroyEntity(last);
+        }
+
+        while (_gravestoneEntityIds.Count < _state.Gravestones.Count)
+        {
+            var cell = _state.Gravestones[_gravestoneEntityIds.Count].Cell;
+            var entityId = CreateMaskedVisual(
+                cell,
+                new TeamSprite(_textures.Gravestone, _textures.Gravestone),
+                Color.Transparent);
+            World.GetEntity(entityId).Attach(new GridPosition(cell.X, cell.Y));
+            _gravestoneEntityIds.Add(entityId);
+        }
+
         for (var i = 0; i < _gravestoneEntityIds.Count; i++)
         {
-            var cell = _state.Gravestones[i];
+            var cell = _state.Gravestones[i].Cell;
             var entity = World.GetEntity(_gravestoneEntityIds[i]);
             var grid = entity.Get<GridPosition>();
             grid.X = cell.X;
@@ -152,13 +171,21 @@ public sealed class MatchScene : IDisposable
             grid.X = building.Cell.X;
             grid.Y = building.Cell.Y;
             entity.Get<Transform2>().Position = CellTopLeft(building.Cell.X, building.Cell.Y);
+
+            var sprite = _textures.Building(building.TypeId, building.IsRuined);
+            var masked = entity.Get<TeamMaskedSprite>();
+            masked.BaseTexture = sprite.Base;
+            masked.MaskTexture = sprite.Mask;
+            masked.TeamColor = PlayerPalette.ForOwner(building.OwnerPlayerIndex);
         }
     }
 
     private void SyncUnitTransformsFromState()
     {
+        var livingIds = new HashSet<int>();
         foreach (var unit in _state.Units)
         {
+            livingIds.Add(unit.Id);
             if (!_unitEntityById.ContainsKey(unit.Id))
                 CreateUnitVisual(unit, _textures);
 
@@ -170,6 +197,24 @@ public sealed class MatchScene : IDisposable
             grid.X = unit.Cell.X;
             grid.Y = unit.Cell.Y;
             entity.Get<Transform2>().Position = CellTopLeft(unit.Cell.X, unit.Cell.Y);
+
+            var masked = entity.Get<TeamMaskedSprite>();
+            masked.TeamColor = PlayerPalette.ForPlayer(unit.PlayerIndex);
+            masked.DimFactor = unit.IsActive
+                ? TeamMaskedSprite.ActiveDimFactor
+                : TeamMaskedSprite.InactiveDimFactor;
+            masked.GreyMix = unit.IsActive
+                ? TeamMaskedSprite.ActiveGreyMix
+                : TeamMaskedSprite.InactiveGreyMix;
+        }
+
+        foreach (var pair in _unitEntityById.ToArray())
+        {
+            if (livingIds.Contains(pair.Key))
+                continue;
+
+            World.DestroyEntity(pair.Value);
+            _unitEntityById.Remove(pair.Key);
         }
     }
 }

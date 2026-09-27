@@ -31,6 +31,8 @@ public sealed class UnitDefinition
 
     public IReadOnlyList<UnitAbilityDefinition> Abilities { get; init; } = [];
 
+    public IReadOnlyList<UnitSpecialCoefficientDefinition> SpecialCoefficients { get; init; } = [];
+
     public bool LeavesGravestone { get; init; } = true;
 
     public UnitSpritesDefinition? Sprites { get; init; }

@@ -14,6 +14,8 @@ public enum GameCommand
     NavigateRight,
     Pause,
     Info,
+    /// <summary>Finish the selected unit's activation without attack/capture (face north / Y).</summary>
+    Wait,
     EndTurn,
     ZoomIn,
     ZoomOut,

@@ -37,12 +37,11 @@ isProject: false
 - [x] **bundles-runtime** — загрузка `Bundles/*.bundle.json` как пресет defaults
 - [x] **content-ui** — экран Контент (установить/удалить; Скачать/Обновить greyed)
 - [x] **new-game-flow** — вкладки Mode → Scenario → Level → Composition → Lobby; слоты Local (+ Bot/Remote greyed); gold/unit cap ± (hold gamepad + mouse)
+- [x] **match-gdd-loop** — economy + combat + post-move по клеткам (без контекстного меню) + abilities; Cancel отменяет ход
 
 ### Дальше
 
-- [ ] **match-economy-capture** — доход/хил строений, захват/ремонт по tags, post-move цели (TURN_AND_UI); enforcement unit cap в найме
-- [ ] **match-combat-gdd** — бой/формула GDD; abilities / special из `UnitDefinition`
-- [ ] **player-colors** — color picker + dimFactor «походил» (лобби / настройки профиля)
+- [ ] **player-colors** — color picker в лобби / профиле (dimFactor отрисовки уже в match-gdd-loop)
 - [ ] **bot-search-ab** — бот схватки: вариант 2 (minimax / αβ + глубина Easy/Normal/Hard), честные правила; комментарии в коде; лобби Bot. **Перед стартом шага** — задать пользователю открытые вопросы из [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md) с пояснениями
 - [ ] **settings-ui** — экран **Настройки** (сейчас greyed): графика (в т.ч. `ui-scale-hidpi`), ввод (3 столбца биндов), профиль цветов игрока; persist JSON. Канон: [UI_AND_FLOW § Настройки](../../docs/design/UI_AND_FLOW.md#настройки)
 - [ ] **ui-scale-hidpi** — масштаб UI и поля под HiDPI / 4K (часть графики в `settings-ui`). Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](../../docs/ideas/ui-scale-hidpi.md)
@@ -221,7 +220,7 @@ Custom `Effect` (HLSL → MGFX): в pixel shader, если цвет пиксел
 | Шейдер               | опционально позже (ADR), если захотите один слой |
 | Bake текстур         | только кэш по желанию, не по умолчанию           |
 
-**Статус кода:** в демо уже `PlayerPalette` + `TeamMaskedSprite` + terrain в `Content/Images/`. Осталось: dimFactor «походил», color picker в Gum, выбор цвета в лобби схватки.
+**Статус кода:** `PlayerPalette` + `TeamMaskedSprite` + dimFactor для неактивных юнитов в матче. Осталось: color picker в Gum / лобби схватки / профиль.
 
 
 ## Карты, уровни и кампании
@@ -360,12 +359,13 @@ ScriptOptions.Default
 16. Пресеты `*.bundle.json` — **выполнено** (`bundles-runtime`).
 17. Экран Контент — **выполнено** (`content-ui`).
 18. Content pipeline дальше: `new-game-flow` — **выполнено** (см. чеклист выше / ARCHITECTURE).
-19. Сближение матча с GDD: `match-economy-capture` (в т.ч. unit cap), `match-combat-gdd`, `player-colors` (dimFactor).
-20. **`bot-search-ab`** — бот схватки (вариант 2: minimax / αβ, Easy/Normal/Hard через глубину и эвристику; без читов). Идея: [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md). Перед кодом — открытые вопросы из идеи (с пояснениями).
-21. **`settings-ui`** — экран Настройки (графика, ввод 3 столбца, профиль); `ui-scale-hidpi` внутри графики. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#настройки).
-22. `campaigns` + `save-format` — после playable loop.
-23. `map-editor` — workspace модулей.
-24. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
+19. **`match-gdd-loop`** — **выполнено** (см. чеклист).
+20. `player-colors` — color picker в лобби / профиле (dimFactor отрисовки уже в матче).
+21. **`bot-search-ab`** — бот схватки (вариант 2: minimax / αβ, Easy/Normal/Hard через глубину и эвристику; без читов). Идея: [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md). Перед кодом — открытые вопросы из идеи (с пояснениями).
+22. **`settings-ui`** — экран Настройки (графика, ввод 3 столбца, профиль); `ui-scale-hidpi` внутри графики. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#настройки).
+23. `campaigns` + `save-format` — после playable loop.
+24. `map-editor` — workspace модулей.
+25. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
 
 ## Документация в репозитории
 
