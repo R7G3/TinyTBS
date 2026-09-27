@@ -5,9 +5,7 @@ namespace TinyTBS.Game.Presentation.Content;
 /// <summary>Bundles tab list body (two-line rows).</summary>
 internal static class ContentLibraryBundlesTabBody
 {
-    public const float RowPitch = 72f;
-
-    public static ContentLibraryTabBodyResult Populate(
+    public static void Populate(
         ContentLibraryListBuilder list,
         IReadOnlyList<ContentBundleRowViewModel> bundles,
         Action<ContentBundleRowViewModel> onShowDetail)
@@ -19,7 +17,7 @@ internal static class ContentLibraryBundlesTabBody
         if (bundles.Count == 0)
         {
             list.AddHint("No bundle presets.");
-            return new ContentLibraryTabBodyResult { RowCount = 1, RowPitch = RowPitch };
+            return;
         }
 
         foreach (var bundle in bundles)
@@ -30,11 +28,5 @@ internal static class ContentLibraryBundlesTabBody
                 captured.DetailLine,
                 () => onShowDetail(captured));
         }
-
-        return new ContentLibraryTabBodyResult
-        {
-            RowCount = bundles.Count,
-            RowPitch = RowPitch,
-        };
     }
 }

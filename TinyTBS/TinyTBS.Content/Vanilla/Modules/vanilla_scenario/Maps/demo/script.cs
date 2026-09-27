@@ -1,7 +1,6 @@
-﻿// Vanilla demo map script — gold tick proves OnPlayerTurnStart.
+﻿// Vanilla demo map script — turn/action hooks (no free gold; lobby sets starting gold).
 public void OnPlayerTurnStart(MapScriptContext context)
 {
-    context.AddMoney(context.PlayerId, 1);
 }
 
 public void OnAfterPlayerAction(MapScriptContext context)

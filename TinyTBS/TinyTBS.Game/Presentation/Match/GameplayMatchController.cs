@@ -125,6 +125,10 @@ public sealed class GameplayMatchController
 
         if (_hudSync.Hud.IsShopVisible)
             _hudComposer.HandleShopGamepadNavigation(_game.Commands);
+        else if (_hudSync.Hud.IsPauseVisible)
+            _hudComposer.HandlePauseGamepadNavigation(_game.Commands);
+        else if (_hudSync.Hud.IsCellActionChooserVisible)
+            _hudComposer.HandleCellActionChooserGamepadNavigation(_game.Commands);
 
         if (_pendingPauseMenuFocus)
         {
@@ -135,7 +139,8 @@ public sealed class GameplayMatchController
         if (_session is null)
             return;
 
-        var allowBoardConfirm = !uiHeldConfirm && !TryConsumeCastleUnitActionChooserOpen();
+        var openedCastleChooser = TryConsumeCastleUnitActionChooserOpen();
+        var allowBoardConfirm = !uiHeldConfirm && !openedCastleChooser;
 
         MatchCommandApplicator.Apply(
             _session,
@@ -158,8 +163,16 @@ public sealed class GameplayMatchController
                 layout,
                 allowConfirm: allowBoardConfirm);
 
+            // Chooser opens on primary press; ApplyPointer would arm a click — drop it.
+            if (openedCastleChooser)
+                MatchCommandApplicator.CancelPointerGesture();
+
             if (MatchCommandApplicator.TryApplySecondaryPointer(_session.State, pointer, layout))
                 OpenTileDetail();
+        }
+        else if (openedCastleChooser)
+        {
+            MatchCommandApplicator.CancelPointerGesture();
         }
 
         if (_session is null)

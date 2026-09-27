@@ -5,6 +5,7 @@ namespace TinyTBS.Game.Input;
 
 /// <summary>
 /// Polls MonoGame devices each frame and exposes edge-triggered logical commands.
+/// Keyboard and every connected gamepad feed the same <see cref="GameCommand"/> set.
 /// </summary>
 public sealed class GameCommandService : IGameCommandSource
 {
@@ -24,7 +25,7 @@ public sealed class GameCommandService : IGameCommandSource
         Array.Copy(_current, _previous, _current.Length);
 
         var keyboard = Keyboard.GetState();
-        var gamePad = GamePad.GetState(PlayerIndex.One);
+        var gamePad = ReadPrimaryGamePad();
 
         foreach (var command in Enum.GetValues<GameCommand>())
             _current[Index(command)] = DefaultInputBindings.IsPressed(command, keyboard, gamePad);
@@ -39,6 +40,27 @@ public sealed class GameCommandService : IGameCommandSource
 
     public bool WasReleased(GameCommand command) =>
         !_current[Index(command)] && _previous[Index(command)];
+
+    /// <summary>
+    /// Prefer player one when connected; otherwise the first connected pad
+    /// (DesktopGL / multi-slot hosts sometimes leave index 0 empty).
+    /// </summary>
+    private static GamePadState ReadPrimaryGamePad()
+    {
+        var primary = GamePad.GetState(PlayerIndex.One);
+        if (primary.IsConnected)
+            return primary;
+
+        var max = GamePad.MaximumGamePadCount;
+        for (var index = 0; index < max; index++)
+        {
+            var state = GamePad.GetState(index);
+            if (state.IsConnected)
+                return state;
+        }
+
+        return primary;
+    }
 
     private static Vector2 ReadCameraPanStick(GamePadState gamePad)
     {

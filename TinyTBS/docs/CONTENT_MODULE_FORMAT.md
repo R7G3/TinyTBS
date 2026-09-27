@@ -190,7 +190,7 @@ Vanilla/Bundles/          # bundled presets (рядом с exe)
 ```
 
 **В коде:** `ContentBundleLocator` / `ContentBundleLibrary` / `ContentBundleLoader` — user `Bundles/` → bundled `Vanilla/Bundles`.  
-`MatchContentComposition.FromBundleDefaults` (+ replaces из scenario). New Game грузит пресет `vanilla`.
+`MatchContentComposition.FromBundleDefaults` (+ replaces из scenario). New Game: picker «Scenario defaults» / `*.bundle.json` (units/buildings/theme из выбранного источника, scenario — выбранный модуль).
 
 ## Рантайм матча
 
@@ -222,9 +222,9 @@ Vanilla/Bundles/          # bundled presets (рядом с exe)
 Конфликт одинаковых `ContentId` в составе и нерезолвящиеся типы на карте — ошибка со списком.
 `UnitModuleLoader` / `BuildingModuleLoader` / `ThemeModuleLoader` грузят модули по id через `ContentModuleLocator` (user `Modules/` → bundled `Vanilla/Modules`).
 `TinymodInstaller` ставит `{id}.tinymod.zip` в user `Modules/{module.id}/` (замена по id); `ContentModuleLibrary` сканирует user + bundled.
-`ContentBundleLibrary` / `ContentBundleLocator` грузят `*.bundle.json` (user `Bundles/` → `Vanilla/Bundles`); New Game — пресет `vanilla`.
+`ContentBundleLibrary` / `ContentBundleLocator` грузят `*.bundle.json` (user `Bundles/` → `Vanilla/Bundles`); New Game выбирает scenario defaults или bundle.
 Экран Контент (`ContentLibraryScreen`): список модулей/bundles; Install — From device (`IExternalFilePicker` → `.tinymod.zip`) или From catalog (скоро); очередь `{UserData}/Downloads`; uninstall user; Download/Update greyed.
-Terrain/gravestone — из theme. new-game-flow / abilities/бой — следующие срезы.
+Terrain/gravestone — из theme. abilities/бой — следующие срезы.
 
 ## Связанные документы
 

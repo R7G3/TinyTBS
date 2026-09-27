@@ -1,0 +1,18 @@
+---
+description: All interactive UI must work with gamepad and mouse+keyboard via GameCommand
+alwaysApply: true
+---
+
+# Dual input (gamepad + mouse/keyboard)
+
+Every interactive screen and overlay in TinyTBS must be fully usable with **gamepad** and with **mouse + keyboard**. Players may switch devices mid-session.
+
+## Rules
+
+- Drive menu / overlay focus and confirm through **`GameCommand`** (`GameCommandService` + screen `HandleInput` / `HandleGamepadNavigation`), not Gum `UseGamepadDefaults` (it double-steps D-pad/stick and steals focus onto scrollbars).
+- Mouse: Gum clicks on buttons stay valid; do not require gamepad-only paths.
+- Keyboard: arrows/WASD / Enter-Space map to the same `GameCommand` values as D-pad/stick / A (see `DefaultInputBindings`).
+- Greyed controls: `IsEnabled = false` **and** `Visual.HasEvents = false` so they cannot take focus.
+- New screens: after `GumService.Update`, call focus navigation that uses `WasPressed(Navigate*)` / `Confirm` / `Back`/`Info` as appropriate — same pattern as Main Menu, Content Library, New Game, shop, pause.
+
+Canon: [docs/design/UI_AND_FLOW.md](docs/design/UI_AND_FLOW.md).

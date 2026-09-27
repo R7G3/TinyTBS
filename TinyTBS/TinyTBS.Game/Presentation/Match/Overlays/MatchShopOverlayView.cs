@@ -3,11 +3,11 @@ using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.Forms.DefaultVisuals.V3;
 using Gum.Managers;
-using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Presentation.Match.Controls;
+using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.Match.Overlays;
@@ -31,6 +31,7 @@ public sealed class MatchShopOverlayView
     private ScrollViewer? _offersScroll;
     private Panel? _offersPanel;
     private Button? _closeButton;
+    private Action? _onCloseShop;
     private Action<int>? _onBuyOffer;
     private IReadOnlyList<GameplayShopOfferViewModel> _lastOffers = [];
     private readonly List<Button> _offerButtons = [];
@@ -64,7 +65,7 @@ public sealed class MatchShopOverlayView
         // Auto: mouse wheel + thumb work. Gamepad never focuses the bar — we own D-pad navigation.
         _offersScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
         ApplyShopListBackground(_offersScroll);
-        DisableScrollChromeFocus(_offersScroll);
+        GumScrollViewerChrome.DisableScrollChromeFocus(_offersScroll);
         stack.AddChild(_offersScroll);
 
         _offersPanel = new Panel();
@@ -84,6 +85,7 @@ public sealed class MatchShopOverlayView
 
         GumUiLayout.AddVerticalSpacer(stack, 14f);
 
+        _onCloseShop = onCloseShop;
         _onBuyOffer = onBuyOffer;
         ApplyResponsiveLayout(hud.ShopOffers.Count);
     }
@@ -102,28 +104,43 @@ public sealed class MatchShopOverlayView
     }
 
     /// <summary>
-    /// Call after Gum.Update while the shop is open. Owns D-pad / stick so focus never lands on the scrollbar.
+    /// Call after Gum.Update while the shop is open. Owns D-pad / stick / Confirm
+    /// (Gum gamepad defaults are disabled — see GumBootstrap).
     /// </summary>
     public void HandleGamepadNavigation(IGameCommandSource commands)
     {
         if (_panel is not { IsVisible: true })
             return;
 
-        if (commands.WasPressed(GameCommand.NavigateDown))
+        if (GumFocusableButtonList.TryHandleVerticalNavigate(commands, FocusSlotCount, ref _focusIndex))
         {
-            _focusIndex = Math.Min(_focusIndex + 1, FocusSlotCount - 1);
             ApplyFocusIndex();
             return;
         }
 
-        if (commands.WasPressed(GameCommand.NavigateUp))
+        if (commands.WasPressed(GameCommand.Confirm))
         {
-            _focusIndex = Math.Max(_focusIndex - 1, 0);
-            ApplyFocusIndex();
+            ActivateFocused();
             return;
         }
 
         MaintainShopFocusAndScroll();
+    }
+
+    private void ActivateFocused()
+    {
+        if (FocusSlotCount <= 0)
+            return;
+
+        _focusIndex = Math.Clamp(_focusIndex, 0, FocusSlotCount - 1);
+        if (_focusIndex < _offerButtons.Count)
+        {
+            if (_offerButtons[_focusIndex].IsEnabled)
+                _onBuyOffer?.Invoke(_focusIndex);
+            return;
+        }
+
+        _onCloseShop?.Invoke();
     }
 
     public void FocusFirstOffer()
@@ -257,15 +274,18 @@ public sealed class MatchShopOverlayView
 
         _offersScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
         ApplyShopListBackground(_offersScroll);
-        DisableScrollChromeFocus(_offersScroll);
+        GumScrollViewerChrome.DisableScrollChromeFocus(_offersScroll);
     }
 
     private float MeasureOffersContentHeight(int offerCount)
     {
         if (_offersPanel is not null)
         {
-            var measured = _offersPanel.Visual.AbsoluteHeight;
-            if (measured > 1f)
+            var measured = GumScrollListLayout.MeasureStackContentHeight(
+                _offersPanel,
+                OfferRowSpacing,
+                OfferRowHeightEstimate);
+            if (measured > OfferRowHeightEstimate * 0.5f)
                 return measured;
         }
 
@@ -283,7 +303,7 @@ public sealed class MatchShopOverlayView
         if (_focusIndex < _offerButtons.Count)
         {
             _offerButtons[_focusIndex].IsFocused = true;
-            ScrollOfferFullyIntoView(_focusIndex);
+            EnsureOfferRowVisible(_focusIndex);
             return;
         }
 
@@ -291,18 +311,38 @@ public sealed class MatchShopOverlayView
             _closeButton.IsFocused = true;
     }
 
+    private void EnsureOfferRowVisible(int offerIndex)
+    {
+        if (_offersScroll is null
+            || _offersPanel is null
+            || offerIndex < 0
+            || offerIndex >= _offerRows.Count)
+        {
+            return;
+        }
+
+        GumScrollListLayout.EnsureFocusedRowVisible(
+            _offersScroll,
+            _offersPanel,
+            _offerRows[offerIndex].Visual,
+            listFocusStartIndex: 0,
+            listFocusCount: _offerRows.Count,
+            focusIndex: offerIndex,
+            stackSpacing: OfferRowSpacing,
+            minViewportHeight: OfferRowHeightEstimate,
+            scrollIntoViewMargin: ScrollIntoViewMargin,
+            listBottomPadding: OffersListBottomPadding,
+            rowHeightFallback: OfferRowHeightEstimate);
+    }
+
     private void ClearAllFocusFlags()
     {
-        foreach (var button in _offerButtons)
-        {
-            if (button.IsFocused)
-                button.IsFocused = false;
-        }
+        GumFocusableButtonList.ClearFocus(_offerButtons);
 
         if (_offersScroll is { IsFocused: true })
             _offersScroll.IsFocused = false;
 
-        ClearScrollBarFocus(_offersScroll);
+        GumScrollViewerChrome.ClearScrollBarFocus(_offersScroll);
 
         if (_closeButton is { IsFocused: true })
             _closeButton.IsFocused = false;
@@ -313,78 +353,10 @@ public sealed class MatchShopOverlayView
         if (_offersScroll is null)
             return;
 
-        if (!_offersScroll.IsFocused && !IsScrollBarFocused(_offersScroll))
+        if (!GumScrollViewerChrome.IsScrollChromeFocused(_offersScroll))
             return;
 
-        ClearScrollBarFocus(_offersScroll);
-        if (_offersScroll.IsFocused)
-            _offersScroll.IsFocused = false;
-    }
-
-    private void ScrollOfferFullyIntoView(int offerIndex)
-    {
-        if (_offersScroll is null || offerIndex < 0 || offerIndex >= _offerRows.Count)
-            return;
-
-        var itemTop = MeasureOfferTop(offerIndex);
-        var itemHeight = MeasureOfferHeight(offerIndex);
-        if (itemHeight <= 0f)
-            return;
-
-        var viewportHeight = ResolveScrollViewportHeight();
-        if (viewportHeight <= 1f)
-            return;
-
-        var viewTop = _offersScroll.VerticalScrollBarValue;
-        var viewBottom = viewTop + viewportHeight;
-        var itemBottom = itemTop + itemHeight;
-        var margin = ScrollIntoViewMargin;
-
-        if (itemTop < viewTop + margin)
-            _offersScroll.VerticalScrollBarValue = Math.Max(0f, itemTop - margin);
-        else if (itemBottom + OffersListBottomPadding > viewBottom - margin)
-            _offersScroll.VerticalScrollBarValue = Math.Max(
-                0f,
-                itemBottom + OffersListBottomPadding - viewportHeight + margin);
-    }
-
-    private float MeasureOfferTop(int offerIndex)
-    {
-        var top = 0f;
-        for (var index = 0; index < offerIndex; index++)
-            top += MeasureOfferHeight(index) + OfferRowSpacing;
-        return top;
-    }
-
-    private float MeasureOfferHeight(int offerIndex)
-    {
-        if (offerIndex < 0 || offerIndex >= _offerRows.Count)
-            return OfferRowHeightEstimate;
-
-        var height = _offerRows[offerIndex].Visual.AbsoluteHeight;
-        if (height > 1f)
-            return height;
-
-        height = _offerRows[offerIndex].Visual.Height;
-        return height > 1f ? height : OfferRowHeightEstimate;
-    }
-
-    private float ResolveScrollViewportHeight()
-    {
-        if (_offersScroll is null)
-            return 0f;
-
-        if (_offersScroll.Visual is ScrollViewerVisual visual
-            && visual.ClipContainerInstance is not null
-            && visual.ClipContainerInstance.AbsoluteHeight > 1f)
-        {
-            return visual.ClipContainerInstance.AbsoluteHeight;
-        }
-
-        var outer = _offersScroll.Visual.AbsoluteHeight;
-        return outer > ScrollViewerChromeHeight
-            ? outer - ScrollViewerChromeHeight
-            : outer;
+        GumScrollViewerChrome.StealFocusFromScrollChrome(_offersScroll);
     }
 
     private static float EstimateOffersContentHeight(int offerCount)
@@ -401,48 +373,5 @@ public sealed class MatchShopOverlayView
 
         // Match overlay panel fill so gaps between offer rows are not opaque grey.
         visual.BackgroundColor = MatchUiColors.OverlayShop;
-    }
-
-    private static void DisableScrollChromeFocus(ScrollViewer scrollViewer)
-    {
-        if (scrollViewer.Visual is not ScrollViewerVisual visual)
-            return;
-
-        if (visual.FocusedIndicator is not null)
-            visual.FocusedIndicator.Visible = false;
-
-        // Do not set HasEvents=false / IsEnabled=false on the bar — that breaks mouse scrolling.
-        ClearScrollBarFocus(scrollViewer);
-    }
-
-    private static bool IsScrollBarFocused(ScrollViewer? scrollViewer)
-    {
-        if (scrollViewer?.Visual is not ScrollViewerVisual visual)
-            return false;
-
-        return IsFormsFocused(visual.VerticalScrollBarInstance)
-            || IsFormsFocused(visual.HorizontalScrollBarInstance);
-    }
-
-    private static void ClearScrollBarFocus(ScrollViewer? scrollViewer)
-    {
-        if (scrollViewer?.Visual is not ScrollViewerVisual visual)
-            return;
-
-        ClearFormsFocus(visual.VerticalScrollBarInstance);
-        ClearFormsFocus(visual.HorizontalScrollBarInstance);
-    }
-
-    private static bool IsFormsFocused(GraphicalUiElement? element)
-    {
-        if (element is ScrollBarVisual { FormsControl.IsFocused: true })
-            return true;
-        return false;
-    }
-
-    private static void ClearFormsFocus(GraphicalUiElement? element)
-    {
-        if (element is ScrollBarVisual { FormsControl.IsFocused: true } scrollBarVisual)
-            scrollBarVisual.FormsControl.IsFocused = false;
     }
 }

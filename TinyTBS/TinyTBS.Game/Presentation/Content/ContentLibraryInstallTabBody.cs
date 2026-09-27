@@ -5,9 +5,7 @@ namespace TinyTBS.Game.Presentation.Content;
 /// <summary>Install tab list body: from device / catalog / queued Downloads.</summary>
 internal static class ContentLibraryInstallTabBody
 {
-    public const float RowPitch = 48f;
-
-    public static ContentLibraryTabBodyResult Populate(
+    public static void Populate(
         ContentLibraryListBuilder list,
         ContentLibraryViewModel viewModel,
         Action onPickInstallFromDevice,
@@ -34,19 +32,10 @@ internal static class ContentLibraryInstallTabBody
                 list.AddRow(item.FileName, () => onInstallArchive(path));
             }
 
-            return new ContentLibraryTabBodyResult
-            {
-                RowCount = 2 + 1 + pending.Count,
-                RowPitch = RowPitch,
-            };
+            return;
         }
 
         list.AddHint(
             "Pick a .tinymod.zip from your device, or use the catalog when it is available.");
-        return new ContentLibraryTabBodyResult
-        {
-            RowCount = 3,
-            RowPitch = RowPitch,
-        };
     }
 }

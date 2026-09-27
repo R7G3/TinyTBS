@@ -9,4 +9,7 @@ public sealed class MatchLevelBrief
     public required string VictoryType { get; init; }
     public required string DefeatType { get; init; }
     public required string TeamDefeatMode { get; init; }
+
+    /// <summary>Unit cap chosen at New Game (or level default). Enforcement arrives later.</summary>
+    public int UnitCap { get; init; }
 }

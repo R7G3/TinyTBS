@@ -3,6 +3,7 @@ using Gum.Forms.Controls;
 using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Input;
+using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.Menu;
@@ -65,38 +66,13 @@ public sealed class MainMenuView
     /// After <see cref="GumService"/> Update: D-pad / stick / arrows focus; Confirm activates.
     /// Mouse uses Gum clicks. Greyed items are not in the focus list.
     /// </summary>
-    public void HandleInput(IGameCommandSource commands)
-    {
-        if (_focusableEntries.Count == 0)
-            return;
-
-        if (commands.WasPressed(GameCommand.NavigateDown))
-        {
-            _focusIndex = Math.Min(_focusIndex + 1, _focusableEntries.Count - 1);
-            ApplyFocusIndex();
-            return;
-        }
-
-        if (commands.WasPressed(GameCommand.NavigateUp))
-        {
-            _focusIndex = Math.Max(_focusIndex - 1, 0);
-            ApplyFocusIndex();
-            return;
-        }
-
-        if (commands.WasPressed(GameCommand.Confirm))
-        {
-            _focusableEntries[_focusIndex].Activate();
-            return;
-        }
-
-        MaintainFocus();
-    }
+    public void HandleInput(IGameCommandSource commands) =>
+        GumFocusableButtonList.HandleVerticalInput(commands, _focusableEntries, ref _focusIndex);
 
     public void FocusFirst()
     {
         _focusIndex = 0;
-        ApplyFocusIndex();
+        GumFocusableButtonList.ApplyFocus(_focusableEntries, ref _focusIndex);
     }
 
     public void Clear()
@@ -116,47 +92,11 @@ public sealed class MainMenuView
             button.Click += (_, _) => onClick();
             _focusableEntries.Add((button, onClick));
         }
+        else
+        {
+            button.Visual.HasEvents = false;
+        }
 
         parent.AddChild(button);
-    }
-
-    private void MaintainFocus()
-    {
-        SyncFocusIndexFromUi();
-        if (!IsOurFocusIntact())
-            ApplyFocusIndex();
-    }
-
-    private bool IsOurFocusIntact()
-    {
-        if (_focusIndex < 0 || _focusIndex >= _focusableEntries.Count)
-            return false;
-        return _focusableEntries[_focusIndex].Button.IsFocused;
-    }
-
-    private void SyncFocusIndexFromUi()
-    {
-        for (var index = 0; index < _focusableEntries.Count; index++)
-        {
-            if (!_focusableEntries[index].Button.IsFocused)
-                continue;
-            _focusIndex = index;
-            return;
-        }
-    }
-
-    private void ApplyFocusIndex()
-    {
-        if (_focusableEntries.Count == 0)
-            return;
-
-        _focusIndex = Math.Clamp(_focusIndex, 0, _focusableEntries.Count - 1);
-        foreach (var (button, _) in _focusableEntries)
-        {
-            if (button.IsFocused)
-                button.IsFocused = false;
-        }
-
-        _focusableEntries[_focusIndex].Button.IsFocused = true;
     }
 }

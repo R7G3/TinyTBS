@@ -1,6 +1,8 @@
 using Gum.Forms.Controls;
 using TinyTBS.Engine.GumLayout;
+using TinyTBS.Game.Input;
 using TinyTBS.Game.Presentation.Match.Controls;
+using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.Match.Overlays;
@@ -8,8 +10,8 @@ namespace TinyTBS.Game.Presentation.Match.Overlays;
 public sealed class MatchPauseOverlayView
 {
     private Panel? _panel;
-    private Button? _firstButton;
-    private readonly List<Button> _buttons = [];
+    private readonly List<(Button Button, Action Activate)> _focusableEntries = [];
+    private int _focusIndex;
 
     public void Build(
         Panel root,
@@ -19,6 +21,9 @@ public sealed class MatchPauseOverlayView
         Action onClosePause,
         Action onReturnToMenu)
     {
+        _focusableEntries.Clear();
+        _focusIndex = 0;
+
         _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 320f, centerXPercent: 50f, centerYPercent: 48f, MatchUiColors.OverlayDark);
         var stack = GumMatchOverlayPanel.AddContentStack(_panel, spacing: 10f);
 
@@ -28,17 +33,19 @@ public sealed class MatchPauseOverlayView
         GumUiLayout.FillParentWidth(title);
         stack.AddChild(title);
 
-        _firstButton = AddButton(stack, "End turn", onEndTurn);
+        AddButton(stack, "End turn", onEndTurn);
         AddButton(stack, "Map", onOpenMinimap);
         AddButton(stack, "Goals", onOpenGoals);
 
         var saveButton = new Button { Text = "Save (hotsit OK)" };
         saveButton.IsEnabled = false;
+        saveButton.Visual.HasEvents = false;
         GumUiLayout.FillParentWidth(saveButton);
         stack.AddChild(saveButton);
 
         var loadButton = new Button { Text = "Load (hotsit OK)" };
         loadButton.IsEnabled = false;
+        loadButton.Visual.HasEvents = false;
         GumUiLayout.FillParentWidth(loadButton);
         stack.AddChild(loadButton);
 
@@ -51,28 +58,33 @@ public sealed class MatchPauseOverlayView
     public void Sync(GameplayHudViewModel hud) =>
         GumMatchVisibility.SetVisible(_panel, hud.IsPauseVisible);
 
+    /// <summary>Call after Gum.Update while pause is open. Owns D-pad / stick / Confirm.</summary>
+    public void HandleGamepadNavigation(IGameCommandSource commands)
+    {
+        if (_panel is not { IsVisible: true } || _focusableEntries.Count == 0)
+            return;
+
+        GumFocusableButtonList.HandleVerticalInput(commands, _focusableEntries, ref _focusIndex);
+    }
+
     public void FocusFirst()
     {
-        if (_firstButton is not null)
-            _firstButton.IsFocused = true;
+        _focusIndex = 0;
+        GumFocusableButtonList.ApplyFocus(_focusableEntries, ref _focusIndex);
     }
 
     public void ClearFocus()
     {
-        foreach (var button in _buttons)
-        {
-            if (button.IsFocused)
-                button.IsFocused = false;
-        }
+        GumFocusableButtonList.ClearFocus(_focusableEntries);
+        _focusIndex = 0;
     }
 
-    private Button AddButton(Panel stack, string text, Action onClick)
+    private void AddButton(Panel stack, string text, Action onClick)
     {
         var button = new Button { Text = text };
         GumUiLayout.FillParentWidth(button);
         button.Click += (_, _) => onClick();
         stack.AddChild(button);
-        _buttons.Add(button);
-        return button;
+        _focusableEntries.Add((button, onClick));
     }
 }

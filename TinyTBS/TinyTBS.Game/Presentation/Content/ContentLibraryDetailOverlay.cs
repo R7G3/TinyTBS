@@ -4,6 +4,7 @@ using Gum.Forms.Controls;
 using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Input;
+using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Presentation.Content;
 
@@ -99,7 +100,7 @@ internal sealed class ContentLibraryDetailOverlay
         GumUiLayout.AddVerticalSpacer(stack, 14f);
 
         _focusIndex = Math.Max(0, _focusable.Count - 1);
-        ApplyFocusIndex();
+        GumFocusableButtonList.ApplyFocus(_focusable, ref _focusIndex);
     }
 
     public bool TryClose()
@@ -152,28 +153,6 @@ internal sealed class ContentLibraryDetailOverlay
         if (_focusable.Count == 0)
             return;
 
-        if (commands.WasPressed(GameCommand.NavigateDown)
-            || commands.WasPressed(GameCommand.NavigateRight))
-        {
-            _focusIndex = Math.Min(_focusIndex + 1, _focusable.Count - 1);
-            ApplyFocusIndex();
-            return;
-        }
-
-        if (commands.WasPressed(GameCommand.NavigateUp)
-            || commands.WasPressed(GameCommand.NavigateLeft))
-        {
-            _focusIndex = Math.Max(_focusIndex - 1, 0);
-            ApplyFocusIndex();
-            return;
-        }
-
-        if (commands.WasPressed(GameCommand.Confirm))
-        {
-            _focusable[_focusIndex].Activate();
-            return;
-        }
-
         if (commands.WasPressed(GameCommand.Cancel)
             || commands.WasPressed(GameCommand.Back)
             || commands.WasPressed(GameCommand.Info)
@@ -183,34 +162,10 @@ internal sealed class ContentLibraryDetailOverlay
             return;
         }
 
-        MaintainFocus();
-    }
-
-    private void ApplyFocusIndex()
-    {
-        if (_focusable.Count == 0)
-            return;
-
-        _focusIndex = Math.Clamp(_focusIndex, 0, _focusable.Count - 1);
-        foreach (var (button, _) in _focusable)
-        {
-            if (button.IsFocused)
-                button.IsFocused = false;
-        }
-
-        _focusable[_focusIndex].Button.IsFocused = true;
-    }
-
-    private void MaintainFocus()
-    {
-        for (var index = 0; index < _focusable.Count; index++)
-        {
-            if (!_focusable[index].Button.IsFocused)
-                continue;
-            _focusIndex = index;
-            return;
-        }
-
-        ApplyFocusIndex();
+        GumFocusableButtonList.HandleVerticalInput(
+            commands,
+            _focusable,
+            ref _focusIndex,
+            mapHorizontalToVertical: true);
     }
 }

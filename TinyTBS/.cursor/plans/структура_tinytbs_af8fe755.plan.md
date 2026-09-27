@@ -39,13 +39,15 @@ isProject: false
 
 ### Дальше
 
-- [ ] **new-game-flow** — UI «Новая игра»: выбор scenario + состав (defaults из bundle/scenario)
+- [x] **new-game-flow** — вкладки Mode → Scenario → Level → Composition → Lobby; Hotseat; gold/unit cap ± (hold gamepad + mouse)
+- [ ] **settings-ui** — экран **Настройки** (сейчас greyed): графика (в т.ч. `ui-scale-hidpi`), ввод (3 столбца биндов), профиль цветов игрока; persist JSON. Канон: [UI_AND_FLOW § Настройки](../../docs/design/UI_AND_FLOW.md#настройки)
+- [ ] **ui-scale-hidpi** — масштаб UI и поля под HiDPI / 4K (часть графики в `settings-ui`). Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](../../docs/ideas/ui-scale-hidpi.md)
 - [ ] **match-combat-gdd** — бой/формула GDD; abilities / special из `UnitDefinition`
 - [ ] **match-economy-capture** — доход/хил строений, захват/ремонт по tags, post-move цели (TURN_AND_UI)
 - [ ] **campaigns** — campaign.json в scenario-модуле + прохождение по главам
 - [ ] **save-format** — сейвы + contentSetup
 - [ ] **map-editor** — workspace модулей; Publish greyed
-- [ ] **player-colors** — color picker + dimFactor «походил»
+- [ ] **player-colors** — color picker + dimFactor «походил» (лобби / настройки профиля)
 - [ ] **network-later** — Remote в API; UI greyed only
 
 ## Цели архитектуры
@@ -356,11 +358,12 @@ ScriptOptions.Default
 15. Установка `.tinymod.zip` + сканирование библиотеки — **выполнено** (`tinymod-install`).
 16. Пресеты `*.bundle.json` — **выполнено** (`bundles-runtime`).
 17. Экран Контент — **выполнено** (`content-ui`).
-18. Content pipeline дальше: `new-game-flow`.
-19. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
-20. `campaigns` + `save-format` — после playable loop.
-21. `map-editor` — workspace модулей.
-22. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
+18. Content pipeline дальше: `new-game-flow` — **выполнено** (см. чеклист выше / ARCHITECTURE).
+19. **`settings-ui`** — экран Настройки (графика, ввод 3 столбца, профиль); `ui-scale-hidpi` внутри графики. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#настройки).
+20. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
+21. `campaigns` + `save-format` — после playable loop.
+22. `map-editor` — workspace модулей.
+23. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
 
 ## Документация в репозитории
 

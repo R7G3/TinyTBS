@@ -20,10 +20,10 @@ public static class MatchCommandApplicator
     private const float PointerPanThresholdPixels = 7f;
 
     /// <summary>Delay before held Navigate starts repeating.</summary>
-    private const float CursorRepeatInitialDelaySeconds = 0.32f;
+    private const float CursorRepeatInitialDelaySeconds = HeldCommandRepeat.DefaultInitialDelaySeconds;
 
     /// <summary>Interval between repeated cursor steps while Navigate is held.</summary>
-    private const float CursorRepeatIntervalSeconds = 0.11f;
+    private const float CursorRepeatIntervalSeconds = HeldCommandRepeat.DefaultIntervalSeconds;
 
     private static bool _pointerPressActive;
     private static bool _pointerIsPanning;
@@ -239,27 +239,14 @@ public static class MatchCommandApplicator
         IGameCommandSource commands,
         GameCommand command,
         float elapsedSeconds,
-        ref float repeatTimer)
-    {
-        if (!commands.IsPressed(command))
-        {
-            repeatTimer = 0f;
-            return false;
-        }
-
-        if (commands.WasPressed(command))
-        {
-            repeatTimer = CursorRepeatInitialDelaySeconds;
-            return true;
-        }
-
-        repeatTimer -= elapsedSeconds;
-        if (repeatTimer > 0f)
-            return false;
-
-        repeatTimer = CursorRepeatIntervalSeconds;
-        return true;
-    }
+        ref float repeatTimer) =>
+        HeldCommandRepeat.TryTick(
+            commands,
+            command,
+            elapsedSeconds,
+            ref repeatTimer,
+            CursorRepeatInitialDelaySeconds,
+            CursorRepeatIntervalSeconds);
 
     private static void ResetCursorRepeatTimers()
     {
@@ -309,4 +296,10 @@ public static class MatchCommandApplicator
         _pointerPressPosition = Vector2.Zero;
         _pointerLastPosition = Vector2.Zero;
     }
+
+    /// <summary>
+    /// Clears an in-progress primary click (e.g. after opening the castle Move/Buy chooser on press
+    /// so the matching release does not Confirm through a stale gesture).
+    /// </summary>
+    public static void CancelPointerGesture() => ResetPointerGesture();
 }

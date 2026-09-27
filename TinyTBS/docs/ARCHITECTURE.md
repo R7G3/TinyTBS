@@ -146,6 +146,8 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 Каждый экран — MGE `GameScreen` (склейка слоёв). Порядок отрисовки (**движок**): игровая сцена → Gum (UI, оверлеи). Дерево контролов и навигация — **представление** (`Game/Presentation/`); bootstrap и размеры/якоря — **`Engine/GumLayout`** (`GumBootstrap`, `GumUiLayout`).
 
+**Масштаб:** сейчас Gum `EnableExpandToWindow(1f)` — canvas = окно в пикселях; константы UI/тайлов — reference-пиксели без DPI-scale. На 4K без UI scale кнопки/скролл/тайлы визуально мельчают. План: `ui-scale-hidpi` — см. [UI_AND_FLOW](design/UI_AND_FLOW.md#масштаб--разрешение), [ideas/ui-scale-hidpi.md](ideas/ui-scale-hidpi.md).
+
 ## ECS (MGE)
 
 - `TinyTBS.Game.Match`: `GridCell`, `MatchDefaults`, `MatchUnit` / `MatchBuilding`, `MatchState` — **логика** (демо-правила; полный GDD — впереди)
@@ -158,7 +160,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 ## Ввод
 
 **Engine** опрашивает pointer (`Mouse`, позже touch) → `IPointerSource` / `ScreenPoint`.
-**Game** опрашивает клавиатуру/геймпад → логические `GameCommand` (`GameCommandService`). Представление/логика не читают `Keyboard`/`Mouse` напрямую.
+**Game** опрашивает клавиатуру/геймпад → логические `GameCommand` (`GameCommandService`). Представление/логика не читают `Keyboard`/`Mouse` напрямую. Gum `UseGamepadDefaults` **не** включаем — фокус меню/оверлеев ведёт `HandleInput` / `Handle*GamepadNavigation` (иначе D-pad удваивается и уезжает на scrollbar). Мышь остаётся через клики Gum.
 
 - `TinyTBS.Game.Input`: `GameCommand`, `IGameCommandSource`, `GameCommandService`, `DefaultInputBindings`
 - `TinyTBS.Engine.Input`: `IPointerSource`, `ScreenPoint`, `PointerInputService`
@@ -205,10 +207,12 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 16. Пресеты `*.bundle.json` — **выполнено** (`bundles-runtime`: `ContentBundleLocator` / `ContentBundleLibrary`; New Game → `vanilla`).
 17. Экран Контент — **выполнено** (`content-ui`: библиотека; Install From device / catalog-soon; очередь Downloads; uninstall user; Download/Update greyed).
 18. Content pipeline (срезы):
-    - `new-game-flow` — экран Новая игра
-19. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
-20. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
-21. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
+    - `new-game-flow` — **выполнено** (вкладки Mode → Scenario → Level → Composition → Lobby; composition scenario-defaults/bundle; Multiplayer / Bot / Invite greyed; unit cap в `MatchLevelBrief`, enforcement позже)
+19. `settings-ui` — экран **Настройки** (меню сейчас greyed): графика (разрешение/окно, UI scale / `ui-scale-hidpi`, фильтр зума nearest vs bicubic), ввод (три столбца биндов), профиль (цвета игрока; пересечение с `player-colors`). Persist в user data. Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки).
+20. `ui-scale-hidpi` — масштаб UI/поля под HiDPI и 4K (реализуется вместе с или сразу после `settings-ui`). Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](ideas/ui-scale-hidpi.md).
+21. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
+22. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
+23. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
 
 ## Связанные ADR
 

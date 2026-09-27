@@ -1,11 +1,12 @@
 using Microsoft.Xna.Framework;
+using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Presentation.Content;
 
-/// <summary>Colors for the content library panel (aligned with match overlay tones).</summary>
+/// <summary>Colors for the content library panel.</summary>
 public static class ContentUiColors
 {
-    public static readonly Color Panel = new(16, 18, 28, 235);
+    public static readonly Color Panel = UiPanelColors.Panel;
 
     public static readonly Color ListWell = new(12, 14, 22, 200);
 

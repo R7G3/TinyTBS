@@ -6,6 +6,7 @@ using Gum.Managers;
 using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Input;
+using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.Content;
@@ -20,7 +21,7 @@ public sealed class ContentLibraryView
     private const float ListMinHeight = 100f;
     private const float ListMaxHeight = 320f;
     private const float RowSpacing = 6f;
-    private const float DefaultRowPitch = ContentLibraryModulesTabBody.RowPitch;
+    private const float ListBottomPadding = GumScrollListLayout.DefaultListBottomPadding;
     private const float ChromeEstimateComfortable = 260f;
     private const float ChromeEstimateCompact = 220f;
 
@@ -43,8 +44,6 @@ public sealed class ContentLibraryView
     private int _ownedFocusIndex;
     private int _listFocusStartIndex = -1;
     private int _listFocusCount;
-    private int _listRowCount;
-    private float _listRowPitch = DefaultRowPitch;
     private int _actionFocusStartIndex = -1;
     private int _actionFocusCount;
     private float _lastButtonBarWidth = -1f;
@@ -110,7 +109,7 @@ public sealed class ContentLibraryView
         _listScroll.InnerPanel.HeightUnits = DimensionUnitType.RelativeToChildren;
         _listScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
         ApplyListWellBackground(_listScroll);
-        DisableScrollChromeFocus(_listScroll);
+        GumScrollViewerChrome.DisableScrollChromeFocus(_listScroll);
         stack.AddChild(_listScroll);
 
         _listPanel = new Panel();
@@ -123,9 +122,8 @@ public sealed class ContentLibraryView
 
         _listFocusStartIndex = _focusableEntries.Count;
         var listBody = new ContentLibraryListBuilder(_listPanel, _focusableEntries);
-        var tabResult = PopulateActiveTab(listBody, viewModel, onPickInstallFromDevice, onInstallArchive);
-        _listRowCount = tabResult.RowCount;
-        _listRowPitch = tabResult.RowPitch;
+        PopulateActiveTab(listBody, viewModel, onPickInstallFromDevice, onInstallArchive);
+        GumUiLayout.AddVerticalSpacer(_listPanel, ListBottomPadding);
         _listFocusCount = _focusableEntries.Count - _listFocusStartIndex;
 
         AddBottomActions(stack, viewModel, onBack);
@@ -158,7 +156,9 @@ public sealed class ContentLibraryView
             ? ChromeEstimateCompact + 40f
             : ChromeEstimateComfortable;
         var heightBudget = Math.Max(ListMinHeight, canvasHeight * 0.94f - chrome);
-        var contentHeight = Math.Max(_listRowCount, 1) * _listRowPitch + 16f;
+        var contentHeight = _listPanel is null
+            ? ListMinHeight
+            : GumScrollListLayout.MeasureStackContentHeight(_listPanel, RowSpacing) + 16f;
         var listHeight = Math.Min(heightBudget, Math.Min(ListMaxHeight, Math.Max(ListMinHeight, contentHeight)));
 
         GumUiLayout.SetAbsoluteHeight(_listScroll, listHeight);
@@ -195,7 +195,7 @@ public sealed class ContentLibraryView
             _hintsLabel.Text = BuildHintsText(canvasHeight < 640f || canvasWidth < 520f);
 
         ApplyListWellBackground(_listScroll);
-        DisableScrollChromeFocus(_listScroll);
+        GumScrollViewerChrome.DisableScrollChromeFocus(_listScroll);
     }
 
     private static string BuildHintsText(bool compact) =>
@@ -282,34 +282,34 @@ public sealed class ContentLibraryView
         _ownedFocusIndex = 0;
         _listFocusStartIndex = -1;
         _listFocusCount = 0;
-        _listRowCount = 0;
-        _listRowPitch = DefaultRowPitch;
         _actionFocusStartIndex = -1;
         _actionFocusCount = 0;
         _lastButtonBarWidth = -1f;
     }
 
-    private ContentLibraryTabBodyResult PopulateActiveTab(
+    private void PopulateActiveTab(
         ContentLibraryListBuilder list,
         ContentLibraryViewModel viewModel,
         Action onPickInstallFromDevice,
-        Action<string> onInstallArchive) =>
-        viewModel.ActiveTab switch
+        Action<string> onInstallArchive)
+    {
+        switch (viewModel.ActiveTab)
         {
-            ContentLibraryTab.Bundles => ContentLibraryBundlesTabBody.Populate(
-                list,
-                viewModel.Bundles,
-                ShowBundleDetail),
-            ContentLibraryTab.Install => ContentLibraryInstallTabBody.Populate(
-                list,
-                viewModel,
-                onPickInstallFromDevice,
-                onInstallArchive),
-            _ => ContentLibraryModulesTabBody.Populate(
-                list,
-                viewModel.Modules,
-                ShowModuleDetail),
-        };
+            case ContentLibraryTab.Bundles:
+                ContentLibraryBundlesTabBody.Populate(list, viewModel.Bundles, ShowBundleDetail);
+                break;
+            case ContentLibraryTab.Install:
+                ContentLibraryInstallTabBody.Populate(
+                    list,
+                    viewModel,
+                    onPickInstallFromDevice,
+                    onInstallArchive);
+                break;
+            default:
+                ContentLibraryModulesTabBody.Populate(list, viewModel.Modules, ShowModuleDetail);
+                break;
+        }
+    }
 
     private void ShowModuleDetail(ContentModuleRowViewModel module)
     {
@@ -359,9 +359,10 @@ public sealed class ContentLibraryView
 
         _focusIndex = Math.Clamp(_ownedFocusIndex, 0, _focusableEntries.Count - 1);
 
-        if (IsFocusIndexOnActionBar())
+        if (GumMenuChrome.IsFocusIndexInRange(_focusIndex, _actionFocusStartIndex, _actionFocusCount))
         {
-            MoveActionFocus(delta);
+            GumMenuChrome.MoveFocusInRange(ref _focusIndex, _actionFocusStartIndex, _actionFocusCount, delta);
+            ApplyFocusIndex();
             return;
         }
 
@@ -369,28 +370,10 @@ public sealed class ContentLibraryView
         ApplyFocusIndex();
     }
 
-    private bool IsFocusIndexOnActionBar() =>
-        _actionFocusCount > 0
-        && _actionFocusStartIndex >= 0
-        && _focusIndex >= _actionFocusStartIndex
-        && _focusIndex < _actionFocusStartIndex + _actionFocusCount;
-
     private void RememberOwnedFocusFromUi()
     {
-        SyncFocusIndexFromUi();
-        if (_focusIndex >= 0 && _focusIndex < _focusableEntries.Count)
+        if (GumFocusableButtonList.SyncFocusIndexFromUi(_focusableEntries, ref _focusIndex))
             _ownedFocusIndex = _focusIndex;
-    }
-
-    private void MoveActionFocus(int delta)
-    {
-        if (_actionFocusCount <= 0 || _actionFocusStartIndex < 0)
-            return;
-
-        var localIndex = _focusIndex - _actionFocusStartIndex;
-        localIndex = Math.Clamp(localIndex + delta, 0, _actionFocusCount - 1);
-        _focusIndex = _actionFocusStartIndex + localIndex;
-        ApplyFocusIndex();
     }
 
     private void TrySwitchTab(int delta)
@@ -416,70 +399,46 @@ public sealed class ContentLibraryView
 
     private void AddTabBar(Panel parent, ContentLibraryTab activeTab)
     {
-        _tabBarHost = new Panel();
-        GumUiLayout.FillParentWidth(_tabBarHost);
-        _tabBarHost.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        parent.AddChild(_tabBarHost);
+        _tabBarHost = GumMenuChrome.CreateButtonBarHost(parent);
 
-        AddTabButton(
+        GumMenuChrome.AddTabButton(
+            _tabButtons,
+            _focusableEntries,
             "Modules",
             activeTab == ContentLibraryTab.Modules,
             () => _onSelectTab?.Invoke(ContentLibraryTab.Modules));
-        AddTabButton(
+        GumMenuChrome.AddTabButton(
+            _tabButtons,
+            _focusableEntries,
             "Bundles",
             activeTab == ContentLibraryTab.Bundles,
             () => _onSelectTab?.Invoke(ContentLibraryTab.Bundles));
-        AddTabButton(
+        GumMenuChrome.AddTabButton(
+            _tabButtons,
+            _focusableEntries,
             "Install",
             activeTab == ContentLibraryTab.Install,
             () => _onSelectTab?.Invoke(ContentLibraryTab.Install));
     }
 
-    private void AddTabButton(string text, bool isActive, Action onActivate)
-    {
-        var button = new Button
-        {
-            Text = isActive ? $"[{text}]" : text,
-            IsEnabled = true,
-        };
-        button.Click += (_, _) => onActivate();
-        _tabButtons.Add(button);
-        _focusableEntries.Add((button, onActivate));
-    }
-
     private void AddBottomActions(Panel parent, ContentLibraryViewModel viewModel, Action onBack)
     {
-        _actionBarHost = new Panel();
-        GumUiLayout.FillParentWidth(_actionBarHost);
-        _actionBarHost.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        parent.AddChild(_actionBarHost);
+        _actionBarHost = GumMenuChrome.CreateButtonBarHost(parent);
 
         _actionFocusStartIndex = _focusableEntries.Count;
 
         // Install is also a top tab; this button is a shortcut to the same place.
-        AddActionButton("Install", isEnabled: true, () => _onSelectTab?.Invoke(ContentLibraryTab.Install));
-        AddActionButton("Download", viewModel.CanDownload, () => { });
-        AddActionButton("Update", viewModel.CanUpdate, () => { });
-        AddActionButton("Back", isEnabled: true, onBack);
+        GumMenuChrome.AddActionButton(
+            _actionButtons,
+            _focusableEntries,
+            "Install",
+            isEnabled: true,
+            () => _onSelectTab?.Invoke(ContentLibraryTab.Install));
+        GumMenuChrome.AddActionButton(_actionButtons, _focusableEntries, "Download", viewModel.CanDownload, () => { });
+        GumMenuChrome.AddActionButton(_actionButtons, _focusableEntries, "Update", viewModel.CanUpdate, () => { });
+        GumMenuChrome.AddActionButton(_actionButtons, _focusableEntries, "Back", isEnabled: true, onBack);
 
         _actionFocusCount = _focusableEntries.Count - _actionFocusStartIndex;
-    }
-
-    private void AddActionButton(string text, bool isEnabled, Action onActivate)
-    {
-        var button = new Button { Text = text, IsEnabled = isEnabled };
-        if (isEnabled)
-        {
-            button.Click += (_, _) => onActivate();
-            _focusableEntries.Add((button, onActivate));
-        }
-        else
-        {
-            // Keep Gum gamepad focus out of disabled placeholders (Download / Update).
-            button.Visual.HasEvents = false;
-        }
-
-        _actionButtons.Add(button);
     }
 
     private void FocusInitial()
@@ -504,32 +463,15 @@ public sealed class ContentLibraryView
     private void MaintainFocus()
     {
         StealFocusFromScrollChrome();
-        SyncFocusIndexFromUi();
-        if (!IsOurFocusIntact())
-            ApplyFocusIndex();
-        else
+        if (GumFocusableButtonList.SyncFocusIndexFromUi(_focusableEntries, ref _focusIndex)
+            && GumFocusableButtonList.IsFocusIntact(_focusableEntries, _focusIndex))
         {
+            // Do not EnsureFocusedRowVisible every frame — that fights mouse-wheel scrolling.
             _ownedFocusIndex = _focusIndex;
-            EnsureFocusedRowVisible();
-        }
-    }
-
-    private bool IsOurFocusIntact()
-    {
-        if (_focusIndex < 0 || _focusIndex >= _focusableEntries.Count)
-            return false;
-        return _focusableEntries[_focusIndex].Button.IsFocused;
-    }
-
-    private void SyncFocusIndexFromUi()
-    {
-        for (var index = 0; index < _focusableEntries.Count; index++)
-        {
-            if (!_focusableEntries[index].Button.IsFocused)
-                continue;
-            _focusIndex = index;
             return;
         }
+
+        ApplyFocusIndex();
     }
 
     private void ApplyFocusIndex()
@@ -538,21 +480,15 @@ public sealed class ContentLibraryView
             return;
 
         StealFocusFromScrollChrome();
-        _focusIndex = Math.Clamp(_focusIndex, 0, _focusableEntries.Count - 1);
+        GumFocusableButtonList.ApplyFocus(_focusableEntries, ref _focusIndex);
         _ownedFocusIndex = _focusIndex;
-        foreach (var (button, _) in _focusableEntries)
-        {
-            if (button.IsFocused)
-                button.IsFocused = false;
-        }
-
-        _focusableEntries[_focusIndex].Button.IsFocused = true;
         EnsureFocusedRowVisible();
     }
 
     private void EnsureFocusedRowVisible()
     {
         if (_listScroll is null
+            || _listPanel is null
             || _listFocusStartIndex < 0
             || _focusIndex < _listFocusStartIndex
             || _focusIndex >= _listFocusStartIndex + _listFocusCount)
@@ -560,18 +496,20 @@ public sealed class ContentLibraryView
             return;
         }
 
-        var rowIndex = _focusIndex - _listFocusStartIndex;
-        var rowPitch = _listRowPitch;
-        var target = rowIndex * rowPitch;
-        var current = _listScroll.VerticalScrollBarValue;
-        var viewHeight = _listScroll.Visual.Height > 1f ? _listScroll.Visual.Height : ListMaxHeight;
-        if (target < current)
-            _listScroll.VerticalScrollBarValue = target;
-        else if (target + rowPitch > current + viewHeight)
-            _listScroll.VerticalScrollBarValue = Math.Max(0, target + rowPitch - viewHeight);
+        GumScrollListLayout.EnsureFocusedRowVisible(
+            _listScroll,
+            _listPanel,
+            _focusableEntries[_focusIndex].Button.Visual,
+            _listFocusStartIndex,
+            _listFocusCount,
+            _focusIndex,
+            RowSpacing,
+            ListMinHeight,
+            listBottomPadding: ListBottomPadding);
     }
 
-    private void StealFocusFromScrollChrome() => ClearScrollBarFocus(_listScroll);
+    private void StealFocusFromScrollChrome() =>
+        GumScrollViewerChrome.StealFocusFromScrollChrome(_listScroll);
 
     private static void ApplyListWellBackground(ScrollViewer scrollViewer)
     {
@@ -579,34 +517,5 @@ public sealed class ContentLibraryView
             return;
 
         visual.BackgroundColor = ContentUiColors.ListWell;
-    }
-
-    private static void DisableScrollChromeFocus(ScrollViewer scrollViewer)
-    {
-        if (scrollViewer.Visual is not ScrollViewerVisual visual)
-            return;
-
-        if (visual.FocusedIndicator is not null)
-            visual.FocusedIndicator.Visible = false;
-
-        ClearScrollBarFocus(scrollViewer);
-    }
-
-    private static void ClearScrollBarFocus(ScrollViewer? scrollViewer)
-    {
-        if (scrollViewer?.Visual is not ScrollViewerVisual visual)
-            return;
-
-        if (scrollViewer.IsFocused)
-            scrollViewer.IsFocused = false;
-
-        ClearFormsFocus(visual.VerticalScrollBarInstance);
-        ClearFormsFocus(visual.HorizontalScrollBarInstance);
-    }
-
-    private static void ClearFormsFocus(GraphicalUiElement? element)
-    {
-        if (element is ScrollBarVisual { FormsControl.IsFocused: true } scrollBarVisual)
-            scrollBarVisual.FormsControl.IsFocused = false;
     }
 }

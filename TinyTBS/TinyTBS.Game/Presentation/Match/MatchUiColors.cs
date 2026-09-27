@@ -1,11 +1,12 @@
 using Microsoft.Xna.Framework;
+using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Presentation.Match;
 
 /// <summary>Shared Gum panel fills for match HUD and overlays.</summary>
 public static class MatchUiColors
 {
-    public static readonly Color OverlayDark = new(16, 18, 28, 235);
+    public static readonly Color OverlayDark = UiPanelColors.Panel;
 
     public static readonly Color OverlayShop = new(18, 22, 34, 235);
 

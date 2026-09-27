@@ -38,6 +38,7 @@
 - **Публичный API** — ясный и стабильный; детали JSON (`*Dto`) — `internal`, отдельно от доменных моделей (`MapDefinition`, placements).
 - **Чистка мёртвого кода.** Удалять неиспользуемое и потерявшее актуальность (старые фабрики, дублирующие демо-раскладки, устаревшие константы/пути, «обёртки» без вызовов). **Исключение:** тонкий API, который уже согласован с планом/каноном и понадобится на ближайших шагах (например `GameCommand.Pause`, `WasPrimaryPressed`, `IUserDataPaths.InstallRoot`, layout-хелперы Gum, `Parse(string)` для тестов) — оставлять; не вырезать «раз сейчас 0 ссылок». Не путать с YAGNI: не плодить новые абстракции «на всякий случай», но и не сносить уже заложенные точки расширения под roadmap.
 - **Кроссплатформенность.** Переводы строк — `Environment.NewLine` (при разборе текста принимать `\r\n` / `\n` / `\r`). Файловые пути — `Path.Combine` / `Path.DirectorySeparatorChar` / `Path.AltDirectorySeparatorChar` (через `IFileContentProvider` в игровом коде). Логические id контента (`vanilla/king`, `Maps/demo` в JSON) оставляют `/` как канон формата.
+- **Двойной ввод.** Любой интерактивный UI — и геймпад, и мышь+клавиатура через `GameCommand` (не Gum `UseGamepadDefaults`). См. `.cursor/rules/dual-input.mdc`, [UI_AND_FLOW.md](docs/design/UI_AND_FLOW.md).
 
 ## Git
 

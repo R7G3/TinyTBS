@@ -4,7 +4,6 @@ using MonoGame.Extended.Screens;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Match;
 using TinyTBS.Game.Presentation.Menu;
 using TinyTBS.Game.ViewModels;
 
@@ -94,12 +93,7 @@ public sealed class MainMenuScreen : GameScreen
     }
 
     private void StartNewGame() =>
-        ScreenManager.ReplaceScreen(
-            new LoadingScreen(
-                TinyGame,
-                _assets,
-                GameplaySessionFactory.ProvingGroundsLevelId,
-                GameplaySessionFactory.VanillaBundleId));
+        ScreenManager.ReplaceScreen(new NewGameScreen(TinyGame, _assets));
 
     private void OpenContent() =>
         ScreenManager.ReplaceScreen(new ContentLibraryScreen(TinyGame, _assets));

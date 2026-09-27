@@ -27,6 +27,11 @@ public sealed class LoadingScreen : GameScreen
     private readonly IAssetResolver _assets;
     private readonly string _levelId;
     private readonly string? _bundleId;
+    private readonly string? _scenarioModuleId;
+    private readonly MatchContentComposition? _composition;
+    private readonly int? _playerCount;
+    private readonly int? _startingGold;
+    private readonly int? _unitCap;
     private readonly LoadingViewModel _viewModel = new();
     private readonly LoadingView _view = new();
 
@@ -40,12 +45,55 @@ public sealed class LoadingScreen : GameScreen
         IAssetResolver assets,
         string levelId,
         string? bundleId = null)
+        : this(
+            game,
+            assets,
+            levelId,
+            bundleId,
+            scenarioModuleId: null,
+            composition: null,
+            playerCount: null,
+            startingGold: null,
+            unitCap: null)
+    {
+    }
+
+    public LoadingScreen(GameMain game, IAssetResolver assets, NewGameStartRequest request)
+        : this(
+            game,
+            assets,
+            request.LevelId,
+            bundleId: null,
+            scenarioModuleId: request.ScenarioModuleId,
+            composition: request.Composition,
+            playerCount: request.PlayerCount,
+            startingGold: request.StartingGold,
+            unitCap: request.UnitCap)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+    }
+
+    private LoadingScreen(
+        GameMain game,
+        IAssetResolver assets,
+        string levelId,
+        string? bundleId,
+        string? scenarioModuleId,
+        MatchContentComposition? composition,
+        int? playerCount,
+        int? startingGold,
+        int? unitCap)
         : base(game)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelId);
         _assets = assets;
         _levelId = levelId.Trim();
         _bundleId = string.IsNullOrWhiteSpace(bundleId) ? null : bundleId.Trim();
+        _scenarioModuleId = string.IsNullOrWhiteSpace(scenarioModuleId) ? null : scenarioModuleId.Trim();
+        _composition = composition;
+        _playerCount = playerCount;
+        _startingGold = startingGold;
+        _unitCap = unitCap;
     }
 
     private GameMain TinyGame => (GameMain)Game;
@@ -60,8 +108,8 @@ public sealed class LoadingScreen : GameScreen
         _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
         _view.Build(_viewModel);
 
-        MatchContentComposition? composition = null;
-        string? scenarioModuleId = null;
+        MatchContentComposition? composition = _composition;
+        string? scenarioModuleId = _scenarioModuleId;
         if (_bundleId is not null)
         {
             composition = GameplaySessionFactory.LoadCompositionFromBundle(
@@ -80,7 +128,10 @@ public sealed class LoadingScreen : GameScreen
             TinyGame.UserDataPaths,
             _levelId,
             scenarioModuleId,
-            composition);
+            composition,
+            _playerCount,
+            _startingGold,
+            _unitCap);
 
         ApplyProgress(_pipeline.Progress);
         _phase = LoadPhase.Warmup;

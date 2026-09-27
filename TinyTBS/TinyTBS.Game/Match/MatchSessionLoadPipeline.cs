@@ -28,6 +28,9 @@ public sealed class MatchSessionLoadPipeline
     private readonly string _levelId;
     private readonly string _scenarioModuleId;
     private readonly MatchContentComposition? _compositionOverride;
+    private readonly int? _playerCountOverride;
+    private readonly int? _startingGoldOverride;
+    private readonly int? _unitCapOverride;
     private readonly IReadOnlyList<(string Label, Action Work)> _stages;
 
     private MatchContentLoadResult? _matchContent;
@@ -50,7 +53,10 @@ public sealed class MatchSessionLoadPipeline
         IUserDataPaths userDataPaths,
         string levelId,
         string? scenarioModuleId = null,
-        MatchContentComposition? composition = null)
+        MatchContentComposition? composition = null,
+        int? playerCount = null,
+        int? startingGold = null,
+        int? unitCap = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelId);
 
@@ -65,6 +71,9 @@ public sealed class MatchSessionLoadPipeline
             ? DefaultScenarioModuleId
             : scenarioModuleId.Trim();
         _compositionOverride = composition;
+        _playerCountOverride = playerCount;
+        _startingGoldOverride = startingGold;
+        _unitCapOverride = unitCap;
 
         _stages =
         [
@@ -163,12 +172,15 @@ public sealed class MatchSessionLoadPipeline
         ArgumentNullException.ThrowIfNull(_level);
         ArgumentNullException.ThrowIfNull(_matchContent);
 
+        var playerCount = _playerCountOverride ?? _level.Players.DefaultSlots;
+        playerCount = Math.Clamp(playerCount, _level.Players.Min, _level.Players.Max);
+
         _state = MatchState.FromMap(
             _level.Map,
             _matchContent.Catalog,
             _matchContent.Replaces,
-            playerCount: _level.Players.DefaultSlots,
-            startingGold: _level.DefaultStartingGold);
+            playerCount: playerCount,
+            startingGold: _startingGoldOverride ?? _level.DefaultStartingGold);
     }
 
     private void CompileMapScript()
@@ -220,6 +232,7 @@ public sealed class MatchSessionLoadPipeline
             VictoryType = _level.Victory.Type,
             DefeatType = _level.Defeat.Type,
             TeamDefeatMode = _level.TeamDefeatMode,
+            UnitCap = _unitCapOverride ?? _level.DefaultUnitCap,
         };
 
         return new GameplaySession(

@@ -5,9 +5,7 @@ namespace TinyTBS.Game.Presentation.Content;
 /// <summary>Modules tab list body.</summary>
 internal static class ContentLibraryModulesTabBody
 {
-    public const float RowPitch = 48f;
-
-    public static ContentLibraryTabBodyResult Populate(
+    public static void Populate(
         ContentLibraryListBuilder list,
         IReadOnlyList<ContentModuleRowViewModel> modules,
         Action<ContentModuleRowViewModel> onShowDetail)
@@ -19,7 +17,7 @@ internal static class ContentLibraryModulesTabBody
         if (modules.Count == 0)
         {
             list.AddHint("No modules in the library.");
-            return new ContentLibraryTabBodyResult { RowCount = 1, RowPitch = RowPitch };
+            return;
         }
 
         foreach (var module in modules)
@@ -27,11 +25,5 @@ internal static class ContentLibraryModulesTabBody
             var captured = module;
             list.AddRow(captured.SummaryLine, () => onShowDetail(captured));
         }
-
-        return new ContentLibraryTabBodyResult
-        {
-            RowCount = modules.Count,
-            RowPitch = RowPitch,
-        };
     }
 }

@@ -18,6 +18,6 @@ public sealed class MainMenuViewModel
 
     public bool CanOpenAbout { get; set; }
 
-    /// <summary>Temporary: New Game starts vanilla proving-grounds until new-game-flow exists.</summary>
+    /// <summary>Opens the New Game flow (scenario + level).</summary>
     public bool CanStartNewGame { get; set; } = true;
 }

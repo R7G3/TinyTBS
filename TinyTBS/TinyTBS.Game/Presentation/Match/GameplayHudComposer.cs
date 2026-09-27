@@ -96,6 +96,12 @@ public sealed class GameplayHudComposer
     public void HandleShopGamepadNavigation(IGameCommandSource commands) =>
         _shop.HandleGamepadNavigation(commands);
 
+    public void HandlePauseGamepadNavigation(IGameCommandSource commands) =>
+        _pause.HandleGamepadNavigation(commands);
+
+    public void HandleCellActionChooserGamepadNavigation(IGameCommandSource commands) =>
+        _cellActionChooser.HandleGamepadNavigation(commands);
+
     public void ClearUiFocus()
     {
         _pause.ClearFocus();
