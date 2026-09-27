@@ -11,8 +11,8 @@ using TinyTBS.Game.ViewModels;
 namespace TinyTBS.Game.Presentation.Content;
 
 /// <summary>
-/// Polished content library: panel, Modules/Bundles tabs, scrollable rows, bottom actions.
-/// Keyboard / gamepad / mouse via focus list + <see cref="GameCommand"/>.
+/// Content library shell: panel, tabs, scroll host, bottom actions, focus navigation.
+/// Tab list bodies and detail overlay live in sibling types.
 /// </summary>
 public sealed class ContentLibraryView
 {
@@ -20,9 +20,11 @@ public sealed class ContentLibraryView
     private const float ListMinHeight = 100f;
     private const float ListMaxHeight = 320f;
     private const float RowSpacing = 6f;
-    private const float RowPitchEstimate = 48f;
+    private const float DefaultRowPitch = ContentLibraryModulesTabBody.RowPitch;
     private const float ChromeEstimateComfortable = 260f;
     private const float ChromeEstimateCompact = 220f;
+
+    private readonly ContentLibraryDetailOverlay _detail = new();
 
     private Panel? _rootPanel;
     private Panel? _shell;
@@ -42,16 +44,13 @@ public sealed class ContentLibraryView
     private int _listFocusStartIndex = -1;
     private int _listFocusCount;
     private int _listRowCount;
-    private float _listRowPitch = RowPitchEstimate;
+    private float _listRowPitch = DefaultRowPitch;
     private int _actionFocusStartIndex = -1;
     private int _actionFocusCount;
     private float _lastButtonBarWidth = -1f;
     private Action<string>? _onUninstallModule;
-    private Panel? _detailOverlay;
-    private readonly List<(Button Button, Action Activate)> _detailFocusable = [];
-    private int _detailFocusIndex;
 
-    public bool IsDetailOpen => _detailOverlay is not null;
+    public bool IsDetailOpen => _detail.IsOpen;
 
     public void Build(
         ContentLibraryViewModel viewModel,
@@ -123,7 +122,10 @@ public sealed class ContentLibraryView
         _listScroll.AddChild(_listPanel);
 
         _listFocusStartIndex = _focusableEntries.Count;
-        PopulateList(viewModel, onPickInstallFromDevice, onInstallArchive);
+        var listBody = new ContentLibraryListBuilder(_listPanel, _focusableEntries);
+        var tabResult = PopulateActiveTab(listBody, viewModel, onPickInstallFromDevice, onInstallArchive);
+        _listRowCount = tabResult.RowCount;
+        _listRowPitch = tabResult.RowPitch;
         _listFocusCount = _focusableEntries.Count - _listFocusStartIndex;
 
         AddBottomActions(stack, viewModel, onBack);
@@ -211,7 +213,7 @@ public sealed class ContentLibraryView
     {
         if (IsDetailOpen)
         {
-            HandleDetailInput(commands);
+            _detail.HandleInput(commands);
             return;
         }
 
@@ -257,17 +259,11 @@ public sealed class ContentLibraryView
     }
 
     /// <summary>Closes the module detail popup if open.</summary>
-    public bool TryCloseDetail()
-    {
-        if (!IsDetailOpen)
-            return false;
-
-        CloseDetail();
-        return true;
-    }
+    public bool TryCloseDetail() => _detail.TryClose();
 
     public void Clear()
     {
+        _detail.Close(notifyClosed: false);
         GumService.Default.Root.Children.Clear();
         _rootPanel = null;
         _shell = null;
@@ -282,23 +278,80 @@ public sealed class ContentLibraryView
         _actionButtons.Clear();
         _focusableEntries.Clear();
         _onUninstallModule = null;
-        CloseDetail();
         _focusIndex = 0;
         _ownedFocusIndex = 0;
         _listFocusStartIndex = -1;
         _listFocusCount = 0;
         _listRowCount = 0;
-        _listRowPitch = RowPitchEstimate;
+        _listRowPitch = DefaultRowPitch;
         _actionFocusStartIndex = -1;
         _actionFocusCount = 0;
         _lastButtonBarWidth = -1f;
     }
 
-    /// <summary>
-    /// Left/Right: bottom actions move focus along that row; tabs/list switch tabs.
-    /// Uses owned focus only — after Gum Update, Left/Right may already have moved
-    /// highlight to a neighbor (often Back); do not follow that for region detection.
-    /// </summary>
+    private ContentLibraryTabBodyResult PopulateActiveTab(
+        ContentLibraryListBuilder list,
+        ContentLibraryViewModel viewModel,
+        Action onPickInstallFromDevice,
+        Action<string> onInstallArchive) =>
+        viewModel.ActiveTab switch
+        {
+            ContentLibraryTab.Bundles => ContentLibraryBundlesTabBody.Populate(
+                list,
+                viewModel.Bundles,
+                ShowBundleDetail),
+            ContentLibraryTab.Install => ContentLibraryInstallTabBody.Populate(
+                list,
+                viewModel,
+                onPickInstallFromDevice,
+                onInstallArchive),
+            _ => ContentLibraryModulesTabBody.Populate(
+                list,
+                viewModel.Modules,
+                ShowModuleDetail),
+        };
+
+    private void ShowModuleDetail(ContentModuleRowViewModel module)
+    {
+        if (_rootPanel is null)
+            return;
+
+        _detail.Open(
+            _rootPanel,
+            module.Title,
+            $"{module.TypeLabel}  ·  v{module.Version}  ·  {module.SourceLabel}  ·  {module.ModuleId}",
+            string.IsNullOrWhiteSpace(module.Description) ? "No description." : module.Description,
+            module.CanUninstall
+                ? () =>
+                {
+                    var moduleId = module.ModuleId;
+                    _detail.Close();
+                    _onUninstallModule?.Invoke(moduleId);
+                }
+                : null,
+            onClosed: RestoreShellFocusAfterDetail);
+    }
+
+    private void ShowBundleDetail(ContentBundleRowViewModel bundle)
+    {
+        if (_rootPanel is null)
+            return;
+
+        _detail.Open(
+            _rootPanel,
+            bundle.Title,
+            $"bundle  ·  {bundle.SourceLabel}  ·  {bundle.BundleId}",
+            "Modules: " + bundle.ModulesSummary,
+            removeAction: null,
+            onClosed: RestoreShellFocusAfterDetail);
+    }
+
+    private void RestoreShellFocusAfterDetail()
+    {
+        if (_focusableEntries.Count > 0)
+            ApplyFocusIndex();
+    }
+
     private void HandleHorizontalNavigate(int delta)
     {
         if (_focusableEntries.Count == 0)
@@ -394,298 +447,6 @@ public sealed class ContentLibraryView
         _focusableEntries.Add((button, onActivate));
     }
 
-    private void PopulateList(
-        ContentLibraryViewModel viewModel,
-        Action onPickInstallFromDevice,
-        Action<string> onInstallArchive)
-    {
-        ArgumentNullException.ThrowIfNull(_listPanel);
-
-        switch (viewModel.ActiveTab)
-        {
-            case ContentLibraryTab.Bundles:
-                PopulateBundles(viewModel.Bundles);
-                _listRowCount = viewModel.Bundles.Count;
-                _listRowPitch = 72f;
-                break;
-            case ContentLibraryTab.Install:
-                PopulateInstalls(viewModel, onPickInstallFromDevice, onInstallArchive);
-                break;
-            default:
-                PopulateModules(viewModel.Modules);
-                _listRowCount = viewModel.Modules.Count;
-                _listRowPitch = RowPitchEstimate;
-                break;
-        }
-    }
-
-    private void PopulateModules(IReadOnlyList<ContentModuleRowViewModel> modules)
-    {
-        if (modules.Count == 0)
-        {
-            AddEmptyHint("No modules in the library.");
-            return;
-        }
-
-        foreach (var module in modules)
-        {
-            var captured = module;
-            AddListRow(captured.SummaryLine, () => ShowModuleDetail(captured));
-        }
-    }
-
-    private void PopulateBundles(IReadOnlyList<ContentBundleRowViewModel> bundles)
-    {
-        if (bundles.Count == 0)
-        {
-            AddEmptyHint("No bundle presets.");
-            return;
-        }
-
-        foreach (var bundle in bundles)
-        {
-            var captured = bundle;
-            AddTwoLineListRow(
-                captured.SummaryLine,
-                captured.DetailLine,
-                () => ShowBundleDetail(captured));
-        }
-    }
-
-    private void PopulateInstalls(
-        ContentLibraryViewModel viewModel,
-        Action onPickInstallFromDevice,
-        Action<string> onInstallArchive)
-    {
-        _listRowPitch = RowPitchEstimate;
-
-        AddListRow("From device…", onPickInstallFromDevice);
-        AddListRow(
-            "From catalog… (soon)",
-            onActivate: () => { },
-            isEnabled: viewModel.CanInstallFromCatalog);
-
-        var pending = viewModel.PendingInstalls;
-        if (pending.Count > 0)
-        {
-            AddEmptyHint("Queued in app Downloads (confirm to install):");
-            foreach (var item in pending)
-            {
-                var path = item.FullPath;
-                AddListRow(item.FileName, () => onInstallArchive(path));
-            }
-
-            _listRowCount = 2 + 1 + pending.Count;
-        }
-        else
-        {
-            AddEmptyHint(
-                "Pick a .tinymod.zip from your device, or use the catalog when it is available.");
-            _listRowCount = 3;
-        }
-    }
-
-    private void ShowModuleDetail(ContentModuleRowViewModel module)
-    {
-        if (_rootPanel is null)
-            return;
-
-        CloseDetail();
-        OpenDetailCard(
-            module.Title,
-            $"{module.TypeLabel}  ·  v{module.Version}  ·  {module.SourceLabel}  ·  {module.ModuleId}",
-            string.IsNullOrWhiteSpace(module.Description) ? "No description." : module.Description,
-            module.CanUninstall
-                ? () =>
-                {
-                    var moduleId = module.ModuleId;
-                    CloseDetail();
-                    _onUninstallModule?.Invoke(moduleId);
-                }
-                : null);
-    }
-
-    private void ShowBundleDetail(ContentBundleRowViewModel bundle)
-    {
-        if (_rootPanel is null)
-            return;
-
-        CloseDetail();
-        OpenDetailCard(
-            bundle.Title,
-            $"bundle  ·  {bundle.SourceLabel}  ·  {bundle.BundleId}",
-            "Modules: " + bundle.ModulesSummary,
-            removeAction: null);
-    }
-
-    private void OpenDetailCard(string titleText, string metaText, string bodyText, Action? removeAction)
-    {
-        ArgumentNullException.ThrowIfNull(_rootPanel);
-
-        _detailOverlay = new Panel();
-        _detailOverlay.Dock(Dock.Fill);
-        _rootPanel.AddChild(_detailOverlay);
-
-        var scrim = new Panel();
-        scrim.Dock(Dock.Fill);
-        _detailOverlay.AddChild(scrim);
-        GumUiLayout.AddSolidBackground(scrim, ContentUiColors.DetailScrim);
-
-        var card = new Panel();
-        GumUiLayout.CenterInParent(card, xPercent: 50f, yPercent: 50f);
-        GumUiLayout.SetBoundedWidth(card, maxPixels: 480f, parentPercent: 90f);
-        card.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        _detailOverlay.AddChild(card);
-        GumUiLayout.AddSolidBackground(card, ContentUiColors.Panel);
-
-        var stack = GumUiLayout.CreateVerticalStackPanel(spacing: 8f, widthPercent: 92f);
-        GumUiLayout.CenterHorizontallyInParent(stack);
-        card.AddChild(stack);
-
-        GumUiLayout.AddVerticalSpacer(stack, 14f);
-
-        var title = new Label { Text = titleText };
-        GumUiLayout.FillParentWidth(title);
-        stack.AddChild(title);
-
-        var meta = new Label { Text = metaText };
-        GumUiLayout.FillParentWidth(meta);
-        stack.AddChild(meta);
-
-        var body = new Label { Text = bodyText };
-        GumUiLayout.FillParentWidth(body);
-        stack.AddChild(body);
-
-        var actionsHost = new Panel();
-        GumUiLayout.FillParentWidth(actionsHost);
-        actionsHost.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        stack.AddChild(actionsHost);
-
-        var detailButtons = new List<Button>();
-        if (removeAction is not null)
-        {
-            var removeButton = new Button { Text = "Remove" };
-            removeButton.Click += (_, _) => removeAction();
-            detailButtons.Add(removeButton);
-            _detailFocusable.Add((removeButton, removeAction));
-        }
-
-        var closeButton = new Button { Text = "Close" };
-        closeButton.Click += (_, _) => CloseDetail();
-        detailButtons.Add(closeButton);
-        _detailFocusable.Add((closeButton, CloseDetail));
-
-        var canvasWidth = GumService.Default.CanvasWidth;
-        var cardInner = Math.Min(480f, canvasWidth > 0 ? canvasWidth * 0.9f : 480f) * 0.92f;
-        GumUiLayout.LayoutAdaptiveButtonRows(
-            actionsHost,
-            detailButtons,
-            cardInner,
-            spacing: 8f,
-            minButtonWidth: 88f,
-            preferredButtonWidth: 140f);
-
-        GumUiLayout.AddVerticalSpacer(stack, 14f);
-
-        _detailFocusIndex = Math.Max(0, _detailFocusable.Count - 1);
-        ApplyDetailFocusIndex();
-    }
-
-    private void CloseDetail()
-    {
-        if (_detailOverlay is not null)
-        {
-            if (_rootPanel is not null)
-            {
-                for (var i = _rootPanel.Visual.Children.Count - 1; i >= 0; i--)
-                {
-                    if (ReferenceEquals(_rootPanel.Visual.Children[i], _detailOverlay.Visual))
-                    {
-                        _rootPanel.Visual.Children.RemoveAt(i);
-                        break;
-                    }
-                }
-            }
-
-            _detailOverlay.Visual.Parent = null;
-            _detailOverlay.IsVisible = false;
-            _detailOverlay = null;
-        }
-
-        _detailFocusable.Clear();
-        _detailFocusIndex = 0;
-        if (_focusableEntries.Count > 0)
-            ApplyFocusIndex();
-    }
-
-    private void HandleDetailInput(IGameCommandSource commands)
-    {
-        if (_detailFocusable.Count == 0)
-            return;
-
-        if (commands.WasPressed(GameCommand.NavigateDown)
-            || commands.WasPressed(GameCommand.NavigateRight))
-        {
-            _detailFocusIndex = Math.Min(_detailFocusIndex + 1, _detailFocusable.Count - 1);
-            ApplyDetailFocusIndex();
-            return;
-        }
-
-        if (commands.WasPressed(GameCommand.NavigateUp)
-            || commands.WasPressed(GameCommand.NavigateLeft))
-        {
-            _detailFocusIndex = Math.Max(_detailFocusIndex - 1, 0);
-            ApplyDetailFocusIndex();
-            return;
-        }
-
-        if (commands.WasPressed(GameCommand.Confirm))
-        {
-            _detailFocusable[_detailFocusIndex].Activate();
-            return;
-        }
-
-        // B / Esc / Back also close here so gamepad does not depend only on the screen handler.
-        if (commands.WasPressed(GameCommand.Cancel)
-            || commands.WasPressed(GameCommand.Back)
-            || commands.WasPressed(GameCommand.Info)
-            || commands.WasPressed(GameCommand.Pause))
-        {
-            CloseDetail();
-            return;
-        }
-
-        MaintainDetailFocus();
-    }
-
-    private void ApplyDetailFocusIndex()
-    {
-        if (_detailFocusable.Count == 0)
-            return;
-
-        _detailFocusIndex = Math.Clamp(_detailFocusIndex, 0, _detailFocusable.Count - 1);
-        foreach (var (button, _) in _detailFocusable)
-        {
-            if (button.IsFocused)
-                button.IsFocused = false;
-        }
-
-        _detailFocusable[_detailFocusIndex].Button.IsFocused = true;
-    }
-
-    private void MaintainDetailFocus()
-    {
-        for (var index = 0; index < _detailFocusable.Count; index++)
-        {
-            if (!_detailFocusable[index].Button.IsFocused)
-                continue;
-            _detailFocusIndex = index;
-            return;
-        }
-
-        ApplyDetailFocusIndex();
-    }
-
     private void AddBottomActions(Panel parent, ContentLibraryViewModel viewModel, Action onBack)
     {
         _actionBarHost = new Panel();
@@ -719,83 +480,6 @@ public sealed class ContentLibraryView
         }
 
         _actionButtons.Add(button);
-    }
-
-    private void AddListRow(string text, Action onActivate, bool isEnabled = true)
-    {
-        ArgumentNullException.ThrowIfNull(_listPanel);
-
-        var button = new Button { Text = text, IsEnabled = isEnabled };
-        GumUiLayout.FillParentWidth(button);
-        if (isEnabled)
-        {
-            button.Click += (_, _) => onActivate();
-            _focusableEntries.Add((button, onActivate));
-        }
-        else
-        {
-            button.Visual.HasEvents = false;
-        }
-
-        _listPanel.AddChild(button);
-    }
-
-    private void AddTwoLineListRow(string titleLine, string detailLine, Action onActivate)
-    {
-        ArgumentNullException.ThrowIfNull(_listPanel);
-
-        // Same pattern as shop offer rows: Dock.Fill button grows with the content shell,
-        // so focus highlight covers both title and detail lines.
-        const float padding = 6f;
-
-        var row = new Panel();
-        row.Visual.HasEvents = false;
-        row.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        GumUiLayout.FillParentWidth(row);
-        _listPanel.AddChild(row);
-
-        var button = new Button { Text = string.Empty, IsEnabled = true };
-        button.Dock(Dock.Fill);
-        button.Click += (_, _) => onActivate();
-        row.AddChild(button);
-        _focusableEntries.Add((button, onActivate));
-
-        var shell = new Panel();
-        shell.Visual.HasEvents = false;
-        shell.Visual.X = padding;
-        shell.Visual.Y = 0;
-        shell.Visual.WidthUnits = DimensionUnitType.RelativeToParent;
-        shell.Visual.Width = -(padding * 2);
-        shell.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        shell.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
-        shell.Visual.StackSpacing = 2f;
-        row.AddChild(shell);
-
-        GumUiLayout.AddVerticalSpacer(shell, padding);
-
-        var title = new Label { Text = titleLine };
-        title.Visual.HasEvents = false;
-        title.Visual.WidthUnits = DimensionUnitType.RelativeToParent;
-        title.Visual.Width = 0;
-        title.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        shell.AddChild(title);
-
-        var detail = new Label { Text = detailLine };
-        detail.Visual.HasEvents = false;
-        detail.Visual.WidthUnits = DimensionUnitType.RelativeToParent;
-        detail.Visual.Width = 0;
-        detail.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        shell.AddChild(detail);
-
-        GumUiLayout.AddVerticalSpacer(shell, padding);
-    }
-
-    private void AddEmptyHint(string text)
-    {
-        ArgumentNullException.ThrowIfNull(_listPanel);
-        var label = new Label { Text = text };
-        GumUiLayout.FillParentWidth(label);
-        _listPanel.AddChild(label);
     }
 
     private void FocusInitial()
@@ -877,7 +561,7 @@ public sealed class ContentLibraryView
         }
 
         var rowIndex = _focusIndex - _listFocusStartIndex;
-        var rowPitch = _activeTab == ContentLibraryTab.Bundles ? 72f : RowPitchEstimate;
+        var rowPitch = _listRowPitch;
         var target = rowIndex * rowPitch;
         var current = _listScroll.VerticalScrollBarValue;
         var viewHeight = _listScroll.Visual.Height > 1f ? _listScroll.Visual.Height : ListMaxHeight;
