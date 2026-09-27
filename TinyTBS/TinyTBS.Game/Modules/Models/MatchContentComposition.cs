@@ -46,4 +46,48 @@ public sealed class MatchContentComposition
             Replaces = scenario.Replaces,
         };
     }
+
+    /// <summary>
+    /// Builds match composition from a bundle preset.
+    /// <paramref name="replaces"/> usually comes from the scenario module (bundles do not carry replaces).
+    /// </summary>
+    public static MatchContentComposition FromBundleDefaults(
+        ContentBundleDefinition bundle,
+        IReadOnlyList<ContentIdReplace>? replaces = null)
+    {
+        ArgumentNullException.ThrowIfNull(bundle);
+
+        if (bundle.Defaults.UnitsModuleIds.Count == 0)
+        {
+            throw new MatchContentCompositionException(
+                $"Bundle '{bundle.BundleId}' defaults.units is empty.");
+        }
+
+        if (bundle.Defaults.BuildingsModuleIds.Count == 0)
+        {
+            throw new MatchContentCompositionException(
+                $"Bundle '{bundle.BundleId}' defaults.buildings is empty.");
+        }
+
+        if (string.IsNullOrWhiteSpace(bundle.Defaults.ThemeModuleId))
+        {
+            throw new MatchContentCompositionException(
+                $"Bundle '{bundle.BundleId}' defaults.theme is missing.");
+        }
+
+        if (string.IsNullOrWhiteSpace(bundle.Defaults.ScenarioModuleId))
+        {
+            throw new MatchContentCompositionException(
+                $"Bundle '{bundle.BundleId}' defaults.scenario is missing.");
+        }
+
+        return new MatchContentComposition
+        {
+            ScenarioModuleId = bundle.Defaults.ScenarioModuleId,
+            UnitsModuleIds = bundle.Defaults.UnitsModuleIds,
+            BuildingsModuleIds = bundle.Defaults.BuildingsModuleIds,
+            ThemeModuleId = bundle.Defaults.ThemeModuleId,
+            Replaces = replaces ?? [],
+        };
+    }
 }

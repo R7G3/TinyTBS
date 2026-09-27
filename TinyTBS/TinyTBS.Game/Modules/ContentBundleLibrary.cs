@@ -1,0 +1,78 @@
+using TinyTBS.Engine.IO;
+using TinyTBS.Game.Modules.Models;
+
+namespace TinyTBS.Game.Modules;
+
+/// <summary>
+/// Scans content-bundle presets: user <c>Bundles/</c> and bundled <c>Vanilla/Bundles</c>.
+/// </summary>
+public sealed class ContentBundleLibrary
+{
+    private readonly IFileContentProvider _files;
+    private readonly IUserDataPaths _userDataPaths;
+
+    public ContentBundleLibrary(IFileContentProvider files, IUserDataPaths userDataPaths)
+    {
+        _files = files ?? throw new ArgumentNullException(nameof(files));
+        _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
+    }
+
+    public IReadOnlyList<ContentBundleDefinition> ListUserBundles() =>
+        ScanBundlesRoot(_userDataPaths.Bundles, ContentModuleSource.UserLibrary);
+
+    public IReadOnlyList<ContentBundleDefinition> ListBundledBundles()
+    {
+        var bundledRoot = _files.Combine(
+            AppContext.BaseDirectory,
+            ContentBundleLocator.BundledVanillaBundlesRelativePath);
+        return ScanBundlesRoot(bundledRoot, ContentModuleSource.Bundled);
+    }
+
+    /// <summary>
+    /// User library plus bundled presets not overridden by the same <c>bundle.id</c> in user data.
+    /// </summary>
+    public IReadOnlyList<ContentBundleDefinition> ListEffectiveBundles()
+    {
+        var userBundles = ListUserBundles();
+        var userIds = new HashSet<string>(
+            userBundles.Select(bundle => bundle.BundleId),
+            StringComparer.Ordinal);
+
+        var result = new List<ContentBundleDefinition>(userBundles);
+        foreach (var bundled in ListBundledBundles())
+        {
+            if (userIds.Contains(bundled.BundleId))
+                continue;
+            result.Add(bundled);
+        }
+
+        return result
+            .OrderBy(bundle => bundle.BundleId, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private IReadOnlyList<ContentBundleDefinition> ScanBundlesRoot(
+        string bundlesRoot,
+        ContentModuleSource source)
+    {
+        if (!Directory.Exists(bundlesRoot))
+            return [];
+
+        var result = new List<ContentBundleDefinition>();
+        foreach (var filePath in Directory.GetFiles(bundlesRoot, "*" + ContentBundleFiles.BundleJsonExtension))
+        {
+            try
+            {
+                result.Add(ContentBundleLoader.Load(filePath, _files, source));
+            }
+            catch (ContentBundleException)
+            {
+                // Skip corrupt presets so one bad file does not break the library.
+            }
+        }
+
+        return result
+            .OrderBy(bundle => bundle.BundleId, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+}

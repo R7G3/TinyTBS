@@ -156,9 +156,36 @@ ocean_theme.tinymod.zip
 ```text
 {UserData}/Content/Bundles/
   sw_universe.bundle.json
+Vanilla/Bundles/          # bundled presets (рядом с exe)
+  vanilla.bundle.json
 ```
 
-Только JSON-пресет (id набора, title, список module id, defaults). Не содержит карт/юнитов. На старте матча подставляет defaults; состав контента можно изменить. Микс модулей из разных наборов не запрещён правилами bundle.
+Только JSON-пресет (id набора, title, список module id, defaults). Не содержит карт/юнитов. На старте матча подставляет defaults; состав контента можно изменить. Микс модулей из разных наборов не запрещён правилами bundle. `defaults.*` должны ссылаться на id из `modules[]`.
+
+Пример:
+
+```json
+{
+  "formatVersion": 1,
+  "id": "vanilla",
+  "title": "Vanilla",
+  "modules": [
+    "vanilla_scenario",
+    "vanilla_units",
+    "vanilla_buildings",
+    "vanilla_theme"
+  ],
+  "defaults": {
+    "scenario": "vanilla_scenario",
+    "units": ["vanilla_units"],
+    "buildings": ["vanilla_buildings"],
+    "theme": "vanilla_theme"
+  }
+}
+```
+
+**В коде:** `ContentBundleLocator` / `ContentBundleLibrary` / `ContentBundleLoader` — user `Bundles/` → bundled `Vanilla/Bundles`.  
+`MatchContentComposition.FromBundleDefaults` (+ replaces из scenario). New Game грузит пресет `vanilla`.
 
 ## Рантайм матча
 
@@ -190,7 +217,8 @@ ocean_theme.tinymod.zip
 Конфликт одинаковых `ContentId` в составе и нерезолвящиеся типы на карте — ошибка со списком.
 `UnitModuleLoader` / `BuildingModuleLoader` / `ThemeModuleLoader` грузят модули по id через `ContentModuleLocator` (user `Modules/` → bundled `Vanilla/Modules`).
 `TinymodInstaller` ставит `{id}.tinymod.zip` в user `Modules/{module.id}/` (замена по id); `ContentModuleLibrary` сканирует user + bundled.
-Terrain/gravestone — из theme. Bundle UI / content-ui / abilities/бой — следующие срезы.
+`ContentBundleLibrary` / `ContentBundleLocator` грузят `*.bundle.json` (user `Bundles/` → `Vanilla/Bundles`); New Game — пресет `vanilla`.
+Terrain/gravestone — из theme. content-ui / abilities/бой — следующие срезы.
 
 ## Связанные документы
 

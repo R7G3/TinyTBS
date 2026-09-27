@@ -95,5 +95,9 @@ public sealed class MainMenuScreen : GameScreen
 
     private void StartNewGame() =>
         ScreenManager.ReplaceScreen(
-            new LoadingScreen(TinyGame, _assets, GameplaySessionFactory.ProvingGroundsLevelId));
+            new LoadingScreen(
+                TinyGame,
+                _assets,
+                GameplaySessionFactory.ProvingGroundsLevelId,
+                GameplaySessionFactory.VanillaBundleId));
 }

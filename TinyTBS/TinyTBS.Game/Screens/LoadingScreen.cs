@@ -4,6 +4,7 @@ using MonoGame.Extended.Screens;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Match;
+using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.Loading;
 using TinyTBS.Game.ViewModels;
 
@@ -25,6 +26,7 @@ public sealed class LoadingScreen : GameScreen
 
     private readonly IAssetResolver _assets;
     private readonly string _levelId;
+    private readonly string? _bundleId;
     private readonly LoadingViewModel _viewModel = new();
     private readonly LoadingView _view = new();
 
@@ -33,12 +35,17 @@ public sealed class LoadingScreen : GameScreen
     private LoadPhase _phase = LoadPhase.Warmup;
     private int _warmupFrames;
 
-    public LoadingScreen(GameMain game, IAssetResolver assets, string levelId)
+    public LoadingScreen(
+        GameMain game,
+        IAssetResolver assets,
+        string levelId,
+        string? bundleId = null)
         : base(game)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelId);
         _assets = assets;
         _levelId = levelId.Trim();
+        _bundleId = string.IsNullOrWhiteSpace(bundleId) ? null : bundleId.Trim();
     }
 
     private GameMain TinyGame => (GameMain)Game;
@@ -53,6 +60,17 @@ public sealed class LoadingScreen : GameScreen
         _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
         _view.Build(_viewModel);
 
+        MatchContentComposition? composition = null;
+        string? scenarioModuleId = null;
+        if (_bundleId is not null)
+        {
+            composition = GameplaySessionFactory.LoadCompositionFromBundle(
+                _bundleId,
+                TinyGame.Files,
+                TinyGame.UserDataPaths);
+            scenarioModuleId = composition.ScenarioModuleId;
+        }
+
         _pipeline = new MatchSessionLoadPipeline(
             GraphicsDevice,
             Content,
@@ -60,7 +78,9 @@ public sealed class LoadingScreen : GameScreen
             _assets,
             TinyGame.Files,
             TinyGame.UserDataPaths,
-            _levelId);
+            _levelId,
+            scenarioModuleId,
+            composition);
 
         ApplyProgress(_pipeline.Progress);
         _phase = LoadPhase.Warmup;
