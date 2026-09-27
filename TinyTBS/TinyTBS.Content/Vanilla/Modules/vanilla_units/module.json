@@ -4,6 +4,7 @@
   "type": "units",
   "namespace": "vanilla",
   "title": "Vanilla Units",
+  "description": "Core unit roster (king, swordsman, archer, and the rest of the GDD vanilla set) with recruit pool.",
   "version": "1.0.0",
   "content": { "unitsDir": "Units/" },
   "recruit": {

@@ -19,17 +19,20 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     private readonly IUserDataPaths _userDataPaths;
     private readonly IFileContentProvider _files;
     private readonly IAssetResolver _assets;
+    private readonly IExternalFilePicker _filePicker;
 
     private SpriteBatch? _spriteBatch;
 
     public GameMain(
         IUserDataPaths userDataPaths,
         IFileContentProvider files,
-        IAssetResolver assets)
+        IAssetResolver assets,
+        IExternalFilePicker filePicker)
     {
         _userDataPaths = userDataPaths;
         _files = files;
         _assets = assets;
+        _filePicker = filePicker;
 
         _graphics = new GraphicsDeviceManager(this);
         _screenManager = new ScreenManager();
@@ -42,6 +45,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     public IUserDataPaths UserDataPaths => _userDataPaths;
     public IFileContentProvider Files => _files;
     public IAssetResolver Assets => _assets;
+    public IExternalFilePicker FilePicker => _filePicker;
 
     public IGameCommandSource Commands => _commands;
 

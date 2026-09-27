@@ -141,4 +141,97 @@ public static class GumUiLayout
         panel.Visual.StackSpacing = spacing;
         return panel;
     }
+
+    /// <summary>
+    /// Lays out <paramref name="buttons"/> into one or more horizontal rows that fit
+    /// <paramref name="availableWidth"/> (wraps to extra rows and shrinks widths as needed).
+    /// <paramref name="host"/> becomes a vertical stack of row panels; buttons are reparented.
+    /// </summary>
+    public static void LayoutAdaptiveButtonRows(
+        Panel host,
+        IReadOnlyList<Button> buttons,
+        float availableWidth,
+        float spacing = 8f,
+        float minButtonWidth = 72f,
+        float preferredButtonWidth = 110f)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        ArgumentNullException.ThrowIfNull(buttons);
+
+        host.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
+        host.Visual.StackSpacing = spacing;
+        host.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+        FillParentWidth(host);
+
+        // Detach buttons before clearing rows so they are not disposed with old parents.
+        foreach (var button in buttons)
+            button.Visual.Parent = null;
+
+        host.Visual.Children.Clear();
+
+        if (buttons.Count == 0 || availableWidth <= 1f)
+            return;
+
+        var widthBudget = Math.Max(minButtonWidth, availableWidth);
+        var columns = ResolveColumnCount(
+            buttons.Count,
+            widthBudget,
+            spacing,
+            minButtonWidth,
+            preferredButtonWidth);
+
+        var buttonWidth = (widthBudget - spacing * Math.Max(columns - 1, 0)) / columns;
+        buttonWidth = Math.Clamp(buttonWidth, minButtonWidth, preferredButtonWidth);
+
+        Panel? currentRow = null;
+        var inRow = 0;
+        for (var i = 0; i < buttons.Count; i++)
+        {
+            if (currentRow is null || inRow >= columns)
+            {
+                currentRow = new Panel();
+                currentRow.Visual.HasEvents = false;
+                currentRow.Visual.ChildrenLayout = ChildrenLayout.LeftToRightStack;
+                currentRow.Visual.StackSpacing = spacing;
+                currentRow.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+                FillParentWidth(currentRow);
+                host.AddChild(currentRow);
+                inRow = 0;
+            }
+
+            var button = buttons[i];
+            SetAbsoluteWidth(button, buttonWidth);
+            currentRow.AddChild(button);
+            inRow++;
+        }
+    }
+
+    private static int ResolveColumnCount(
+        int buttonCount,
+        float availableWidth,
+        float spacing,
+        float minButtonWidth,
+        float preferredButtonWidth)
+    {
+        if (buttonCount <= 1)
+            return 1;
+
+        float RowWidth(int columns) =>
+            columns * preferredButtonWidth + Math.Max(columns - 1, 0) * spacing;
+
+        float MinRowWidth(int columns) =>
+            columns * minButtonWidth + Math.Max(columns - 1, 0) * spacing;
+
+        if (RowWidth(buttonCount) <= availableWidth || MinRowWidth(buttonCount) <= availableWidth)
+            return buttonCount;
+
+        // Prefer 2 columns on phone-like widths when possible; otherwise 1 column stack.
+        for (var columns = Math.Min(buttonCount, 3); columns >= 1; columns--)
+        {
+            if (MinRowWidth(columns) <= availableWidth)
+                return columns;
+        }
+
+        return 1;
+    }
 }

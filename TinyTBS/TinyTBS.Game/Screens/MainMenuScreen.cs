@@ -33,10 +33,10 @@ public sealed class MainMenuScreen : GameScreen
     {
         base.LoadContent();
 
-        // Saves / content library / editor / settings / about arrive in later plan steps.
+        // Saves / editor / settings / about arrive in later plan steps.
         _viewModel.CanContinue = false;
         _viewModel.CanLoadGame = false;
-        _viewModel.CanOpenContent = false;
+        _viewModel.CanOpenContent = true;
         _viewModel.CanOpenEditor = false;
         _viewModel.CanOpenSettings = false;
         _viewModel.CanOpenAbout = false;
@@ -49,7 +49,7 @@ public sealed class MainMenuScreen : GameScreen
             onContinue: () => { },
             onNewGame: StartNewGame,
             onLoadGame: () => { },
-            onContent: () => { },
+            onContent: OpenContent,
             onEditor: () => { },
             onSettings: () => { },
             onAbout: () => { },
@@ -67,7 +67,7 @@ public sealed class MainMenuScreen : GameScreen
     public override void Update(GameTime gameTime)
     {
         GumService.Default.Update(gameTime);
-        _view.HandleGamepadNavigation(TinyGame.Commands);
+        _view.HandleInput(TinyGame.Commands);
 
         if (TinyGame.Commands.WasPressed(GameCommand.Back)
             || TinyGame.Commands.WasPressed(GameCommand.Cancel)
@@ -100,4 +100,7 @@ public sealed class MainMenuScreen : GameScreen
                 _assets,
                 GameplaySessionFactory.ProvingGroundsLevelId,
                 GameplaySessionFactory.VanillaBundleId));
+
+    private void OpenContent() =>
+        ScreenManager.ReplaceScreen(new ContentLibraryScreen(TinyGame, _assets));
 }

@@ -1,3 +1,4 @@
+using Gum;
 using Gum.Converters;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
@@ -13,8 +14,11 @@ namespace TinyTBS.Game.Presentation.Match.World;
 public sealed class MatchCellActionChooserView
 {
     private Panel? _panel;
+    private Panel? _buttonHost;
     private Button? _moveButton;
     private Button? _buyButton;
+    private readonly List<Button> _buttons = [];
+    private float _lastLayoutWidth = -1f;
 
     public void Build(Panel root, Action onCellActionMove, Action onCellActionBuy)
     {
@@ -39,37 +43,29 @@ public sealed class MatchCellActionChooserView
 
         GumUiLayout.AddVerticalSpacer(stack, 6f);
 
-        var buttonRow = new Panel();
-        buttonRow.Visual.HasEvents = false;
-        buttonRow.Visual.WidthUnits = DimensionUnitType.RelativeToChildren;
-        buttonRow.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        buttonRow.Visual.ChildrenLayout = ChildrenLayout.LeftToRightStack;
-        buttonRow.Visual.StackSpacing = 8;
-        stack.AddChild(buttonRow);
-
-        AddHorizontalPad(buttonRow, 6f);
+        _buttonHost = new Panel();
+        _buttonHost.Visual.HasEvents = false;
+        _buttonHost.Visual.WidthUnits = DimensionUnitType.RelativeToChildren;
+        _buttonHost.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+        stack.AddChild(_buttonHost);
 
         _moveButton = new Button { Text = "->" };
-        _moveButton.Visual.Width = 72;
-        _moveButton.Visual.WidthUnits = DimensionUnitType.Absolute;
         _moveButton.Click += (_, _) => onCellActionMove();
-        buttonRow.AddChild(_moveButton);
+        _buttons.Add(_moveButton);
 
         _buyButton = new Button { Text = "$" };
-        _buyButton.Visual.Width = 56;
-        _buyButton.Visual.WidthUnits = DimensionUnitType.Absolute;
         _buyButton.Click += (_, _) => onCellActionBuy();
-        buttonRow.AddChild(_buyButton);
-
-        AddHorizontalPad(buttonRow, 6f);
+        _buttons.Add(_buyButton);
 
         GumUiLayout.AddVerticalSpacer(stack, 6f);
+        ApplyButtonLayout(availableWidth: 160f);
     }
 
     public void Sync(GameplayHudViewModel hud)
     {
         GumMatchVisibility.SetVisible(_panel, hud.IsCellActionChooserVisible);
         Place(hud);
+        ApplyButtonLayout(ResolveAvailableWidth());
     }
 
     public void FocusMove()
@@ -98,14 +94,31 @@ public sealed class MatchCellActionChooserView
         _panel.Y = anchorY;
     }
 
-    private static void AddHorizontalPad(Panel row, float width)
+    private float ResolveAvailableWidth()
     {
-        var pad = new Panel();
-        pad.Visual.HasEvents = false;
-        pad.Visual.Width = width;
-        pad.Visual.WidthUnits = DimensionUnitType.Absolute;
-        pad.Visual.Height = 1;
-        pad.Visual.HeightUnits = DimensionUnitType.Absolute;
-        row.AddChild(pad);
+        var canvasWidth = GumService.Default.CanvasWidth;
+        if (canvasWidth <= 0f)
+            return 160f;
+
+        // Keep the floating chooser readable on phone-like windows without overflowing the cell.
+        return Math.Clamp(canvasWidth * 0.35f, 100f, 180f);
+    }
+
+    private void ApplyButtonLayout(float availableWidth)
+    {
+        if (_buttonHost is null || _buttons.Count == 0)
+            return;
+
+        if (Math.Abs(availableWidth - _lastLayoutWidth) <= 0.5f)
+            return;
+
+        _lastLayoutWidth = availableWidth;
+        GumUiLayout.LayoutAdaptiveButtonRows(
+            _buttonHost,
+            _buttons,
+            availableWidth,
+            spacing: 8f,
+            minButtonWidth: 48f,
+            preferredButtonWidth: 72f);
     }
 }

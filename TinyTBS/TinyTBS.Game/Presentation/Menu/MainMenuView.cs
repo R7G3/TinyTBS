@@ -11,7 +11,7 @@ namespace TinyTBS.Game.Presentation.Menu;
 public sealed class MainMenuView
 {
     private Panel? _rootPanel;
-    private readonly List<Button> _focusableButtons = [];
+    private readonly List<(Button Button, Action Activate)> _focusableEntries = [];
     private int _focusIndex;
 
     public void Build(
@@ -56,22 +56,23 @@ public sealed class MainMenuView
         GumUiLayout.PinToBottomRight(exitButton, insetPixels: 24f, widthPixels: 120f);
         exitButton.Click += (_, _) => onExit();
         _rootPanel.AddChild(exitButton);
-        _focusableButtons.Add(exitButton);
+        _focusableEntries.Add((exitButton, onExit));
 
         FocusFirst();
     }
 
     /// <summary>
-    /// Call after <see cref="GumService"/> Update. Owns D-pad / stick focus so greyed items are skipped.
+    /// After <see cref="GumService"/> Update: D-pad / stick / arrows focus; Confirm activates.
+    /// Mouse uses Gum clicks. Greyed items are not in the focus list.
     /// </summary>
-    public void HandleGamepadNavigation(IGameCommandSource commands)
+    public void HandleInput(IGameCommandSource commands)
     {
-        if (_focusableButtons.Count == 0)
+        if (_focusableEntries.Count == 0)
             return;
 
         if (commands.WasPressed(GameCommand.NavigateDown))
         {
-            _focusIndex = Math.Min(_focusIndex + 1, _focusableButtons.Count - 1);
+            _focusIndex = Math.Min(_focusIndex + 1, _focusableEntries.Count - 1);
             ApplyFocusIndex();
             return;
         }
@@ -80,6 +81,12 @@ public sealed class MainMenuView
         {
             _focusIndex = Math.Max(_focusIndex - 1, 0);
             ApplyFocusIndex();
+            return;
+        }
+
+        if (commands.WasPressed(GameCommand.Confirm))
+        {
+            _focusableEntries[_focusIndex].Activate();
             return;
         }
 
@@ -96,7 +103,7 @@ public sealed class MainMenuView
     {
         GumService.Default.Root.Children.Clear();
         _rootPanel = null;
-        _focusableButtons.Clear();
+        _focusableEntries.Clear();
         _focusIndex = 0;
     }
 
@@ -107,7 +114,7 @@ public sealed class MainMenuView
         if (isEnabled)
         {
             button.Click += (_, _) => onClick();
-            _focusableButtons.Add(button);
+            _focusableEntries.Add((button, onClick));
         }
 
         parent.AddChild(button);
@@ -122,16 +129,16 @@ public sealed class MainMenuView
 
     private bool IsOurFocusIntact()
     {
-        if (_focusIndex < 0 || _focusIndex >= _focusableButtons.Count)
+        if (_focusIndex < 0 || _focusIndex >= _focusableEntries.Count)
             return false;
-        return _focusableButtons[_focusIndex].IsFocused;
+        return _focusableEntries[_focusIndex].Button.IsFocused;
     }
 
     private void SyncFocusIndexFromUi()
     {
-        for (var index = 0; index < _focusableButtons.Count; index++)
+        for (var index = 0; index < _focusableEntries.Count; index++)
         {
-            if (!_focusableButtons[index].IsFocused)
+            if (!_focusableEntries[index].Button.IsFocused)
                 continue;
             _focusIndex = index;
             return;
@@ -140,20 +147,16 @@ public sealed class MainMenuView
 
     private void ApplyFocusIndex()
     {
-        if (_focusableButtons.Count == 0)
+        if (_focusableEntries.Count == 0)
             return;
 
-        _focusIndex = Math.Clamp(_focusIndex, 0, _focusableButtons.Count - 1);
-        ClearAllFocusFlags();
-        _focusableButtons[_focusIndex].IsFocused = true;
-    }
-
-    private void ClearAllFocusFlags()
-    {
-        foreach (var button in _focusableButtons)
+        _focusIndex = Math.Clamp(_focusIndex, 0, _focusableEntries.Count - 1);
+        foreach (var (button, _) in _focusableEntries)
         {
             if (button.IsFocused)
                 button.IsFocused = false;
         }
+
+        _focusableEntries[_focusIndex].Button.IsFocused = true;
     }
 }

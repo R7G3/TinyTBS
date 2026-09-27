@@ -86,6 +86,7 @@ public sealed class TinymodInstaller
                 Type = manifest.Type,
                 ContentNamespace = manifest.ContentNamespace,
                 Title = manifest.Title,
+                Description = manifest.Description,
                 Version = manifest.Version,
                 ModuleRootPath = destinationRoot,
                 Source = ContentModuleSource.UserLibrary,
@@ -139,6 +140,18 @@ public sealed class TinymodInstaller
                 $"Failed to uninstall module '{moduleId}'.",
                 unauthorizedAccessException);
         }
+    }
+
+    /// <summary>Lists <c>*.tinymod.zip</c> archives waiting in <see cref="IUserDataPaths.Downloads"/>.</summary>
+    public IReadOnlyList<string> ListDownloadArchives()
+    {
+        _userDataPaths.EnsureCreated();
+        if (!Directory.Exists(_userDataPaths.Downloads))
+            return [];
+
+        return Directory.GetFiles(_userDataPaths.Downloads, "*" + ContentModuleFiles.TinymodZipExtension)
+            .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static bool HasTinymodExtension(string path)

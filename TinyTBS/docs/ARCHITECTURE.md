@@ -123,14 +123,14 @@ flowchart TB
 
 ## Пути к данным
 
-Через `IUserDataPaths` / `IFileContentProvider` — не хардкодить пути к exe в Game.
+Через `IUserDataPaths` / `IFileContentProvider` / `IExternalFilePicker` (`Engine.IO`, в т.ч. NFD и Linux portal) — не хардкодить пути к exe и не открывать OS-диалоги в Game. Desktop только собирает `DesktopExternalFilePickers.CreateDefault()`.
 
 | Каталог | Desktop | Mobile (будущее) |
 |---------|---------|------------------|
 | Mods / Modules | `{UserData}/Content/Modules/{moduleId}/` | app data |
 | Bundles | `{UserData}/Content/Bundles/*.bundle.json` | app data |
 | Saves | `{UserData}/Saves/` | app data |
-| Downloads | `{UserData}/Downloads/` | app data (сеть — позже) |
+| Downloads | `{UserData}/Downloads/` | app data (кэш каталога / очередь) |
 
 ## Моды
 
@@ -153,7 +153,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 - `TinyTBS.Game.Scripting`: `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost`, `MapScriptContext` + валидатор песочницы
 - `TinyTBS.Engine.Ecs`: `TilemapDrawSystem`, `TeamMaskedSpriteDrawSystem` (base + tint mask)
 - `MatchScene` / `GameplaySessionFactory` / `MatchSessionLoadPipeline` — в Game: level → map → скрипт → атлас → сцена (этапы для loading screen); `MatchCommandApplicator` — команды/pointer→логика (+ хуки скрипта)
-- `GameplayScreen` / `MainMenuScreen` / `LoadingScreen` — тонкая склейка lifecycle; Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
+- `GameplayScreen` / `MainMenuScreen` / `LoadingScreen` / `ContentLibraryScreen` — тонкая склейка lifecycle; Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
 
 ## Ввод
 
@@ -203,11 +203,12 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 14. Состав контента матча + валидация id / replaces — **выполнено** (`match-content-composition`).
 15. Установка `.tinymod.zip` + сканирование библиотеки — **выполнено** (`tinymod-install`: `TinymodInstaller`, `ContentModuleLibrary`).
 16. Пресеты `*.bundle.json` — **выполнено** (`bundles-runtime`: `ContentBundleLocator` / `ContentBundleLibrary`; New Game → `vanilla`).
-17. Content pipeline (срезы):
-    - `content-ui` / `new-game-flow` — экраны Контент и Новая игра
-18. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
-19. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
-20. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
+17. Экран Контент — **выполнено** (`content-ui`: библиотека; Install From device / catalog-soon; очередь Downloads; uninstall user; Download/Update greyed).
+18. Content pipeline (срезы):
+    - `new-game-flow` — экран Новая игра
+19. Сближение матча с GDD: `match-combat-gdd`, `match-economy-capture`, `player-colors` (dimFactor).
+20. `campaigns` + `save-format` — после playable loop; `map-editor` — workspace.
+21. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
 
 ## Связанные ADR
 

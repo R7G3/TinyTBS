@@ -11,6 +11,9 @@ public sealed class ContentModuleInfo
 
     public required string Title { get; init; }
 
+    /// <summary>Optional blurb for library / detail UI (<c>module.json</c> <c>description</c>).</summary>
+    public string? Description { get; init; }
+
     public required string Version { get; init; }
 
     public required string ModuleRootPath { get; init; }

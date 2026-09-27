@@ -1,3 +1,4 @@
+using Gum;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
 using Gum.GueDeriving;
@@ -11,6 +12,7 @@ namespace TinyTBS.Game.Presentation.Match.Hud;
 public sealed class MatchStatusBarView
 {
     private RectangleRuntime? _background;
+    private Panel? _labelRow;
     private Label? _playerLabel;
     private Label? _goldLabel;
     private Label? _turnLabel;
@@ -28,21 +30,21 @@ public sealed class MatchStatusBarView
 
         _background = GumUiLayout.AddSolidBackground(statusBar, hud.StatusBarColor);
 
-        var row = new Panel();
-        row.Dock(Dock.Fill);
-        row.Visual.HasEvents = false;
-        row.Visual.ChildrenLayout = ChildrenLayout.LeftToRightStack;
-        row.Visual.StackSpacing = 24;
-        statusBar.AddChild(row);
+        _labelRow = new Panel();
+        _labelRow.Dock(Dock.Fill);
+        _labelRow.Visual.HasEvents = false;
+        _labelRow.Visual.ChildrenLayout = ChildrenLayout.LeftToRightStack;
+        _labelRow.Visual.StackSpacing = ResolveLabelSpacing();
+        statusBar.AddChild(_labelRow);
 
         _playerLabel = new Label { Text = hud.PlayerLabel };
-        row.AddChild(_playerLabel);
+        _labelRow.AddChild(_playerLabel);
 
         _goldLabel = new Label { Text = hud.GoldText };
-        row.AddChild(_goldLabel);
+        _labelRow.AddChild(_goldLabel);
 
         _turnLabel = new Label { Text = hud.TurnText };
-        row.AddChild(_turnLabel);
+        _labelRow.AddChild(_turnLabel);
     }
 
     public void Sync(GameplayHudViewModel hud)
@@ -55,5 +57,10 @@ public sealed class MatchStatusBarView
             _turnLabel.Text = hud.TurnText;
         if (_background is not null)
             _background.FillColor = hud.StatusBarColor;
+        if (_labelRow is not null)
+            _labelRow.Visual.StackSpacing = ResolveLabelSpacing();
     }
+
+    private static float ResolveLabelSpacing() =>
+        GumService.Default.CanvasWidth is > 0 and < 520f ? 12f : 24f;
 }

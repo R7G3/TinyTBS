@@ -4,6 +4,7 @@
   "type": "theme",
   "namespace": "vanilla_theme",
   "title": "Vanilla Theme",
+  "description": "Default terrain and gravestone art; empty remaps (sprites come from unit/building modules).",
   "version": "1.0.0",
   "content": {
     "terrainDir": "Resources/Images/terrain/",

@@ -4,6 +4,7 @@
   "type": "buildings",
   "namespace": "vanilla",
   "title": "Vanilla Buildings",
+  "description": "Castle and village building types (including ruined village) for vanilla matches.",
   "version": "1.0.0",
   "content": { "buildingsDir": "Buildings/" }
 }

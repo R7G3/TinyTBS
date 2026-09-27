@@ -30,7 +30,7 @@
 
 Продолжить (если есть сохранения) · Новая игра · Загрузка · Контент · Редактор · Настройки · Об игре · Выход.
 
-**Сейчас в коде (`menu-shell-loading`):** оболочка пунктов; нереализованные — greyed. **Новая игра** временно сразу грузит vanilla `proving-grounds` через экран загрузки с этапами. Полный flow — `new-game-flow` / `content-ui` / `save-format`.
+**Сейчас в коде:** оболочка пунктов; **Новая игра** → loading `proving-grounds` (bundle `vanilla`); **Контент** — панель-библиотека (Modules/Bundles; детальный попап + Remove; Install: From device через `IExternalFilePicker`, From catalog greyed; очередь `{UserData}/Downloads`; Download/Update greyed). Нереализованные пункты меню — greyed. Полный flow новой игры — `new-game-flow`.
 
 Фоны главного меню / настроек / загрузки / «Об игре»: изображение с плавным сдвигом (камера «летит» над полем). Идея матового стекла панелей — [ideas/ui-frosted-glass.md](../ideas/ui-frosted-glass.md).
 

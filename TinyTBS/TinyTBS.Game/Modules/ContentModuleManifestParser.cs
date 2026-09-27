@@ -53,6 +53,9 @@ public static class ContentModuleManifestParser
 
         var title = string.IsNullOrWhiteSpace(contentModuleManifest.Title) ? moduleId : contentModuleManifest.Title.Trim();
         var version = string.IsNullOrWhiteSpace(contentModuleManifest.Version) ? "0.0.0" : contentModuleManifest.Version.Trim();
+        var description = string.IsNullOrWhiteSpace(contentModuleManifest.Description)
+            ? null
+            : contentModuleManifest.Description.Trim();
 
         return new ContentModuleInfo
         {
@@ -60,6 +63,7 @@ public static class ContentModuleManifestParser
             Type = moduleType,
             ContentNamespace = contentNamespace,
             Title = title,
+            Description = description,
             Version = version,
             ModuleRootPath = moduleRootPath,
             Source = source,

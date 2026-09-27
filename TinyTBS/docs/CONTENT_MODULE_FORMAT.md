@@ -44,6 +44,8 @@ Vanilla — обычные модули того же формата (fallback �
 
 Корень: `module.json` + данные. Пути в JSON — от корня модуля.
 
+Общие поля манифеста: `id`, `type`, `namespace`, `title`, **`description`** (опционально, текст для UI библиотеки), `version`.
+
 ### scenario
 
 ```text
@@ -93,6 +95,7 @@ ocean_theme.tinymod.zip
   "type": "scenario",
   "namespace": "ocean_story",
   "title": "Ocean Story",
+  "description": "Coastal campaign and skirmish maps — merfolk politics and island strongholds.",
   "version": "1.0.0",
   "defaults": {
     "units": ["vanilla_units", "mermaids"],
@@ -118,6 +121,7 @@ ocean_theme.tinymod.zip
   "type": "units",
   "namespace": "mermaids",
   "title": "Mermaids",
+  "description": "Aquatic units that replace or supplement vanilla infantry on wet maps.",
   "version": "1.0.0",
   "content": { "unitsDir": "Units/" },
   "recruit": {
@@ -135,6 +139,7 @@ ocean_theme.tinymod.zip
   "type": "theme",
   "namespace": "sw_theme",
   "title": "SW Look",
+  "description": "Reskin theme: remaps unit sprites without changing stats.",
   "version": "1.0.0",
   "content": {
     "terrainDir": "Resources/Images/terrain/",
@@ -218,7 +223,8 @@ Vanilla/Bundles/          # bundled presets (рядом с exe)
 `UnitModuleLoader` / `BuildingModuleLoader` / `ThemeModuleLoader` грузят модули по id через `ContentModuleLocator` (user `Modules/` → bundled `Vanilla/Modules`).
 `TinymodInstaller` ставит `{id}.tinymod.zip` в user `Modules/{module.id}/` (замена по id); `ContentModuleLibrary` сканирует user + bundled.
 `ContentBundleLibrary` / `ContentBundleLocator` грузят `*.bundle.json` (user `Bundles/` → `Vanilla/Bundles`); New Game — пресет `vanilla`.
-Terrain/gravestone — из theme. content-ui / abilities/бой — следующие срезы.
+Экран Контент (`ContentLibraryScreen`): список модулей/bundles; Install — From device (`IExternalFilePicker` → `.tinymod.zip`) или From catalog (скоро); очередь `{UserData}/Downloads`; uninstall user; Download/Update greyed.
+Terrain/gravestone — из theme. new-game-flow / abilities/бой — следующие срезы.
 
 ## Связанные документы
 

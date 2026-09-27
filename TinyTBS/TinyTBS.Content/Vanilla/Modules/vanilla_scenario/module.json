@@ -4,6 +4,7 @@
   "type": "scenario",
   "namespace": "vanilla_scenario",
   "title": "Vanilla Scenario",
+  "description": "Bundled maps, levels, and campaign for development and QA (demo, proving-grounds, campaign chapters).",
   "version": "1.0.0",
   "defaults": {
     "units": ["vanilla_units"],
