@@ -90,4 +90,4 @@ Bundles/*.bundle.json   # пресеты defaults, не контейнер ге�
 
 ## Расхождение с текущим демо-кодом
 
-Ранний прототип `MatchState` (сетка 8×8, ход на 1 клетку) снят: матч сходится с GDD по экономике, бою, ability и standard victory/defeat. Дальнейшие срезы — `player-colors`, бот, сейвы.
+Ранний прототип `MatchState` (сетка 8×8, ход на 1 клетку) снят: матч сходится с GDD по экономике, бою, ability и standard victory/defeat. Ближайшие срезы (playtest-перерыв): бот Easy/Normal → сейвы → кампании → редактор; см. [ARCHITECTURE.md](ARCHITECTURE.md) § Порядок внедрения.

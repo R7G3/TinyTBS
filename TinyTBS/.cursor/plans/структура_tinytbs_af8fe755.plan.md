@@ -39,15 +39,15 @@ isProject: false
 - [x] **new-game-flow** — вкладки Mode → Scenario → Level → Composition → Lobby; слоты Local (+ Bot/Remote greyed); gold/unit cap ± (hold gamepad + mouse)
 - [x] **match-gdd-loop** — economy + combat + post-move по клеткам (без контекстного меню) + abilities + standard victory/defeat; Cancel отменяет ход
 
-### Дальше
+### Дальше (playtest-перерыв: бот → сейвы → кампании → редактор)
 
-- [ ] **player-colors** — color picker в лобби / профиле (dimFactor отрисовки уже в match-gdd-loop)
-- [ ] **bot-search-ab** — бот схватки: вариант 2 (minimax / αβ + глубина Easy/Normal/Hard), честные правила; комментарии в коде; лобби Bot. **Перед стартом шага** — задать пользователю открытые вопросы из [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md) с пояснениями
-- [ ] **settings-ui** — экран **Настройки** (сейчас greyed): графика (в т.ч. `ui-scale-hidpi`), ввод (3 столбца биндов), профиль цветов игрока; persist JSON. Канон: [UI_AND_FLOW § Настройки](../../docs/design/UI_AND_FLOW.md#настройки)
-- [ ] **ui-scale-hidpi** — масштаб UI и поля под HiDPI / 4K (часть графики в `settings-ui`). Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](../../docs/ideas/ui-scale-hidpi.md)
-- [ ] **campaigns** — campaign.json в scenario-модуле + прохождение по главам
-- [ ] **save-format** — сейвы + contentSetup
+- [ ] **bot-search-ab** — бот схватки: вариант 2 (minimax / αβ); **Easy + Normal** в срезе; Hard позже. Лобби Bot; комментарии в коде. **Перед стартом** — открытые вопросы из [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md)
+- [ ] **save-format** — сейвы матча + «Продолжить»; foundation для campaign progress
+- [ ] **campaigns** — campaign.json + прохождение по главам + прогресс
 - [ ] **map-editor** — workspace модулей; Publish greyed
+- [ ] **player-colors** — color picker в лобби / профиле (можно с `settings-ui`)
+- [ ] **settings-ui** — экран **Настройки**: графика (в т.ч. `ui-scale-hidpi`), ввод (3 столбца), профиль; persist JSON. Канон: [UI_AND_FLOW § Настройки](../../docs/design/UI_AND_FLOW.md#настройки)
+- [ ] **ui-scale-hidpi** — масштаб UI/поля под HiDPI / 4K. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#масштаб--разрешение); [ideas/ui-scale-hidpi.md](../../docs/ideas/ui-scale-hidpi.md)
 - [ ] **network-later** — Remote в API; UI greyed only
 
 ## Цели архитектуры
@@ -360,12 +360,13 @@ ScriptOptions.Default
 17. Экран Контент — **выполнено** (`content-ui`).
 18. Content pipeline дальше: `new-game-flow` — **выполнено** (см. чеклист выше / ARCHITECTURE).
 19. **`match-gdd-loop`** — **выполнено** (см. чеклист).
-20. `player-colors` — color picker в лобби / профиле (dimFactor отрисовки уже в матче).
-21. **`bot-search-ab`** — бот схватки (вариант 2: minimax / αβ, Easy/Normal/Hard через глубину и эвристику; без читов). Идея: [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md). Перед кодом — открытые вопросы из идеи (с пояснениями).
-22. **`settings-ui`** — экран Настройки (графика, ввод 3 столбца, профиль); `ui-scale-hidpi` внутри графики. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#настройки).
-23. `campaigns` + `save-format` — после playable loop.
-24. `map-editor` — workspace модулей.
-25. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
+20. **`bot-search-ab`** — бот (αβ); **Easy + Normal** до playtest-перерыва; Hard позже. Идея: [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md). Перед кодом — открытые вопросы.
+21. **`save-format`** — сейвы + «Продолжить».
+22. **`campaigns`** — главы + прогресс.
+23. **`map-editor`** — workspace модулей.
+24. `player-colors` — color picker (можно с settings).
+25. **`settings-ui`** + `ui-scale-hidpi` — после playtest-приоритета. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#настройки).
+26. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
 
 ## Документация в репозитории
 

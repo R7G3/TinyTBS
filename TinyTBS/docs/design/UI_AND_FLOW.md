@@ -31,7 +31,7 @@
 
 Продолжить (если есть сохранения) · Новая игра · Загрузка · Контент · Редактор · Настройки · Об игре · Выход.
 
-**Сейчас в коде:** оболочка пунктов; **Новая игра** — вкладки Mode → Scenario → Level → Composition → Lobby (Left/Right как в Контенте; Start / Back); фильтр уровней по mode+scenario; composition = scenario defaults / bundle; лобби: слоты (цвет · подпись · X) + **+** (chooser Local / Bot·Remote greyed), схватка — gold/unit cap → loading; **Контент** — панель-библиотека (Modules/Bundles; детальный попап + Remove; Install: From device через `IExternalFilePicker`, From catalog greyed; очередь `{UserData}/Downloads`; Download/Update greyed). **Настройки** / Загрузка / Редактор / Об игре / Продолжить — greyed (план: `settings-ui` и др.).
+**Сейчас в коде:** оболочка пунктов; **Новая игра** — вкладки Mode → Scenario → Level → Composition → Lobby (Left/Right как в Контенте; Start / Back); фильтр уровней по mode+scenario; composition = scenario defaults / bundle; лобби: слоты (цвет · подпись · X) + **+** (chooser Local / Bot·Remote greyed), схватка — gold/unit cap → loading; **Контент** — панель-библиотека (Modules/Bundles; детальный попап + Remove; Install: From device через `IExternalFilePicker`, From catalog greyed; очередь `{UserData}/Downloads`; Download/Update greyed). **Настройки** / Загрузка / Редактор / Об игре / Продолжить — greyed (playtest-приоритет: бот → сейвы → кампании → редактор; затем `settings-ui` / `ui-scale-hidpi` — см. [ARCHITECTURE](../ARCHITECTURE.md)).
 
 Фоны главного меню / настроек / загрузки / «Об игре»: изображение с плавным сдвигом (камера «летит» над полем). Идея матового стекла панелей — [ideas/ui-frosted-glass.md](../ideas/ui-frosted-glass.md).
 
