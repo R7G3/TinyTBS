@@ -91,7 +91,7 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
     }
 
     /// <summary>
-    /// Equal-score tie-break: prefer king→castle progress only when safety is not worse than root;
+    /// Equal-score tie-break: prefer VIP→defeat-building progress only when safety is not worse than root;
     /// otherwise prefer safer, then TieBreak.
     /// </summary>
     internal static bool IsBetterRootCandidate(

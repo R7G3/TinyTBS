@@ -10,7 +10,6 @@ namespace TinyTBS.Game.Ai;
 public static class PositionEvaluator
 {
     private const int AloneAllyDistance = 99;
-    private const string CastleTag = "castle";
 
     public static int Evaluate(MatchState match, int botPlayerIndex, BotDifficultyProfile profile)
     {
@@ -54,21 +53,22 @@ public static class PositionEvaluator
     }
 
     /// <summary>
-    /// Manhattan king → nearest enemy castle, or <see cref="int.MaxValue"/> if none.
+    /// Manhattan VIP (<c>uniquePerPlayer</c>) → nearest enemy defeat-counting building
+    /// the VIP can capture, or <see cref="int.MaxValue"/> if none.
     /// Used by root search tie-break.
     /// </summary>
     public static int MeasureKingEnemyCastleDistance(MatchState match, int botPlayerIndex)
     {
         ArgumentNullException.ThrowIfNull(match);
-        if (!TryFindCastleCapturer(match, botPlayerIndex, out var king))
+        if (!TryFindVipUnit(match, botPlayerIndex, out var vip, out var vipDefinition))
             return int.MaxValue;
 
         var best = int.MaxValue;
         foreach (var building in match.Buildings)
         {
-            if (!IsEnemyCastle(match, building, botPlayerIndex))
+            if (!IsEnemyDefeatObjective(match, building, botPlayerIndex, vipDefinition))
                 continue;
-            var distance = king.Cell.ManhattanDistanceTo(building.Cell);
+            var distance = vip.Cell.ManhattanDistanceTo(building.Cell);
             if (distance < best)
                 best = distance;
         }
@@ -77,7 +77,7 @@ public static class PositionEvaluator
     }
 
     /// <summary>
-    /// Non-negative penalty: higher = more exposed king. Used by eval and root tie-break.
+    /// Non-negative penalty: higher = more exposed VIP. Used by eval and root tie-break.
     /// </summary>
     public static int MeasureKingSafetyPenalty(
         MatchState match,
@@ -88,14 +88,14 @@ public static class PositionEvaluator
         ArgumentNullException.ThrowIfNull(match);
         if (kingSafetyWeight <= 0 || opponentIndex < 0)
             return 0;
-        if (!TryFindCastleCapturer(match, botPlayerIndex, out var king))
+        if (!TryFindVipUnit(match, botPlayerIndex, out var vip, out _))
             return 0;
 
-        var enemyNear = MinDistanceToPlayerUnits(match, king, opponentIndex, exceptUnitId: null);
+        var enemyNear = MinDistanceToPlayerUnits(match, vip, opponentIndex, exceptUnitId: null);
         if (enemyNear == int.MaxValue)
             return 0;
 
-        var allyNear = MinDistanceToPlayerUnits(match, king, botPlayerIndex, exceptUnitId: king.Id);
+        var allyNear = MinDistanceToPlayerUnits(match, vip, botPlayerIndex, exceptUnitId: vip.Id);
         if (allyNear == int.MaxValue)
             allyNear = AloneAllyDistance;
 
@@ -278,7 +278,11 @@ public static class PositionEvaluator
         return score;
     }
 
-    private static bool TryFindCastleCapturer(MatchState match, int botPlayerIndex, out MatchUnit king)
+    private static bool TryFindVipUnit(
+        MatchState match,
+        int botPlayerIndex,
+        out MatchUnit vip,
+        out UnitDefinition vipDefinition)
     {
         foreach (var unit in match.Units)
         {
@@ -286,31 +290,37 @@ public static class PositionEvaluator
                 continue;
             if (!match.ContentCatalog.TryGetUnit(unit.TypeId, out var definition))
                 continue;
-            if (!UnitCanCaptureCastleTag(definition))
+            if (!MatchUnitAbilities.HasAbility(definition, "uniquePerPlayer"))
                 continue;
 
-            king = unit;
+            vip = unit;
+            vipDefinition = definition;
             return true;
         }
 
-        king = null!;
+        vip = null!;
+        vipDefinition = null!;
         return false;
     }
 
-    private static bool UnitCanCaptureCastleTag(UnitDefinition unit) =>
-        unit.Abilities.Any(ability =>
-            string.Equals(ability.Type, "captureBuilding", StringComparison.OrdinalIgnoreCase)
-            && ability.Tags.Any(tag => string.Equals(tag, CastleTag, StringComparison.OrdinalIgnoreCase)));
-
-    private static bool IsEnemyCastle(MatchState match, MatchBuilding building, int botPlayerIndex)
+    /// <summary>
+    /// Enemy (or neutral) building that counts toward standard defeat and this VIP can capture.
+    /// </summary>
+    private static bool IsEnemyDefeatObjective(
+        MatchState match,
+        MatchBuilding building,
+        int botPlayerIndex,
+        UnitDefinition vipDefinition)
     {
         if (building.OwnerPlayerIndex == botPlayerIndex)
             return false;
         if (!match.ContentCatalog.TryGetBuilding(building.TypeId, out var definition))
             return false;
+        if (!definition.CountsTowardPlayerDefeat)
+            return false;
         if (!MatchUnitAbilities.IsCapturable(building, definition))
             return false;
-        return definition.Tags.Any(tag => string.Equals(tag, CastleTag, StringComparison.OrdinalIgnoreCase));
+        return MatchUnitAbilities.CanCapture(vipDefinition, definition);
     }
 
     private static int MinDistanceToPlayerUnits(

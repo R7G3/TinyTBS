@@ -43,12 +43,12 @@ public sealed class BotDifficultyProfile
     public int UnitCountWeight { get; init; } = 120;
 
     /// <summary>
-    /// Тяга короля (юнита с capture castle) к вражескому замку.
-    /// Умеренная: не должна перебивать safety / армию.
+    /// Тяга VIP-юнита (<c>uniquePerPlayer</c>) к вражеским строениям
+    /// <c>countsTowardPlayerDefeat</c>. Умеренная: не должна перебивать safety / армию.
     /// </summary>
     public int CastleObjectiveWeight { get; init; }
 
-    /// <summary>Штраф за оголённого короля (враг ближе своих / зона ≤2).</summary>
+    /// <summary>Штраф за оголённого VIP-юнита (враг ближе своих / зона ≤2).</summary>
     public int KingSafetyWeight { get; init; }
 
     /// <summary>
