@@ -52,6 +52,6 @@ Levels/{levelId}/
 | `modes` | `skirmish`, `campaign`, … |
 | `defaultStartingGold` / `defaultUnitCap` | дефолты; в Схватке можно переопределить |
 | `teamDefeatMode` | `allMembers` \| `anyMember` |
-| `victory` / `defeat` | `standard` или кастом |
+| `victory` / `defeat` | `standard` — поражение игрока без `uniquePerPlayer` и без строений `countsTowardPlayerDefeat`; победа последнего живого. Иной `type` — только скрипт (`SetVictory`) |
 
 Назначение слотов игрокам — при старте матча: юниты с `slot >=` фактического числа игроков **не создаются**; здания таких слотов остаются на карте **без владельца** (`null`). Нейтральные здания с `slot: null` без изменений. Состав контента матча (units/buildings/theme) — [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md).

@@ -70,12 +70,29 @@ public sealed class GameplayHudSync
         if (_hud.IsShopVisible && string.IsNullOrEmpty(_hud.ShopStatusText))
             _hud.ShopStatusText = "Recruit onto the castle cell.";
 
+        if (match.IsMatchOver)
+        {
+            _hud.MatchResultText = FormatMatchResult(match);
+            GameplayHudOverlayState.PrepareForMatchResult(_hud);
+        }
+
         _composer.Sync(_hud);
 
         if (_hud.IsTileDetailVisible)
             _composer.SyncDetailIcons(session.Textures, match);
         if (_hud.IsShopVisible)
             _composer.SyncShopIcons(session.Textures, match.CurrentPlayer);
+    }
+
+    private static string FormatMatchResult(MatchState match)
+    {
+        if (match.WinnerPlayerIndex is not int winner)
+            return "Match over";
+
+        var reason = string.IsNullOrWhiteSpace(match.VictoryReason) ? "victory" : match.VictoryReason;
+        return reason.Equals("standard", StringComparison.OrdinalIgnoreCase)
+            ? $"Player {winner + 1} wins"
+            : $"Player {winner + 1} wins ({reason})";
     }
 
     private static string BuildGoalsText(MatchLevelBrief brief)

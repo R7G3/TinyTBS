@@ -21,6 +21,7 @@ public sealed class GameplayMatchController
     private GridCell? _cellActionChooserCell;
     private bool _pendingPauseMenuFocus;
     private Action? _returnToMenu;
+    private readonly MatchEnemyThreatHold _enemyThreatHold = new();
 
     public GameplayMatchController(
         GameMain game,
@@ -68,6 +69,7 @@ public sealed class GameplayMatchController
 
     public void UnloadContent()
     {
+        _enemyThreatHold.Clear();
         _hudComposer.Clear();
         _session?.Dispose();
         _session = null;
@@ -123,7 +125,9 @@ public sealed class GameplayMatchController
 
         GumService.Default.Update(gameTime);
 
-        if (_hudSync.Hud.IsShopVisible)
+        if (_hudSync.Hud.IsMatchResultVisible)
+            _hudComposer.HandleMatchResultGamepadNavigation(_game.Commands);
+        else if (_hudSync.Hud.IsShopVisible)
             _hudComposer.HandleShopGamepadNavigation(_game.Commands);
         else if (_hudSync.Hud.IsPauseVisible)
             _hudComposer.HandlePauseGamepadNavigation(_game.Commands);
@@ -142,13 +146,24 @@ public sealed class GameplayMatchController
         var openedCastleChooser = TryConsumeCastleUnitActionChooserOpen();
         var allowBoardConfirm = !uiHeldConfirm && !openedCastleChooser;
 
+        _enemyThreatHold.Tick(
+            _session.State,
+            _game.Commands,
+            _game.Pointer,
+            scene.Layout,
+            (float)gameTime.ElapsedGameTime.TotalSeconds,
+            boardInputEnabled && !uiHeldConfirm && !openedCastleChooser,
+            out var deferredThreatConfirm);
+
+        var allowConfirm = allowBoardConfirm && !_enemyThreatHold.SuppressBoardConfirm;
+
         MatchCommandApplicator.Apply(
             _session,
             _game.Commands,
             scene.Layout,
             gameTime,
             boardInputEnabled && !uiHeldConfirm,
-            allowConfirm: allowBoardConfirm);
+            allowConfirm: allowConfirm);
 
         if (_session is null)
             return;
@@ -161,7 +176,7 @@ public sealed class GameplayMatchController
                 _session,
                 pointer,
                 layout,
-                allowConfirm: allowBoardConfirm);
+                allowConfirm: allowConfirm);
 
             // Chooser opens on primary press; ApplyPointer would arm a click — drop it.
             if (openedCastleChooser)
@@ -178,7 +193,10 @@ public sealed class GameplayMatchController
         if (_session is null)
             return;
 
-        if (allowBoardConfirm)
+        if (deferredThreatConfirm)
+            _session.Confirm();
+
+        if (allowConfirm)
             TryOpenShopFromAction();
 
         if (_session is null)
@@ -201,18 +219,34 @@ public sealed class GameplayMatchController
                 gameTime,
                 afterEntities: (spriteBatch, layout) =>
                 {
-                    var moveRange = match.GetSelectedUnitMoveRange();
-                    var attackTargets = match.GetSelectedUnitAttackTargets();
-                    var raiseTargets = match.GetSelectedUnitRaiseTargets();
-                    IReadOnlyList<(int X, int Y)>? moveRangeCells = moveRange.Count == 0
-                        ? null
-                        : moveRange.Select(cell => (cell.X, cell.Y)).ToArray();
-                    IReadOnlyList<(int X, int Y)>? attackTargetCells = attackTargets.Count == 0
-                        ? null
-                        : attackTargets.Select(cell => (cell.X, cell.Y)).ToArray();
-                    IReadOnlyList<(int X, int Y)>? raiseTargetCells = raiseTargets.Count == 0
-                        ? null
-                        : raiseTargets.Select(cell => (cell.X, cell.Y)).ToArray();
+                    IReadOnlyList<(int X, int Y)>? moveRangeCells = null;
+                    IReadOnlyList<(int X, int Y)>? attackTargetCells = null;
+                    IReadOnlyList<(int X, int Y)>? raiseTargetCells = null;
+                    IReadOnlyList<(int X, int Y)>? captureTargetCells = null;
+                    IReadOnlyList<(int X, int Y)>? repairTargetCells = null;
+
+                    if (_enemyThreatHold.PreviewUnitId is int threatUnitId
+                        && match.TryGetUnitThreatPreview(threatUnitId, out var overlay))
+                    {
+                        ApplyOverlayCells(
+                            overlay,
+                            out moveRangeCells,
+                            out attackTargetCells,
+                            out raiseTargetCells,
+                            out captureTargetCells,
+                            out repairTargetCells);
+                    }
+                    else if (match.TryGetSelectedUnitActionOverlay(out overlay))
+                    {
+                        ApplyOverlayCells(
+                            overlay,
+                            out moveRangeCells,
+                            out attackTargetCells,
+                            out raiseTargetCells,
+                            out captureTargetCells,
+                            out repairTargetCells);
+                    }
+
                     _session.CursorHighlight.Draw(
                         spriteBatch,
                         layout,
@@ -222,7 +256,8 @@ public sealed class GameplayMatchController
                         moveRangeCells: moveRangeCells,
                         attackTargetCells: attackTargetCells,
                         raiseTargetCells: raiseTargetCells,
-                        manageBatch: false);
+                        captureTargetCells: captureTargetCells,
+                        repairTargetCells: repairTargetCells);
                 });
         }
 
@@ -243,7 +278,28 @@ public sealed class GameplayMatchController
             return;
 
         _hudSync.SyncFromSession(_session, _cellActionChooserCell);
+        _hudSync.Hud.HintText = _enemyThreatHold.PreviewUnitId is not null
+            ? "Enemy threat preview · release to close"
+            : "WASD move · Enter/click select · Hold Enter/LMB on enemy = threat · Wheel zoom · RMB/I detail · E end · Esc pause";
     }
+
+    private static void ApplyOverlayCells(
+        MatchUnitActionOverlay overlay,
+        out IReadOnlyList<(int X, int Y)>? moveRangeCells,
+        out IReadOnlyList<(int X, int Y)>? attackTargetCells,
+        out IReadOnlyList<(int X, int Y)>? raiseTargetCells,
+        out IReadOnlyList<(int X, int Y)>? captureTargetCells,
+        out IReadOnlyList<(int X, int Y)>? repairTargetCells)
+    {
+        moveRangeCells = ToCellTuples(overlay.MoveCells);
+        attackTargetCells = ToCellTuples(overlay.AttackCells);
+        raiseTargetCells = ToCellTuples(overlay.RaiseCells);
+        captureTargetCells = ToCellTuples(overlay.CaptureCells);
+        repairTargetCells = ToCellTuples(overlay.RepairCells);
+    }
+
+    private static IReadOnlyList<(int X, int Y)>? ToCellTuples(IReadOnlyList<GridCell> cells) =>
+        cells.Count == 0 ? null : cells.Select(cell => (cell.X, cell.Y)).ToArray();
 
     private void DismissInfoOverlay()
     {
@@ -273,6 +329,9 @@ public sealed class GameplayMatchController
 
         if (commands.WasPressed(GameCommand.Pause))
         {
+            if (_hudSync.Hud.IsMatchResultVisible)
+                return;
+
             if (hud.IsShopVisible
                 || hud.IsGoalsVisible
                 || hud.IsMinimapVisible
@@ -349,6 +408,9 @@ public sealed class GameplayMatchController
     private bool TryGoBackFromOverlay()
     {
         var hud = _hudSync.Hud;
+
+        if (hud.IsMatchResultVisible)
+            return true;
 
         if (hud.IsCellActionChooserVisible)
         {

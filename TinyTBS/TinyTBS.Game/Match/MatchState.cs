@@ -19,9 +19,12 @@ public sealed class MatchState
     private readonly Dictionary<int, int> _moneyByPlayer = new();
     private readonly Dictionary<int, int> _turnStartsByPlayer = new();
     private readonly Dictionary<int, int> _kingRehireCountByPlayer = new();
+    private readonly HashSet<int> _eliminatedPlayers = [];
     private readonly MatchContentCatalog _catalog;
     private int _nextUnitId;
     private int _playerCount = MatchDefaults.PlayerCount;
+    private string _victoryType = "standard";
+    private string _defeatType = "standard";
 
     private MatchState(int width, int height, MatchContentCatalog catalog, int unitCap)
     {
@@ -38,7 +41,9 @@ public sealed class MatchState
         ContentIdReplaceTable? replaces = null,
         int playerCount = MatchDefaults.PlayerCount,
         int startingGold = 0,
-        int unitCap = 25)
+        int unitCap = 25,
+        string victoryType = "standard",
+        string defeatType = "standard")
     {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(contentCatalog);
@@ -53,6 +58,8 @@ public sealed class MatchState
                 Math.Clamp(map.Width / 2, 0, Math.Max(0, map.Width - 1)),
                 Math.Clamp(map.Height / 2, 0, Math.Max(0, map.Height - 1))),
             _playerCount = playerCount,
+            _victoryType = string.IsNullOrWhiteSpace(victoryType) ? "standard" : victoryType.Trim(),
+            _defeatType = string.IsNullOrWhiteSpace(defeatType) ? "standard" : defeatType.Trim(),
         };
 
         for (var playerIndex = 0; playerIndex < playerCount; playerIndex++)
@@ -118,6 +125,7 @@ public sealed class MatchState
         }
 
         match.BeginCurrentPlayerTurn();
+        match.EvaluateStandardOutcome();
         return match;
     }
 
@@ -150,6 +158,10 @@ public sealed class MatchState
     public int? WinnerPlayerIndex { get; private set; }
 
     public string? VictoryReason { get; private set; }
+
+    public bool IsMatchOver => WinnerPlayerIndex is not null;
+
+    public bool IsPlayerEliminated(int playerIndex) => _eliminatedPlayers.Contains(playerIndex);
 
     public TerrainKind GetTerrain(GridCell cell) => _terrain[cell.X, cell.Y];
 
@@ -188,8 +200,158 @@ public sealed class MatchState
     public void SetVictory(int playerIndex, string reason)
     {
         EnsureKnownPlayer(playerIndex);
+        if (WinnerPlayerIndex is not null)
+            return;
+
         WinnerPlayerIndex = playerIndex;
         VictoryReason = string.IsNullOrWhiteSpace(reason) ? "victory" : reason.Trim();
+        SelectedUnitId = null;
+        LastAction = null;
+    }
+
+    /// <summary>
+    /// Standard GDD outcome: defeated = no uniquePerPlayer unit and no defeat-counting buildings;
+    /// last living player wins. Custom victory/defeat types leave resolution to map scripts.
+    /// </summary>
+    public void EvaluateStandardOutcome()
+    {
+        if (WinnerPlayerIndex is not null)
+            return;
+
+        var useStandardDefeat = IsStandardCondition(_defeatType);
+        var useStandardVictory = IsStandardCondition(_victoryType);
+        if (!useStandardDefeat && !useStandardVictory)
+            return;
+
+        if (useStandardDefeat)
+        {
+            for (var playerIndex = 0; playerIndex < _playerCount; playerIndex++)
+            {
+                if (IsPlayerEliminated(playerIndex))
+                    continue;
+                if (IsPlayerStandardDefeated(playerIndex))
+                    EliminatePlayer(playerIndex);
+            }
+        }
+
+        if (useStandardVictory)
+            TryDeclareLastLivingPlayerVictory();
+
+        if (WinnerPlayerIndex is null
+            && IsPlayerEliminated(CurrentPlayer)
+            && CountLivingPlayers() > 0)
+        {
+            AdvancePastEliminatedPlayers();
+        }
+    }
+
+    private static bool IsStandardCondition(string type) =>
+        string.Equals(type, "standard", StringComparison.OrdinalIgnoreCase);
+
+    private bool IsPlayerStandardDefeated(int playerIndex)
+    {
+        if (PlayerHasUniqueUnit(playerIndex))
+            return false;
+        if (PlayerHasDefeatCountingBuilding(playerIndex))
+            return false;
+        return true;
+    }
+
+    private bool PlayerHasUniqueUnit(int playerIndex)
+    {
+        foreach (var unit in _units)
+        {
+            if (unit.PlayerIndex != playerIndex)
+                continue;
+            if (!_catalog.TryGetUnit(unit.TypeId, out var definition))
+                continue;
+            if (HasAbility(definition, "uniquePerPlayer"))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool PlayerHasDefeatCountingBuilding(int playerIndex)
+    {
+        foreach (var building in _buildings)
+        {
+            if (building.OwnerPlayerIndex != playerIndex)
+                continue;
+            if (!_catalog.TryGetBuilding(building.TypeId, out var definition))
+                continue;
+            if (definition.CountsTowardPlayerDefeat)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void EliminatePlayer(int playerIndex)
+    {
+        if (!_eliminatedPlayers.Add(playerIndex))
+            return;
+
+        // GDD: units vanish without gravestones; buildings become neutral.
+        for (var index = _units.Count - 1; index >= 0; index--)
+        {
+            var unit = _units[index];
+            if (unit.PlayerIndex != playerIndex)
+                continue;
+            if (SelectedUnitId == unit.Id)
+                SelectedUnitId = null;
+            _units.RemoveAt(index);
+        }
+
+        foreach (var building in _buildings)
+        {
+            if (building.OwnerPlayerIndex == playerIndex)
+                building.OwnerPlayerIndex = null;
+        }
+    }
+
+    private int CountLivingPlayers()
+    {
+        var count = 0;
+        for (var playerIndex = 0; playerIndex < _playerCount; playerIndex++)
+        {
+            if (!IsPlayerEliminated(playerIndex))
+                count++;
+        }
+
+        return count;
+    }
+
+    private void TryDeclareLastLivingPlayerVictory()
+    {
+        if (CountLivingPlayers() != 1)
+            return;
+
+        for (var playerIndex = 0; playerIndex < _playerCount; playerIndex++)
+        {
+            if (IsPlayerEliminated(playerIndex))
+                continue;
+            SetVictory(playerIndex, "standard");
+            return;
+        }
+    }
+
+    private void AdvancePastEliminatedPlayers()
+    {
+        LastAction = null;
+        SelectedUnitId = null;
+        var guard = 0;
+        do
+        {
+            CurrentPlayer = (CurrentPlayer + 1) % _playerCount;
+            if (CurrentPlayer == 0)
+                TurnNumber++;
+            guard++;
+        }
+        while (IsPlayerEliminated(CurrentPlayer) && guard <= _playerCount);
+
+        if (!IsPlayerEliminated(CurrentPlayer))
+            BeginCurrentPlayerTurn();
     }
 
     public string StatusText
@@ -223,6 +385,9 @@ public sealed class MatchState
 
     public void HandleConfirm()
     {
+        if (IsMatchOver || IsPlayerEliminated(CurrentPlayer))
+            return;
+
         LastAction = null;
 
         if (SelectedUnitId is null)
@@ -308,6 +473,8 @@ public sealed class MatchState
     /// </summary>
     public bool TryWaitSelectedUnit()
     {
+        if (IsMatchOver || IsPlayerEliminated(CurrentPlayer))
+            return false;
         if (SelectedUnitId is not int unitId || !TryGetUnit(unitId, out var unit) || !unit.IsActive)
             return false;
 
@@ -319,6 +486,9 @@ public sealed class MatchState
 
     public void EndTurn()
     {
+        if (IsMatchOver)
+            return;
+
         LastAction = null;
         SelectedUnitId = null;
         foreach (var unit in _units)
@@ -327,10 +497,7 @@ public sealed class MatchState
                 unit.IsActive = false;
         }
 
-        CurrentPlayer = (CurrentPlayer + 1) % _playerCount;
-        if (CurrentPlayer == 0)
-            TurnNumber++;
-        BeginCurrentPlayerTurn();
+        AdvancePastEliminatedPlayers();
     }
 
     public bool TryGetUnitAt(GridCell cell, out MatchUnit unit)
@@ -392,6 +559,8 @@ public sealed class MatchState
     /// <summary>Recruit onto an owned recruit building cell if gold, cap, and uniqueness allow.</summary>
     public bool TryRecruitAtCastle(ContentId unitTypeId, int baseCost, int maxHealth, GridCell castleCell)
     {
+        if (IsMatchOver || IsPlayerEliminated(CurrentPlayer))
+            return false;
         if (!IsOwnCastleAt(castleCell))
             return false;
         if (IsOccupiedByUnit(castleCell))
@@ -511,98 +680,241 @@ public sealed class MatchState
     /// </summary>
     public IReadOnlyList<GridCell> GetSelectedUnitMoveRange()
     {
-        if (SelectedUnitId is not int unitId || !TryGetUnit(unitId, out var unit) || !unit.IsActive)
+        if (!TryGetSelectedUnitActionOverlay(out var overlay))
             return [];
-        if (unit.HasMovedThisActivation)
-            return [];
-        if (!_catalog.TryGetUnit(unit.TypeId, out var definition))
-            return [];
+        return overlay.MoveCells;
+    }
 
-        return MatchPathfinder.CollectReachable(
+    /// <summary>
+    /// Enemy unit cells and destroyable buildings the selected unit can act on.
+    /// </summary>
+    public IReadOnlyList<GridCell> GetSelectedUnitAttackTargets()
+    {
+        if (!TryGetSelectedUnitActionOverlay(out var overlay))
+            return [];
+        return overlay.AttackCells;
+    }
+
+    /// <summary>
+    /// Adjacent gravestone cells the selected raiseSkeleton unit can raise from.
+    /// </summary>
+    public IReadOnlyList<GridCell> GetSelectedUnitRaiseTargets()
+    {
+        if (!TryGetSelectedUnitActionOverlay(out var overlay))
+            return [];
+        return overlay.RaiseCells;
+    }
+
+    /// <summary>
+    /// Action overlay for the selected active unit (move / attack / capture / repair / raise).
+    /// After a move this turn, move cells are empty and actions are from the current cell only.
+    /// </summary>
+    public bool TryGetSelectedUnitActionOverlay(out MatchUnitActionOverlay overlay)
+    {
+        overlay = null!;
+        if (!TryGetSelectedActiveUnit(out var unit, out var definition))
+            return false;
+
+        overlay = BuildActionOverlay(unit, definition, respectActivationMove: true);
+        return true;
+    }
+
+    /// <summary>
+    /// Next-turn threat overlay for any living unit (informational; does not select or act).
+    /// </summary>
+    public bool TryGetUnitThreatPreview(int unitId, out MatchUnitActionOverlay overlay)
+    {
+        overlay = null!;
+        if (!TryGetUnit(unitId, out var unit))
+            return false;
+        if (!_catalog.TryGetUnit(unit.TypeId, out var definition))
+            return false;
+
+        overlay = BuildActionOverlay(unit, definition, respectActivationMove: false);
+        return true;
+    }
+
+    private MatchUnitActionOverlay BuildActionOverlay(
+        MatchUnit unit,
+        UnitDefinition definition,
+        bool respectActivationMove)
+    {
+        var hasMoved = respectActivationMove && unit.HasMovedThisActivation;
+        var moveCells = hasMoved ? (IReadOnlyList<GridCell>)[] : CollectMoveRange(unit, definition);
+
+        var standCells = new List<GridCell>(moveCells.Count + 1) { unit.Cell };
+        foreach (var cell in moveCells)
+            standCells.Add(cell);
+
+        IReadOnlyList<GridCell> attackStands;
+        if (HasAbility(definition, "moveOrAttackExclusive"))
+        {
+            // Exclusive: attack only from current cell, and only if this activation has not moved.
+            attackStands = hasMoved ? [] : [unit.Cell];
+        }
+        else
+        {
+            attackStands = standCells;
+        }
+
+        return new MatchUnitActionOverlay
+        {
+            MoveCells = moveCells,
+            AttackCells = CollectAttackTargetsFromStands(unit, definition, attackStands),
+            CaptureCells = CollectCaptureTargetsFromStands(unit, definition, standCells),
+            RepairCells = CollectRepairTargetsFromStands(unit, definition, standCells),
+            RaiseCells = CollectRaiseTargetsFromStands(unit, definition, standCells),
+        };
+    }
+
+    private bool TryGetSelectedActiveUnit(out MatchUnit unit, out UnitDefinition definition)
+    {
+        definition = null!;
+        unit = null!;
+        if (SelectedUnitId is not int unitId || !TryGetUnit(unitId, out unit) || !unit.IsActive)
+            return false;
+        if (!_catalog.TryGetUnit(unit.TypeId, out definition))
+            return false;
+        return true;
+    }
+
+    private IReadOnlyList<GridCell> CollectMoveRange(MatchUnit unit, UnitDefinition definition) =>
+        MatchPathfinder.CollectReachable(
             this,
             unit,
             definition.MovementClass,
             definition.Speed,
             unit.Id);
+
+    private IReadOnlyList<GridCell> CollectAttackTargetsFromStands(
+        MatchUnit unit,
+        UnitDefinition definition,
+        IReadOnlyList<GridCell> standCells)
+    {
+        var targets = new HashSet<GridCell>();
+        foreach (var stand in standCells)
+            CollectAttackTargetsFromCell(unit, definition, stand, targets);
+
+        return targets.Count == 0 ? [] : targets.ToArray();
     }
 
-    /// <summary>
-    /// Enemy unit cells and destroyable buildings the selected unit can act on from its cell.
-    /// </summary>
-    public IReadOnlyList<GridCell> GetSelectedUnitAttackTargets()
+    private void CollectAttackTargetsFromCell(
+        MatchUnit unit,
+        UnitDefinition definition,
+        GridCell fromCell,
+        HashSet<GridCell> targets)
     {
-        if (SelectedUnitId is not int unitId || !TryGetUnit(unitId, out var unit) || !unit.IsActive)
-            return [];
-        if (!_catalog.TryGetUnit(unit.TypeId, out var definition))
-            return [];
-        if (HasAbility(definition, "moveOrAttackExclusive") && unit.HasMovedThisActivation)
-            return [];
-
-        var targets = new List<GridCell>();
         foreach (var candidate in _units)
         {
-            if (candidate.PlayerIndex == CurrentPlayer)
+            if (candidate.Id == unit.Id || candidate.PlayerIndex == unit.PlayerIndex)
                 continue;
 
-            var range = unit.Cell.ManhattanDistanceTo(candidate.Cell);
+            var range = fromCell.ManhattanDistanceTo(candidate.Cell);
             if (range < definition.AttackRangeMin || range > definition.AttackRangeMax)
                 continue;
 
             targets.Add(candidate.Cell);
         }
 
-        if (TryGetAbility(definition, "destroyBuilding", out var destroyAbility))
+        if (!TryGetAbility(definition, "destroyBuilding", out var destroyAbility))
+            return;
+
+        foreach (var building in _buildings)
         {
-            foreach (var building in _buildings)
-            {
-                if (building.IsRuined)
-                    continue;
-                if (!_catalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
-                    continue;
-                if (!buildingDefinition.Destroyable)
-                    continue;
-                if (!TagsIntersect(destroyAbility.Tags, buildingDefinition.Tags))
-                    continue;
-                if (IsOccupiedByUnit(building.Cell))
-                    continue;
+            if (building.IsRuined)
+                continue;
+            if (!_catalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
+                continue;
+            if (!buildingDefinition.Destroyable)
+                continue;
+            if (!TagsIntersect(destroyAbility.Tags, buildingDefinition.Tags))
+                continue;
+            if (IsOccupiedByUnit(building.Cell, exceptUnitId: unit.Id))
+                continue;
 
-                var range = unit.Cell.ManhattanDistanceTo(building.Cell);
-                if (range < definition.AttackRangeMin || range > definition.AttackRangeMax)
-                    continue;
+            var range = fromCell.ManhattanDistanceTo(building.Cell);
+            if (range < definition.AttackRangeMin || range > definition.AttackRangeMax)
+                continue;
 
-                targets.Add(building.Cell);
-            }
+            targets.Add(building.Cell);
+        }
+    }
+
+    private IReadOnlyList<GridCell> CollectCaptureTargetsFromStands(
+        MatchUnit unit,
+        UnitDefinition definition,
+        IReadOnlyList<GridCell> standCells)
+    {
+        var targets = new List<GridCell>();
+        foreach (var stand in standCells)
+        {
+            if (!TryGetBuildingAt(stand, out var building))
+                continue;
+            if (!_catalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
+                continue;
+            if (!IsCapturable(building, buildingDefinition))
+                continue;
+            if (building.OwnerPlayerIndex == unit.PlayerIndex)
+                continue;
+            if (!CanCapture(definition, buildingDefinition))
+                continue;
+
+            targets.Add(stand);
         }
 
         return targets;
     }
 
-    /// <summary>
-    /// Adjacent gravestone cells the selected witch (or raiseSkeleton unit) can raise from.
-    /// </summary>
-    public IReadOnlyList<GridCell> GetSelectedUnitRaiseTargets()
+    private IReadOnlyList<GridCell> CollectRepairTargetsFromStands(
+        MatchUnit unit,
+        UnitDefinition definition,
+        IReadOnlyList<GridCell> standCells)
     {
-        if (SelectedUnitId is not int unitId || !TryGetUnit(unitId, out var unit) || !unit.IsActive)
-            return [];
-        if (!_catalog.TryGetUnit(unit.TypeId, out var definition))
-            return [];
-        if (!HasAbility(definition, "raiseSkeleton"))
-            return [];
-
         var targets = new List<GridCell>();
-        foreach (var stone in _gravestones)
+        foreach (var stand in standCells)
         {
-            if (unit.Cell.ManhattanDistanceTo(stone.Cell) != 1)
+            if (!TryGetBuildingAt(stand, out var building))
                 continue;
-            if (IsOccupiedByUnit(stone.Cell))
+            if (!building.IsRuined)
                 continue;
-            if (CountUnitsForPlayer(CurrentPlayer) >= UnitCap)
+            if (!_catalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
+                continue;
+            if (!buildingDefinition.Repairable)
+                continue;
+            if (!CanRepair(definition, buildingDefinition))
                 continue;
 
-            targets.Add(stone.Cell);
+            targets.Add(stand);
         }
 
         return targets;
+    }
+
+    private IReadOnlyList<GridCell> CollectRaiseTargetsFromStands(
+        MatchUnit unit,
+        UnitDefinition definition,
+        IReadOnlyList<GridCell> standCells)
+    {
+        if (!HasAbility(definition, "raiseSkeleton"))
+            return [];
+        if (CountUnitsForPlayer(unit.PlayerIndex) >= UnitCap)
+            return [];
+
+        var targets = new HashSet<GridCell>();
+        foreach (var stand in standCells)
+        {
+            foreach (var stone in _gravestones)
+            {
+                if (stand.ManhattanDistanceTo(stone.Cell) != 1)
+                    continue;
+                if (IsOccupiedByUnit(stone.Cell, exceptUnitId: unit.Id))
+                    continue;
+
+                targets.Add(stone.Cell);
+            }
+        }
+
+        return targets.Count == 0 ? [] : targets.ToArray();
     }
 
     /// <summary>

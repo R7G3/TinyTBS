@@ -23,10 +23,12 @@ public sealed class GameplayHudComposer
     private readonly MatchGoalsOverlayView _goals = new();
     private readonly MatchShopOverlayView _shop = new();
     private readonly MatchCellActionChooserView _cellActionChooser = new();
+    private readonly MatchResultOverlayView _matchResult = new();
 
     private bool _pauseWasVisible;
     private bool _shopWasVisible;
     private bool _cellActionChooserWasVisible;
+    private bool _matchResultWasVisible;
 
     public void Build(
         GameplayHudViewModel hud,
@@ -56,6 +58,7 @@ public sealed class GameplayHudComposer
         _goals.Build(_rootPanel, hud);
         _shop.Build(_rootPanel, hud, onCloseShop, onBuyOffer);
         _cellActionChooser.Build(_rootPanel, onCellActionMove, onCellActionBuy);
+        _matchResult.Build(_rootPanel, onReturnToMenu);
 
         Sync(hud);
     }
@@ -70,10 +73,13 @@ public sealed class GameplayHudComposer
         _pause.Sync(hud);
         _shop.Sync(hud);
         _cellActionChooser.Sync(hud);
+        _matchResult.Sync(hud);
 
         UpdateOverlayFocusTrap(hud);
 
-        if (hud.IsPauseVisible && !_pauseWasVisible)
+        if (hud.IsMatchResultVisible && !_matchResultWasVisible)
+            _matchResult.FocusFirst();
+        else if (hud.IsPauseVisible && !_pauseWasVisible)
             _pause.FocusFirst();
         else if (hud.IsShopVisible && !_shopWasVisible)
             _shop.FocusFirstOffer();
@@ -82,6 +88,7 @@ public sealed class GameplayHudComposer
         else if (GameplayHudOverlayState.ShouldClearUiFocus(hud))
             ClearUiFocus();
 
+        _matchResultWasVisible = hud.IsMatchResultVisible;
         _pauseWasVisible = hud.IsPauseVisible;
         _shopWasVisible = hud.IsShopVisible;
         _cellActionChooserWasVisible = hud.IsCellActionChooserVisible;
@@ -102,8 +109,12 @@ public sealed class GameplayHudComposer
     public void HandleCellActionChooserGamepadNavigation(IGameCommandSource commands) =>
         _cellActionChooser.HandleGamepadNavigation(commands);
 
+    public void HandleMatchResultGamepadNavigation(IGameCommandSource commands) =>
+        _matchResult.HandleGamepadNavigation(commands);
+
     public void ClearUiFocus()
     {
+        _matchResult.ClearFocus();
         _pause.ClearFocus();
         _shop.ClearFocus();
         _cellActionChooser.ClearFocus();
@@ -117,6 +128,7 @@ public sealed class GameplayHudComposer
         _pauseWasVisible = false;
         _shopWasVisible = false;
         _cellActionChooserWasVisible = false;
+        _matchResultWasVisible = false;
     }
 
     private void UpdateOverlayFocusTrap(GameplayHudViewModel hud)
@@ -128,7 +140,9 @@ public sealed class GameplayHudComposer
             return;
 
         _bottomBar.ClearMenuFocus();
-        if (hud.IsPauseVisible)
+        if (hud.IsMatchResultVisible)
+            _matchResult.FocusFirst();
+        else if (hud.IsPauseVisible)
             _pause.FocusFirst();
         else if (hud.IsShopVisible)
             _shop.FocusFirstOffer();

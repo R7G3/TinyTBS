@@ -37,7 +37,7 @@ isProject: false
 - [x] **bundles-runtime** — загрузка `Bundles/*.bundle.json` как пресет defaults
 - [x] **content-ui** — экран Контент (установить/удалить; Скачать/Обновить greyed)
 - [x] **new-game-flow** — вкладки Mode → Scenario → Level → Composition → Lobby; слоты Local (+ Bot/Remote greyed); gold/unit cap ± (hold gamepad + mouse)
-- [x] **match-gdd-loop** — economy + combat + post-move по клеткам (без контекстного меню) + abilities; Cancel отменяет ход
+- [x] **match-gdd-loop** — economy + combat + post-move по клеткам (без контекстного меню) + abilities + standard victory/defeat; Cancel отменяет ход
 
 ### Дальше
 

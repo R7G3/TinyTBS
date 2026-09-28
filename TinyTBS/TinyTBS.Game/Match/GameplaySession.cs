@@ -48,30 +48,44 @@ public sealed class GameplaySession : IDisposable
 
     public void EndTurn()
     {
+        if (State.IsMatchOver)
+            return;
+
         State.EndTurn();
-        ScriptHost.NotifyPlayerTurnStart(State);
+        if (!State.IsMatchOver)
+            ScriptHost.NotifyPlayerTurnStart(State);
+        State.EvaluateStandardOutcome();
     }
 
     public void Confirm()
     {
+        if (State.IsMatchOver)
+            return;
+
         State.HandleConfirm();
         if (State.LastAction is { } action)
             ScriptHost.NotifyAfterPlayerAction(State, action);
+        State.EvaluateStandardOutcome();
     }
 
-    /// <summary>Post-move Wait: finish selected unit without attack/capture.</summary>
+    /// <summary>Finish selected unit without attack/capture (face north / Y).</summary>
     public bool TryWaitSelectedUnit()
     {
+        if (State.IsMatchOver)
+            return false;
         if (!State.TryWaitSelectedUnit())
             return false;
 
         if (State.LastAction is { } action)
             ScriptHost.NotifyAfterPlayerAction(State, action);
+        State.EvaluateStandardOutcome();
         return true;
     }
 
     public bool TryBuyShopOffer(int offerIndex, GridCell castleCell)
     {
+        if (State.IsMatchOver)
+            return false;
         if (offerIndex < 0 || offerIndex >= ContentCatalog.ShopOffers.Count)
             return false;
 
@@ -88,6 +102,7 @@ public sealed class GameplaySession : IDisposable
 
         if (State.LastAction is { } action)
             ScriptHost.NotifyAfterPlayerAction(State, action);
+        State.EvaluateStandardOutcome();
         return true;
     }
 

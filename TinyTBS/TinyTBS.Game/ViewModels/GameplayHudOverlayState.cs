@@ -4,7 +4,8 @@ namespace TinyTBS.Game.ViewModels;
 public static class GameplayHudOverlayState
 {
     public static bool BlocksBoardInput(GameplayHudViewModel hud) =>
-        hud.IsPauseVisible
+        hud.IsMatchResultVisible
+        || hud.IsPauseVisible
         || hud.IsShopVisible
         || hud.IsGoalsVisible
         || hud.IsMinimapVisible
@@ -15,10 +16,12 @@ public static class GameplayHudOverlayState
         BlocksBoardInput(hud);
 
     public static bool IsDismissibleInfoOverlayVisible(GameplayHudViewModel hud) =>
-        hud.IsMinimapVisible || hud.IsGoalsVisible || hud.IsTileDetailVisible;
+        !hud.IsMatchResultVisible
+        && (hud.IsMinimapVisible || hud.IsGoalsVisible || hud.IsTileDetailVisible);
 
     public static bool MenuFocusTrapActive(GameplayHudViewModel hud) =>
-        hud.IsPauseVisible
+        hud.IsMatchResultVisible
+        || hud.IsPauseVisible
         || hud.IsShopVisible
         || hud.IsCellActionChooserVisible
         || hud.IsGoalsVisible
@@ -26,7 +29,8 @@ public static class GameplayHudOverlayState
         || hud.IsTileDetailVisible;
 
     public static bool ShouldClearUiFocus(GameplayHudViewModel hud) =>
-        !hud.IsPauseVisible
+        !hud.IsMatchResultVisible
+        && !hud.IsPauseVisible
         && !hud.IsShopVisible
         && !hud.IsGoalsVisible
         && !hud.IsTileDetailVisible
@@ -35,6 +39,9 @@ public static class GameplayHudOverlayState
 
     public static void CloseAllExceptPause(GameplayHudViewModel hud)
     {
+        if (hud.IsMatchResultVisible)
+            return;
+
         hud.IsShopVisible = false;
         hud.IsTileDetailVisible = false;
         hud.IsGoalsVisible = false;
@@ -44,13 +51,30 @@ public static class GameplayHudOverlayState
 
     public static void ClosePauseAndInfoOverlays(GameplayHudViewModel hud)
     {
+        if (hud.IsMatchResultVisible)
+            return;
+
         hud.IsPauseVisible = false;
         hud.IsMinimapVisible = false;
         hud.IsGoalsVisible = false;
     }
 
+    public static void PrepareForMatchResult(GameplayHudViewModel hud)
+    {
+        hud.IsMatchResultVisible = true;
+        hud.IsPauseVisible = false;
+        hud.IsShopVisible = false;
+        hud.IsTileDetailVisible = false;
+        hud.IsGoalsVisible = false;
+        hud.IsMinimapVisible = false;
+        hud.IsCellActionChooserVisible = false;
+    }
+
     public static void PrepareForTileDetail(GameplayHudViewModel hud)
     {
+        if (hud.IsMatchResultVisible)
+            return;
+
         hud.IsTileDetailVisible = true;
         hud.IsPauseVisible = false;
         hud.IsMinimapVisible = false;
@@ -61,6 +85,9 @@ public static class GameplayHudOverlayState
 
     public static void PrepareForCellActionChooser(GameplayHudViewModel hud)
     {
+        if (hud.IsMatchResultVisible)
+            return;
+
         hud.IsCellActionChooserVisible = true;
         hud.IsPauseVisible = false;
         hud.IsMinimapVisible = false;
@@ -71,6 +98,9 @@ public static class GameplayHudOverlayState
 
     public static void PrepareForShop(GameplayHudViewModel hud)
     {
+        if (hud.IsMatchResultVisible)
+            return;
+
         hud.IsShopVisible = true;
         hud.IsPauseVisible = false;
         hud.IsMinimapVisible = false;
@@ -81,6 +111,9 @@ public static class GameplayHudOverlayState
 
     public static void PrepareForPause(GameplayHudViewModel hud)
     {
+        if (hud.IsMatchResultVisible)
+            return;
+
         hud.IsPauseVisible = true;
         hud.IsShopVisible = false;
         hud.IsTileDetailVisible = false;
@@ -89,6 +122,9 @@ public static class GameplayHudOverlayState
 
     public static void PrepareForMinimap(GameplayHudViewModel hud)
     {
+        if (hud.IsMatchResultVisible)
+            return;
+
         hud.IsMinimapVisible = true;
         hud.IsGoalsVisible = false;
         hud.IsPauseVisible = false;
@@ -98,6 +134,9 @@ public static class GameplayHudOverlayState
 
     public static void PrepareForGoals(GameplayHudViewModel hud)
     {
+        if (hud.IsMatchResultVisible)
+            return;
+
         hud.IsGoalsVisible = true;
         hud.IsMinimapVisible = false;
         hud.IsPauseVisible = false;

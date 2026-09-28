@@ -16,7 +16,7 @@ public sealed class GameplayHudViewModel
     public Color StatusBarColor { get; set; } = Color.CornflowerBlue;
 
     public string HintText { get; set; } =
-        "WASD move · Enter/click select · Wheel/triggers zoom · RMB/I detail · E end turn · Esc pause";
+        "WASD move · Enter/click select · Hold Enter/LMB on enemy = threat · Wheel zoom · RMB/I detail · E end · Esc pause";
 
     /// <summary>Always-on corner summary for the cursor tile.</summary>
     public string CompactInfoText { get; set; } = string.Empty;
@@ -47,6 +47,11 @@ public sealed class GameplayHudViewModel
     public bool IsGoalsVisible { get; set; }
 
     public bool IsShopVisible { get; set; }
+
+    /// <summary>Match ended (standard or script victory) — blocks board and other overlays.</summary>
+    public bool IsMatchResultVisible { get; set; }
+
+    public string MatchResultText { get; set; } = string.Empty;
 
     /// <summary>Compact Move / Buy chooser above an occupied own castle.</summary>
     public bool IsCellActionChooserVisible { get; set; }

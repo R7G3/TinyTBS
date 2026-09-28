@@ -181,7 +181,9 @@ public sealed class MatchSessionLoadPipeline
             _matchContent.Replaces,
             playerCount: playerCount,
             startingGold: _startingGoldOverride ?? _level.DefaultStartingGold,
-            unitCap: _unitCapOverride ?? _level.DefaultUnitCap);
+            unitCap: _unitCapOverride ?? _level.DefaultUnitCap,
+            victoryType: _level.Victory.Type,
+            defeatType: _level.Defeat.Type);
     }
 
     private void CompileMapScript()
@@ -196,6 +198,7 @@ public sealed class MatchSessionLoadPipeline
             _files,
             scriptEngine);
         _scriptHost.NotifyMatchStarted(_state);
+        _state.EvaluateStandardOutcome();
     }
 
     private void LoadTextures()

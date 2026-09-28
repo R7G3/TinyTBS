@@ -208,7 +208,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 17. Экран Контент — **выполнено** (`content-ui`: библиотека; Install From device / catalog-soon; очередь Downloads; uninstall user; Download/Update greyed).
 18. Content pipeline (срезы):
     - `new-game-flow` — **выполнено** (вкладки Mode → Scenario → Level → Composition → Lobby; composition scenario-defaults/bundle; слоты Local + Bot/Remote greyed в Add-chooser; цвета слотов; unit cap в `MatchLevelBrief`, enforcement позже)
-19. **`match-gdd-loop`** — **выполнено** (economy/combat/post-move по клеткам/abilities). Бывшие `match-economy-capture` + `match-combat-gdd`.
+19. **`match-gdd-loop`** — **выполнено** (economy/combat/post-move по клеткам/abilities + standard victory/defeat + оверлей результата). Бывшие `match-economy-capture` + `match-combat-gdd`.
 20. `player-colors` — color picker в лобби / профиле (отрисовка dim уже в матче).
 21. `bot-search-ab` — бот схватки (вариант 2: minimax / αβ; Easy/Normal/Hard = глубина + эвристика, без читов); лобби Bot; идея: [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md). **Перед реализацией** — спросить у пользователя открытые вопросы из идеи (с пояснениями).
 22. `settings-ui` — экран **Настройки** (меню сейчас greyed): графика (разрешение/окно, UI scale / `ui-scale-hidpi`, фильтр зума nearest vs bicubic), ввод (три столбца биндов), профиль (цвета игрока; пересечение с `player-colors`). Persist в user data. Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки).

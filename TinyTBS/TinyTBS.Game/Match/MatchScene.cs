@@ -84,7 +84,8 @@ public sealed class MatchScene : IDisposable
     public void Update(GameTime gameTime) => World.Update(gameTime);
 
     /// <summary>
-    /// One SpriteBatch pass for tiles, team sprites, and optional overlays (e.g. cursor).
+    /// One SpriteBatch pass for tiles and team sprites; overlays draw after that batch ends
+    /// so they can use their own blend state (e.g. Multiply for threat tints).
     /// </summary>
     public void Draw(GameTime gameTime, Action<SpriteBatch, MatchBoardLayout>? afterEntities = null)
     {
@@ -96,9 +97,9 @@ public sealed class MatchScene : IDisposable
             RasterizerState.CullNone);
 
         World.Draw(gameTime);
-        afterEntities?.Invoke(_spriteBatch, _layout);
-
         _spriteBatch.End();
+
+        afterEntities?.Invoke(_spriteBatch, _layout);
     }
 
     public void Dispose() => World.Dispose();

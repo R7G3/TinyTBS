@@ -35,6 +35,9 @@ public static class MatchCommandApplicator
     private static float _navigateLeftRepeatTimer;
     private static float _navigateRightRepeatTimer;
 
+    /// <summary>True while primary is down and the gesture has crossed the pan threshold.</summary>
+    public static bool IsPrimaryGesturePanning => _pointerIsPanning;
+
     /// <summary>
     /// Applies board commands when the match is not blocked by pause/shop UI.
     /// Leave-to-menu is only via the pause menu item, not a board command.
