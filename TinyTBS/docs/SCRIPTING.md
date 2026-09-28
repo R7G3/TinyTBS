@@ -6,9 +6,11 @@
 
 ## Движок
 
-- Сейчас: **C#** через Roslyn **`Microsoft.CodeAnalysis.CSharp`** (компиляция в DLL в памяти → `IMapScriptHooks`).
-- Абстракция **`IScriptEngine`** — для Lua / JavaScript / Python в будущем.
-- Хост: `MapScriptHost` (таймаут на хук); матч вызывает хуки через `GameplaySession` (старт / конец хода / confirm).
+- Сейчас: **C#** через Roslyn (`Microsoft.CodeAnalysis.CSharp` в Engine → `RoslynScriptCompiler`).
+- Абстракция **`IScriptEngine`** в Game — точка расширения; **Lua / JavaScript / Python** не отменены, просто не в текущем срезе.
+- Инфраструктура в **`TinyTBS.Engine.Scripting`**: `RoslynScriptCompiler`, `ScriptSourceValidator`, `ScriptHookInvoker`, `ScriptHostException`.
+- Игровой слой **`TinyTBS.Game.Scripting`**: `RoslynMapScriptEngine`, хуки и контексты map/campaign, `MapScriptHost` / `CampaignScriptHost`.
+- Хосты вызывают хуки через `ScriptHookInvoker` (таймаут); матч — через `GameplaySession`.
 
 ## Хуки
 
@@ -73,8 +75,8 @@ public void OnAfterPlayerAction(MapScriptContext context);
 
 - Минимальные ссылки компиляции / без произвольных `using`.
 - Шаблон без `using System.IO`.
-- **Статический разбор** исходника (`MapScriptSourceValidator`): IO, сеть, процессы, reflection/emit, P/Invoke, `unsafe`, Linux `/proc|/sys|/dev`, Android/JNI (`Java.*`, `Android.*`, `content://`, …).
-- **Таймаут** на каждый вызов.
+- **Статический разбор** исходника (`ScriptSourceValidator` в Engine): IO, сеть, процессы, reflection/emit, P/Invoke, `unsafe`, Linux `/proc|/sys|/dev`, Android/JNI (`Java.*`, `Android.*`, `content://`, …).
+- **Таймаут** на каждый вызов (`ScriptHookInvoker`).
 - Запрет `#r` где возможно.
 
 #### Риски на Linux / Android (зачем эти проверки)

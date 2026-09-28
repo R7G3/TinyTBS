@@ -48,6 +48,9 @@ public static class ScenarioJsonParser
 
         var title = string.IsNullOrWhiteSpace(document.Title) ? document.Id.Trim() : document.Title.Trim();
         var version = string.IsNullOrWhiteSpace(document.Version) ? "0.0.0" : document.Version.Trim();
+        var campaignPath = string.IsNullOrWhiteSpace(document.Content?.Campaign)
+            ? null
+            : document.Content.Campaign.Trim().Replace('\\', '/');
 
         return new ScenarioModuleDefinition
         {
@@ -59,6 +62,7 @@ public static class ScenarioJsonParser
             Defaults = defaults,
             Requires = requires,
             Replaces = replaces,
+            CampaignManifestRelativePath = campaignPath,
         };
     }
 

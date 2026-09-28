@@ -1,4 +1,5 @@
 using TinyTBS.Game.Ai;
+using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Modules.Models;
 
 namespace TinyTBS.Game.Match;
@@ -29,4 +30,7 @@ public sealed class NewGameStartRequest
     /// Per-slot controllers. When null or shorter than player count, missing seats default to Local.
     /// </summary>
     public IReadOnlyList<MatchPlayerSeat>? PlayerSeats { get; init; }
+
+    /// <summary>When set, attach campaign run state after the session is built.</summary>
+    public CampaignRunState? CampaignRun { get; init; }
 }

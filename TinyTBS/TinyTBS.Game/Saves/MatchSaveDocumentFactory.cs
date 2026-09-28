@@ -34,6 +34,8 @@ public static class MatchSaveDocumentFactory
             Kind = MatchSaveDocument.KindMatch,
             WrittenAtUtc = writtenAtUtc ?? DateTimeOffset.UtcNow,
             LevelId = session.LevelBrief.LevelId,
+            CampaignId = session.CampaignRun?.CampaignId,
+            CampaignLevelId = session.CampaignRun?.CurrentLevelId,
             UnitCap = session.State.UnitCap,
             ContentSetup = new MatchSaveContentSetup
             {
@@ -52,7 +54,9 @@ public static class MatchSaveDocumentFactory
             },
             PlayerSeats = session.PlayerSeats.Select(MatchSaveSeatCodec.ToSave).ToList(),
             Match = CaptureRuntime(session.State),
-            Extensions = new Dictionary<string, string>(StringComparer.Ordinal),
+            Extensions = session.CampaignRun is null
+                ? new Dictionary<string, string>(StringComparer.Ordinal)
+                : new Dictionary<string, string>(session.CampaignRun.Extensions, StringComparer.Ordinal),
         };
     }
 

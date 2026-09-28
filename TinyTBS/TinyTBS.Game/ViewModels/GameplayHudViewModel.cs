@@ -53,6 +53,12 @@ public sealed class GameplayHudViewModel
 
     public string MatchResultText { get; set; } = string.Empty;
 
+    /// <summary>Campaign: show Next chapter after a win with a remaining chapter.</summary>
+    public bool ShowMatchResultNextChapter { get; set; }
+
+    /// <summary>Campaign: show Retry after a loss (or win without next — unused).</summary>
+    public bool ShowMatchResultRetry { get; set; }
+
     /// <summary>Compact Move / Buy chooser above an occupied own castle.</summary>
     public bool IsCellActionChooserVisible { get; set; }
 

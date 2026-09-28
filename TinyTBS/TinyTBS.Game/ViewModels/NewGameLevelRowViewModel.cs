@@ -11,6 +11,8 @@ public sealed class NewGameLevelRowViewModel
 
     public bool IsSelected { get; init; }
 
+    public bool IsLocked { get; init; }
+
     public string SummaryLine
     {
         get
@@ -18,6 +20,8 @@ public sealed class NewGameLevelRowViewModel
             var body = string.IsNullOrWhiteSpace(ModesLabel)
                 ? Title
                 : $"{Title} · {ModesLabel}";
+            if (IsLocked)
+                body += " · locked";
             return IsSelected ? $"[ {body} ]" : body;
         }
     }

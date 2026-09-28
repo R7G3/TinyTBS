@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
+using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Presentation.LoadGame;
 using TinyTBS.Game.Saves;
@@ -10,13 +11,13 @@ using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Screens;
 
-/// <summary>Match save list: load or delete. Back returns to the main menu.</summary>
+/// <summary>Match + campaign save list: load or delete. Back returns to the main menu.</summary>
 public sealed class LoadGameScreen : GameScreen
 {
     private readonly IAssetResolver _assets;
     private readonly LoadGameViewModel _viewModel = new();
     private readonly LoadGameView _view = new();
-    private readonly MatchSaveLibrary _saveLibrary;
+    private readonly SaveCatalog _saveCatalog;
 
     private MainMenuBackground? _background;
     private LoadGameSaveRowViewModel? _pendingLoadRow;
@@ -26,7 +27,7 @@ public sealed class LoadGameScreen : GameScreen
         : base(game)
     {
         _assets = assets;
-        _saveLibrary = new MatchSaveLibrary(game.UserDataPaths);
+        _saveCatalog = new SaveCatalog(game.UserDataPaths);
     }
 
     private GameMain TinyGame => (GameMain)Game;
@@ -91,14 +92,14 @@ public sealed class LoadGameScreen : GameScreen
 
     private void RefreshList(string statusText)
     {
-        var entries = _saveLibrary.ListMatchSavesNewestFirst();
+        var entries = _saveCatalog.ListNewestFirst();
         _viewModel.StatusText = statusText;
         _viewModel.Saves = entries
             .Select(entry => new LoadGameSaveRowViewModel
             {
                 FilePath = entry.FilePath,
-                Title = entry.DisplayTitle,
-                Meta = entry.DisplayMeta,
+                Title = entry.Title,
+                Meta = entry.Meta,
             })
             .ToList();
 
@@ -139,13 +140,23 @@ public sealed class LoadGameScreen : GameScreen
 
         try
         {
-            var document = _saveLibrary.Load(row.FilePath);
-            var request = MatchSaveResume.CreateRequest(
+            var fileName = Path.GetFileName(row.FilePath);
+            if (fileName.StartsWith("campaign_", StringComparison.OrdinalIgnoreCase))
+            {
+                var progress = _saveCatalog.CampaignStore.ReadFile(row.FilePath);
+                var request = CampaignRunRestorer.CreateChapterStartRequest(progress);
+                _view.CloseDetail();
+                ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, _assets, request));
+                return;
+            }
+
+            var document = _saveCatalog.MatchLibrary.Load(row.FilePath);
+            var matchRequest = MatchSaveResume.CreateRequest(
                 document,
                 TinyGame.Files,
                 TinyGame.UserDataPaths);
             _view.CloseDetail();
-            ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, _assets, request));
+            ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, _assets, matchRequest));
         }
         catch (Exception exception)
         {
@@ -160,7 +171,12 @@ public sealed class LoadGameScreen : GameScreen
 
         try
         {
-            _saveLibrary.Delete(row.FilePath);
+            var fileName = Path.GetFileName(row.FilePath);
+            if (fileName.StartsWith("campaign_", StringComparison.OrdinalIgnoreCase))
+                _saveCatalog.CampaignStore.Delete(row.FilePath);
+            else
+                _saveCatalog.MatchLibrary.Delete(row.FilePath);
+
             _view.CloseDetail();
             RefreshList($"Deleted '{row.Title}'.");
         }

@@ -1,6 +1,7 @@
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Maps.Models;
 using TinyTBS.Game.Ai;
+using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.Match;
 using TinyTBS.Game.Scripting;
@@ -65,6 +66,9 @@ public sealed class GameplaySession : IDisposable
 
     /// <summary>Module id → version at session build time.</summary>
     public IReadOnlyDictionary<string, string> ModuleVersions { get; }
+
+    /// <summary>When non-null, this match is a campaign chapter.</summary>
+    public CampaignRunState? CampaignRun { get; set; }
 
     public MatchTextureAtlas Textures => _textures;
 

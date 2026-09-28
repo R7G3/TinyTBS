@@ -21,6 +21,14 @@ public sealed class MatchSaveDocument
     [JsonPropertyName("levelId")]
     public string LevelId { get; init; } = string.Empty;
 
+    /// <summary>When set, this match belongs to a campaign run.</summary>
+    [JsonPropertyName("campaignId")]
+    public string? CampaignId { get; init; }
+
+    /// <summary>Chapter level id inside the campaign (usually same as <see cref="LevelId"/>).</summary>
+    [JsonPropertyName("campaignLevelId")]
+    public string? CampaignLevelId { get; init; }
+
     [JsonPropertyName("unitCap")]
     public int UnitCap { get; init; }
 

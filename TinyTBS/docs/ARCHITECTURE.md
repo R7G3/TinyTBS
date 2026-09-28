@@ -59,8 +59,8 @@ flowchart LR
 
 **Где в solution:**
 
-- Логика + представление — `TinyTBS.Game/` (`Ai/`, `Match/`, `Maps/`, `Levels/`, `Scripting/`, `Screens/`, `Presentation/`, `ViewModels/`, `Input/` команд, `Assets/`)
-- Инфраструктура кадра / файлов — `TinyTBS.Engine/` (`Rendering/`, `Ecs/`, `GumLayout/`, `Input/` pointer, `IO/`)
+- Логика + представление — `TinyTBS.Game/` (`Ai/`, `Match/`, `Maps/`, `Levels/`, `Campaigns/`, `Scripting/` domain hooks, `Screens/`, `Presentation/`, `ViewModels/`, `Input/` команд, `Assets/`)
+- Инфраструктура кадра / файлов / script host — `TinyTBS.Engine/` (`Rendering/`, `Ecs/`, `GumLayout/`, `Input/` pointer, `IO/`, `Scripting/` Roslyn+sandbox+timeout)
 - Склейка матча (`MatchScene`, session factory) — в Game, вызывает Engine
 
 **Склейка кадра** — тонкий MGE `GameScreen`: `Update`/`Draw` вызывают логику и движок, не содержат формул layout и правил матча.
@@ -211,7 +211,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 19. **`match-gdd-loop`** — **выполнено** (economy/combat/post-move по клеткам/abilities + standard victory/defeat + оверлей результата). Бывшие `match-economy-capture` + `match-combat-gdd`.
 20. **`bot-search-ab`** — **выполнено** (код в `TinyTBS.Game/Ai/`: атомарный αβ Easy+Normal, quiescence у Normal, лобби Bot, `IBotSearchPolicy` шов под Hard/full-turn). Идея: [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md). Hard / harness — позже.
 21. **`save-format`** — match-сейвы + Continue (live → диск) + Pause Save / Leave + экран **Загрузка** (Load/Delete) — **выполнено**. Канон: [SAVE_FORMAT.md](SAVE_FORMAT.md).
-22. **`campaigns`** — campaign.json / прохождение по главам + прогресс (опирается на сейвы; расширение kind=campaign).
+22. **`campaigns`** — **выполнено** (campaign.json, linear unlock, progress save, Next/Retry, script API, Continue/Load обоих kind). Канон: [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md), [SAVE_FORMAT.md](SAVE_FORMAT.md).
 23. **`map-editor`** — workspace модулей (карты/levels); Publish greyed. После playable loop + сейвов, чтобы контент на перерыве не терялся зря.
 24. `player-colors` — color picker в лобби / профиле (dimFactor отрисовки уже в матче); можно совместить с профилем в `settings-ui`.
 25. `settings-ui` — экран **Настройки** (меню сейчас greyed): графика (разрешение/окно, UI scale / `ui-scale-hidpi`, фильтр зума nearest vs bicubic), ввод (три столбца биндов), профиль. Persist в user data. Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки).

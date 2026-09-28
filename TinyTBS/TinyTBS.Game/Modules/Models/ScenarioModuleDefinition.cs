@@ -18,4 +18,7 @@ public sealed class ScenarioModuleDefinition
     public required ScenarioContentRequires Requires { get; init; }
 
     public required IReadOnlyList<ContentIdReplace> Replaces { get; init; }
+
+    /// <summary>Relative path to campaign.json when present in module.json content.campaign.</summary>
+    public string? CampaignManifestRelativePath { get; init; }
 }

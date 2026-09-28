@@ -22,7 +22,10 @@ internal static class NewGameLevelTabBody
         foreach (var level in viewModel.Levels)
         {
             var levelId = level.LevelId;
-            list.AddRow(level.SummaryLine, () => onSelectLevel(levelId));
+            if (level.IsLocked)
+                list.AddDisabledRow(level.SummaryLine);
+            else
+                list.AddRow(level.SummaryLine, () => onSelectLevel(levelId));
         }
     }
 }

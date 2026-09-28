@@ -2,6 +2,7 @@ using Gum;
 using Gum.Forms.Controls;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Ai;
@@ -26,9 +27,12 @@ public sealed class GameplayMatchController
     private Action? _returnToMenu;
     private Action? _leaveMatch;
     private Action? _loadMatch;
+    private Action? _nextChapter;
+    private Action? _retryChapter;
     private readonly MatchEnemyThreatHold _enemyThreatHold = new();
     private float _lastBotFollowCursorX = float.NaN;
     private float _lastBotFollowCursorY = float.NaN;
+    private CampaignProgressService? _campaignService;
 
     public GameplayMatchController(
         GameMain game,
@@ -40,6 +44,7 @@ public sealed class GameplayMatchController
         _graphicsDevice = graphicsDevice;
         _hudComposer = hudComposer;
         _hudSync = new GameplayHudSync(hud, hudComposer);
+        _campaignService = new CampaignProgressService(game.UserDataPaths, game.Files);
     }
 
     public void LoadContent(
@@ -47,13 +52,17 @@ public sealed class GameplayMatchController
         Action onSuspendToMenu,
         Action onLeaveMatch,
         Action onSaveMatch,
-        Action onLoadMatch)
+        Action onLoadMatch,
+        Action? onNextChapter = null,
+        Action? onRetryChapter = null)
     {
         ArgumentNullException.ThrowIfNull(session);
 
         _returnToMenu = onSuspendToMenu;
         _leaveMatch = onLeaveMatch;
         _loadMatch = onLoadMatch;
+        _nextChapter = onNextChapter;
+        _retryChapter = onRetryChapter;
         _session = session;
 
         _hudSync.Hud.LevelTitle = _session.LevelBrief.Title;
@@ -84,7 +93,9 @@ public sealed class GameplayMatchController
             onCloseShop: CloseShop,
             onBuyOffer: BuyShopOffer,
             onCellActionMove: OnCellActionMove,
-            onCellActionBuy: OnCellActionBuy);
+            onCellActionBuy: OnCellActionBuy,
+            onNextChapter: () => _nextChapter?.Invoke(),
+            onRetryChapter: () => _retryChapter?.Invoke());
 
         SyncHud();
     }
@@ -388,7 +399,7 @@ public sealed class GameplayMatchController
         if (_session is null)
             return;
 
-        _hudSync.SyncFromSession(_session, _cellActionChooserCell);
+        _hudSync.SyncFromSession(_session, _cellActionChooserCell, _campaignService);
         _hudSync.Hud.HintText = _enemyThreatHold.PreviewUnitId is not null
             ? "Enemy threat preview · release to close"
             : "WASD move · Enter/click select · Hold Enter/LMB on enemy = threat · Wheel zoom · RMB/I detail · E end · Esc pause";

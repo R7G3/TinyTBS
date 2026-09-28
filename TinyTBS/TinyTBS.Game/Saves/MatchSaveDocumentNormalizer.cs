@@ -39,6 +39,12 @@ internal static class MatchSaveDocumentNormalizer
                 ? DateTimeOffset.UtcNow
                 : document.WrittenAtUtc.ToUniversalTime(),
             LevelId = document.LevelId.Trim(),
+            CampaignId = string.IsNullOrWhiteSpace(document.CampaignId)
+                ? null
+                : document.CampaignId.Trim(),
+            CampaignLevelId = string.IsNullOrWhiteSpace(document.CampaignLevelId)
+                ? null
+                : document.CampaignLevelId.Trim(),
             UnitCap = Math.Max(1, document.UnitCap),
             ContentSetup = contentSetup,
             PlayerSeats = seats,

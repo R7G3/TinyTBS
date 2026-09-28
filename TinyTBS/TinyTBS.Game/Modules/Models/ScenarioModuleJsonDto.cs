@@ -30,6 +30,15 @@ internal sealed class ScenarioModuleJsonDto
 
     [JsonPropertyName("replaces")]
     public List<ScenarioReplaceDto>? Replaces { get; set; }
+
+    [JsonPropertyName("content")]
+    public ScenarioContentDto? Content { get; set; }
+}
+
+internal sealed class ScenarioContentDto
+{
+    [JsonPropertyName("campaign")]
+    public string? Campaign { get; set; }
 }
 
 internal sealed class ScenarioDefaultsDto

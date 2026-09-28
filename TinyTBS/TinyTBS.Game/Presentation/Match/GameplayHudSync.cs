@@ -1,3 +1,5 @@
+using TinyTBS.Game.Ai;
+using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.ViewModels;
 
@@ -8,6 +10,7 @@ public sealed class GameplayHudSync
 {
     private readonly GameplayHudViewModel _hud;
     private readonly GameplayHudComposer _composer;
+    private bool _campaignResultResolved;
 
     public GameplayHudSync(GameplayHudViewModel hud, GameplayHudComposer composer)
     {
@@ -17,12 +20,15 @@ public sealed class GameplayHudSync
 
     public GameplayHudViewModel Hud => _hud;
 
+    public ChapterEndResult? LastChapterEndResult { get; private set; }
+
     public void SetGoalsFromLevel(MatchLevelBrief brief) =>
         _hud.GoalsText = BuildGoalsText(brief);
 
     public void SyncFromSession(
         GameplaySession session,
-        GridCell? cellActionChooserCell)
+        GridCell? cellActionChooserCell,
+        CampaignProgressService? campaignService = null)
     {
         var match = session.State;
 
@@ -74,6 +80,7 @@ public sealed class GameplayHudSync
         {
             _hud.MatchResultText = FormatMatchResult(match);
             GameplayHudOverlayState.PrepareForMatchResult(_hud);
+            ResolveCampaignResultOnce(session, campaignService);
         }
 
         _composer.Sync(_hud);
@@ -82,6 +89,57 @@ public sealed class GameplayHudSync
             _composer.SyncDetailIcons(session.Textures, match);
         if (_hud.IsShopVisible)
             _composer.SyncShopIcons(session.Textures, match.CurrentPlayer);
+    }
+
+    private void ResolveCampaignResultOnce(
+        GameplaySession session,
+        CampaignProgressService? campaignService)
+    {
+        if (_campaignResultResolved || session.CampaignRun is null || campaignService is null)
+            return;
+
+        _campaignResultResolved = true;
+        var run = session.CampaignRun;
+        var campaign = campaignService.TryLoadDefinition(run.ScenarioModuleId);
+        if (campaign is null)
+        {
+            _hud.ShowMatchResultNextChapter = false;
+            _hud.ShowMatchResultRetry = true;
+            return;
+        }
+
+        var localWon = IsLocalPlayerWinner(session);
+        try
+        {
+            LastChapterEndResult = localWon
+                ? campaignService.ApplyChapterWon(run, campaign)
+                : campaignService.ApplyChapterLost(run, campaign);
+        }
+        catch (Exception exception)
+        {
+            _hud.MatchResultText += $"{Environment.NewLine}Progress error: {exception.Message}";
+            _hud.ShowMatchResultNextChapter = false;
+            _hud.ShowMatchResultRetry = true;
+            return;
+        }
+
+        _hud.ShowMatchResultNextChapter = LastChapterEndResult.HasNextChapter;
+        _hud.ShowMatchResultRetry = !localWon;
+        if (localWon && LastChapterEndResult.HasNextChapter)
+            _hud.MatchResultText += $"{Environment.NewLine}Next: {LastChapterEndResult.NextLevelId}";
+        else if (localWon)
+            _hud.MatchResultText += $"{Environment.NewLine}Campaign complete";
+    }
+
+    private static bool IsLocalPlayerWinner(GameplaySession session)
+    {
+        if (session.State.WinnerPlayerIndex is not int winner)
+            return false;
+
+        if (winner < 0 || winner >= session.PlayerSeats.Count)
+            return winner == 0;
+
+        return session.PlayerSeats[winner].Kind == MatchPlayerKind.Local;
     }
 
     private static string FormatMatchResult(MatchState match)

@@ -44,7 +44,9 @@ public sealed class GameplayHudComposer
         Action onCloseShop,
         Action<int> onBuyOffer,
         Action onCellActionMove,
-        Action onCellActionBuy)
+        Action onCellActionBuy,
+        Action? onNextChapter = null,
+        Action? onRetryChapter = null)
     {
         Clear();
 
@@ -70,7 +72,7 @@ public sealed class GameplayHudComposer
         _goals.Build(_rootPanel, hud);
         _shop.Build(_rootPanel, hud, onCloseShop, onBuyOffer);
         _cellActionChooser.Build(_rootPanel, onCellActionMove, onCellActionBuy);
-        _matchResult.Build(_rootPanel, onLeaveMatch);
+        _matchResult.Build(_rootPanel, onLeaveMatch, onNextChapter, onRetryChapter);
 
         Sync(hud);
     }

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
+using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.Loading;
@@ -34,6 +35,7 @@ public sealed class LoadingScreen : GameScreen
     private readonly int? _unitCap;
     private readonly IReadOnlyList<TinyTBS.Game.Ai.MatchPlayerSeat>? _playerSeats;
     private readonly ContinueMatchRequest? _continueRequest;
+    private readonly CampaignRunState? _campaignRun;
     private readonly LoadingViewModel _viewModel = new();
     private readonly LoadingView _view = new();
 
@@ -58,7 +60,8 @@ public sealed class LoadingScreen : GameScreen
             startingGold: null,
             unitCap: null,
             playerSeats: null,
-            continueRequest: null)
+            continueRequest: null,
+            campaignRun: null)
     {
     }
 
@@ -74,7 +77,8 @@ public sealed class LoadingScreen : GameScreen
             startingGold: request.StartingGold,
             unitCap: request.UnitCap,
             playerSeats: request.PlayerSeats,
-            continueRequest: null)
+            continueRequest: null,
+            campaignRun: request.CampaignRun)
     {
         ArgumentNullException.ThrowIfNull(request);
     }
@@ -91,7 +95,8 @@ public sealed class LoadingScreen : GameScreen
             startingGold: null,
             unitCap: request.UnitCap,
             playerSeats: request.PlayerSeats,
-            continueRequest: request)
+            continueRequest: request,
+            campaignRun: request.CampaignRun)
     {
         ArgumentNullException.ThrowIfNull(request);
     }
@@ -107,7 +112,8 @@ public sealed class LoadingScreen : GameScreen
         int? startingGold,
         int? unitCap,
         IReadOnlyList<TinyTBS.Game.Ai.MatchPlayerSeat>? playerSeats,
-        ContinueMatchRequest? continueRequest)
+        ContinueMatchRequest? continueRequest,
+        CampaignRunState? campaignRun)
         : base(game)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelId);
@@ -121,6 +127,7 @@ public sealed class LoadingScreen : GameScreen
         _unitCap = unitCap;
         _playerSeats = playerSeats;
         _continueRequest = continueRequest;
+        _campaignRun = campaignRun;
     }
 
     private GameMain TinyGame => (GameMain)Game;
@@ -246,6 +253,29 @@ public sealed class LoadingScreen : GameScreen
     {
         var session = _pipeline?.Result
             ?? throw new InvalidOperationException("Match load finished without a session.");
+
+        if (_campaignRun is not null)
+        {
+            _campaignRun.Composition ??= session.Composition;
+            _campaignRun.PlayerSeats ??= session.PlayerSeats;
+            _campaignRun.UnitCap ??= session.State.UnitCap;
+            session.CampaignRun = _campaignRun;
+
+            try
+            {
+                var service = new CampaignProgressService(TinyGame.UserDataPaths, TinyGame.Files);
+                var campaign = service.TryLoadDefinition(_campaignRun.ScenarioModuleId);
+                if (campaign is not null)
+                    service.NotifyChapterStarted(_campaignRun, campaign);
+                else
+                    service.Persist(_campaignRun);
+            }
+            catch (Exception)
+            {
+                // Chapter start hooks are best-effort; match still opens.
+            }
+        }
+
         _phase = LoadPhase.Done;
         TinyGame.ClearSuspendedMatch(dispose: true);
         ScreenManager.ReplaceScreen(new GameplayScreen(TinyGame, _assets, session));

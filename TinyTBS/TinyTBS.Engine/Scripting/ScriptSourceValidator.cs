@@ -1,19 +1,18 @@
 using System.Text.RegularExpressions;
 
-namespace TinyTBS.Game.Scripting;
+namespace TinyTBS.Engine.Scripting;
 
 /// <summary>
-/// Static text checks before compiling a map script (sandbox level 2).
+/// Static text checks before compiling user scripts (sandbox level 2).
 /// Not a hard sandbox — blocks common escape/DoS patterns, including Linux/Android surfaces.
 /// </summary>
-public static partial class MapScriptSourceValidator
+public static partial class ScriptSourceValidator
 {
     private static readonly string[] LineSeparators = ["\r\n", "\n", "\r"];
 
     /// <summary>Namespaces that open filesystem, network, native, process, or mobile platform APIs.</summary>
     private static readonly string[] ForbiddenUsingPrefixes =
     [
-        // Desktop / general BCL escape hatches
         "System.IO",
         "System.Net",
         "System.Reflection",
@@ -25,12 +24,8 @@ public static partial class MapScriptSourceValidator
         "System.CodeDom",
         "Microsoft.Win32",
         "Microsoft.CodeAnalysis",
-
-        // Unix / Linux interop
         "Mono.Unix",
         "Mono.Posix",
-
-        // Android / Java interop (future mobile hosts)
         "Android",
         "AndroidX",
         "Java",
@@ -42,13 +37,8 @@ public static partial class MapScriptSourceValidator
         "Android.Runtime",
     ];
 
-    /// <summary>
-    /// Substrings / API names that remain dangerous even with fully-qualified calls
-    /// (no <c>using</c>), including Linux paths and Android JNI surfaces.
-    /// </summary>
     private static readonly string[] ForbiddenSubstrings =
     [
-        // Assembly / scripting host escape
         "#r ",
         "#r\"",
         "Assembly.Load",
@@ -59,8 +49,6 @@ public static partial class MapScriptSourceValidator
         "Activator.CreateInstance",
         "Type.GetType",
         "Reflection.Emit",
-
-        // Process / environment (Linux: shell, /proc; Android: zygote abuse)
         "Process.Start",
         "Process.GetProcesses",
         "Process.Kill",
@@ -71,8 +59,6 @@ public static partial class MapScriptSourceValidator
         "Environment.ExpandEnvironmentVariables",
         "Environment.GetFolderPath",
         "Environment.FailFast",
-
-        // Native interop (libc / libdl / libandroid)
         "DllImport",
         "LibraryImport",
         "UnmanagedCallersOnly",
@@ -82,8 +68,6 @@ public static partial class MapScriptSourceValidator
         "unsafe",
         "stackalloc",
         "delegate*",
-
-        // IO / IPC without using (fully qualified)
         "System.IO.File",
         "System.IO.Directory",
         "System.IO.Path",
@@ -103,8 +87,6 @@ public static partial class MapScriptSourceValidator
         "Path.GetTemp",
         "CreateSymbolicLink",
         "UnixFileMode",
-
-        // Network
         "HttpClient",
         "WebClient",
         "TcpClient",
@@ -113,14 +95,10 @@ public static partial class MapScriptSourceValidator
         "System.Net.Http",
         "System.Net.Sockets",
         "new Socket(",
-
-        // Linux sensitive virtual FS / devices (string literals in scripts)
         "/proc/",
         "/sys/",
         "/dev/",
         "/etc/",
-
-        // Android / Java bridge
         "content://",
         "file://",
         "JNIEnv",
@@ -146,8 +124,10 @@ public static partial class MapScriptSourceValidator
 
     public static void Validate(string sourceCode)
     {
+        ArgumentNullException.ThrowIfNull(sourceCode);
+
         if (sourceCode.Contains("#r", StringComparison.OrdinalIgnoreCase))
-            throw new MapScriptException("Map scripts must not use '#r' directives.");
+            throw new ScriptHostException("Scripts must not use '#r' directives.");
 
         foreach (System.Text.RegularExpressions.Match match in UsingDirectiveRegex().Matches(sourceCode))
         {
@@ -157,8 +137,8 @@ public static partial class MapScriptSourceValidator
                 if (importedNamespace.Equals(forbiddenPrefix, StringComparison.Ordinal)
                     || importedNamespace.StartsWith(forbiddenPrefix + ".", StringComparison.Ordinal))
                 {
-                    throw new MapScriptException(
-                        $"Map scripts must not import '{importedNamespace}'.");
+                    throw new ScriptHostException(
+                        $"Scripts must not import '{importedNamespace}'.");
                 }
             }
         }
@@ -167,20 +147,22 @@ public static partial class MapScriptSourceValidator
         {
             if (ContainsForbiddenToken(sourceCode, forbidden))
             {
-                throw new MapScriptException(
-                    $"Map scripts must not use '{forbidden.Trim()}'.");
+                throw new ScriptHostException(
+                    $"Scripts must not use '{forbidden.Trim()}'.");
             }
         }
 
         if (FixedStatementRegex().IsMatch(sourceCode))
         {
-            throw new MapScriptException(
-                "Map scripts must not use 'fixed' statements (native memory pinning).");
+            throw new ScriptHostException(
+                "Scripts must not use 'fixed' statements (native memory pinning).");
         }
     }
 
     public static bool IsEffectivelyEmpty(string sourceCode)
     {
+        ArgumentNullException.ThrowIfNull(sourceCode);
+
         var withoutBlockComments = BlockCommentRegex().Replace(sourceCode, string.Empty);
         foreach (var line in withoutBlockComments.Split(LineSeparators, StringSplitOptions.None))
         {
@@ -195,10 +177,6 @@ public static partial class MapScriptSourceValidator
         return true;
     }
 
-    /// <summary>
-    /// Word-sensitive check for keywords like <c>unsafe</c> so identifiers such as
-    /// <c>IsUnsafe</c> are not rejected; paths and API names use plain Contains.
-    /// </summary>
     private static bool ContainsForbiddenToken(string sourceCode, string forbidden)
     {
         if (forbidden is "unsafe")

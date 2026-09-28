@@ -1,8 +1,10 @@
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
 using TinyTBS.Game.Assets;
+using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Presentation.Match;
+using TinyTBS.Game.Saves;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Screens;
@@ -42,7 +44,9 @@ public sealed class GameplayScreen : GameScreen
             onSuspendToMenu: SuspendToMainMenu,
             onLeaveMatch: LeaveMatchToMainMenu,
             onSaveMatch: SaveMatch,
-            onLoadMatch: SuspendAndOpenLoadGame);
+            onLoadMatch: SuspendAndOpenLoadGame,
+            onNextChapter: StartNextChapter,
+            onRetryChapter: RetryChapter);
     }
 
     public override void UnloadContent()
@@ -82,5 +86,49 @@ public sealed class GameplayScreen : GameScreen
     private void SaveMatch()
     {
         _controller?.SaveCurrentMatch();
+    }
+
+    private void StartNextChapter()
+    {
+        var run = _session.CampaignRun;
+        if (run is null)
+            return;
+
+        _sessionTransferred = false;
+        TinyGame.ClearSuspendedMatch(dispose: true);
+
+        var request = new NewGameStartRequest
+        {
+            ScenarioModuleId = run.ScenarioModuleId,
+            LevelId = run.CurrentLevelId,
+            Composition = run.Composition,
+            PlayerCount = run.PlayerSeats?.Count,
+            UnitCap = run.UnitCap,
+            PlayerSeats = run.PlayerSeats,
+            CampaignRun = run,
+        };
+        ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, Assets, request));
+    }
+
+    private void RetryChapter()
+    {
+        var run = _session.CampaignRun;
+        if (run is null)
+            return;
+
+        _sessionTransferred = false;
+        TinyGame.ClearSuspendedMatch(dispose: true);
+
+        var request = new NewGameStartRequest
+        {
+            ScenarioModuleId = run.ScenarioModuleId,
+            LevelId = run.CurrentLevelId,
+            Composition = run.Composition,
+            PlayerCount = run.PlayerSeats?.Count,
+            UnitCap = run.UnitCap,
+            PlayerSeats = run.PlayerSeats,
+            CampaignRun = run,
+        };
+        ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, Assets, request));
     }
 }

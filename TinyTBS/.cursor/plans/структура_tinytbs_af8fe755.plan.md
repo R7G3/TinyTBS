@@ -41,10 +41,10 @@ isProject: false
 - [x] **bot-search-ab** — бот схватки: атомарный αβ; **Easy + Normal**; Hard позже. Лобби Bot.
 - [x] **save-format** (срез 1) — match JSON + Pause Save / Leave / Main menu suspend + Continue live→диск
 - [x] **save-format** (срез 2) — экран Загрузка
+- [x] **campaigns** — campaign.json + прохождение по главам + прогресс
 
 ### Дальше (playtest-перерыв: бот → сейвы → кампании → редактор)
 
-- [ ] **campaigns** — campaign.json + прохождение по главам + прогресс
 - [ ] **map-editor** — workspace модулей; Publish greyed
 - [ ] **player-colors** — color picker в лобби / профиле (можно с `settings-ui`)
 - [ ] **settings-ui** — экран **Настройки**: графика (в т.ч. `ui-scale-hidpi`), ввод (3 столбца), профиль; persist JSON. Канон: [UI_AND_FLOW § Настройки](../../docs/design/UI_AND_FLOW.md#настройки)
@@ -365,7 +365,7 @@ ScriptOptions.Default
 19. **`match-gdd-loop`** — **выполнено** (см. чеклист).
 20. **`bot-search-ab`** — бот (αβ); **Easy + Normal** до playtest-перерыва; Hard позже. Идея: [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md). Перед кодом — открытые вопросы.
 21. **`save-format`** — сейвы + «Продолжить».
-22. **`campaigns`** — главы + прогресс.
+22. **`campaigns`** — главы + прогресс — **выполнено**.
 23. **`map-editor`** — workspace модулей.
 24. `player-colors` — color picker (можно с settings).
 25. **`settings-ui`** + `ui-scale-hidpi` — после playtest-приоритета. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#настройки).

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
+using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Presentation.Menu;
 using TinyTBS.Game.Saves;
@@ -18,7 +19,7 @@ public sealed class MainMenuScreen : GameScreen
     private readonly IAssetResolver _assets;
     private readonly MainMenuViewModel _viewModel = new();
     private readonly MainMenuView _view = new();
-    private readonly MatchSaveLibrary _saveLibrary;
+    private readonly SaveCatalog _saveCatalog;
 
     private MainMenuBackground? _background;
     private bool _awaitingNewGameAbandonConfirm;
@@ -27,7 +28,7 @@ public sealed class MainMenuScreen : GameScreen
         : base(game)
     {
         _assets = assets;
-        _saveLibrary = new MatchSaveLibrary(game.UserDataPaths);
+        _saveCatalog = new SaveCatalog(game.UserDataPaths);
     }
 
     private GameMain TinyGame => (GameMain)Game;
@@ -106,7 +107,7 @@ public sealed class MainMenuScreen : GameScreen
 
     private void RefreshContinueAndLoadState()
     {
-        var hasDiskSave = _saveLibrary.TryGetLatest(out _);
+        var hasDiskSave = _saveCatalog.TryGetLatest(out _);
         _viewModel.CanContinue = TinyGame.HasSuspendedMatch || hasDiskSave;
         _viewModel.CanLoadGame = hasDiskSave;
     }
@@ -128,12 +129,23 @@ public sealed class MainMenuScreen : GameScreen
 
         try
         {
-            var document = _saveLibrary.LoadLatest();
-            var request = MatchSaveResume.CreateRequest(
+            if (!_saveCatalog.TryGetLatest(out var entry))
+                throw new MatchSaveException("No saves found.");
+
+            if (entry.IsCampaign)
+            {
+                var progress = _saveCatalog.CampaignStore.ReadFile(entry.FilePath);
+                var request = CampaignRunRestorer.CreateChapterStartRequest(progress);
+                ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, _assets, request));
+                return;
+            }
+
+            var document = _saveCatalog.MatchLibrary.Load(entry.FilePath);
+            var matchRequest = MatchSaveResume.CreateRequest(
                 document,
                 TinyGame.Files,
                 TinyGame.UserDataPaths);
-            ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, _assets, request));
+            ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, _assets, matchRequest));
         }
         catch (Exception exception)
         {

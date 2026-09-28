@@ -1,3 +1,4 @@
+using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.Saves.Models;
 
@@ -23,6 +24,9 @@ public sealed class ContinueMatchRequest
     /// <summary>Optional version mismatch note for the loading UI.</summary>
     public string? VersionWarning { get; init; }
 
+    /// <summary>When set, resume is part of a campaign chapter.</summary>
+    public CampaignRunState? CampaignRun { get; init; }
+
     public static ContinueMatchRequest FromDocument(MatchSaveDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -36,6 +40,7 @@ public sealed class ContinueMatchRequest
             UnitCap = document.Match.UnitCap,
             PlayerSeats = MatchSaveSeatCodec.FromSaveList(document.PlayerSeats),
             RuntimeSnapshot = document.Match,
+            CampaignRun = null,
         };
     }
 }

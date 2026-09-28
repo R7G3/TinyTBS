@@ -1,4 +1,5 @@
 using TinyTBS.Engine.IO;
+using TinyTBS.Engine.Scripting;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Scripting.Models;
 
@@ -48,21 +49,21 @@ public sealed class MapScriptHost
     }
 
     public void NotifyMatchStarted(MatchState match) =>
-        InvokeHook("OnPlayerTurnStart", () =>
+        ScriptHookInvoker.Invoke("OnPlayerTurnStart", _hookTimeout, () =>
         {
             var context = MapScriptContextFactory.Create(match, _world);
             _hooks.OnPlayerTurnStart(context);
         });
 
     public void NotifyPlayerTurnStart(MatchState match) =>
-        InvokeHook("OnPlayerTurnStart", () =>
+        ScriptHookInvoker.Invoke("OnPlayerTurnStart", _hookTimeout, () =>
         {
             var context = MapScriptContextFactory.Create(match, _world);
             _hooks.OnPlayerTurnStart(context);
         });
 
     public void NotifyAfterPlayerAction(MatchState match, MatchPlayerAction action) =>
-        InvokeHook("OnAfterPlayerAction", () =>
+        ScriptHookInvoker.Invoke("OnAfterPlayerAction", _hookTimeout, () =>
         {
             var context = MapScriptContextFactory.Create(
                 match,
@@ -70,23 +71,4 @@ public sealed class MapScriptHost
                 MapScriptContextFactory.FromMatchAction(action));
             _hooks.OnAfterPlayerAction(context);
         });
-
-    private void InvokeHook(string hookName, Action invoke)
-    {
-        using var cancellation = new CancellationTokenSource(_hookTimeout);
-        var task = Task.Run(invoke, cancellation.Token);
-        try
-        {
-            if (!task.Wait(_hookTimeout))
-            {
-                throw new MapScriptException(
-                    $"Map script hook '{hookName}' timed out after {_hookTimeout.TotalSeconds:0.#}s.");
-            }
-        }
-        catch (AggregateException aggregateException)
-        {
-            var inner = aggregateException.InnerException ?? aggregateException;
-            throw new MapScriptException($"Map script hook '{hookName}' failed: {inner.Message}", inner);
-        }
-    }
 }

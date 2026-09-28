@@ -6,9 +6,12 @@ using TinyTBS.Game.Assets;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Ai;
+using TinyTBS.Game.Campaigns;
+using TinyTBS.Game.Campaigns.Models;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.NewGame;
+using TinyTBS.Game.Saves;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Screens;
@@ -31,6 +34,8 @@ public sealed class NewGameScreen : GameScreen
     private readonly NewGameView _view = new();
     private readonly List<MatchPlayerSeat> _playerSeats = [];
     private readonly Dictionary<string, ScenarioLevelInfo[]> _levelsByScenario = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, CampaignDefinition> _campaignByScenario = new(StringComparer.Ordinal);
+    private readonly CampaignProgressStore _campaignProgressStore;
 
     private MainMenuBackground? _background;
     private ContentModuleLibrary? _moduleLibrary;
@@ -44,6 +49,7 @@ public sealed class NewGameScreen : GameScreen
         : base(game)
     {
         _assets = assets;
+        _campaignProgressStore = new CampaignProgressStore(game.UserDataPaths);
     }
 
     private GameMain TinyGame => (GameMain)Game;
@@ -71,6 +77,7 @@ public sealed class NewGameScreen : GameScreen
         _moduleLocator = null;
         _bundleLibrary = null;
         _levelsByScenario.Clear();
+        _campaignByScenario.Clear();
         base.UnloadContent();
     }
 
@@ -158,6 +165,7 @@ public sealed class NewGameScreen : GameScreen
             .ToArray();
 
         var filteredLevels = FilterLevelsForSelection();
+        var unlocked = ResolveUnlockedLevelIds();
         _viewModel.Levels = filteredLevels
             .Select(level => new NewGameLevelRowViewModel
             {
@@ -165,6 +173,9 @@ public sealed class NewGameScreen : GameScreen
                 Title = level.Title,
                 ModesLabel = FormatModesLabel(level.Modes),
                 IsSelected = level.LevelId == _viewModel.SelectedLevelId,
+                IsLocked = _viewModel.SelectedMode == NewGamePlayMode.Campaign
+                    && unlocked is not null
+                    && !unlocked.Contains(level.LevelId),
             })
             .ToArray();
 
@@ -232,6 +243,7 @@ public sealed class NewGameScreen : GameScreen
             .ToArray();
 
         _levelsByScenario.Clear();
+        _campaignByScenario.Clear();
         foreach (var scenario in _allScenarios)
         {
             try
@@ -239,6 +251,14 @@ public sealed class NewGameScreen : GameScreen
                 var scenarioRoot = _moduleLocator.ResolveModuleRoot(scenario.ModuleId);
                 _levelsByScenario[scenario.ModuleId] =
                     ScenarioLevelCatalog.ListLevels(scenarioRoot, TinyGame.Files).ToArray();
+
+                var definition = ScenarioModuleLoader.Load(scenarioRoot, TinyGame.Files);
+                var campaign = CampaignLoader.TryLoadFromScenario(
+                    scenarioRoot,
+                    definition.CampaignManifestRelativePath,
+                    TinyGame.Files);
+                if (campaign is not null)
+                    _campaignByScenario[scenario.ModuleId] = campaign;
             }
             catch
             {
@@ -268,11 +288,26 @@ public sealed class NewGameScreen : GameScreen
 
         var filteredLevels = FilterLevelsForSelection();
         if (string.IsNullOrWhiteSpace(_viewModel.SelectedLevelId)
-            || filteredLevels.All(level => level.LevelId != _viewModel.SelectedLevelId))
+            || filteredLevels.All(level => level.LevelId != _viewModel.SelectedLevelId)
+            || IsSelectedLevelLocked(filteredLevels))
         {
-            _viewModel.SelectedLevelId = PreferDefaultLevelId(filteredLevels);
+            _viewModel.SelectedLevelId = _viewModel.SelectedMode == NewGamePlayMode.Campaign
+                ? PreferCampaignLevelId(filteredLevels)
+                : PreferDefaultLevelId(filteredLevels);
             _lobbyInitializedForLevel = false;
         }
+    }
+
+    private bool IsSelectedLevelLocked(IReadOnlyList<ScenarioLevelInfo> filteredLevels)
+    {
+        if (_viewModel.SelectedMode != NewGamePlayMode.Campaign
+            || string.IsNullOrWhiteSpace(_viewModel.SelectedLevelId))
+        {
+            return false;
+        }
+
+        var unlocked = ResolveUnlockedLevelIds();
+        return unlocked is not null && !unlocked.Contains(_viewModel.SelectedLevelId);
     }
 
     private IReadOnlyList<ContentModuleInfo> FilterScenariosForMode(NewGamePlayMode? mode)
@@ -296,9 +331,41 @@ public sealed class NewGameScreen : GameScreen
             return [];
         }
 
-        return levels
+        var modeFiltered = levels
             .Where(level => LevelMatchesMode(level, _viewModel.SelectedMode.Value))
             .ToArray();
+
+        if (_viewModel.SelectedMode != NewGamePlayMode.Campaign
+            || !_campaignByScenario.TryGetValue(_viewModel.SelectedScenarioModuleId, out var campaign))
+        {
+            return modeFiltered;
+        }
+
+        // Campaign tab: order by campaign.json; drop levels not listed there.
+        var byId = modeFiltered.ToDictionary(level => level.LevelId, StringComparer.Ordinal);
+        var ordered = new List<ScenarioLevelInfo>();
+        foreach (var chapter in campaign.Chapters)
+        {
+            if (byId.TryGetValue(chapter.LevelId, out var level))
+                ordered.Add(level);
+        }
+
+        return ordered;
+    }
+
+    private HashSet<string>? ResolveUnlockedLevelIds()
+    {
+        if (_viewModel.SelectedMode != NewGamePlayMode.Campaign
+            || string.IsNullOrWhiteSpace(_viewModel.SelectedScenarioModuleId)
+            || !_campaignByScenario.TryGetValue(_viewModel.SelectedScenarioModuleId, out var campaign))
+        {
+            return null;
+        }
+
+        var progress = _campaignProgressStore.TryLoadLatestForCampaign(
+            _viewModel.SelectedScenarioModuleId,
+            campaign.CampaignId);
+        return CampaignProgressFactory.BuildUnlockedSet(progress, campaign);
     }
 
     private static string? PreferDefaultLevelId(IReadOnlyList<ScenarioLevelInfo> levels)
@@ -309,6 +376,28 @@ public sealed class NewGameScreen : GameScreen
         return levels.FirstOrDefault(level => level.LevelId == GameplaySessionFactory.ProvingGroundsLevelId)
                    ?.LevelId
                ?? levels[0].LevelId;
+    }
+
+    private string? PreferCampaignLevelId(IReadOnlyList<ScenarioLevelInfo> levels)
+    {
+        if (levels.Count == 0
+            || string.IsNullOrWhiteSpace(_viewModel.SelectedScenarioModuleId)
+            || !_campaignByScenario.TryGetValue(_viewModel.SelectedScenarioModuleId, out var campaign))
+        {
+            return PreferDefaultLevelId(levels);
+        }
+
+        var progress = _campaignProgressStore.TryLoadLatestForCampaign(
+            _viewModel.SelectedScenarioModuleId,
+            campaign.CampaignId);
+        var preferred = CampaignProgressFactory.PreferPlayableLevelId(campaign, progress);
+        var unlocked = CampaignProgressFactory.BuildUnlockedSet(progress, campaign);
+
+        if (levels.Any(level => level.LevelId == preferred && unlocked.Contains(preferred)))
+            return preferred;
+
+        return levels.FirstOrDefault(level => unlocked.Contains(level.LevelId))?.LevelId
+            ?? PreferDefaultLevelId(levels);
     }
 
     private static bool LevelMatchesMode(ScenarioLevelInfo level, NewGamePlayMode mode) =>
@@ -582,6 +671,13 @@ public sealed class NewGameScreen : GameScreen
 
     private void SelectLevel(string levelId)
     {
+        var unlocked = ResolveUnlockedLevelIds();
+        if (unlocked is not null && !unlocked.Contains(levelId))
+        {
+            Refresh("That chapter is locked.");
+            return;
+        }
+
         if (_viewModel.SelectedLevelId != levelId)
             _lobbyInitializedForLevel = false;
 
@@ -732,6 +828,13 @@ public sealed class NewGameScreen : GameScreen
             return;
         }
 
+        var unlocked = ResolveUnlockedLevelIds();
+        if (unlocked is not null && !unlocked.Contains(_viewModel.SelectedLevelId))
+        {
+            _view.SetStatus("That chapter is locked.");
+            return;
+        }
+
         ArgumentNullException.ThrowIfNull(_moduleLocator);
         ArgumentNullException.ThrowIfNull(_bundleLibrary);
 
@@ -745,6 +848,13 @@ public sealed class NewGameScreen : GameScreen
             var composition = ResolveComposition(scenario, bundles)
                 ?? throw new InvalidOperationException("Composition is unavailable.");
 
+            CampaignRunState? campaignRun = null;
+            if (_viewModel.SelectedMode == NewGamePlayMode.Campaign
+                && _campaignByScenario.TryGetValue(_viewModel.SelectedScenarioModuleId, out var campaign))
+            {
+                campaignRun = BeginOrResumeCampaignRun(campaign, composition);
+            }
+
             ScreenManager.ReplaceScreen(new LoadingScreen(
                 TinyGame,
                 _assets,
@@ -757,12 +867,75 @@ public sealed class NewGameScreen : GameScreen
                     StartingGold = _viewModel.StartingGold,
                     UnitCap = _viewModel.UnitCap,
                     PlayerSeats = _playerSeats.ToArray(),
+                    CampaignRun = campaignRun,
                 }));
         }
         catch (Exception exception)
         {
             _view.SetStatus("Cannot start: " + exception.Message);
         }
+    }
+
+    private CampaignRunState BeginOrResumeCampaignRun(
+        CampaignDefinition campaign,
+        MatchContentComposition composition)
+    {
+        var existing = _campaignProgressStore.TryLoadLatestForCampaign(
+            _viewModel.SelectedScenarioModuleId!,
+            campaign.CampaignId);
+
+        CampaignProgressDocument progress;
+        if (existing is null)
+        {
+            progress = CampaignProgressFactory.CreateNew(
+                campaign,
+                _viewModel.SelectedScenarioModuleId!,
+                composition,
+                _playerSeats.Select(MatchSaveSeatCodec.ToSave).ToList(),
+                _viewModel.UnitCap);
+        }
+        else
+        {
+            progress = existing;
+            // Jump cursor to the selected unlocked chapter.
+            progress = new CampaignProgressDocument
+            {
+                SaveVersion = existing.SaveVersion,
+                Kind = CampaignProgressDocument.KindCampaign,
+                WrittenAtUtc = DateTimeOffset.UtcNow,
+                CampaignId = existing.CampaignId,
+                ScenarioModuleId = existing.ScenarioModuleId,
+                CampaignTitle = existing.CampaignTitle ?? campaign.Title,
+                CurrentLevelId = _viewModel.SelectedLevelId!,
+                UnlockedLevelIds = existing.UnlockedLevelIds.ToList(),
+                PendingNextLevelId = existing.PendingNextLevelId,
+                UnitCap = _viewModel.UnitCap,
+                ContentSetup = CampaignProgressFactory.ToContentSetup(composition, null),
+                PlayerSeats = _playerSeats.Select(MatchSaveSeatCodec.ToSave).ToList(),
+                Extensions = new Dictionary<string, string>(existing.Extensions, StringComparer.Ordinal),
+            };
+            if (!progress.UnlockedLevelIds.Contains(progress.CurrentLevelId, StringComparer.Ordinal))
+                progress.UnlockedLevelIds.Add(progress.CurrentLevelId);
+        }
+
+        var path = _campaignProgressStore.Write(progress);
+        var run = CampaignRunState.FromProgress(progress, composition, _playerSeats.ToArray());
+        run.ProgressFilePath = path;
+
+        if (existing is null)
+        {
+            try
+            {
+                var service = new CampaignProgressService(TinyGame.UserDataPaths, TinyGame.Files);
+                service.NotifyCampaignStarted(run, campaign);
+            }
+            catch (Exception)
+            {
+                // Best-effort.
+            }
+        }
+
+        return run;
     }
 
     private void GoToMainMenu() =>

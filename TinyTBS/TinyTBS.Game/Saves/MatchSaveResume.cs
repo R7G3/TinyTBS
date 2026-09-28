@@ -1,4 +1,5 @@
 using TinyTBS.Engine.IO;
+using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Saves.Models;
@@ -18,9 +19,19 @@ public static class MatchSaveResume
         ArgumentNullException.ThrowIfNull(userDataPaths);
 
         var request = ContinueMatchRequest.FromDocument(document);
+        var campaignRun = CampaignRunRestorer.TryRestoreForMatch(document, userDataPaths);
         var warning = BuildVersionWarning(document, files, userDataPaths);
-        if (string.IsNullOrWhiteSpace(warning))
+        if (campaignRun is null && string.IsNullOrWhiteSpace(warning))
             return request;
+
+        var orphanNote = campaignRun is not null
+            && string.IsNullOrWhiteSpace(campaignRun.ProgressFilePath)
+            ? "Campaign progress was missing; will recreate on chapter end."
+            : null;
+
+        var combinedWarning = string.Join(
+            " ",
+            new[] { warning, orphanNote }.Where(text => !string.IsNullOrWhiteSpace(text)));
 
         return new ContinueMatchRequest
         {
@@ -31,7 +42,8 @@ public static class MatchSaveResume
             UnitCap = request.UnitCap,
             PlayerSeats = request.PlayerSeats,
             RuntimeSnapshot = request.RuntimeSnapshot,
-            VersionWarning = warning,
+            VersionWarning = string.IsNullOrWhiteSpace(combinedWarning) ? null : combinedWarning,
+            CampaignRun = campaignRun,
         };
     }
 
