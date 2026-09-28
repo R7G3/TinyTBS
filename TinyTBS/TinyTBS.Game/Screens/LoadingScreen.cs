@@ -108,8 +108,8 @@ public sealed class LoadingScreen : GameScreen
         _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
         _view.Build(_viewModel);
 
-        MatchContentComposition? composition = _composition;
-        string? scenarioModuleId = _scenarioModuleId;
+        var composition = _composition;
+        var scenarioModuleId = _scenarioModuleId;
         if (_bundleId is not null)
         {
             composition = GameplaySessionFactory.LoadCompositionFromBundle(

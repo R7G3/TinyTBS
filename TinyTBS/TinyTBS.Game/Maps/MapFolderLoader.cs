@@ -22,7 +22,7 @@ public static class MapFolderLoader
             throw new MapLoadException($"Missing {MapJsonFileName} in {mapDirectory}");
 
         var scriptFilePath = files.Combine(mapDirectory, ScriptFileName);
-        string? scriptPath = files.Exists(scriptFilePath) ? scriptFilePath : null;
+        var scriptPath = files.Exists(scriptFilePath) ? scriptFilePath : null;
 
         using var mapJsonStream = files.OpenRead(mapJsonPath);
         return MapJsonParser.Parse(mapJsonStream, mapDirectory, scriptPath);
