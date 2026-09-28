@@ -20,7 +20,9 @@ public sealed class MatchPauseOverlayView
         Action onOpenMinimap,
         Action onOpenGoals,
         Action onClosePause,
-        Action onReturnToMenu)
+        Action onSaveMatch,
+        Action onSuspendToMenu,
+        Action onLeaveMatch)
     {
         _focusableEntries.Clear();
         _navigateRepeat.Reset();
@@ -38,21 +40,17 @@ public sealed class MatchPauseOverlayView
         AddButton(stack, "End turn", onEndTurn);
         AddButton(stack, "Map", onOpenMinimap);
         AddButton(stack, "Goals", onOpenGoals);
+        AddButton(stack, "Save", onSaveMatch);
 
-        var saveButton = new Button { Text = "Save (hotsit OK)" };
-        saveButton.IsEnabled = false;
-        saveButton.Visual.HasEvents = false;
-        GumUiLayout.FillParentWidth(saveButton);
-        stack.AddChild(saveButton);
-
-        var loadButton = new Button { Text = "Load (hotsit OK)" };
+        var loadButton = new Button { Text = "Load (soon)" };
         loadButton.IsEnabled = false;
         loadButton.Visual.HasEvents = false;
         GumUiLayout.FillParentWidth(loadButton);
         stack.AddChild(loadButton);
 
         AddButton(stack, "Resume", onClosePause);
-        AddButton(stack, "Main menu", onReturnToMenu);
+        AddButton(stack, "Main menu", onSuspendToMenu);
+        AddButton(stack, "Leave match", onLeaveMatch);
 
         GumUiLayout.AddVerticalSpacer(stack, 14f);
     }

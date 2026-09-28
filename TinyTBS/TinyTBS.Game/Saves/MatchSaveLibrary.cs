@@ -1,0 +1,69 @@
+using TinyTBS.Engine.IO;
+using TinyTBS.Game.Saves.Models;
+
+namespace TinyTBS.Game.Saves;
+
+/// <summary>Lists and resolves match saves in <see cref="IUserDataPaths.Saves"/>.</summary>
+public sealed class MatchSaveLibrary
+{
+    private readonly IUserDataPaths _userDataPaths;
+
+    public MatchSaveLibrary(IUserDataPaths userDataPaths)
+    {
+        _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
+    }
+
+    /// <summary>Match save files, newest first (by writtenAtUtc, then file name).</summary>
+    public IReadOnlyList<MatchSaveListEntry> ListMatchSavesNewestFirst()
+    {
+        _userDataPaths.EnsureCreated();
+        if (!Directory.Exists(_userDataPaths.Saves))
+            return [];
+
+        var entries = new List<MatchSaveListEntry>();
+        foreach (var path in Directory.GetFiles(_userDataPaths.Saves, "match_*.json"))
+        {
+            try
+            {
+                var document = MatchSaveReader.ReadFile(path);
+                entries.Add(new MatchSaveListEntry
+                {
+                    FilePath = path,
+                    WrittenAtUtc = document.WrittenAtUtc,
+                    LevelId = document.LevelId,
+                    ScenarioModuleId = document.ContentSetup.ScenarioModuleId,
+                });
+            }
+            catch (MatchSaveException)
+            {
+                // Skip corrupt / non-match files for listing.
+            }
+        }
+
+        return entries
+            .OrderByDescending(entry => entry.WrittenAtUtc)
+            .ThenByDescending(entry => entry.FilePath, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    public bool TryGetLatest(out MatchSaveListEntry entry)
+    {
+        var list = ListMatchSavesNewestFirst();
+        if (list.Count == 0)
+        {
+            entry = null!;
+            return false;
+        }
+
+        entry = list[0];
+        return true;
+    }
+
+    public MatchSaveDocument LoadLatest()
+    {
+        if (!TryGetLatest(out var entry))
+            throw new MatchSaveException("No match saves found.");
+
+        return MatchSaveReader.ReadFile(entry.FilePath);
+    }
+}

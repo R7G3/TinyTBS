@@ -6,6 +6,8 @@ using TinyTBS.Game.Input;
 using TinyTBS.Engine.IO;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Engine.Input;
+using TinyTBS.Game.Match;
+using TinyTBS.Game.Saves;
 using TinyTBS.Game.Screens;
 
 namespace TinyTBS.Game;
@@ -23,6 +25,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
 
     private SpriteBatch? _spriteBatch;
     private bool _applyingGraphicsChanges;
+    private SuspendedMatchHold? _suspendedMatch;
 
     private const int DefaultWindowWidth = 1280;
     private const int DefaultWindowHeight = 786;
@@ -40,8 +43,6 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
 
         _graphics = new GraphicsDeviceManager(this)
         {
-            // Must be set in the constructor — after the first device create,
-            // MonoGame keeps the platform default (800×480) until ApplyChanges.
             PreferredBackBufferWidth = DefaultWindowWidth,
             PreferredBackBufferHeight = DefaultWindowHeight,
         };
@@ -64,6 +65,37 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     public SpriteBatch SharedSpriteBatch =>
         _spriteBatch ?? throw new InvalidOperationException("SpriteBatch is not loaded yet.");
 
+    public bool HasSuspendedMatch => _suspendedMatch is not null;
+
+    public SuspendedMatchHold? SuspendedMatch => _suspendedMatch;
+
+    public void SuspendMatch(GameplaySession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ClearSuspendedMatch(dispose: true);
+        _suspendedMatch = new SuspendedMatchHold(session);
+    }
+
+    public void ClearSuspendedMatch(bool dispose)
+    {
+        if (_suspendedMatch is null)
+            return;
+
+        if (dispose)
+            _suspendedMatch.Session.Dispose();
+        _suspendedMatch = null;
+    }
+
+    public GameplaySession? TakeSuspendedMatch()
+    {
+        if (_suspendedMatch is null)
+            return null;
+
+        var session = _suspendedMatch.Session;
+        _suspendedMatch = null;
+        return session;
+    }
+
     protected override void Initialize()
     {
         _userDataPaths.EnsureCreated();
@@ -71,10 +103,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
         base.Initialize();
 
         Window.AllowUserResizing = true;
-
-        // Re-assert size after device/window creation (DesktopGL sometimes ignores ctor prefs).
         ApplyBackBufferSize(DefaultWindowWidth, DefaultWindowHeight);
-
         Window.ClientSizeChanged += OnWindowClientSizeChanged;
 
         GumBootstrap.Initialize(this);
@@ -128,5 +157,11 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     protected override void LoadContent()
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
+    }
+
+    protected override void UnloadContent()
+    {
+        ClearSuspendedMatch(dispose: true);
+        base.UnloadContent();
     }
 }

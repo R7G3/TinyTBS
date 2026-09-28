@@ -1,45 +1,74 @@
-# Формат сохранений (черновик)
+# Формат сохранений
 
-> Полный набор полей — после первого playable. Сейчас — принципы и уровни.
+Канон match-сейвов (v1). Campaign save — расширение позже (`campaigns`).
 
 ## Два типа сохранений
 
 | Тип | Файл (пример) | Когда |
 |-----|---------------|-------|
-| **Match** | `Saves/match_{id}.json` | Середина битвы на одной карте |
-| **Campaign** | `Saves/campaign_{id}.json` | Прогресс сценария из нескольких карт |
+| **Match** | `Saves/match_{yyyyMMdd_HHmmss}_{shortId}.json` | Середина битвы на одной карте |
+| **Campaign** | `Saves/campaign_{id}.json` | Прогресс сценария (позже) |
 
-## Match save (ожидаемое содержимое)
+## Continue vs диск vs live
 
-- `saveVersion`
-- id карты / scenario, seed, номер хода
-- **`contentSetup`**: снимок `MatchContentComposition` (scenario module id, списки units/buildings/theme module ids, `moduleVersions`)
-- состояние ECS: юниты, здания, деньги, владельцы (логические id типов)
-- состояние RNG
-- блок `extensions` — флаги скриптов карты
+| Источник | Поведение |
+|----------|-----------|
+| **Suspended live** | Пауза → **Main menu** не Dispose матч; **Continue** возвращает его из RAM |
+| **Диск** | Нет live → **Continue** = новейший `match_*.json` |
+| **Leave match** | Пауза → полный Dispose; live нет |
+| **Результат матча** | Main menu = Dispose (матч окончен) |
+| **Рестарт процесса** | Live пропадает; остаётся только диск |
 
-При загрузке: если версия модуля изменилась — предупреждение → попытка → неудача → в меню. См. [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md).
+New Game при живом suspended: повторный Confirm («Confirm New Game again…»), Back отменяет.
 
-## Campaign save (ожидаемое содержимое)
+Экран **Загрузка** — следующий срез (список / load / delete).
 
-- `saveVersion`
-- id кампании / scenario-модуля, индекс текущей карты
-- тот же **`contentSetup`**
-- сюжетные флаги
-- переносимые между картами ресурсы (если задумано)
-- ссылка на match save или встроенный snapshot
+## Match save (v1)
+
+Корень JSON:
+
+| Поле | Описание |
+|------|----------|
+| `saveVersion` | `1` |
+| `kind` | `"match"` |
+| `writtenAtUtc` | ISO-8601 UTC |
+| `levelId` | id уровня в scenario-модуле |
+| `unitCap` | потолок армии |
+| `contentSetup` | composition + `moduleVersions` + `replaces` |
+| `playerSeats` | `local` / `bot` (+ `botDifficulty`) |
+| `match` | runtime snapshot (без terrain/catalog) |
+| `extensions` | `{}` (зарезервировано под флаги скриптов) |
+
+### `contentSetup`
+
+- `scenarioModuleId`, `unitsModuleIds[]`, `buildingsModuleIds[]`, `themeModuleId`
+- `moduleVersions`: `{ "vanilla_units": "1.0.0", … }`
+- `replaces[]`: `{ "from", "to" }` (полные content id)
+
+### `match` (runtime)
+
+- `playerCount`, `currentPlayer`, `turnNumber`, `nextUnitId`, `unitCap`
+- `moneyByPlayer[]`, `turnStartsByPlayer[]`, `kingRehireCountByPlayer[]`, `eliminatedPlayers[]`
+- `cursor` `{x,y}`, `selectedUnitId`, `winnerPlayerIndex`, `victoryReason`
+- `units[]`, `buildings[]`, `gravestones[]`
+
+Terrain и каталог **не** пишутся: при load — карта/модули заново, затем hydrate snapshot.
+
+При загрузке: модуль отсутствует → ошибка в меню; версия модуля изменилась → предупреждение на экране загрузки + попытка; нерезолвящиеся type id → fail.
 
 ## Принципы
 
 1. **`saveVersion`** в корне — миграции при смене формата.
 2. **`extensions`** — карта/кампания добавляет свои ключи без ломки ядра.
-3. Набор полей может **различаться** по типу карты/кампании — ядро знает общую обёртку, специфика в `extensions`.
+3. Campaign progress позже расширит тот же `{UserData}/Saves/` и библиотеку (не отдельная система).
 
 ## Где хранить
 
-`{UserData}/Saves/` — через `IUserDataPaths`.
+`{UserData}/Saves/` — через `IUserDataPaths`  
+(Windows: `%LocalAppData%\TinyTBS\Saves`).
 
-## TODO
+## Код
 
-- [ ] Зафиксировать JSON-схему после первого playtest
-- [ ] ADR при первом breaking change формата
+- `TinyTBS.Game/Saves/` — Writer / Reader / Library / DocumentFactory
+- Resume с диска: `ContinueMatchRequest` → `LoadingScreen` → `MatchSessionLoadPipeline` + hydrate
+- Live: `GameMain.SuspendMatch` / `TakeSuspendedMatch`

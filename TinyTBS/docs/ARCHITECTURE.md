@@ -210,8 +210,8 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
     - `new-game-flow` — **выполнено** (вкладки Mode → Scenario → Level → Composition → Lobby; composition scenario-defaults/bundle; слоты Local + Bot/Remote greyed в Add-chooser; цвета слотов; unit cap в `MatchLevelBrief`, enforcement позже)
 19. **`match-gdd-loop`** — **выполнено** (economy/combat/post-move по клеткам/abilities + standard victory/defeat + оверлей результата). Бывшие `match-economy-capture` + `match-combat-gdd`.
 20. **`bot-search-ab`** — **выполнено** (код в `TinyTBS.Game/Ai/`: атомарный αβ Easy+Normal, quiescence у Normal, лобби Bot, `IBotSearchPolicy` шов под Hard/full-turn). Идея: [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md). Hard / harness — позже.
-21. **`save-format`** — сейвы матча + «Продолжить»; foundation для campaign progress (`contentSetup`, версии). Канон: [SAVE_FORMAT.md](SAVE_FORMAT.md).
-22. **`campaigns`** — campaign.json / прохождение по главам + прогресс (опирается на сейвы).
+21. **`save-format`** — match-сейвы + Continue (live → диск) + Pause Save / Leave match — **выполнено** (срез 1). Экран **Загрузка** — срез 2. Канон: [SAVE_FORMAT.md](SAVE_FORMAT.md).
+22. **`campaigns`** — campaign.json / прохождение по главам + прогресс (опирается на сейвы; расширение kind=campaign).
 23. **`map-editor`** — workspace модулей (карты/levels); Publish greyed. После playable loop + сейвов, чтобы контент на перерыве не терялся зря.
 24. `player-colors` — color picker в лобби / профиле (dimFactor отрисовки уже в матче); можно совместить с профилем в `settings-ui`.
 25. `settings-ui` — экран **Настройки** (меню сейчас greyed): графика (разрешение/окно, UI scale / `ui-scale-hidpi`, фильтр зума nearest vs bicubic), ввод (три столбца биндов), профиль. Persist в user data. Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки).

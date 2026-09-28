@@ -12,6 +12,7 @@ namespace TinyTBS.Game.Presentation.Menu;
 public sealed class MainMenuView
 {
     private Panel? _rootPanel;
+    private Label? _statusLabel;
     private readonly List<(Button Button, Action Activate)> _focusableEntries = [];
     private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private int _focusIndex;
@@ -54,6 +55,10 @@ public sealed class MainMenuView
         AddMenuButton(contentPanel, "Settings", viewModel.CanOpenSettings, onSettings);
         AddMenuButton(contentPanel, "About", viewModel.CanOpenAbout, onAbout);
 
+        _statusLabel = new Label { Text = viewModel.StatusHint };
+        GumUiLayout.FillParentWidth(_statusLabel);
+        contentPanel.AddChild(_statusLabel);
+
         var exitButton = new Button { Text = "Exit" };
         GumUiLayout.PinToBottomRight(exitButton, insetPixels: 24f, widthPixels: 120f);
         exitButton.Click += (_, _) => onExit();
@@ -61,6 +66,12 @@ public sealed class MainMenuView
         _focusableEntries.Add((exitButton, onExit));
 
         FocusFirst();
+    }
+
+    public void SyncStatus(MainMenuViewModel viewModel)
+    {
+        if (_statusLabel is not null)
+            _statusLabel.Text = viewModel.StatusHint ?? string.Empty;
     }
 
     /// <summary>
@@ -85,6 +96,7 @@ public sealed class MainMenuView
     {
         GumService.Default.Root.Children.Clear();
         _rootPanel = null;
+        _statusLabel = null;
         _focusableEntries.Clear();
         _navigateRepeat.Reset();
         _focusIndex = 0;

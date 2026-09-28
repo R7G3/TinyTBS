@@ -1,6 +1,7 @@
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Maps.Models;
 using TinyTBS.Game.Ai;
+using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.Match;
 using TinyTBS.Game.Scripting;
 
@@ -23,7 +24,9 @@ public sealed class GameplaySession : IDisposable
         MinimapRenderer minimap,
         MatchContentCatalog contentCatalog,
         UnitLevelLabelRenderer unitLevelLabels,
-        IReadOnlyList<MatchPlayerSeat> playerSeats)
+        IReadOnlyList<MatchPlayerSeat> playerSeats,
+        MatchContentComposition composition,
+        IReadOnlyDictionary<string, string> moduleVersions)
     {
         State = state;
         Scene = scene;
@@ -34,6 +37,8 @@ public sealed class GameplaySession : IDisposable
         ContentCatalog = contentCatalog;
         UnitLevelLabels = unitLevelLabels;
         PlayerSeats = playerSeats;
+        Composition = composition;
+        ModuleVersions = moduleVersions;
         _textures = textures;
     }
 
@@ -54,6 +59,12 @@ public sealed class GameplaySession : IDisposable
     public MatchContentCatalog ContentCatalog { get; }
 
     public IReadOnlyList<MatchPlayerSeat> PlayerSeats { get; }
+
+    /// <summary>Content composition used to start / resume this match (for saves).</summary>
+    public MatchContentComposition Composition { get; }
+
+    /// <summary>Module id → version at session build time.</summary>
+    public IReadOnlyDictionary<string, string> ModuleVersions { get; }
 
     public MatchTextureAtlas Textures => _textures;
 

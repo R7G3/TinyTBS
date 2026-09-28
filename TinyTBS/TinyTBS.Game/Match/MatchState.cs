@@ -1,6 +1,7 @@
 using TinyTBS.Game.Maps;
 using TinyTBS.Game.Maps.Models;
 using TinyTBS.Game.Modules;
+using TinyTBS.Game.Saves.Models;
 using TinyTBS.Game.Units.Models;
 
 namespace TinyTBS.Game.Match;
@@ -176,6 +177,124 @@ public sealed class MatchState
     public bool IsMatchOver => WinnerPlayerIndex is not null;
 
     public bool IsPlayerEliminated(int playerIndex) => _eliminatedPlayers.Contains(playerIndex);
+
+    /// <summary>Next unit id that would be assigned by <see cref="SpawnUnit"/>.</summary>
+    public int PeekNextUnitId() => _nextUnitId;
+
+    /// <summary>
+    /// Replaces dynamic match state from a save snapshot (terrain / catalog stay from <see cref="FromMap"/>).
+    /// Does not run turn-start economy.
+    /// </summary>
+    public void HydrateFromSnapshot(MatchRuntimeSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        if (snapshot.PlayerCount < 1)
+            throw new ArgumentOutOfRangeException(nameof(snapshot), "playerCount must be >= 1.");
+        if (snapshot.MoneyByPlayer.Count != snapshot.PlayerCount
+            || snapshot.TurnStartsByPlayer.Count != snapshot.PlayerCount
+            || snapshot.KingRehireCountByPlayer.Count != snapshot.PlayerCount)
+        {
+            throw new ArgumentException("Player arrays must match playerCount.", nameof(snapshot));
+        }
+
+        _playerCount = snapshot.PlayerCount;
+        _nextUnitId = Math.Max(0, snapshot.NextUnitId);
+        CurrentPlayer = Math.Clamp(snapshot.CurrentPlayer, 0, snapshot.PlayerCount - 1);
+        TurnNumber = Math.Max(1, snapshot.TurnNumber);
+        Cursor = new GridCell(
+            Math.Clamp(snapshot.Cursor.X, 0, Width - 1),
+            Math.Clamp(snapshot.Cursor.Y, 0, Height - 1));
+        SelectedUnitId = snapshot.SelectedUnitId;
+        WinnerPlayerIndex = snapshot.WinnerPlayerIndex;
+        VictoryReason = snapshot.VictoryReason;
+        LastAction = null;
+
+        _moneyByPlayer.Clear();
+        _turnStartsByPlayer.Clear();
+        _kingRehireCountByPlayer.Clear();
+        _eliminatedPlayers.Clear();
+        _units.Clear();
+        _buildings.Clear();
+        _gravestones.Clear();
+
+        for (var playerIndex = 0; playerIndex < snapshot.PlayerCount; playerIndex++)
+        {
+            _moneyByPlayer[playerIndex] = snapshot.MoneyByPlayer[playerIndex];
+            _turnStartsByPlayer[playerIndex] = snapshot.TurnStartsByPlayer[playerIndex];
+            _kingRehireCountByPlayer[playerIndex] = snapshot.KingRehireCountByPlayer[playerIndex];
+        }
+
+        foreach (var eliminated in snapshot.EliminatedPlayers)
+        {
+            if (eliminated >= 0 && eliminated < snapshot.PlayerCount)
+                _eliminatedPlayers.Add(eliminated);
+        }
+
+        foreach (var building in snapshot.Buildings)
+        {
+            var typeId = ContentId.Parse(building.TypeId);
+            if (!_catalog.TryGetBuilding(typeId, out _))
+            {
+                throw new InvalidOperationException(
+                    $"Saved building type '{building.TypeId}' is not in the match content catalog.");
+            }
+
+            _buildings.Add(new MatchBuilding(
+                typeId,
+                new GridCell(building.Cell.X, building.Cell.Y),
+                building.OwnerPlayerIndex,
+                building.IsRuined,
+                building.AllowsRecruit)
+            {
+                RepairedThisOwnerTurn = building.RepairedThisOwnerTurn,
+            });
+        }
+
+        foreach (var unit in snapshot.Units)
+        {
+            var typeId = ContentId.Parse(unit.TypeId);
+            if (!_catalog.TryGetUnit(typeId, out _))
+            {
+                throw new InvalidOperationException(
+                    $"Saved unit type '{unit.TypeId}' is not in the match content catalog.");
+            }
+
+            var maxHealth = Math.Max(1, unit.MaxHealth);
+            var hitPoints = Math.Clamp(unit.HitPoints, 1, maxHealth);
+            var restored = new MatchUnit(
+                unit.Id,
+                typeId,
+                new GridCell(unit.Cell.X, unit.Cell.Y),
+                unit.PlayerIndex,
+                maxHealth,
+                hitPoints)
+            {
+                IsActive = unit.IsActive,
+                HasMovedThisActivation = unit.HasMovedThisActivation,
+                CellBeforeMove = new GridCell(unit.CellBeforeMove.X, unit.CellBeforeMove.Y),
+                Experience = Math.Clamp(unit.Experience, 0, MatchUnit.MaxExperience),
+            };
+            restored.HitPoints = Math.Clamp(unit.HitPoints, 0, maxHealth);
+            if (restored.HitPoints <= 0)
+                restored.HitPoints = 1;
+            _units.Add(restored);
+        }
+
+        if (SelectedUnitId is int selectedId && !_units.Any(unit => unit.Id == selectedId))
+            SelectedUnitId = null;
+
+        foreach (var stone in snapshot.Gravestones)
+        {
+            _gravestones.Add(new MatchGravestone(
+                new GridCell(stone.Cell.X, stone.Cell.Y),
+                stone.SourcePlayerIndex,
+                stone.ExpiresWhenTurnStartsReaches));
+        }
+
+        // Keep next id above any restored unit id.
+        foreach (var unit in _units)
+            _nextUnitId = Math.Max(_nextUnitId, unit.Id + 1);
+    }
 
     /// <summary>
     /// Deep copy for AI search. Shares the content catalog (immutable for match lifetime).

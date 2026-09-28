@@ -14,6 +14,7 @@ public sealed class GameplayScreen : GameScreen
     private readonly GameplayHudComposer _hudComposer = new();
     private readonly GameplaySession _session;
     private GameplayMatchController? _controller;
+    private bool _sessionTransferred;
 
     public GameplayScreen(GameMain game, IAssetResolver assets, GameplaySession session)
         : base(game)
@@ -38,12 +39,14 @@ public sealed class GameplayScreen : GameScreen
             _hudComposer);
         _controller.LoadContent(
             _session,
-            () => ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets)));
+            onSuspendToMenu: SuspendToMainMenu,
+            onLeaveMatch: LeaveMatchToMainMenu,
+            onSaveMatch: SaveMatch);
     }
 
     public override void UnloadContent()
     {
-        _controller?.UnloadContent();
+        _controller?.UnloadContent(disposeSession: !_sessionTransferred);
         _controller = null;
         base.UnloadContent();
     }
@@ -53,4 +56,23 @@ public sealed class GameplayScreen : GameScreen
 
     public override void Draw(GameTime gameTime) =>
         _controller?.Draw(gameTime);
+
+    private void SuspendToMainMenu()
+    {
+        _sessionTransferred = true;
+        TinyGame.SuspendMatch(_session);
+        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
+    }
+
+    private void LeaveMatchToMainMenu()
+    {
+        _sessionTransferred = false;
+        TinyGame.ClearSuspendedMatch(dispose: true);
+        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
+    }
+
+    private void SaveMatch()
+    {
+        _controller?.SaveCurrentMatch();
+    }
 }

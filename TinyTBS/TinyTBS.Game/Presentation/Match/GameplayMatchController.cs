@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Ai;
+using TinyTBS.Game.Saves;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.Match;
@@ -23,6 +24,7 @@ public sealed class GameplayMatchController
     private GridCell? _cellActionChooserCell;
     private bool _pendingPauseMenuFocus;
     private Action? _returnToMenu;
+    private Action? _leaveMatch;
     private readonly MatchEnemyThreatHold _enemyThreatHold = new();
     private float _lastBotFollowCursorX = float.NaN;
     private float _lastBotFollowCursorY = float.NaN;
@@ -39,11 +41,16 @@ public sealed class GameplayMatchController
         _hudSync = new GameplayHudSync(hud, hudComposer);
     }
 
-    public void LoadContent(GameplaySession session, Action returnToMenu)
+    public void LoadContent(
+        GameplaySession session,
+        Action onSuspendToMenu,
+        Action onLeaveMatch,
+        Action onSaveMatch)
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        _returnToMenu = returnToMenu;
+        _returnToMenu = onSuspendToMenu;
+        _leaveMatch = onLeaveMatch;
         _session = session;
 
         _hudSync.Hud.LevelTitle = _session.LevelBrief.Title;
@@ -67,7 +74,9 @@ public sealed class GameplayMatchController
             onClosePause: ClosePause,
             onOpenMinimap: OpenMinimap,
             onOpenGoals: OpenGoals,
-            onReturnToMenu: ReturnToMenu,
+            onSuspendToMenu: SuspendToMenu,
+            onLeaveMatch: LeaveMatch,
+            onSaveMatch: SaveCurrentMatch,
             onCloseShop: CloseShop,
             onBuyOffer: BuyShopOffer,
             onCellActionMove: OnCellActionMove,
@@ -76,13 +85,40 @@ public sealed class GameplayMatchController
         SyncHud();
     }
 
-    public void UnloadContent()
+    public void UnloadContent(bool disposeSession = true)
     {
         _enemyThreatHold.Clear();
         _hudComposer.Clear();
-        _session?.Dispose();
+        if (disposeSession)
+            _session?.Dispose();
         _session = null;
     }
+
+    public void SaveCurrentMatch()
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            var document = MatchSaveDocumentFactory.FromSession(
+                _session,
+                _game.Files,
+                _game.UserDataPaths);
+            var path = new MatchSaveWriter(_game.UserDataPaths).Write(document);
+            _hudSync.Hud.HintText = "Saved: " + Path.GetFileName(path);
+            ClosePause();
+        }
+        catch (Exception exception)
+        {
+            _hudSync.Hud.HintText = "Save failed: " + exception.Message;
+        }
+    }
+
+    private void SuspendToMenu() => _returnToMenu?.Invoke();
+
+    private void LeaveMatch() => _leaveMatch?.Invoke();
+
 
     public void Update(GameTime gameTime)
     {
@@ -699,6 +735,4 @@ public sealed class GameplayMatchController
         _hudSync.Hud.ShopStatusText = string.Empty;
         _hudComposer.ClearUiFocus();
     }
-
-    private void ReturnToMenu() => _returnToMenu?.Invoke();
 }

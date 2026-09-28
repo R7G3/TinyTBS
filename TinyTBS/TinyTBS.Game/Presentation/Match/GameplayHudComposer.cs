@@ -37,7 +37,9 @@ public sealed class GameplayHudComposer
         Action onClosePause,
         Action onOpenMinimap,
         Action onOpenGoals,
-        Action onReturnToMenu,
+        Action onSuspendToMenu,
+        Action onLeaveMatch,
+        Action onSaveMatch,
         Action onCloseShop,
         Action<int> onBuyOffer,
         Action onCellActionMove,
@@ -54,11 +56,19 @@ public sealed class GameplayHudComposer
         _bottomBar.Build(_rootPanel, hud, onOpenPause);
         _compactInfo.Build(_rootPanel, hud);
         _tileDetail.Build(_rootPanel, hud);
-        _pause.Build(_rootPanel, onEndTurn, onOpenMinimap, onOpenGoals, onClosePause, onReturnToMenu);
+        _pause.Build(
+            _rootPanel,
+            onEndTurn,
+            onOpenMinimap,
+            onOpenGoals,
+            onClosePause,
+            onSaveMatch,
+            onSuspendToMenu,
+            onLeaveMatch);
         _goals.Build(_rootPanel, hud);
         _shop.Build(_rootPanel, hud, onCloseShop, onBuyOffer);
         _cellActionChooser.Build(_rootPanel, onCellActionMove, onCellActionBuy);
-        _matchResult.Build(_rootPanel, onReturnToMenu);
+        _matchResult.Build(_rootPanel, onLeaveMatch);
 
         Sync(hud);
     }

@@ -5,7 +5,7 @@ public sealed class MainMenuViewModel
 {
     public string Title { get; set; } = "TinyTBS";
 
-    /// <summary>True when a save exists for Continue (saves not implemented yet).</summary>
+    /// <summary>True when a suspended match or disk save is available for Continue.</summary>
     public bool CanContinue { get; set; }
 
     public bool CanLoadGame { get; set; }
@@ -20,4 +20,7 @@ public sealed class MainMenuViewModel
 
     /// <summary>Opens the New Game flow (scenario + level).</summary>
     public bool CanStartNewGame { get; set; } = true;
+
+    /// <summary>Short status under the menu (abandon confirm, errors).</summary>
+    public string StatusHint { get; set; } = string.Empty;
 }

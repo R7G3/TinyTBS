@@ -42,7 +42,8 @@ isProject: false
 ### Дальше (playtest-перерыв: бот → сейвы → кампании → редактор)
 
 - [x] **bot-search-ab** — бот схватки: атомарный αβ; **Easy + Normal**; Hard позже. Лобби Bot.
-- [ ] **save-format** — сейвы матча + «Продолжить»; foundation для campaign progress
+- [x] **save-format** (срез 1) — match JSON + Pause Save / Leave / Main menu suspend + Continue live→диск
+- [ ] **save-format** (срез 2) — экран Загрузка
 - [ ] **campaigns** — campaign.json + прохождение по главам + прогресс
 - [ ] **map-editor** — workspace модулей; Publish greyed
 - [ ] **player-colors** — color picker в лобби / профиле (можно с `settings-ui`)

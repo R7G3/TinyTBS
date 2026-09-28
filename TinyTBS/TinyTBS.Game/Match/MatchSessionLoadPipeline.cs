@@ -9,6 +9,8 @@ using TinyTBS.Game.Ai;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.Match;
+using TinyTBS.Game.Saves;
+using TinyTBS.Game.Saves.Models;
 using TinyTBS.Game.Scripting;
 
 namespace TinyTBS.Game.Match;
@@ -34,6 +36,7 @@ public sealed class MatchSessionLoadPipeline
     private readonly int? _startingGoldOverride;
     private readonly int? _unitCapOverride;
     private readonly IReadOnlyList<MatchPlayerSeat>? _playerSeatsOverride;
+    private readonly MatchRuntimeSnapshot? _hydrateSnapshot;
     private readonly IReadOnlyList<(string Label, Action Work)> _stages;
 
     private MatchContentLoadResult? _matchContent;
@@ -61,7 +64,8 @@ public sealed class MatchSessionLoadPipeline
         int? playerCount = null,
         int? startingGold = null,
         int? unitCap = null,
-        IReadOnlyList<MatchPlayerSeat>? playerSeats = null)
+        IReadOnlyList<MatchPlayerSeat>? playerSeats = null,
+        MatchRuntimeSnapshot? hydrateSnapshot = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelId);
 
@@ -80,6 +84,7 @@ public sealed class MatchSessionLoadPipeline
         _startingGoldOverride = startingGold;
         _unitCapOverride = unitCap;
         _playerSeatsOverride = playerSeats;
+        _hydrateSnapshot = hydrateSnapshot;
 
         _stages =
         [
@@ -180,6 +185,12 @@ public sealed class MatchSessionLoadPipeline
 
         var playerCount = _playerCountOverride ?? _level.Players.DefaultSlots;
         playerCount = Math.Clamp(playerCount, _level.Players.Min, _level.Players.Max);
+        if (_hydrateSnapshot is not null)
+            playerCount = _hydrateSnapshot.PlayerCount;
+
+        var unitCap = _unitCapOverride ?? _level.DefaultUnitCap;
+        if (_hydrateSnapshot is not null)
+            unitCap = _hydrateSnapshot.UnitCap;
 
         _state = MatchState.FromMap(
             _level.Map,
@@ -187,9 +198,12 @@ public sealed class MatchSessionLoadPipeline
             _matchContent.Replaces,
             playerCount: playerCount,
             startingGold: _startingGoldOverride ?? _level.DefaultStartingGold,
-            unitCap: _unitCapOverride ?? _level.DefaultUnitCap,
+            unitCap: unitCap,
             victoryType: _level.Victory.Type,
             defeatType: _level.Defeat.Type);
+
+        if (_hydrateSnapshot is not null)
+            _state.HydrateFromSnapshot(_hydrateSnapshot);
     }
 
     private void CompileMapScript()
@@ -203,8 +217,13 @@ public sealed class MatchSessionLoadPipeline
             _level.Map.ScriptPath,
             _files,
             scriptEngine);
-        _scriptHost.NotifyMatchStarted(_state);
-        _state.EvaluateStandardOutcome();
+
+        // Fresh matches fire turn-start hooks; resumed saves keep mid-match state via snapshot.
+        if (_hydrateSnapshot is null)
+        {
+            _scriptHost.NotifyMatchStarted(_state);
+            _state.EvaluateStandardOutcome();
+        }
     }
 
     private void LoadTextures()
@@ -236,6 +255,10 @@ public sealed class MatchSessionLoadPipeline
         ArgumentNullException.ThrowIfNull(_matchContent);
         ArgumentNullException.ThrowIfNull(_unitLevelLabels);
 
+        var unitCap = _unitCapOverride ?? _level.DefaultUnitCap;
+        if (_hydrateSnapshot is not null)
+            unitCap = _hydrateSnapshot.UnitCap;
+
         var levelBrief = new MatchLevelBrief
         {
             LevelId = _level.Id,
@@ -244,8 +267,13 @@ public sealed class MatchSessionLoadPipeline
             VictoryType = _level.Victory.Type,
             DefeatType = _level.Defeat.Type,
             TeamDefeatMode = _level.TeamDefeatMode,
-            UnitCap = _unitCapOverride ?? _level.DefaultUnitCap,
+            UnitCap = unitCap,
         };
+
+        var moduleVersions = MatchSaveDocumentFactory.CollectModuleVersions(
+            _matchContent.Composition,
+            _files,
+            _userDataPaths);
 
         return new GameplaySession(
             _state,
@@ -257,7 +285,9 @@ public sealed class MatchSessionLoadPipeline
             _minimap,
             _matchContent.Catalog,
             _unitLevelLabels,
-            ResolvePlayerSeats(_state));
+            ResolvePlayerSeats(_state),
+            _matchContent.Composition,
+            moduleVersions);
     }
 
     private IReadOnlyList<MatchPlayerSeat> ResolvePlayerSeats(MatchState state)
