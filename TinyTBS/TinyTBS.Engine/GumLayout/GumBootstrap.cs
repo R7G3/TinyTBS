@@ -1,4 +1,4 @@
-using Gum;
+﻿using Gum;
 using Gum.Forms;
 using XnaGame = Microsoft.Xna.Framework.Game;
 
@@ -16,9 +16,12 @@ public static class GumBootstrap
         GumService.Default.UseKeyboardDefaults();
         // Do NOT call UseGamepadDefaults: Gum spatial nav fights GameCommand-driven
         // menu focus (D-pad / stick would double-step or land on scrollbars).
-        // Gamepad is polled only via GameCommandService → screen HandleInput.
+        // Gamepad is polled only via GameCommandService -> screen HandleInput.
 
         // Canvas tracks the back buffer; GumService.Update reapplies fit on resize.
         GumService.Default.EnableExpandToWindow(1f);
+
+        // V3 default focus is a bottom bar; menus use a full outline around the control.
+        GumFocusOutline.InstallDefaultButtonTemplate();
     }
 }
