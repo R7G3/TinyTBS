@@ -1,0 +1,19 @@
+﻿{
+  "formatVersion": 1,
+  "id": "castle",
+  "displayNameKey": "buildings.castle",
+  "tags": ["castle"],
+  "sprites": {
+    "base": "Resources/Images/buildings/castle_base.png",
+    "mask": "Resources/Images/buildings/castle_mask.png"
+  },
+  "income": 50,
+  "defenceBonus": 15,
+  "allowsRecruit": true,
+  "recruitFromTags": [],
+  "heal": { "amount": 20, "scope": "allied" },
+  "capturable": true,
+  "destroyable": false,
+  "repairable": false,
+  "countsTowardPlayerDefeat": true
+}

@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "id": "test_theme",
+  "type": "theme",
+  "namespace": "test_theme",
+  "title": "Test Theme",
+  "description": "QA theme module (vanilla art clone). Install/uninstall and New Game composition tests.",
+  "version": "1.0.0",
+  "content": {
+    "terrainDir": "Resources/Images/terrain/",
+    "gravestone": "Resources/Images/misc/gravestone.png"
+  },
+  "remaps": {}
+}

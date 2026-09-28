@@ -27,6 +27,7 @@
 | [docs/ideas/](docs/ideas/) | Отложенные идеи (не канон) |
 | [docs/adr/](docs/adr/) | Architecture Decision Records |
 | [AGENTS.md](AGENTS.md) | Правила для AI и разработчиков |
+| [TestData/](TestData/) | QA tinymod-бандл (install/uninstall / Composition; не в solution) |
 
 ## Сборка
 

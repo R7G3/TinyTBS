@@ -43,3 +43,7 @@ Campaign: `Campaign/campaign.json` (`vanilla-main`).
 - Neutral / owned / ruined buildings; gravestones; map scripts; campaign list
 - Bundle defaults + `requires` on scenario
 - Recruit pool (skeleton excluded); theme module present with empty remaps
+
+## Related
+
+For **user-library** install/uninstall and New Game composition against a second pack (namespace `test`), see [TestData/](../../TestData/) at the MonoGame solution root (not copied into the build).

@@ -1,0 +1,26 @@
+﻿{
+  "formatVersion": 1,
+  "id": "village",
+  "displayNameKey": "buildings.village",
+  "tags": ["village"],
+  "sprites": {
+    "base": "Resources/Images/buildings/village_base.png",
+    "mask": "Resources/Images/buildings/village_mask.png",
+    "ruinedBase": "Resources/Images/buildings/village_ruined_base.png",
+    "ruinedMask": "Resources/Images/buildings/village_ruined_mask.png"
+  },
+  "income": 30,
+  "defenceBonus": 15,
+  "allowsRecruit": false,
+  "heal": { "amount": 20, "scope": "allied" },
+  "capturable": true,
+  "destroyable": true,
+  "repairable": true,
+  "ruined": {
+    "income": 0,
+    "defenceBonus": 10,
+    "heal": { "amount": 0, "scope": "none" },
+    "capturable": false
+  },
+  "countsTowardPlayerDefeat": false
+}

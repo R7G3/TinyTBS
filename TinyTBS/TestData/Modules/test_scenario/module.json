@@ -1,0 +1,19 @@
+{
+  "formatVersion": 1,
+  "id": "test_scenario",
+  "type": "scenario",
+  "namespace": "test_scenario",
+  "title": "Test Scenario",
+  "description": "QA maps/levels/campaign (vanilla layouts, test/* entity ids). For Content Library + New Game.",
+  "version": "1.0.0",
+  "defaults": {
+    "units": ["test_units"],
+    "buildings": ["test_buildings"],
+    "theme": "test_theme"
+  },
+  "requires": {
+    "units": ["test_units"],
+    "buildings": ["test_buildings"]
+  },
+  "content": { "campaign": "Campaign/campaign.json" }
+}

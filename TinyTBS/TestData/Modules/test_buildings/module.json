@@ -1,0 +1,10 @@
+{
+  "formatVersion": 1,
+  "id": "test_buildings",
+  "type": "buildings",
+  "namespace": "test",
+  "title": "Test Buildings",
+  "description": "QA buildings (castle/village, namespace test). For tinymod install and match composition.",
+  "version": "1.0.0",
+  "content": { "buildingsDir": "Buildings/" }
+}

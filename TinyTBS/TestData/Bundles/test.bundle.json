@@ -1,0 +1,17 @@
+{
+  "formatVersion": 1,
+  "id": "test",
+  "title": "Test Bundle",
+  "modules": [
+    "test_scenario",
+    "test_units",
+    "test_buildings",
+    "test_theme"
+  ],
+  "defaults": {
+    "scenario": "test_scenario",
+    "units": ["test_units"],
+    "buildings": ["test_buildings"],
+    "theme": "test_theme"
+  }
+}

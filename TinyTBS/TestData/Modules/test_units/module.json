@@ -1,0 +1,23 @@
+{
+  "formatVersion": 1,
+  "id": "test_units",
+  "type": "units",
+  "namespace": "test",
+  "title": "Test Units",
+  "description": "QA unit roster (vanilla stats/sprites, namespace test). For tinymod install and match composition.",
+  "version": "1.0.0",
+  "content": { "unitsDir": "Units/" },
+  "recruit": {
+    "addsToPool": [
+      "test/king",
+      "test/swordsman",
+      "test/archer",
+      "test/lizard",
+      "test/witch",
+      "test/wisp",
+      "test/golem",
+      "test/catapult",
+      "test/wyvern"
+    ]
+  }
+}

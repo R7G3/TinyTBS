@@ -1,0 +1,45 @@
+{
+
+  "formatVersion": 1,
+
+  "id": "crossroads",
+
+  "title": "Crossroads",
+
+  "description": "Four-corner skirmish for lobby QA: 2–4 players, castles in each corner.",
+
+  "modes": ["skirmish"],
+
+  "map": { "ref": "Maps/crossroads" },
+
+  "players": {
+
+    "min": 2,
+
+    "max": 4,
+
+    "defaultSlots": 4
+
+  },
+
+  "defaultStartingGold": 500,
+
+  "defaultUnitCap": 25,
+
+  "teamDefeatMode": "allMembers",
+
+  "victory": { "type": "standard" },
+
+  "defeat": { "type": "standard" },
+
+  "dialogs": {
+
+    "start": null,
+
+    "end": null
+
+  }
+
+}
+
+

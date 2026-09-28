@@ -1,0 +1,22 @@
+﻿{
+  "formatVersion": 1,
+  "id": "campaign-01",
+  "title": "Campaign 01 — Muster",
+  "description": "First campaign mission; uses the compact demo map.",
+  "modes": ["campaign"],
+  "map": { "ref": "Maps/demo" },
+  "players": {
+    "min": 2,
+    "max": 2,
+    "defaultSlots": 2
+  },
+  "defaultStartingGold": 400,
+  "defaultUnitCap": 25,
+  "teamDefeatMode": "allMembers",
+  "victory": { "type": "standard" },
+  "defeat": { "type": "standard" },
+  "dialogs": {
+    "start": null,
+    "end": null
+  }
+}
