@@ -216,9 +216,10 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 24. `player-colors` — color picker в лобби / профиле (dimFactor отрисовки уже в матче); можно совместить с профилем в `settings-ui`.
 25. `settings-ui` — экран **Настройки** (меню сейчас greyed): графика (разрешение/окно, UI scale / `ui-scale-hidpi`, фильтр зума nearest vs bicubic), ввод (три столбца биндов), профиль. Persist в user data. Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки).
 26. `ui-scale-hidpi` — масштаб UI/поля под HiDPI и 4K (вместе с или сразу после `settings-ui`). Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](ideas/ui-scale-hidpi.md).
-27. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
+27. **`terrain-autotile`** — автотайлинг местности по 4 соседям (вариации + поворот; fallback на простой тайл). Идея: [terrain-autotile-edges](ideas/terrain-autotile-edges.md). **Перед реализацией** — обязательный gate: задать открытые вопросы из идеи (термины, примеры, оценка вариантов).
+28. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
 
-**Playtest-перерыв (приоритет):** бот Easy/Normal → сейвы → кампании → редактор; настройки / HiDPI / Hard-бот / сеть — после.
+**Playtest-перерыв (приоритет):** бот Easy/Normal → сейвы → кампании → редактор; настройки / HiDPI / автотайл / Hard-бот / сеть — после.
 
 ## Связанные ADR
 

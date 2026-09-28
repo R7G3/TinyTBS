@@ -48,6 +48,7 @@ isProject: false
 - [ ] **player-colors** — color picker в лобби / профиле (можно с `settings-ui`)
 - [ ] **settings-ui** — экран **Настройки**: графика (в т.ч. `ui-scale-hidpi`), ввод (3 столбца), профиль; persist JSON. Канон: [UI_AND_FLOW § Настройки](../../docs/design/UI_AND_FLOW.md#настройки)
 - [ ] **ui-scale-hidpi** — масштаб UI/поля под HiDPI / 4K. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#масштаб--разрешение); [ideas/ui-scale-hidpi.md](../../docs/ideas/ui-scale-hidpi.md)
+- [ ] **terrain-autotile** — автотайлинг местности (4 соседа, fallback). **Перед стартом** — gate-вопросы из [terrain-autotile-edges](../../docs/ideas/terrain-autotile-edges.md) (термины, примеры, оценка вариантов)
 - [ ] **network-later** — Remote в API; UI greyed only
 
 ## Цели архитектуры
@@ -366,7 +367,8 @@ ScriptOptions.Default
 23. **`map-editor`** — workspace модулей.
 24. `player-colors` — color picker (можно с settings).
 25. **`settings-ui`** + `ui-scale-hidpi` — после playtest-приоритета. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#настройки).
-26. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
+26. **`terrain-autotile`** — после HiDPI; идея: [terrain-autotile-edges](../../docs/ideas/terrain-autotile-edges.md). Перед кодом — обязательный gate (вопросы с терминами/примерами/оценкой).
+27. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
 
 ## Документация в репозитории
 
