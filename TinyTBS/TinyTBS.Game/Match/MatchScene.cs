@@ -56,7 +56,8 @@ public sealed class MatchScene : IDisposable
             var entityId = CreateMaskedVisual(
                 gravestone.Cell,
                 new TeamSprite(textures.Gravestone, textures.Gravestone),
-                Color.Transparent);
+                Color.Transparent,
+                SpriteDrawLayer.Gravestone);
             World.GetEntity(entityId).Attach(new GridPosition(gravestone.Cell.X, gravestone.Cell.Y));
             _gravestoneEntityIds.Add(entityId);
         }
@@ -66,7 +67,8 @@ public sealed class MatchScene : IDisposable
             var entityId = CreateMaskedVisual(
                 building.Cell,
                 textures.Building(building.TypeId, building.IsRuined),
-                PlayerPalette.ForOwner(building.OwnerPlayerIndex));
+                PlayerPalette.ForOwner(building.OwnerPlayerIndex),
+                SpriteDrawLayer.Building);
             World.GetEntity(entityId).Attach(new GridPosition(building.Cell.X, building.Cell.Y));
             _buildingEntityIds.Add(entityId);
         }
@@ -232,14 +234,15 @@ public sealed class MatchScene : IDisposable
         var entityId = CreateMaskedVisual(
             unit.Cell,
             textures.Unit(unit.TypeId),
-            PlayerPalette.ForPlayer(unit.PlayerIndex));
+            PlayerPalette.ForPlayer(unit.PlayerIndex),
+            SpriteDrawLayer.Unit);
 
         World.GetEntity(entityId).Attach(new UnitOwner(unit.PlayerIndex));
         World.GetEntity(entityId).Attach(new GridPosition(unit.Cell.X, unit.Cell.Y));
         _unitEntityById[unit.Id] = entityId;
     }
 
-    private int CreateMaskedVisual(GridCell cell, TeamSprite sprite, Color teamColor)
+    private int CreateMaskedVisual(GridCell cell, TeamSprite sprite, Color teamColor, int drawLayer)
     {
         var entity = World.CreateEntity();
         // Same footprint as terrain tiles: sprite origin = top-left of the cell.
@@ -247,6 +250,7 @@ public sealed class MatchScene : IDisposable
 
         entity.Attach(new Transform2(CellTopLeft(cell.X, cell.Y)));
         entity.Attach(new TeamMaskedSprite(sprite.Base, sprite.Mask, teamColor, origin));
+        entity.Attach(new SpriteDrawLayer(drawLayer));
         return entity.Id;
     }
 
@@ -269,7 +273,8 @@ public sealed class MatchScene : IDisposable
             var entityId = CreateMaskedVisual(
                 cell,
                 new TeamSprite(_textures.Gravestone, _textures.Gravestone),
-                Color.Transparent);
+                Color.Transparent,
+                SpriteDrawLayer.Gravestone);
             World.GetEntity(entityId).Attach(new GridPosition(cell.X, cell.Y));
             _gravestoneEntityIds.Add(entityId);
         }
