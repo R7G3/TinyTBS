@@ -22,6 +22,10 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     private readonly IExternalFilePicker _filePicker;
 
     private SpriteBatch? _spriteBatch;
+    private bool _applyingGraphicsChanges;
+
+    private const int DefaultWindowWidth = 1280;
+    private const int DefaultWindowHeight = 786;
 
     public GameMain(
         IUserDataPaths userDataPaths,
@@ -34,7 +38,13 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
         _assets = assets;
         _filePicker = filePicker;
 
-        _graphics = new GraphicsDeviceManager(this);
+        _graphics = new GraphicsDeviceManager(this)
+        {
+            // Must be set in the constructor — after the first device create,
+            // MonoGame keeps the platform default (800×480) until ApplyChanges.
+            PreferredBackBufferWidth = DefaultWindowWidth,
+            PreferredBackBufferHeight = DefaultWindowHeight,
+        };
         _screenManager = new ScreenManager();
         Components.Add(_screenManager);
 
@@ -58,12 +68,13 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     {
         _userDataPaths.EnsureCreated();
 
-        _graphics.PreferredBackBufferWidth = 1280;
-        _graphics.PreferredBackBufferHeight = 720;
-
         base.Initialize();
 
         Window.AllowUserResizing = true;
+
+        // Re-assert size after device/window creation (DesktopGL sometimes ignores ctor prefs).
+        ApplyBackBufferSize(DefaultWindowWidth, DefaultWindowHeight);
+
         Window.ClientSizeChanged += OnWindowClientSizeChanged;
 
         GumBootstrap.Initialize(this);
@@ -72,14 +83,39 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
 
     private void OnWindowClientSizeChanged(object? sender, EventArgs e)
     {
+        if (_applyingGraphicsChanges)
+            return;
+
         var width = Window.ClientBounds.Width;
         var height = Window.ClientBounds.Height;
         if (width <= 0 || height <= 0)
             return;
 
-        _graphics.PreferredBackBufferWidth = width;
-        _graphics.PreferredBackBufferHeight = height;
-        _graphics.ApplyChanges();
+        ApplyBackBufferSize(width, height);
+    }
+
+    private void ApplyBackBufferSize(int width, int height)
+    {
+        if (_graphics.PreferredBackBufferWidth == width
+            && _graphics.PreferredBackBufferHeight == height
+            && GraphicsDevice is not null
+            && GraphicsDevice.PresentationParameters.BackBufferWidth == width
+            && GraphicsDevice.PresentationParameters.BackBufferHeight == height)
+        {
+            return;
+        }
+
+        _applyingGraphicsChanges = true;
+        try
+        {
+            _graphics.PreferredBackBufferWidth = width;
+            _graphics.PreferredBackBufferHeight = height;
+            _graphics.ApplyChanges();
+        }
+        finally
+        {
+            _applyingGraphicsChanges = false;
+        }
     }
 
     protected override void Update(GameTime gameTime)
