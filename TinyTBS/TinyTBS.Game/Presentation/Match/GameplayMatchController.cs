@@ -53,6 +53,8 @@ public sealed class GameplayMatchController
             {
                 if (_session?.IsCurrentPlayerBot() == true)
                     return;
+                if (_session?.Scene.IsMoveAnimating == true)
+                    return;
                 _session?.EndTurn();
                 GameplayHudOverlayState.CloseAllExceptPause(_hudSync.Hud);
                 ClosePause();
@@ -85,8 +87,12 @@ public sealed class GameplayMatchController
             return;
 
         var scene = _session.Scene;
+        scene.TickMoveAnimation(gameTime);
+
+        var moveAnimating = scene.IsMoveAnimating;
         var botTurn = _session.IsCurrentPlayerBot() && !_session.State.IsMatchOver;
         if (botTurn
+            && !moveAnimating
             && !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud)
             && !_hudSync.Hud.IsMatchResultVisible)
         {
@@ -94,7 +100,8 @@ public sealed class GameplayMatchController
         }
 
         var boardInputEnabled = !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud)
-            && !botTurn;
+            && !botTurn
+            && !moveAnimating;
 
         // Zoom / pan before layout prepare so hit-tests and draws use the updated camera.
         MatchCommandApplicator.ApplyZoom(
@@ -279,7 +286,11 @@ public sealed class GameplayMatchController
                         SamplerState.PointClamp,
                         DepthStencilState.None,
                         RasterizerState.CullNone);
-                    _session.UnitLevelLabels.Draw(spriteBatch, layout, match);
+                    _session.UnitLevelLabels.Draw(
+                        spriteBatch,
+                        layout,
+                        match,
+                        resolveVisualTopLeft: unit => scene.GetUnitVisualTopLeft(unit));
                     spriteBatch.End();
                 });
         }

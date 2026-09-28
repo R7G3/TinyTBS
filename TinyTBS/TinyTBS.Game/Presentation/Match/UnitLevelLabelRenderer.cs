@@ -22,7 +22,11 @@ public sealed class UnitLevelLabelRenderer
         _font = font;
     }
 
-    public void Draw(SpriteBatch spriteBatch, MatchBoardLayout layout, MatchState match)
+    public void Draw(
+        SpriteBatch spriteBatch,
+        MatchBoardLayout layout,
+        MatchState match,
+        Func<MatchUnit, Vector2>? resolveVisualTopLeft = null)
     {
         ArgumentNullException.ThrowIfNull(spriteBatch);
         ArgumentNullException.ThrowIfNull(layout);
@@ -33,11 +37,19 @@ public sealed class UnitLevelLabelRenderer
 
         foreach (var unit in match.Units)
         {
+            Vector2 topLeft;
+            if (resolveVisualTopLeft is not null)
+                topLeft = resolveVisualTopLeft(unit);
+            else
+                topLeft = layout.Origin + new Vector2(unit.Cell.X * layout.TileSize, unit.Cell.Y * layout.TileSize);
+
+            var bottomLeft = topLeft + new Vector2(0f, layout.TileSize);
+            var bottomRight = topLeft + new Vector2(layout.TileSize, layout.TileSize);
+
             if (unit.Level > 0)
             {
                 var levelText = unit.Level.ToString();
                 var levelSize = _font.MeasureString(levelText) * scale;
-                var bottomLeft = layout.GetCellBottomLeft(unit.Cell.X, unit.Cell.Y);
                 DrawOutlined(
                     spriteBatch,
                     levelText,
@@ -48,7 +60,6 @@ public sealed class UnitLevelLabelRenderer
 
             var hitPointsText = unit.HitPoints.ToString();
             var hitPointsSize = _font.MeasureString(hitPointsText) * scale;
-            var bottomRight = layout.GetCellBottomRight(unit.Cell.X, unit.Cell.Y);
             DrawOutlined(
                 spriteBatch,
                 hitPointsText,

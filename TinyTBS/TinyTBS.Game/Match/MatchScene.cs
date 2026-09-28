@@ -10,6 +10,7 @@ namespace TinyTBS.Game.Match;
 
 /// <summary>
 /// Visual side of a match: tilemap, gravestones, buildings, units synced from <see cref="MatchState"/>.
+/// Unit moves animate along a cheapest terrain path (presentation only).
 /// </summary>
 public sealed class MatchScene : IDisposable
 {
@@ -17,9 +18,13 @@ public sealed class MatchScene : IDisposable
     private readonly MatchBoardLayout _layout;
     private readonly MatchTextureAtlas _textures;
     private readonly SpriteBatch _spriteBatch;
+    private readonly MatchUnitMoveAnimator _moveAnimator = new();
     private readonly List<int> _gravestoneEntityIds = [];
     private readonly List<int> _buildingEntityIds = [];
     private readonly Dictionary<int, int> _unitEntityById = new();
+
+    /// <summary>Last MoveUnit we already started animating (avoid re-trigger while LastAction persists).</summary>
+    private (int UnitId, GridCell Source, GridCell Target)? _startedMoveKey;
 
     public MatchScene(
         MatchState state,
@@ -73,12 +78,23 @@ public sealed class MatchScene : IDisposable
 
     public MatchBoardLayout Layout => _layout;
 
+    /// <summary>True while a unit sprite is sliding along its move path.</summary>
+    public bool IsMoveAnimating => _moveAnimator.IsActive;
+
     public void PrepareFrame(int viewportWidth, int viewportHeight)
     {
         _layout.UpdateForViewport(viewportWidth, viewportHeight);
+        TryBeginMoveAnimationFromLastAction();
+        CancelAnimationIfLogicMovedAway();
         SyncGravestoneTransforms();
         SyncBuildingTransforms();
         SyncUnitTransformsFromState();
+    }
+
+    /// <summary>Advance move presentation; call once per Update with frame delta.</summary>
+    public void TickMoveAnimation(GameTime gameTime)
+    {
+        _moveAnimator.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
     }
 
     public void Update(GameTime gameTime) => World.Update(gameTime);
@@ -102,7 +118,83 @@ public sealed class MatchScene : IDisposable
         afterEntities?.Invoke(_spriteBatch, _layout);
     }
 
+    /// <summary>World top-left of the unit sprite (animated position when walking).</summary>
+    public Vector2 GetUnitVisualTopLeft(MatchUnit unit)
+    {
+        ArgumentNullException.ThrowIfNull(unit);
+        if (_moveAnimator.TryGetVisualTopLeft(unit.Id, CellTopLeft, out var animated))
+            return animated;
+        return CellTopLeft(unit.Cell.X, unit.Cell.Y);
+    }
+
     public void Dispose() => World.Dispose();
+
+    private void TryBeginMoveAnimationFromLastAction()
+    {
+        if (_moveAnimator.IsActive)
+            return;
+
+        if (_state.LastAction is not { Kind: MatchPlayerActionKind.MoveUnit } action)
+            return;
+        if (action.UnitId is not int unitId
+            || action.Source is not GridCell source
+            || action.Target is not GridCell target)
+        {
+            return;
+        }
+
+        var key = (unitId, source, target);
+        if (_startedMoveKey == key)
+            return;
+
+        MatchUnit? moving = null;
+        foreach (var unit in _state.Units)
+        {
+            if (unit.Id == unitId)
+            {
+                moving = unit;
+                break;
+            }
+        }
+
+        if (moving is null || !_state.ContentCatalog.TryGetUnit(moving.TypeId, out var definition))
+        {
+            _startedMoveKey = key;
+            return;
+        }
+
+        // Unit logically already on target; exclude it so the destination is not "blocked by self".
+        var path = MatchPathfinder.FindCheapestPath(
+            _state,
+            source,
+            target,
+            definition.MovementClass,
+            definition.Speed,
+            exceptUnitId: unitId);
+
+        _moveAnimator.Begin(unitId, path);
+        _startedMoveKey = key;
+    }
+
+    private void CancelAnimationIfLogicMovedAway()
+    {
+        if (!_moveAnimator.IsActive || _moveAnimator.UnitId is not int unitId)
+            return;
+
+        foreach (var unit in _state.Units)
+        {
+            if (unit.Id != unitId)
+                continue;
+
+            // Undo move / unexpected teleport: snap cancel.
+            if (unit.Cell != _moveAnimator.TargetCell)
+                _moveAnimator.Cancel();
+            return;
+        }
+
+        // Unit died mid-walk.
+        _moveAnimator.Cancel();
+    }
 
     private void CreateUnitVisual(MatchUnit unit, MatchTextureAtlas textures)
     {
@@ -197,7 +289,9 @@ public sealed class MatchScene : IDisposable
             var grid = entity.Get<GridPosition>();
             grid.X = unit.Cell.X;
             grid.Y = unit.Cell.Y;
-            entity.Get<Transform2>().Position = CellTopLeft(unit.Cell.X, unit.Cell.Y);
+
+            // While walking, sprite follows the path; grid component stays on logical cell.
+            entity.Get<Transform2>().Position = GetUnitVisualTopLeft(unit);
 
             var masked = entity.Get<TeamMaskedSprite>();
             masked.TeamColor = PlayerPalette.ForPlayer(unit.PlayerIndex);
