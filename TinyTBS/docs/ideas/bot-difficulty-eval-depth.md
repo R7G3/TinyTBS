@@ -22,6 +22,8 @@
 
 ## Каркас
 
+Код: `TinyTBS.Game/Ai/` (`namespace TinyTBS.Game.Ai`).
+
 ```text
 LegalActions → IBotSearchPolicy(difficulty) → PositionEval → ChooseAction → Apply (как у human)
 ```

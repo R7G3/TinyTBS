@@ -59,7 +59,7 @@ flowchart LR
 
 **Где в solution:**
 
-- Логика + представление — `TinyTBS.Game/` (`Match/`, `Maps/`, `Levels/`, `Scripting/`, `Screens/`, `Presentation/`, `ViewModels/`, `Input/` команд, `Assets/`)
+- Логика + представление — `TinyTBS.Game/` (`Ai/`, `Match/`, `Maps/`, `Levels/`, `Scripting/`, `Screens/`, `Presentation/`, `ViewModels/`, `Input/` команд, `Assets/`)
 - Инфраструктура кадра / файлов — `TinyTBS.Engine/` (`Rendering/`, `Ecs/`, `GumLayout/`, `Input/` pointer, `IO/`)
 - Склейка матча (`MatchScene`, session factory) — в Game, вызывает Engine
 
@@ -209,7 +209,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 18. Content pipeline (срезы):
     - `new-game-flow` — **выполнено** (вкладки Mode → Scenario → Level → Composition → Lobby; composition scenario-defaults/bundle; слоты Local + Bot/Remote greyed в Add-chooser; цвета слотов; unit cap в `MatchLevelBrief`, enforcement позже)
 19. **`match-gdd-loop`** — **выполнено** (economy/combat/post-move по клеткам/abilities + standard victory/defeat + оверлей результата). Бывшие `match-economy-capture` + `match-combat-gdd`.
-20. **`bot-search-ab`** — **выполнено** (атомарный αβ Easy+Normal, quiescence у Normal, лобби Bot, `IBotSearchPolicy` шов под Hard/full-turn). Идея: [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md). Hard / harness — позже.
+20. **`bot-search-ab`** — **выполнено** (код в `TinyTBS.Game/Ai/`: атомарный αβ Easy+Normal, quiescence у Normal, лобби Bot, `IBotSearchPolicy` шов под Hard/full-turn). Идея: [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md). Hard / harness — позже.
 21. **`save-format`** — сейвы матча + «Продолжить»; foundation для campaign progress (`contentSetup`, версии). Канон: [SAVE_FORMAT.md](SAVE_FORMAT.md).
 22. **`campaigns`** — campaign.json / прохождение по главам + прогресс (опирается на сейвы).
 23. **`map-editor`** — workspace модулей (карты/levels); Publish greyed. После playable loop + сейвов, чтобы контент на перерыве не терялся зря.

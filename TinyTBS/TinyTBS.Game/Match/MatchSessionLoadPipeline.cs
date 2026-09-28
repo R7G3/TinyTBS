@@ -5,7 +5,7 @@ using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Levels;
 using TinyTBS.Game.Levels.Models;
-using TinyTBS.Game.Match.Ai;
+using TinyTBS.Game.Ai;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.Match;

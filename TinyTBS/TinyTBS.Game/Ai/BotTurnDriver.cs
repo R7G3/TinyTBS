@@ -1,10 +1,12 @@
 using Microsoft.Xna.Framework;
+using TinyTBS.Game.Match;
 
-namespace TinyTBS.Game.Match.Ai;
+namespace TinyTBS.Game.Ai;
 
 /// <summary>
-/// Drives one bot seat: repeatedly chooses and applies atomic actions until the
-/// current player changes, the match ends, or a per-frame action budget is spent.
+/// Драйвер хода бота в живом матче: раз в ~280 мс выбирает одно атомарное действие
+/// и прогоняет его через те же API сессии, что и человек (Confirm / Wait / Recruit / EndTurn).
+/// За кадр — не больше одного действия (чтобы UI/анимации успевали).
 /// </summary>
 public sealed class BotTurnDriver
 {
@@ -19,8 +21,8 @@ public sealed class BotTurnDriver
     }
 
     /// <summary>
-    /// Applies at most one atomic action when the current player is a bot and cooldown elapsed.
-    /// Returns true if an action was applied (session hooks should run for Confirm/EndTurn/Wait/Recruit).
+    /// Если сейчас ход бота и кулдаун прошёл — выбрать и применить одно действие.
+    /// true = что-то сделали (контроллер может обновить HUD).
     /// </summary>
     public bool TryStep(
         GameplaySession session,
@@ -49,6 +51,7 @@ public sealed class BotTurnDriver
         if (match.IsPlayerEliminated(playerIndex))
             return false;
 
+        // Профиль Easy/Normal → лимиты поиска и веса оценки.
         var profile = BotDifficultyProfile.For(seat.BotDifficulty);
         var action = _search.ChooseAction(match, playerIndex, profile);
         ApplyThroughSession(session, action);
@@ -56,6 +59,9 @@ public sealed class BotTurnDriver
         return true;
     }
 
+    /// <summary>
+    /// Те же вызовы, что у игрока: иначе скрипты карты / экономика не увидят действие.
+    /// </summary>
     private static void ApplyThroughSession(GameplaySession session, BotAtomicAction action)
     {
         var match = session.State;
@@ -72,6 +78,7 @@ public sealed class BotTurnDriver
                 break;
             case BotAtomicActionKind.SelectUnit:
             case BotAtomicActionKind.ConfirmAt:
+                // Как клик мышью: курсор на клетку → Confirm.
                 match.HandlePointer(action.Cell);
                 session.Confirm();
                 break;

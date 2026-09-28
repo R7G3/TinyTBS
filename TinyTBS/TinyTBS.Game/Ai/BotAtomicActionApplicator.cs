@@ -1,8 +1,12 @@
 using TinyTBS.Game.Maps.Models;
+using TinyTBS.Game.Match;
 
-namespace TinyTBS.Game.Match.Ai;
+namespace TinyTBS.Game.Ai;
 
-/// <summary>Applies a <see cref="BotAtomicAction"/> to a <see cref="MatchState"/> (live or AI clone).</summary>
+/// <summary>
+/// Применяет атомарное действие к MatchState (живой матч или клон для поиска).
+/// В поиске вызывается напрямую; в игре — через BotTurnDriver → GameplaySession.
+/// </summary>
 public static class BotAtomicActionApplicator
 {
     public static void Apply(MatchState match, BotAtomicAction action)
@@ -17,6 +21,7 @@ public static class BotAtomicActionApplicator
                 break;
             case BotAtomicActionKind.SelectUnit:
             case BotAtomicActionKind.ConfirmAt:
+                // Имитация клика: поставить курсор и Confirm (выбор юнита / ход / удар).
                 match.HandlePointer(action.Cell);
                 match.HandleConfirm();
                 break;
@@ -37,6 +42,10 @@ public static class BotAtomicActionApplicator
         }
     }
 
+    /// <summary>
+    /// «Шумный» ход для quiescence: меняет HP/состав/золото заметно.
+    /// После такого хода Normal смотрит ещё пару ply, а не сразу Evaluate.
+    /// </summary>
     public static bool IsNoisyForQuiescence(BotAtomicAction action) =>
         action.Kind is BotAtomicActionKind.ConfirmAt or BotAtomicActionKind.Recruit;
 }

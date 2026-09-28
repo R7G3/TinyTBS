@@ -1,4 +1,4 @@
-using TinyTBS.Game.Match.Ai;
+using TinyTBS.Game.Ai;
 using TinyTBS.Game.Modules.Models;
 
 namespace TinyTBS.Game.Match;

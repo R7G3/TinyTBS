@@ -8,7 +8,7 @@ public sealed class NewGamePlayerSlotViewModel
     public required NewGamePlayerKind Kind { get; init; }
 
     /// <summary>Used when <see cref="Kind"/> is Bot.</summary>
-    public TinyTBS.Game.Match.Ai.BotDifficulty BotDifficulty { get; init; }
+    public TinyTBS.Game.Ai.BotDifficulty BotDifficulty { get; init; }
 
     /// <summary>Index into <c>PlayerPalette</c> (color picker later).</summary>
     public required int PaletteIndex { get; init; }
@@ -21,8 +21,8 @@ public sealed class NewGamePlayerSlotViewModel
             {
                 NewGamePlayerKind.Bot => BotDifficulty switch
                 {
-                    TinyTBS.Game.Match.Ai.BotDifficulty.Normal => "Bot · Normal",
-                    TinyTBS.Game.Match.Ai.BotDifficulty.Hard => "Bot · Hard",
+                    TinyTBS.Game.Ai.BotDifficulty.Normal => "Bot · Normal",
+                    TinyTBS.Game.Ai.BotDifficulty.Hard => "Bot · Hard",
                     _ => "Bot · Easy",
                 },
                 NewGamePlayerKind.Remote => "Remote",

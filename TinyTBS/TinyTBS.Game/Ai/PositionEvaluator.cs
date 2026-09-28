@@ -1,6 +1,11 @@
-namespace TinyTBS.Game.Match.Ai;
+using TinyTBS.Game.Match;
 
-/// <summary>Deterministic static evaluation from <paramref name="botPlayerIndex"/>'s perspective (higher = better).</summary>
+namespace TinyTBS.Game.Ai;
+
+/// <summary>
+/// Статическая оценка позиции глазами бота (больше = лучше для него).
+/// Не симулирует ходы — только «насколько доска хороша прямо сейчас».
+/// </summary>
 public static class PositionEvaluator
 {
     public static int Evaluate(MatchState match, int botPlayerIndex, BotDifficultyProfile profile)
@@ -19,13 +24,15 @@ public static class PositionEvaluator
             return -900_000;
 
         var opponent = OpponentIndex(match, botPlayerIndex);
-        var rich = profile.RichEvaluation;
+        var rich = profile.RichEvaluation; // Normal/Hard: уровни, Atk/Def юнитов, золото врага
 
-        // Army HP ×4 so recruiting (cost often > HP) still looks good vs keeping gold.
         var score = 0;
+
+        // HP армии ×4: иначе найм (цена часто > HP) «невыгоден» по сравнению с копилкой золота.
         score += ScoreArmy(match, botPlayerIndex, rich) * 4;
         score -= ScoreArmy(match, opponent, rich) * 4;
 
+        // Плоский бонус за «тело на доске» — стимул вербовать, а не копить вечно.
         score += CountUnits(match, botPlayerIndex) * profile.UnitCountWeight;
         score -= CountUnits(match, opponent) * profile.UnitCountWeight;
 
@@ -36,7 +43,9 @@ public static class PositionEvaluator
         score += ScoreBuildings(match, botPlayerIndex) * (rich ? 80 : 50);
         score -= ScoreBuildings(match, opponent) * (rich ? 80 : 50);
 
+        // Ближе к врагу / к захвату → выше score (штраф за дистанцию).
         score += ScoreAggression(match, botPlayerIndex, opponent, profile);
+        // Easy: держаться ближе к своему замку (слабый «черепаший» уклон).
         score += ScoreHomeBias(match, botPlayerIndex, profile.HomeBiasWeight);
 
         return score;
@@ -99,7 +108,9 @@ public static class PositionEvaluator
     }
 
     /// <summary>
-    /// Closer to enemies and capturable buildings is better (negative capped distance).
+    /// Штраф за расстояние до врагов и чужих зданий.
+    /// score -= min(dist, Cap) * Weight → чем ближе, тем выше итоговая оценка.
+    /// Cap у Easy маленький: далеко «все расстояния одинаковы», нет гонки через всю карту.
     /// </summary>
     private static int ScoreAggression(
         MatchState match,
@@ -149,7 +160,7 @@ public static class PositionEvaluator
         return score;
     }
 
-    /// <summary>Prefer staying near own castle / recruit buildings (Easy turtling).</summary>
+    /// <summary>Штраф за уход от своего замка (вербовки). 0 у Normal.</summary>
     private static int ScoreHomeBias(MatchState match, int botPlayerIndex, int homeBiasWeight)
     {
         if (homeBiasWeight <= 0)

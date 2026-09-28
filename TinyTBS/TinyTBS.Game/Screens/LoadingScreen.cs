@@ -32,7 +32,7 @@ public sealed class LoadingScreen : GameScreen
     private readonly int? _playerCount;
     private readonly int? _startingGold;
     private readonly int? _unitCap;
-    private readonly IReadOnlyList<TinyTBS.Game.Match.Ai.MatchPlayerSeat>? _playerSeats;
+    private readonly IReadOnlyList<TinyTBS.Game.Ai.MatchPlayerSeat>? _playerSeats;
     private readonly LoadingViewModel _viewModel = new();
     private readonly LoadingView _view = new();
 
@@ -86,7 +86,7 @@ public sealed class LoadingScreen : GameScreen
         int? playerCount,
         int? startingGold,
         int? unitCap,
-        IReadOnlyList<TinyTBS.Game.Match.Ai.MatchPlayerSeat>? playerSeats)
+        IReadOnlyList<TinyTBS.Game.Ai.MatchPlayerSeat>? playerSeats)
         : base(game)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelId);

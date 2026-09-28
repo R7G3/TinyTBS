@@ -1,9 +1,11 @@
-namespace TinyTBS.Game.Match.Ai;
+using TinyTBS.Game.Match;
+
+namespace TinyTBS.Game.Ai;
 
 /// <summary>
-/// Atomic-action αβ search. Depth is in actions (plies), not full player turns.
-/// Easy ≈ shallow / greedy-like; Normal adds depth + quiescence. A future Hard policy
-/// can implement <see cref="IBotSearchPolicy"/> with full-turn plans without replacing this.
+/// Поиск лучшего атомарного хода бота (α-β / negamax).
+/// Глубина считается в атомарных действиях (выбрать юнита, шагнуть, ударить…),
+/// а не в полных ходах игрока. Hard позже может заменить политику, не трогая этот класс.
 /// </summary>
 public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
 {
@@ -12,6 +14,7 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(profile);
 
+        // Все легальные «кнопки» в текущей позиции (как у человека: Select / Confirm / Wait / Recruit / EndTurn).
         var rootActions = LegalActionGenerator.Generate(state);
         if (rootActions.Count == 0)
         {
@@ -22,23 +25,32 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
             };
         }
 
-        // Hard filter: never stand still / end turn while a real action exists.
-        // Score penalties alone were not enough — shallow eval often ties and Wait won.
-        // Easy may still Wait when only repositioning is left (less aggressive).
+        // Не даём боту «стоять», пока есть нормальные ходы (атака/ход/найм).
+        // Easy: Wait всё же допускается, если остались только перестановки без боя.
         var candidates = PreferProductive(state, rootActions, profile);
-        var nodes = 0;
+        var nodes = 0; // сколько узлов дерева уже раскрыли (лимит NodeLimit)
         BotAtomicAction? bestAction = null;
         var bestScore = int.MinValue;
 
+        // На корне перебираем каждый кандидат: применили → смотрим, чем ответит дерево ниже.
         foreach (var action in candidates.OrderBy(a => a.TieBreak))
         {
             if (nodes >= profile.NodeLimit)
                 break;
 
+            // Клон доски: поиск не должен портить живой матч.
             var child = state.CloneForAi();
             BotAtomicActionApplicator.Apply(child, action);
             nodes++;
 
+            // depthLeft: сколько ещё «обычных» полуходов (ply) можно углубиться.
+            //   MaxDepth=2 → после корневого действия остаётся 1 ply в дереве.
+            // quiescenceLeft: доп. глубина только для «шумных» ходов (удар/найм),
+            //   чтобы не оценивать позицию сразу после атаки, не досмотрев ответ.
+            // alpha / beta: окно отсечения α-β —
+            //   alpha = лучшее, что максимизатор уже гарантировал себе;
+            //   beta  = лучшее (наименьшее), что минимизатор уже гарантировал.
+            //   Если alpha >= beta, ветка бесполезна — дальше не смотрим (cut-off).
             var score = Negamax(
                 child,
                 botPlayerIndex,
@@ -51,6 +63,7 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
                 profile,
                 ref nodes);
 
+            // На корне бот всегда максимизирует свою оценку; при равенстве — меньший TieBreak.
             if (bestAction is null || score > bestScore
                 || (score == bestScore && action.TieBreak < bestAction.TieBreak))
             {
@@ -63,7 +76,8 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
     }
 
     /// <summary>
-    /// Drops Wait / idle Confirm / EndTurn when the bot still has moves, attacks, captures, or recruits.
+    /// Оставляет только «полезные» действия, если они есть; иначе возвращает исходный список
+    /// (например, когда остались только Wait / EndTurn).
     /// </summary>
     internal static List<BotAtomicAction> PreferProductive(
         MatchState state,
@@ -103,9 +117,10 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
             case BotAtomicActionKind.Recruit:
                 return true;
             case BotAtomicActionKind.ConfirmAt:
+                // Confirm на своей клетке без захвата = «встать» — не считаем продуктивным.
                 return !IsIdleConfirmOnOwnCell(state, action);
             case BotAtomicActionKind.WaitSelected:
-                // Easy: Wait may beat a long march when only moves remain.
+                // Easy может выбрать Wait вместо длинного марша, если нет боя/найма.
                 return profile.AllowWaitWithMoves && !hasFightOrRecruit;
             case BotAtomicActionKind.EndTurn:
                 return false;
@@ -132,11 +147,11 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
         if (selected is null)
             return false;
 
-        // Attack / destroy / raise: Confirm on another cell that is not a move destination only —
-        // treat non-own-cell confirms that aren't pure moves as fight. Own-cell capture/repair too.
+        // Своя клетка: захват/ремонт — «бой» в широком смысле; пустой Wait — нет.
         if (selected.Cell == action.Cell)
             return !IsIdleConfirmOnOwnCell(state, action);
 
+        // Чужой юнит / здание / надгробие на клетке Confirm → атака / destroy / raise.
         if (state.TryGetUnitAt(action.Cell, out var target) && target.PlayerIndex != state.CurrentPlayer)
             return true;
         if (state.TryGetBuildingAt(action.Cell, out _))
@@ -169,7 +184,7 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
         if (selected is null || selected.Cell != action.Cell)
             return false;
 
-        // Confirm on own cell finishes as Wait unless capture/repair applies.
+        // Confirm на своей клетке без здания → FinishUnitActivation(Wait).
         if (!state.ContentCatalog.TryGetUnit(selected.TypeId, out var definition))
             return true;
         if (!state.TryGetBuildingAt(selected.Cell, out var building))
@@ -196,6 +211,11 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
         return true;
     }
 
+    /// <summary>
+    /// Negamax: одна функция и для «нашего» и для «чужого» хода.
+    /// Когда ход бота — максимизируем оценку; когда ход оппонента — минимизируем
+    /// (оценка всегда с точки зрения <paramref name="botPlayerIndex"/>).
+    /// </summary>
     private static int Negamax(
         MatchState state,
         int botPlayerIndex,
@@ -206,10 +226,15 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
         BotDifficultyProfile profile,
         ref int nodes)
     {
+        // Бюджет узлов / конец матча → статическая оценка позиции.
         if (nodes >= profile.NodeLimit || state.IsMatchOver)
             return PositionEvaluator.Evaluate(state, botPlayerIndex, profile);
 
+        // maximizing == true: сейчас ходит наш бот (хотим высокий score).
+        // maximizing == false: ходит соперник (хотим, чтобы его лучший ответ дал нам низкий score).
         var maximizing = state.CurrentPlayer == botPlayerIndex;
+
+        // Глубина кончилась и quiescence не активен → лист дерева, только Evaluate.
         if (depthLeft <= 0 && quiescenceLeft <= 0)
             return PositionEvaluator.Evaluate(state, botPlayerIndex, profile);
 
@@ -217,13 +242,15 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
         if (actions.Count == 0)
             return PositionEvaluator.Evaluate(state, botPlayerIndex, profile);
 
-        // Inside the tree also skip pure idle when something better exists,
-        // so shallow lines do not "Wait forever" after a Select.
+        // В ветках бота снова режем чистый простой, чтобы дерево не «Wait → Wait → …».
         if (maximizing)
             actions = PreferProductive(state, actions, profile);
 
         if (depthLeft <= 0 && quiescenceLeft > 0)
         {
+            // Режим quiescence: основная глубина исчерпана, но после «шумного» хода
+            // смотрим ещё несколько ply — только EndTurn / Wait / Confirm / Recruit.
+            // Иначе бот мог бы оценить позицию «я ударил, очки +X», не учтя контрудар.
             actions = actions
                 .Where(action =>
                     action.Kind == BotAtomicActionKind.EndTurn
@@ -239,6 +266,7 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
             actions = actions.OrderBy(action => action.TieBreak).ToList();
         }
 
+        // Стартовое «лучшее»: для макса — очень плохо, для мина — очень хорошо.
         var best = maximizing ? int.MinValue + 1 : int.MaxValue - 1;
 
         foreach (var action in actions)
@@ -250,6 +278,8 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
             BotAtomicActionApplicator.Apply(child, action);
             nodes++;
 
+            // Спуск: сначала тратим обычную глубину; когда она 0 — тикаем quiescence.
+            // Если ещё в обычной глубине и ход «шумный» — можем заново выдать QuiescencePlies.
             var nextDepth = depthLeft > 0 ? depthLeft - 1 : 0;
             var nextQuiescence = depthLeft > 0
                 ? (profile.UseQuiescence && BotAtomicActionApplicator.IsNoisyForQuiescence(action)
@@ -269,6 +299,7 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
 
             if (maximizing)
             {
+                // Берём максимум; поднимаем alpha (гарантия максимизатора).
                 if (score > best)
                     best = score;
                 if (best > alpha)
@@ -276,12 +307,14 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
             }
             else
             {
+                // Берём минимум; опускаем beta (гарантия минимизатора).
                 if (score < best)
                     best = score;
                 if (best < beta)
                     beta = best;
             }
 
+            // α-β отсечение: окно схлопнулось — остальные ходы не изменят выбор предка.
             if (alpha >= beta)
                 break;
         }

@@ -1,9 +1,13 @@
 using TinyTBS.Game.Maps.Models;
+using TinyTBS.Game.Match;
 using TinyTBS.Game.Units.Models;
 
-namespace TinyTBS.Game.Match.Ai;
+namespace TinyTBS.Game.Ai;
 
-/// <summary>Enumerates legal atomic actions for the current player on <paramref name="match"/>.</summary>
+/// <summary>
+/// Перечисляет легальные атомарные действия текущего игрока.
+/// Это «ветви» дерева поиска: одно действие = один узел.
+/// </summary>
 public static class LegalActionGenerator
 {
     public static List<BotAtomicAction> Generate(MatchState match)
@@ -11,11 +15,12 @@ public static class LegalActionGenerator
         ArgumentNullException.ThrowIfNull(match);
 
         var actions = new List<BotAtomicAction>(64);
-        var tie = 0;
+        var tie = 0; // стабильный порядок при равных оценках
 
         if (match.IsMatchOver || match.IsPlayerEliminated(match.CurrentPlayer))
             return actions;
 
+        // Уже выбран юнит → только его ходы/атаки/Wait (+ EndTurn), без выбора других.
         if (match.SelectedUnitId is int selectedId)
         {
             MatchUnit? selected = null;
@@ -38,6 +43,7 @@ public static class LegalActionGenerator
             }
         }
 
+        // Никто не выбран → выбрать активного юнита, купить в замке или закончить ход.
         foreach (var unit in match.Units)
         {
             if (unit.PlayerIndex != match.CurrentPlayer || !unit.IsActive)
@@ -75,9 +81,9 @@ public static class LegalActionGenerator
         if (!match.ContentCatalog.TryGetUnit(unit.TypeId, out var definition))
             return;
 
-        // Only actions valid from the CURRENT cell. Overlay attack lists include
-        // targets reachable after a move — ConfirmAt on those without moving fails,
-        // scores like Wait, and shallow search then always "stands still".
+        // Важно: только действия с ТЕКУЩЕЙ клетки.
+        // UI-оверлей атак включает цели «после возможного хода» — Confirm туда без хода
+        // ничего не делает, и бот начинал «стоять» (оценка как у Wait).
         var overlay = MatchUnitActionQueries.Build(match, unit, definition, respectActivationMove: true);
 
         foreach (var cell in overlay.MoveCells)
@@ -94,7 +100,7 @@ public static class LegalActionGenerator
         AppendAttacksFromCurrentCell(match, unit, definition, actions, ref tie);
         AppendRaiseFromCurrentCell(match, unit, definition, actions, ref tie);
 
-        // Capture / repair / wait on the unit's own cell.
+        // Confirm на своей клетке: захват / ремонт, иначе Wait.
         actions.Add(new BotAtomicAction
         {
             Kind = BotAtomicActionKind.ConfirmAt,
@@ -119,6 +125,7 @@ public static class LegalActionGenerator
         List<BotAtomicAction> actions,
         ref int tie)
     {
+        // Катапульта и т.п.: после хода атаковать нельзя.
         if (MatchUnitAbilities.HasAbility(definition, "moveOrAttackExclusive")
             && unit.HasMovedThisActivation)
         {
@@ -213,6 +220,7 @@ public static class LegalActionGenerator
                 continue;
             }
 
+            // На клетке замка уже стоит юнит — вербовать нельзя (сначала увести).
             if (match.IsOccupiedByUnitPublic(building.Cell))
                 continue;
 

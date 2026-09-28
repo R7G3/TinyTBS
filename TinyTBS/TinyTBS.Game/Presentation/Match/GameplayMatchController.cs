@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
-using TinyTBS.Game.Match.Ai;
+using TinyTBS.Game.Ai;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.Match;

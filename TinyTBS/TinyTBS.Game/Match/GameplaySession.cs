@@ -1,6 +1,6 @@
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Maps.Models;
-using TinyTBS.Game.Match.Ai;
+using TinyTBS.Game.Ai;
 using TinyTBS.Game.Presentation.Match;
 using TinyTBS.Game.Scripting;
 
