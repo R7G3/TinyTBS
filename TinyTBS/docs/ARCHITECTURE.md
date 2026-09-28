@@ -209,17 +209,18 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 18. Content pipeline (срезы):
     - `new-game-flow` — **выполнено** (вкладки Mode → Scenario → Level → Composition → Lobby; composition scenario-defaults/bundle; слоты Local + Bot/Remote greyed в Add-chooser; цвета слотов; unit cap в `MatchLevelBrief`, enforcement позже)
 19. **`match-gdd-loop`** — **выполнено** (economy/combat/post-move по клеткам/abilities + standard victory/defeat + оверлей результата). Бывшие `match-economy-capture` + `match-combat-gdd`.
-20. **`bot-search-ab`** — бот схватки (вариант 2: minimax / αβ); лобби Bot; **Easy + Normal** в срезе до playtest-перерыва (оценка сложности — на перерыве); **Hard** — позже. Идея: [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md). **Перед реализацией** — спросить открытые вопросы из идеи. `player-colors` не блокирует.
+20. **`bot-search-ab`** — **выполнено** (атомарный αβ Easy+Normal, quiescence у Normal, лобби Bot, `IBotSearchPolicy` шов под Hard/full-turn). Идея: [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md). Hard / harness — позже.
 21. **`save-format`** — сейвы матча + «Продолжить»; foundation для campaign progress (`contentSetup`, версии). Канон: [SAVE_FORMAT.md](SAVE_FORMAT.md).
 22. **`campaigns`** — campaign.json / прохождение по главам + прогресс (опирается на сейвы).
 23. **`map-editor`** — workspace модулей (карты/levels); Publish greyed. После playable loop + сейвов, чтобы контент на перерыве не терялся зря.
 24. `player-colors` — color picker в лобби / профиле (dimFactor отрисовки уже в матче); можно совместить с профилем в `settings-ui`.
 25. `settings-ui` — экран **Настройки** (меню сейчас greyed): графика (разрешение/окно, UI scale / `ui-scale-hidpi`, фильтр зума nearest vs bicubic), ввод (три столбца биндов), профиль. Persist в user data. Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки).
 26. `ui-scale-hidpi` — масштаб UI/поля под HiDPI и 4K (вместе с или сразу после `settings-ui`). Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](ideas/ui-scale-hidpi.md).
-27. **`terrain-autotile`** — автотайлинг местности по 4 соседям (вариации + поворот; fallback на простой тайл). Идея: [terrain-autotile-edges](ideas/terrain-autotile-edges.md). **Перед реализацией** — обязательный gate: задать открытые вопросы из идеи (термины, примеры, оценка вариантов).
-28. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
+27. **`bot-search-harness`** — опциональный прогон αβ/eval без UI (после playtest: сделать или отменить). См. [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md).
+28. **`terrain-autotile`** — автотайлинг местности по 4 соседям (вариации + поворот; fallback на простой тайл). Идея: [terrain-autotile-edges](ideas/terrain-autotile-edges.md). **Перед реализацией** — обязательный gate: задать открытые вопросы из идеи (термины, примеры, оценка вариантов).
+29. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
 
-**Playtest-перерыв (приоритет):** бот Easy/Normal → сейвы → кампании → редактор; настройки / HiDPI / автотайл / Hard-бот / сеть — после.
+**Playtest-перерыв (приоритет):** бот Easy/Normal → сейвы → кампании → редактор; настройки / HiDPI / harness? / автотайл / Hard-бот / сеть — после.
 
 ## Связанные ADR
 

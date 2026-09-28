@@ -1,4 +1,6 @@
 using TinyTBS.Engine.Rendering;
+using TinyTBS.Game.Maps.Models;
+using TinyTBS.Game.Match.Ai;
 using TinyTBS.Game.Presentation.Match;
 using TinyTBS.Game.Scripting;
 
@@ -20,7 +22,8 @@ public sealed class GameplaySession : IDisposable
         MatchLevelBrief levelBrief,
         MinimapRenderer minimap,
         MatchContentCatalog contentCatalog,
-        UnitLevelLabelRenderer unitLevelLabels)
+        UnitLevelLabelRenderer unitLevelLabels,
+        IReadOnlyList<MatchPlayerSeat> playerSeats)
     {
         State = state;
         Scene = scene;
@@ -30,6 +33,7 @@ public sealed class GameplaySession : IDisposable
         Minimap = minimap;
         ContentCatalog = contentCatalog;
         UnitLevelLabels = unitLevelLabels;
+        PlayerSeats = playerSeats;
         _textures = textures;
     }
 
@@ -49,7 +53,17 @@ public sealed class GameplaySession : IDisposable
 
     public MatchContentCatalog ContentCatalog { get; }
 
+    public IReadOnlyList<MatchPlayerSeat> PlayerSeats { get; }
+
     public MatchTextureAtlas Textures => _textures;
+
+    public bool IsCurrentPlayerBot()
+    {
+        var index = State.CurrentPlayer;
+        return index >= 0
+            && index < PlayerSeats.Count
+            && PlayerSeats[index].Kind == MatchPlayerKind.Bot;
+    }
 
     public void EndTurn()
     {
@@ -109,6 +123,19 @@ public sealed class GameplaySession : IDisposable
             ScriptHost.NotifyAfterPlayerAction(State, action);
         State.EvaluateStandardOutcome();
         return true;
+    }
+
+    /// <summary>Recruit by offer identity (bot AI).</summary>
+    public bool TryBuyShopOffer(ContentId unitTypeId, int cost, GridCell castleCell)
+    {
+        for (var i = 0; i < ContentCatalog.ShopOffers.Count; i++)
+        {
+            var offer = ContentCatalog.ShopOffers[i];
+            if (offer.UnitTypeId == unitTypeId && offer.Cost == cost)
+                return TryBuyShopOffer(i, castleCell);
+        }
+
+        return false;
     }
 
     public void Dispose()

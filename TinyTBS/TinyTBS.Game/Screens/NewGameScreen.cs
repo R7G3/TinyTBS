@@ -5,6 +5,7 @@ using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
+using TinyTBS.Game.Match.Ai;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.NewGame;
@@ -14,7 +15,7 @@ namespace TinyTBS.Game.Screens;
 
 /// <summary>
 /// New Game tabbed flow: Mode → Scenario → Level → Composition → Lobby → loading.
-/// Lobby slots are Local / Bot / Remote (Bot and Remote greyed until AI / network).
+/// Lobby slots: Local / Bot (Easy·Normal) / Remote greyed.
 /// </summary>
 public sealed class NewGameScreen : GameScreen
 {
@@ -28,7 +29,7 @@ public sealed class NewGameScreen : GameScreen
     private readonly IAssetResolver _assets;
     private readonly NewGameViewModel _viewModel = new();
     private readonly NewGameView _view = new();
-    private readonly List<NewGamePlayerKind> _playerKinds = [];
+    private readonly List<MatchPlayerSeat> _playerSeats = [];
     private readonly Dictionary<string, ScenarioLevelInfo[]> _levelsByScenario = new(StringComparer.Ordinal);
 
     private MainMenuBackground? _background;
@@ -207,6 +208,7 @@ public sealed class NewGameScreen : GameScreen
             onSelectComposition: SelectComposition,
             onOpenAddPlayerChooser: OpenAddPlayerChooser,
             onAddLocalPlayer: AddLocalPlayer,
+            onAddBotPlayer: AddBotPlayer,
             onCancelAddPlayerChooser: CancelAddPlayerChooser,
             onRemovePlayerAt: RemovePlayerAt,
             onDecreaseGold: () => AdjustGold(-GoldStep),
@@ -347,7 +349,7 @@ public sealed class NewGameScreen : GameScreen
             _viewModel.PlayersMax = 2;
             _viewModel.StartingGold = 0;
             _viewModel.UnitCap = MinUnitCap;
-            _playerKinds.Clear();
+            _playerSeats.Clear();
             _viewModel.PlayerSlots = [];
             _viewModel.ShowAddPlayerTypeChooser = false;
             _lobbyInitializedForLevel = false;
@@ -361,22 +363,23 @@ public sealed class NewGameScreen : GameScreen
         {
             _viewModel.StartingGold = level.DefaultStartingGold;
             _viewModel.UnitCap = level.DefaultUnitCap;
-            _playerKinds.Clear();
+            _playerSeats.Clear();
             var slotCount = Math.Clamp(level.PlayersDefaultSlots, level.PlayersMin, level.PlayersMax);
             for (var index = 0; index < slotCount; index++)
-                _playerKinds.Add(NewGamePlayerKind.Local);
+                _playerSeats.Add(new MatchPlayerSeat { Kind = MatchPlayerKind.Local });
             _lobbyInitializedForLevel = true;
             _viewModel.ShowAddPlayerTypeChooser = false;
         }
 
         ClampPlayerSlots();
 
-        if (_playerKinds.Count >= _viewModel.PlayersMax)
+        if (_playerSeats.Count >= _viewModel.PlayersMax)
             _viewModel.ShowAddPlayerTypeChooser = false;
 
         if (_viewModel.ShowSkirmishLobby)
         {
-            _viewModel.LobbyNote = "Players take turns on this device. Add Local now; Bot and Remote later.";
+            _viewModel.LobbyNote =
+                "Skirmish: Local and Bot (Easy/Normal). Remove a seat then add Bot to replace — minimum players required to Start.";
         }
         else
         {
@@ -387,11 +390,12 @@ public sealed class NewGameScreen : GameScreen
             _viewModel.ShowAddPlayerTypeChooser = false;
         }
 
-        _viewModel.PlayerSlots = _playerKinds
-            .Select((kind, index) => new NewGamePlayerSlotViewModel
+        _viewModel.PlayerSlots = _playerSeats
+            .Select((seat, index) => new NewGamePlayerSlotViewModel
             {
                 SlotIndex = index,
-                Kind = kind,
+                Kind = seat.Kind == MatchPlayerKind.Bot ? NewGamePlayerKind.Bot : NewGamePlayerKind.Local,
+                BotDifficulty = seat.BotDifficulty,
                 PaletteIndex = index,
             })
             .ToArray();
@@ -399,10 +403,16 @@ public sealed class NewGameScreen : GameScreen
 
     private void ClampPlayerSlots()
     {
-        while (_playerKinds.Count > _viewModel.PlayersMax)
-            _playerKinds.RemoveAt(_playerKinds.Count - 1);
-        while (_playerKinds.Count < _viewModel.PlayersMin)
-            _playerKinds.Add(NewGamePlayerKind.Local);
+        while (_playerSeats.Count > _viewModel.PlayersMax)
+            _playerSeats.RemoveAt(_playerSeats.Count - 1);
+        // Do not auto-fill Local when below min — that made it impossible to replace a seat with Bot.
+        // Padding to min happens only on level init and right before StartMatch.
+    }
+
+    private void EnsureMinimumPlayerSeats()
+    {
+        while (_playerSeats.Count < _viewModel.PlayersMin)
+            _playerSeats.Add(new MatchPlayerSeat { Kind = MatchPlayerKind.Local });
     }
 
     private void EnsureCompositionSource(IReadOnlyList<ContentBundleDefinition> bundles)
@@ -587,12 +597,29 @@ public sealed class NewGameScreen : GameScreen
         if (!_viewModel.CanAddPlayer)
             return;
 
-        _playerKinds.Add(NewGamePlayerKind.Local);
+        _playerSeats.Add(new MatchPlayerSeat { Kind = MatchPlayerKind.Local });
         _viewModel.ShowAddPlayerTypeChooser = false;
-        _focusAnchor = _playerKinds.Count > _viewModel.PlayersMin
+        _focusAnchor = _playerSeats.Count > _viewModel.PlayersMin
             ? NewGameFocusAnchor.RemovePlayer
             : NewGameFocusAnchor.AddPlayer;
         Refresh("Local player added.");
+    }
+
+    private void AddBotPlayer(BotDifficulty difficulty)
+    {
+        if (!_viewModel.CanAddPlayer)
+            return;
+
+        _playerSeats.Add(new MatchPlayerSeat
+        {
+            Kind = MatchPlayerKind.Bot,
+            BotDifficulty = difficulty,
+        });
+        _viewModel.ShowAddPlayerTypeChooser = false;
+        _focusAnchor = _playerSeats.Count > _viewModel.PlayersMin
+            ? NewGameFocusAnchor.RemovePlayer
+            : NewGameFocusAnchor.AddPlayer;
+        Refresh($"Bot ({difficulty}) added.");
     }
 
     private void CancelAddPlayerChooser()
@@ -601,7 +628,7 @@ public sealed class NewGameScreen : GameScreen
             return;
 
         _viewModel.ShowAddPlayerTypeChooser = false;
-        _focusAnchor = _playerKinds.Count > _viewModel.PlayersMin
+        _focusAnchor = _playerSeats.Count > _viewModel.PlayersMin
             ? NewGameFocusAnchor.RemovePlayer
             : NewGameFocusAnchor.AddPlayer;
         Refresh("Add player cancelled.");
@@ -611,14 +638,22 @@ public sealed class NewGameScreen : GameScreen
     {
         if (!_viewModel.CanRemovePlayer
             || slotIndex < 0
-            || slotIndex >= _playerKinds.Count)
+            || slotIndex >= _playerSeats.Count)
         {
             return;
         }
 
-        _playerKinds.RemoveAt(slotIndex);
+        _playerSeats.RemoveAt(slotIndex);
+        if (_playerSeats.Count < _viewModel.PlayersMin)
+        {
+            _viewModel.ShowAddPlayerTypeChooser = true;
+            _focusAnchor = NewGameFocusAnchor.AddPlayerTypeLocal;
+            Refresh("Player removed — add Local or Bot to reach the minimum.");
+            return;
+        }
+
         _viewModel.ShowAddPlayerTypeChooser = false;
-        _focusAnchor = _playerKinds.Count > _viewModel.PlayersMin
+        _focusAnchor = _playerSeats.Count > _viewModel.PlayersMin
             ? NewGameFocusAnchor.RemovePlayer
             : NewGameFocusAnchor.AddPlayer;
         Refresh("Player removed.");
@@ -660,6 +695,8 @@ public sealed class NewGameScreen : GameScreen
 
         try
         {
+            EnsureMinimumPlayerSeats();
+
             var scenarioRoot = _moduleLocator.ResolveModuleRoot(_viewModel.SelectedScenarioModuleId);
             var scenario = ScenarioModuleLoader.Load(scenarioRoot, TinyGame.Files);
             var bundles = _bundleLibrary.ListEffectiveBundles();
@@ -674,9 +711,10 @@ public sealed class NewGameScreen : GameScreen
                     ScenarioModuleId = _viewModel.SelectedScenarioModuleId,
                     LevelId = _viewModel.SelectedLevelId,
                     Composition = composition,
-                    PlayerCount = _playerKinds.Count,
+                    PlayerCount = _playerSeats.Count,
                     StartingGold = _viewModel.StartingGold,
                     UnitCap = _viewModel.UnitCap,
+                    PlayerSeats = _playerSeats.ToArray(),
                 }));
         }
         catch (Exception exception)

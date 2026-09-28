@@ -11,6 +11,7 @@ internal static class NewGameLobbyTabBody
         NewGameViewModel viewModel,
         Action onOpenAddPlayerChooser,
         Action onAddLocalPlayer,
+        Action<TinyTBS.Game.Match.Ai.BotDifficulty> onAddBotPlayer,
         Action onCancelAddPlayerChooser,
         Action<int> onRemovePlayerAt,
         Action onDecreaseGold,
@@ -22,6 +23,7 @@ internal static class NewGameLobbyTabBody
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(onOpenAddPlayerChooser);
         ArgumentNullException.ThrowIfNull(onAddLocalPlayer);
+        ArgumentNullException.ThrowIfNull(onAddBotPlayer);
         ArgumentNullException.ThrowIfNull(onCancelAddPlayerChooser);
         ArgumentNullException.ThrowIfNull(onRemovePlayerAt);
         ArgumentNullException.ThrowIfNull(onDecreaseGold);
@@ -72,7 +74,8 @@ internal static class NewGameLobbyTabBody
             list.AddHint("Add as");
             list.AddRow("Local", onAddLocalPlayer);
             addPlayerTypeLocalFocusIndex = list.FocusableCount - 1;
-            list.AddDisabledRow("Bot (soon)");
+            list.AddRow("Bot · Easy", () => onAddBotPlayer(TinyTBS.Game.Match.Ai.BotDifficulty.Easy));
+            list.AddRow("Bot · Normal", () => onAddBotPlayer(TinyTBS.Game.Match.Ai.BotDifficulty.Normal));
             list.AddDisabledRow("Remote (soon)");
             list.AddRow("Cancel", onCancelAddPlayerChooser);
             cancelAddPlayerTypeFocusIndex = list.FocusableCount - 1;

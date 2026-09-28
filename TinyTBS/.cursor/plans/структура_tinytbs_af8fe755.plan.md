@@ -41,13 +41,14 @@ isProject: false
 
 ### Дальше (playtest-перерыв: бот → сейвы → кампании → редактор)
 
-- [ ] **bot-search-ab** — бот схватки: вариант 2 (minimax / αβ); **Easy + Normal** в срезе; Hard позже. Лобби Bot; комментарии в коде. **Перед стартом** — открытые вопросы из [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md)
+- [x] **bot-search-ab** — бот схватки: атомарный αβ; **Easy + Normal**; Hard позже. Лобби Bot.
 - [ ] **save-format** — сейвы матча + «Продолжить»; foundation для campaign progress
 - [ ] **campaigns** — campaign.json + прохождение по главам + прогресс
 - [ ] **map-editor** — workspace модулей; Publish greyed
 - [ ] **player-colors** — color picker в лобби / профиле (можно с `settings-ui`)
 - [ ] **settings-ui** — экран **Настройки**: графика (в т.ч. `ui-scale-hidpi`), ввод (3 столбца), профиль; persist JSON. Канон: [UI_AND_FLOW § Настройки](../../docs/design/UI_AND_FLOW.md#настройки)
 - [ ] **ui-scale-hidpi** — масштаб UI/поля под HiDPI / 4K. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#масштаб--разрешение); [ideas/ui-scale-hidpi.md](../../docs/ideas/ui-scale-hidpi.md)
+- [ ] **bot-search-harness** — прогон поиска без UI (после playtest: сделать или отменить). [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md)
 - [ ] **terrain-autotile** — автотайлинг местности (4 соседа, fallback). **Перед стартом** — gate-вопросы из [terrain-autotile-edges](../../docs/ideas/terrain-autotile-edges.md) (термины, примеры, оценка вариантов)
 - [ ] **network-later** — Remote в API; UI greyed only
 

@@ -5,6 +5,7 @@ using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Levels;
 using TinyTBS.Game.Levels.Models;
+using TinyTBS.Game.Match.Ai;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.Match;
@@ -32,6 +33,7 @@ public sealed class MatchSessionLoadPipeline
     private readonly int? _playerCountOverride;
     private readonly int? _startingGoldOverride;
     private readonly int? _unitCapOverride;
+    private readonly IReadOnlyList<MatchPlayerSeat>? _playerSeatsOverride;
     private readonly IReadOnlyList<(string Label, Action Work)> _stages;
 
     private MatchContentLoadResult? _matchContent;
@@ -58,7 +60,8 @@ public sealed class MatchSessionLoadPipeline
         MatchContentComposition? composition = null,
         int? playerCount = null,
         int? startingGold = null,
-        int? unitCap = null)
+        int? unitCap = null,
+        IReadOnlyList<MatchPlayerSeat>? playerSeats = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelId);
 
@@ -76,6 +79,7 @@ public sealed class MatchSessionLoadPipeline
         _playerCountOverride = playerCount;
         _startingGoldOverride = startingGold;
         _unitCapOverride = unitCap;
+        _playerSeatsOverride = playerSeats;
 
         _stages =
         [
@@ -252,6 +256,22 @@ public sealed class MatchSessionLoadPipeline
             levelBrief,
             _minimap,
             _matchContent.Catalog,
-            _unitLevelLabels);
+            _unitLevelLabels,
+            ResolvePlayerSeats(_state));
+    }
+
+    private IReadOnlyList<MatchPlayerSeat> ResolvePlayerSeats(MatchState state)
+    {
+        var count = state.MoneyByPlayer.Count;
+        var seats = new MatchPlayerSeat[count];
+        for (var i = 0; i < count; i++)
+        {
+            if (_playerSeatsOverride is not null && i < _playerSeatsOverride.Count)
+                seats[i] = _playerSeatsOverride[i];
+            else
+                seats[i] = new MatchPlayerSeat { Kind = MatchPlayerKind.Local };
+        }
+
+        return seats;
     }
 }

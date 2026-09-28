@@ -51,7 +51,11 @@ public sealed class NewGameViewModel
 
     public bool CanAddPlayer => PlayerSlots.Count < PlayersMax;
 
-    public bool CanRemovePlayer => PlayerSlots.Count > PlayersMin;
+    /// <summary>
+    /// Allow removing down to one seat so a Local can be replaced with Bot
+    /// (add chooser opens when below <see cref="PlayersMin"/>).
+    /// </summary>
+    public bool CanRemovePlayer => PlayerSlots.Count > 1;
 
     public bool CanStart =>
         SelectedMode is not null

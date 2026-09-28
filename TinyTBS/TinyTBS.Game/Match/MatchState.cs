@@ -177,6 +177,85 @@ public sealed class MatchState
 
     public bool IsPlayerEliminated(int playerIndex) => _eliminatedPlayers.Contains(playerIndex);
 
+    /// <summary>
+    /// Deep copy for AI search. Shares the content catalog (immutable for match lifetime).
+    /// Does not re-run turn-start economy.
+    /// </summary>
+    public MatchState CloneForAi()
+    {
+        var clone = new MatchState(Width, Height, _catalog, UnitCap)
+        {
+            _playerCount = _playerCount,
+            _victoryType = _victoryType,
+            _defeatType = _defeatType,
+            _nextUnitId = _nextUnitId,
+            CurrentPlayer = CurrentPlayer,
+            TurnNumber = TurnNumber,
+            SelectedUnitId = SelectedUnitId,
+            Cursor = Cursor,
+            WinnerPlayerIndex = WinnerPlayerIndex,
+            VictoryReason = VictoryReason,
+        };
+
+        for (var y = 0; y < Height; y++)
+        {
+            for (var x = 0; x < Width; x++)
+                clone._terrain[x, y] = _terrain[x, y];
+        }
+
+        foreach (var pair in _moneyByPlayer)
+            clone._moneyByPlayer[pair.Key] = pair.Value;
+        foreach (var pair in _turnStartsByPlayer)
+            clone._turnStartsByPlayer[pair.Key] = pair.Value;
+        foreach (var pair in _kingRehireCountByPlayer)
+            clone._kingRehireCountByPlayer[pair.Key] = pair.Value;
+        foreach (var playerIndex in _eliminatedPlayers)
+            clone._eliminatedPlayers.Add(playerIndex);
+
+        foreach (var building in _buildings)
+        {
+            clone._buildings.Add(new MatchBuilding(
+                building.TypeId,
+                building.Cell,
+                building.OwnerPlayerIndex,
+                building.IsRuined,
+                building.AllowsRecruit)
+            {
+                RepairedThisOwnerTurn = building.RepairedThisOwnerTurn,
+            });
+        }
+
+        foreach (var unit in _units)
+        {
+            var copy = new MatchUnit(
+                unit.Id,
+                unit.TypeId,
+                unit.Cell,
+                unit.PlayerIndex,
+                unit.MaxHealth,
+                Math.Max(1, unit.HitPoints))
+            {
+                IsActive = unit.IsActive,
+                HasMovedThisActivation = unit.HasMovedThisActivation,
+                CellBeforeMove = unit.CellBeforeMove,
+                Experience = unit.Experience,
+            };
+            // Preserve exact HP including edge cases already validated on live units.
+            copy.HitPoints = unit.HitPoints;
+            clone._units.Add(copy);
+        }
+
+        foreach (var stone in _gravestones)
+        {
+            clone._gravestones.Add(new MatchGravestone(
+                stone.Cell,
+                stone.SourcePlayerIndex,
+                stone.ExpiresWhenTurnStartsReaches));
+        }
+
+        return clone;
+    }
+
     public TerrainKind GetTerrain(GridCell cell) => _terrain[cell.X, cell.Y];
 
     public TerrainKind GetTerrain(int x, int y) => _terrain[x, y];

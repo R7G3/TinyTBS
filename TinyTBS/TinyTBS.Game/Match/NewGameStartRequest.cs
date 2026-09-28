@@ -1,3 +1,4 @@
+using TinyTBS.Game.Match.Ai;
 using TinyTBS.Game.Modules.Models;
 
 namespace TinyTBS.Game.Match;
@@ -23,4 +24,9 @@ public sealed class NewGameStartRequest
 
     /// <summary>When null, the pipeline uses the level's <c>defaultUnitCap</c>.</summary>
     public int? UnitCap { get; init; }
+
+    /// <summary>
+    /// Per-slot controllers. When null or shorter than player count, missing seats default to Local.
+    /// </summary>
+    public IReadOnlyList<MatchPlayerSeat>? PlayerSeats { get; init; }
 }

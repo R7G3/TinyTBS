@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
+using TinyTBS.Game.Match.Ai;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.Match;
@@ -15,6 +16,7 @@ public sealed class GameplayMatchController
     private readonly GraphicsDevice _graphicsDevice;
     private readonly GameplayHudSync _hudSync;
     private readonly GameplayHudComposer _hudComposer;
+    private readonly BotTurnDriver _botDriver = new();
 
     private GameplaySession? _session;
     private GridCell? _shopCastleCell;
@@ -49,6 +51,8 @@ public sealed class GameplayMatchController
             _hudSync.Hud,
             onEndTurn: () =>
             {
+                if (_session?.IsCurrentPlayerBot() == true)
+                    return;
                 _session?.EndTurn();
                 GameplayHudOverlayState.CloseAllExceptPause(_hudSync.Hud);
                 ClosePause();
@@ -81,7 +85,16 @@ public sealed class GameplayMatchController
             return;
 
         var scene = _session.Scene;
-        var boardInputEnabled = !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud);
+        var botTurn = _session.IsCurrentPlayerBot() && !_session.State.IsMatchOver;
+        if (botTurn
+            && !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud)
+            && !_hudSync.Hud.IsMatchResultVisible)
+        {
+            _botDriver.TryStep(_session, _session.PlayerSeats, gameTime);
+        }
+
+        var boardInputEnabled = !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud)
+            && !botTurn;
 
         // Zoom / pan before layout prepare so hit-tests and draws use the updated camera.
         MatchCommandApplicator.ApplyZoom(

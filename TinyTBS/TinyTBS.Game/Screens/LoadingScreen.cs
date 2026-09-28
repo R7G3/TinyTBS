@@ -32,6 +32,7 @@ public sealed class LoadingScreen : GameScreen
     private readonly int? _playerCount;
     private readonly int? _startingGold;
     private readonly int? _unitCap;
+    private readonly IReadOnlyList<TinyTBS.Game.Match.Ai.MatchPlayerSeat>? _playerSeats;
     private readonly LoadingViewModel _viewModel = new();
     private readonly LoadingView _view = new();
 
@@ -54,7 +55,8 @@ public sealed class LoadingScreen : GameScreen
             composition: null,
             playerCount: null,
             startingGold: null,
-            unitCap: null)
+            unitCap: null,
+            playerSeats: null)
     {
     }
 
@@ -68,7 +70,8 @@ public sealed class LoadingScreen : GameScreen
             composition: request.Composition,
             playerCount: request.PlayerCount,
             startingGold: request.StartingGold,
-            unitCap: request.UnitCap)
+            unitCap: request.UnitCap,
+            playerSeats: request.PlayerSeats)
     {
         ArgumentNullException.ThrowIfNull(request);
     }
@@ -82,7 +85,8 @@ public sealed class LoadingScreen : GameScreen
         MatchContentComposition? composition,
         int? playerCount,
         int? startingGold,
-        int? unitCap)
+        int? unitCap,
+        IReadOnlyList<TinyTBS.Game.Match.Ai.MatchPlayerSeat>? playerSeats)
         : base(game)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelId);
@@ -94,6 +98,7 @@ public sealed class LoadingScreen : GameScreen
         _playerCount = playerCount;
         _startingGold = startingGold;
         _unitCap = unitCap;
+        _playerSeats = playerSeats;
     }
 
     private GameMain TinyGame => (GameMain)Game;
@@ -131,7 +136,8 @@ public sealed class LoadingScreen : GameScreen
             composition,
             _playerCount,
             _startingGold,
-            _unitCap);
+            _unitCap,
+            _playerSeats);
 
         ApplyProgress(_pipeline.Progress);
         _phase = LoadPhase.Warmup;
