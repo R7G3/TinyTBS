@@ -19,6 +19,7 @@ public sealed class MatchScene : IDisposable
     private readonly MatchTextureAtlas _textures;
     private readonly SpriteBatch _spriteBatch;
     private readonly MatchUnitMoveAnimator _moveAnimator = new();
+    private readonly MatchCursorAnimator _cursorAnimator = new();
     private readonly List<int> _gravestoneEntityIds = [];
     private readonly List<int> _buildingEntityIds = [];
     private readonly Dictionary<int, int> _unitEntityById = new();
@@ -81,6 +82,9 @@ public sealed class MatchScene : IDisposable
     /// <summary>True while a unit sprite is sliding along its move path.</summary>
     public bool IsMoveAnimating => _moveAnimator.IsActive;
 
+    /// <summary>True while the board cursor is sliding (bot aim).</summary>
+    public bool IsCursorAnimating => _cursorAnimator.IsActive;
+
     public void PrepareFrame(int viewportWidth, int viewportHeight)
     {
         _layout.UpdateForViewport(viewportWidth, viewportHeight);
@@ -91,10 +95,37 @@ public sealed class MatchScene : IDisposable
         SyncUnitTransformsFromState();
     }
 
-    /// <summary>Advance move presentation; call once per Update with frame delta.</summary>
+    /// <summary>Advance move + cursor presentation; call once per Update with frame delta.</summary>
     public void TickMoveAnimation(GameTime gameTime)
     {
-        _moveAnimator.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
+        var elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
+        _moveAnimator.Update(elapsed);
+        _cursorAnimator.Update(elapsed);
+    }
+
+    /// <summary>
+    /// Starts a Manhattan cursor slide to <paramref name="to"/>.
+    /// Returns false if already there (caller may act immediately).
+    /// </summary>
+    public bool BeginCursorAim(GridCell from, GridCell to) =>
+        _cursorAnimator.Begin(from, to);
+
+    public void CancelCursorAim() => _cursorAnimator.Cancel();
+
+    /// <summary>Cell under the animated cursor, or null if not aiming.</summary>
+    public bool TryGetCursorAimLogicalCell(out GridCell cell) =>
+        _cursorAnimator.TryGetLogicalCell(out cell);
+
+    /// <summary>
+    /// Where to draw the cursor: fractional cell while aiming, else logical <see cref="MatchState.Cursor"/>.
+    /// </summary>
+    public void GetVisualCursorCell(out float cellX, out float cellY)
+    {
+        if (_cursorAnimator.TryGetVisualCell(out cellX, out cellY))
+            return;
+
+        cellX = _state.Cursor.X;
+        cellY = _state.Cursor.Y;
     }
 
     public void Update(GameTime gameTime) => World.Update(gameTime);

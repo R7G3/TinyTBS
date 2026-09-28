@@ -47,8 +47,8 @@ public sealed class CursorHighlightRenderer : IDisposable
     public void Draw(
         SpriteBatch spriteBatch,
         MatchBoardLayout layout,
-        int cursorX,
-        int cursorY,
+        float cursorCellX,
+        float cursorCellY,
         bool hasSelection,
         IReadOnlyList<(int X, int Y)>? moveRangeCells = null,
         IReadOnlyList<(int X, int Y)>? attackTargetCells = null,
@@ -90,7 +90,7 @@ public sealed class CursorHighlightRenderer : IDisposable
         DrawCellBorders(spriteBatch, layout, repairTargetCells, RepairBorder, borderThickness: 2);
         DrawCellBorders(spriteBatch, layout, attackTargetCells, AttackBorder, borderThickness: 2);
         DrawCellBorders(spriteBatch, layout, raiseTargetCells, RaiseBorder, borderThickness: 2);
-        DrawCursor(spriteBatch, layout, cursorX, cursorY, hasSelection);
+        DrawCursor(spriteBatch, layout, cursorCellX, cursorCellY, hasSelection);
 
         spriteBatch.End();
     }
@@ -98,12 +98,17 @@ public sealed class CursorHighlightRenderer : IDisposable
     private void DrawCursor(
         SpriteBatch spriteBatch,
         MatchBoardLayout layout,
-        int cursorX,
-        int cursorY,
+        float cursorCellX,
+        float cursorCellY,
         bool hasSelection)
     {
-        var topLeft = layout.Origin + new Vector2(cursorX * layout.TileSize, cursorY * layout.TileSize);
-        var rect = new Rectangle((int)topLeft.X, (int)topLeft.Y, layout.TileSize, layout.TileSize);
+        var topLeft = layout.Origin
+            + new Vector2(cursorCellX * layout.TileSize, cursorCellY * layout.TileSize);
+        var rect = new Rectangle(
+            (int)MathF.Round(topLeft.X),
+            (int)MathF.Round(topLeft.Y),
+            layout.TileSize,
+            layout.TileSize);
         var borderColor = hasSelection ? SelectedBorder : IdleBorder;
 
         spriteBatch.Draw(_pixel, rect, Color.White * 0.18f);

@@ -53,7 +53,8 @@ public sealed class GameplayMatchController
             {
                 if (_session?.IsCurrentPlayerBot() == true)
                     return;
-                if (_session?.Scene.IsMoveAnimating == true)
+                if (_session?.Scene.IsMoveAnimating == true
+                    || _session?.Scene.IsCursorAnimating == true)
                     return;
                 _session?.EndTurn();
                 GameplayHudOverlayState.CloseAllExceptPause(_hudSync.Hud);
@@ -89,19 +90,20 @@ public sealed class GameplayMatchController
         var scene = _session.Scene;
         scene.TickMoveAnimation(gameTime);
 
-        var moveAnimating = scene.IsMoveAnimating;
         var botTurn = _session.IsCurrentPlayerBot() && !_session.State.IsMatchOver;
         if (botTurn
-            && !moveAnimating
+            && !scene.IsMoveAnimating
             && !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud)
             && !_hudSync.Hud.IsMatchResultVisible)
         {
+            // Driver itself waits while the cursor is sliding to the aim cell.
             _botDriver.TryStep(_session, _session.PlayerSeats, gameTime);
         }
 
         var boardInputEnabled = !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud)
             && !botTurn
-            && !moveAnimating;
+            && !scene.IsMoveAnimating
+            && !scene.IsCursorAnimating;
 
         // Zoom / pan before layout prepare so hit-tests and draws use the updated camera.
         MatchCommandApplicator.ApplyZoom(
@@ -268,11 +270,12 @@ public sealed class GameplayMatchController
                             out repairTargetCells);
                     }
 
+                    scene.GetVisualCursorCell(out var cursorCellX, out var cursorCellY);
                     _session.CursorHighlight.Draw(
                         spriteBatch,
                         layout,
-                        match.Cursor.X,
-                        match.Cursor.Y,
+                        cursorCellX,
+                        cursorCellY,
                         hasSelection: match.SelectedUnitId is not null,
                         moveRangeCells: moveRangeCells,
                         attackTargetCells: attackTargetCells,
