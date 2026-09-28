@@ -40,6 +40,7 @@ public sealed class GameplayHudComposer
         Action onSuspendToMenu,
         Action onLeaveMatch,
         Action onSaveMatch,
+        Action onLoadMatch,
         Action onCloseShop,
         Action<int> onBuyOffer,
         Action onCellActionMove,
@@ -63,6 +64,7 @@ public sealed class GameplayHudComposer
             onOpenGoals,
             onClosePause,
             onSaveMatch,
+            onLoadMatch,
             onSuspendToMenu,
             onLeaveMatch);
         _goals.Build(_rootPanel, hud);

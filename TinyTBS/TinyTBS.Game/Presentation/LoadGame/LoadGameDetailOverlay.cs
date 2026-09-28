@@ -4,12 +4,13 @@ using Gum.Forms.Controls;
 using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Input;
+using TinyTBS.Game.Presentation.Content;
 using TinyTBS.Game.Presentation.Shared;
 
-namespace TinyTBS.Game.Presentation.Content;
+namespace TinyTBS.Game.Presentation.LoadGame;
 
-/// <summary>Modal detail card over the content library shell (module/bundle info, optional Remove).</summary>
-internal sealed class ContentLibraryDetailOverlay
+/// <summary>Detail card over Load Game: Load / Delete / Close.</summary>
+internal sealed class LoadGameDetailOverlay
 {
     private Panel? _rootPanel;
     private Panel? _overlay;
@@ -24,11 +25,13 @@ internal sealed class ContentLibraryDetailOverlay
         Panel rootPanel,
         string titleText,
         string metaText,
-        string bodyText,
-        Action? removeAction,
+        Action onLoad,
+        Action onDelete,
         Action onClosed)
     {
         ArgumentNullException.ThrowIfNull(rootPanel);
+        ArgumentNullException.ThrowIfNull(onLoad);
+        ArgumentNullException.ThrowIfNull(onDelete);
         ArgumentNullException.ThrowIfNull(onClosed);
 
         Close();
@@ -65,9 +68,9 @@ internal sealed class ContentLibraryDetailOverlay
         GumUiLayout.FillParentWidth(meta);
         stack.AddChild(meta);
 
-        var body = new Label { Text = bodyText };
-        GumUiLayout.FillParentWidth(body);
-        stack.AddChild(body);
+        var hint = new Label { Text = "Load resumes this match. Delete removes the file." };
+        GumUiLayout.FillParentWidth(hint);
+        stack.AddChild(hint);
 
         var actionsHost = new Panel();
         GumUiLayout.FillParentWidth(actionsHost);
@@ -75,13 +78,16 @@ internal sealed class ContentLibraryDetailOverlay
         stack.AddChild(actionsHost);
 
         var detailButtons = new List<Button>();
-        if (removeAction is not null)
-        {
-            var removeButton = new Button { Text = "Remove" };
-            removeButton.Click += (_, _) => removeAction();
-            detailButtons.Add(removeButton);
-            _focusable.Add((removeButton, removeAction));
-        }
+
+        var loadButton = new Button { Text = "Load" };
+        loadButton.Click += (_, _) => onLoad();
+        detailButtons.Add(loadButton);
+        _focusable.Add((loadButton, onLoad));
+
+        var deleteButton = new Button { Text = "Delete" };
+        deleteButton.Click += (_, _) => onDelete();
+        detailButtons.Add(deleteButton);
+        _focusable.Add((deleteButton, onDelete));
 
         var closeButton = new Button { Text = "Close" };
         closeButton.Click += (_, _) => Close();
@@ -100,24 +106,37 @@ internal sealed class ContentLibraryDetailOverlay
 
         GumUiLayout.AddVerticalSpacer(stack, 14f);
 
-        _focusIndex = Math.Max(0, _focusable.Count - 1);
+        _focusIndex = 0;
         GumFocusableButtonList.ApplyFocus(_focusable, ref _focusIndex);
+    }
+
+    public void HandleInput(IGameCommandSource commands, float elapsedSeconds)
+    {
+        if (_overlay is null || _focusable.Count == 0)
+            return;
+
+        GumFocusableButtonList.HandleHorizontalInput(
+            commands,
+            _focusable,
+            ref _focusIndex,
+            _navigateRepeat,
+            elapsedSeconds);
     }
 
     public bool TryClose()
     {
-        if (!IsOpen)
+        if (_overlay is null)
             return false;
-
-        Close(notifyClosed: true);
+        Close();
         return true;
     }
 
-    public void Close(bool notifyClosed = true)
+    public void Close()
     {
         if (_overlay is null)
         {
             _focusable.Clear();
+            _navigateRepeat.Reset();
             _focusIndex = 0;
             _rootPanel = null;
             _onClosed = null;
@@ -129,45 +148,18 @@ internal sealed class ContentLibraryDetailOverlay
             for (var i = _rootPanel.Visual.Children.Count - 1; i >= 0; i--)
             {
                 if (ReferenceEquals(_rootPanel.Visual.Children[i], _overlay.Visual))
-                {
                     _rootPanel.Visual.Children.RemoveAt(i);
-                    break;
-                }
             }
         }
 
-        _overlay.Visual.Parent = null;
-        _overlay.IsVisible = false;
         _overlay = null;
-        _focusable.Clear();
-        _focusIndex = 0;
         _rootPanel = null;
+        _focusable.Clear();
+        _navigateRepeat.Reset();
+        _focusIndex = 0;
 
-        var onClosed = _onClosed;
+        var closed = _onClosed;
         _onClosed = null;
-        if (notifyClosed)
-            onClosed?.Invoke();
-    }
-
-    public void HandleInput(IGameCommandSource commands, float elapsedSeconds)
-    {
-        if (_focusable.Count == 0)
-            return;
-
-        if (commands.WasPressed(GameCommand.Cancel)
-            || commands.WasPressed(GameCommand.Back)
-            || commands.WasPressed(GameCommand.Info)
-            || commands.WasPressed(GameCommand.Pause))
-        {
-            Close();
-            return;
-        }
-
-        GumFocusableButtonList.HandleHorizontalInput(
-            commands,
-            _focusable,
-            ref _focusIndex,
-            _navigateRepeat,
-            elapsedSeconds);
+        closed?.Invoke();
     }
 }

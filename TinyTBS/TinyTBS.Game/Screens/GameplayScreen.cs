@@ -41,7 +41,8 @@ public sealed class GameplayScreen : GameScreen
             _session,
             onSuspendToMenu: SuspendToMainMenu,
             onLeaveMatch: LeaveMatchToMainMenu,
-            onSaveMatch: SaveMatch);
+            onSaveMatch: SaveMatch,
+            onLoadMatch: SuspendAndOpenLoadGame);
     }
 
     public override void UnloadContent()
@@ -69,6 +70,13 @@ public sealed class GameplayScreen : GameScreen
         _sessionTransferred = false;
         TinyGame.ClearSuspendedMatch(dispose: true);
         ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
+    }
+
+    private void SuspendAndOpenLoadGame()
+    {
+        _sessionTransferred = true;
+        TinyGame.SuspendMatch(_session);
+        ScreenManager.ReplaceScreen(new LoadGameScreen(TinyGame, Assets));
     }
 
     private void SaveMatch()

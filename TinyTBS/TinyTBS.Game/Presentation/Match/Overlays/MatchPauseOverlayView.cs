@@ -21,6 +21,7 @@ public sealed class MatchPauseOverlayView
         Action onOpenGoals,
         Action onClosePause,
         Action onSaveMatch,
+        Action onLoadMatch,
         Action onSuspendToMenu,
         Action onLeaveMatch)
     {
@@ -41,13 +42,7 @@ public sealed class MatchPauseOverlayView
         AddButton(stack, "Map", onOpenMinimap);
         AddButton(stack, "Goals", onOpenGoals);
         AddButton(stack, "Save", onSaveMatch);
-
-        var loadButton = new Button { Text = "Load (soon)" };
-        loadButton.IsEnabled = false;
-        loadButton.Visual.HasEvents = false;
-        GumUiLayout.FillParentWidth(loadButton);
-        stack.AddChild(loadButton);
-
+        AddButton(stack, "Load", onLoadMatch);
         AddButton(stack, "Resume", onClosePause);
         AddButton(stack, "Main menu", onSuspendToMenu);
         AddButton(stack, "Leave match", onLeaveMatch);

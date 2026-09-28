@@ -10,4 +10,9 @@ public sealed class MatchSaveListEntry
     public required string LevelId { get; init; }
 
     public required string ScenarioModuleId { get; init; }
+
+    public string DisplayTitle => LevelId;
+
+    public string DisplayMeta =>
+        $"{ScenarioModuleId} · {WrittenAtUtc.ToUniversalTime():yyyy-MM-dd HH:mm} UTC";
 }

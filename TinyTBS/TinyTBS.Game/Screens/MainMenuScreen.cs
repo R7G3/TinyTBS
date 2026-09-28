@@ -4,11 +4,8 @@ using MonoGame.Extended.Screens;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Match;
-using TinyTBS.Game.Modules;
 using TinyTBS.Game.Presentation.Menu;
 using TinyTBS.Game.Saves;
-using TinyTBS.Game.Saves.Models;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Screens;
@@ -39,8 +36,7 @@ public sealed class MainMenuScreen : GameScreen
     {
         base.LoadContent();
 
-        RefreshContinueState();
-        _viewModel.CanLoadGame = false;
+        RefreshContinueAndLoadState();
         _viewModel.CanOpenContent = true;
         _viewModel.CanOpenEditor = false;
         _viewModel.CanOpenSettings = false;
@@ -53,7 +49,7 @@ public sealed class MainMenuScreen : GameScreen
             _viewModel,
             onContinue: ContinueGame,
             onNewGame: StartNewGame,
-            onLoadGame: () => { },
+            onLoadGame: OpenLoadGame,
             onContent: OpenContent,
             onEditor: () => { },
             onSettings: () => { },
@@ -108,9 +104,11 @@ public sealed class MainMenuScreen : GameScreen
         GumService.Default.Draw();
     }
 
-    private void RefreshContinueState()
+    private void RefreshContinueAndLoadState()
     {
-        _viewModel.CanContinue = TinyGame.HasSuspendedMatch || _saveLibrary.TryGetLatest(out _);
+        var hasDiskSave = _saveLibrary.TryGetLatest(out _);
+        _viewModel.CanContinue = TinyGame.HasSuspendedMatch || hasDiskSave;
+        _viewModel.CanLoadGame = hasDiskSave;
     }
 
     private void ContinueGame()
@@ -131,56 +129,18 @@ public sealed class MainMenuScreen : GameScreen
         try
         {
             var document = _saveLibrary.LoadLatest();
-            var warning = BuildVersionWarning(document);
-            var request = ContinueMatchRequest.FromDocument(document);
-            if (!string.IsNullOrWhiteSpace(warning))
-            {
-                request = new ContinueMatchRequest
-                {
-                    LevelId = request.LevelId,
-                    ScenarioModuleId = request.ScenarioModuleId,
-                    Composition = request.Composition,
-                    PlayerCount = request.PlayerCount,
-                    UnitCap = request.UnitCap,
-                    PlayerSeats = request.PlayerSeats,
-                    RuntimeSnapshot = request.RuntimeSnapshot,
-                    VersionWarning = warning,
-                };
-            }
-
+            var request = MatchSaveResume.CreateRequest(
+                document,
+                TinyGame.Files,
+                TinyGame.UserDataPaths);
             ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, _assets, request));
         }
         catch (Exception exception)
         {
             _viewModel.StatusHint = "Continue failed: " + exception.Message;
             _view.SyncStatus(_viewModel);
-            RefreshContinueState();
+            RefreshContinueAndLoadState();
         }
-    }
-
-    private string? BuildVersionWarning(MatchSaveDocument document)
-    {
-        try
-        {
-            var current = MatchSaveDocumentFactory.CollectModuleVersions(
-                MatchSaveDocumentFactory.ToComposition(document.ContentSetup),
-                TinyGame.Files,
-                TinyGame.UserDataPaths);
-
-            foreach (var pair in document.ContentSetup.ModuleVersions)
-            {
-                if (!current.TryGetValue(pair.Key, out var now))
-                    return $"Module '{pair.Key}' missing — attempting load…";
-                if (!string.Equals(now, pair.Value, StringComparison.Ordinal))
-                    return $"Module '{pair.Key}' version {pair.Value} → {now} — attempting load…";
-            }
-        }
-        catch (MatchContentCompositionException)
-        {
-            return "Some modules changed — attempting load…";
-        }
-
-        return null;
     }
 
     private void StartNewGame()
@@ -203,13 +163,13 @@ public sealed class MainMenuScreen : GameScreen
         ScreenManager.ReplaceScreen(new NewGameScreen(TinyGame, _assets));
     }
 
-    private void OpenContent()
+    private void OpenLoadGame()
     {
-        if (TinyGame.HasSuspendedMatch)
-        {
-            // Content library keeps the suspended match; user can return via Continue.
-        }
-
-        ScreenManager.ReplaceScreen(new ContentLibraryScreen(TinyGame, _assets));
+        _awaitingNewGameAbandonConfirm = false;
+        _viewModel.StatusHint = string.Empty;
+        ScreenManager.ReplaceScreen(new LoadGameScreen(TinyGame, _assets));
     }
+
+    private void OpenContent() =>
+        ScreenManager.ReplaceScreen(new ContentLibraryScreen(TinyGame, _assets));
 }

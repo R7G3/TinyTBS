@@ -38,12 +38,12 @@ isProject: false
 - [x] **content-ui** — экран Контент (установить/удалить; Скачать/Обновить greyed)
 - [x] **new-game-flow** — вкладки Mode → Scenario → Level → Composition → Lobby; слоты Local (+ Bot/Remote greyed); gold/unit cap ± (hold gamepad + mouse)
 - [x] **match-gdd-loop** — economy + combat + post-move по клеткам (без контекстного меню) + abilities + standard victory/defeat; Cancel отменяет ход
+- [x] **bot-search-ab** — бот схватки: атомарный αβ; **Easy + Normal**; Hard позже. Лобби Bot.
+- [x] **save-format** (срез 1) — match JSON + Pause Save / Leave / Main menu suspend + Continue live→диск
+- [x] **save-format** (срез 2) — экран Загрузка
 
 ### Дальше (playtest-перерыв: бот → сейвы → кампании → редактор)
 
-- [x] **bot-search-ab** — бот схватки: атомарный αβ; **Easy + Normal**; Hard позже. Лобби Bot.
-- [x] **save-format** (срез 1) — match JSON + Pause Save / Leave / Main menu suspend + Continue live→диск
-- [ ] **save-format** (срез 2) — экран Загрузка
 - [ ] **campaigns** — campaign.json + прохождение по главам + прогресс
 - [ ] **map-editor** — workspace модулей; Publish greyed
 - [ ] **player-colors** — color picker в лобби / профиле (можно с `settings-ui`)

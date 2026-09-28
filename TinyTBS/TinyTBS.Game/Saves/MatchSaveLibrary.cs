@@ -66,4 +66,34 @@ public sealed class MatchSaveLibrary
 
         return MatchSaveReader.ReadFile(entry.FilePath);
     }
+
+    public MatchSaveDocument Load(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        return MatchSaveReader.ReadFile(filePath);
+    }
+
+    /// <summary>Deletes a match save file. Returns false if the file was already gone.</summary>
+    public bool Delete(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+        var fullPath = Path.GetFullPath(filePath);
+        var savesRoot = Path.GetFullPath(_userDataPaths.Saves);
+        if (!fullPath.StartsWith(savesRoot, StringComparison.OrdinalIgnoreCase))
+            throw new MatchSaveException("Refusing to delete a file outside the Saves folder.");
+
+        if (!File.Exists(fullPath))
+            return false;
+
+        try
+        {
+            File.Delete(fullPath);
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            throw new MatchSaveException($"Failed to delete save '{fullPath}'.", exception);
+        }
+    }
 }

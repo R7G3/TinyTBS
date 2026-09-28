@@ -51,6 +51,43 @@ public static class GumFocusableButtonList
         return GumFocusListResult.None;
     }
 
+    /// <summary>
+    /// Left/Right focus over a horizontal button row + Confirm activate.
+    /// Does not consume Up/Down (caller may ignore them while the row is focused).
+    /// </summary>
+    public static GumFocusListResult HandleHorizontalInput(
+        IGameCommandSource commands,
+        IReadOnlyList<(Button Button, Action Activate)> entries,
+        ref int focusIndex,
+        MenuVerticalNavigateRepeat navigateRepeat,
+        float elapsedSeconds)
+    {
+        ArgumentNullException.ThrowIfNull(commands);
+        ArgumentNullException.ThrowIfNull(entries);
+        ArgumentNullException.ThrowIfNull(navigateRepeat);
+
+        if (entries.Count == 0)
+            return GumFocusListResult.None;
+
+        var delta = navigateRepeat.TryGetHorizontalDelta(commands, elapsedSeconds);
+        if (delta != 0)
+        {
+            focusIndex = Math.Clamp(focusIndex + delta, 0, entries.Count - 1);
+            ApplyFocus(entries, ref focusIndex);
+            return GumFocusListResult.Navigated;
+        }
+
+        if (commands.WasPressed(GameCommand.Confirm))
+        {
+            focusIndex = Math.Clamp(focusIndex, 0, entries.Count - 1);
+            entries[focusIndex].Activate();
+            return GumFocusListResult.Activated;
+        }
+
+        MaintainFocus(entries, ref focusIndex);
+        return GumFocusListResult.None;
+    }
+
     /// <summary>Navigate only (no Confirm) over a bare button list — e.g. shop offers + Close.</summary>
     public static bool TryHandleVerticalNavigate(
         IGameCommandSource commands,

@@ -4,6 +4,7 @@ namespace TinyTBS.Game.Input;
 
 /// <summary>
 /// Hold-to-repeat for menu Up/Down (and optional L/R-as-vertical), same timing as lobby ± steppers.
+/// Also provides Left/Right delta for horizontal button rows.
 /// </summary>
 public sealed class MenuVerticalNavigateRepeat
 {
@@ -58,6 +59,32 @@ public sealed class MenuVerticalNavigateRepeat
 
         if (mapHorizontalToVertical
             && HeldCommandRepeat.TryTick(
+                commands,
+                GameCommand.NavigateLeft,
+                elapsedSeconds,
+                ref _leftAsUpTimer))
+        {
+            return -1;
+        }
+
+        return 0;
+    }
+
+    /// <summary>Returns -1 (left), +1 (right), or 0 — for horizontal button rows.</summary>
+    public int TryGetHorizontalDelta(IGameCommandSource commands, float elapsedSeconds)
+    {
+        ArgumentNullException.ThrowIfNull(commands);
+
+        if (HeldCommandRepeat.TryTick(
+                commands,
+                GameCommand.NavigateRight,
+                elapsedSeconds,
+                ref _rightAsDownTimer))
+        {
+            return 1;
+        }
+
+        if (HeldCommandRepeat.TryTick(
                 commands,
                 GameCommand.NavigateLeft,
                 elapsedSeconds,

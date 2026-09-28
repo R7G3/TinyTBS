@@ -25,6 +25,7 @@ public sealed class GameplayMatchController
     private bool _pendingPauseMenuFocus;
     private Action? _returnToMenu;
     private Action? _leaveMatch;
+    private Action? _loadMatch;
     private readonly MatchEnemyThreatHold _enemyThreatHold = new();
     private float _lastBotFollowCursorX = float.NaN;
     private float _lastBotFollowCursorY = float.NaN;
@@ -45,12 +46,14 @@ public sealed class GameplayMatchController
         GameplaySession session,
         Action onSuspendToMenu,
         Action onLeaveMatch,
-        Action onSaveMatch)
+        Action onSaveMatch,
+        Action onLoadMatch)
     {
         ArgumentNullException.ThrowIfNull(session);
 
         _returnToMenu = onSuspendToMenu;
         _leaveMatch = onLeaveMatch;
+        _loadMatch = onLoadMatch;
         _session = session;
 
         _hudSync.Hud.LevelTitle = _session.LevelBrief.Title;
@@ -77,6 +80,7 @@ public sealed class GameplayMatchController
             onSuspendToMenu: SuspendToMenu,
             onLeaveMatch: LeaveMatch,
             onSaveMatch: SaveCurrentMatch,
+            onLoadMatch: OpenLoadFromPause,
             onCloseShop: CloseShop,
             onBuyOffer: BuyShopOffer,
             onCellActionMove: OnCellActionMove,
@@ -119,6 +123,7 @@ public sealed class GameplayMatchController
 
     private void LeaveMatch() => _leaveMatch?.Invoke();
 
+    private void OpenLoadFromPause() => _loadMatch?.Invoke();
 
     public void Update(GameTime gameTime)
     {

@@ -31,7 +31,7 @@
 
 Продолжить (если есть сохранения) · Новая игра · Загрузка · Контент · Редактор · Настройки · Об игре · Выход.
 
-**Сейчас в коде:** оболочка пунктов; **Новая игра** — вкладки Mode → Scenario → Level → Composition → Lobby (Left/Right как в Контенте; Start / Back); фильтр уровней по mode+scenario; composition = scenario defaults / bundle; лобби: слоты Local/Bot (кампания: P2 = Bot·Easy по умолчанию; Confirm на Bot циклит Easy/Normal) + **+**/X; схватка — ещё gold/unit cap → loading; **Контент** — панель-библиотека (Modules/Bundles; детальный попап + Remove; Install: From device через `IExternalFilePicker`, From catalog greyed; очередь `{UserData}/Downloads`; Download/Update greyed). **Продолжить** — live suspended матч (пауза → Main menu) иначе новейший match-сейв с диска; пауза: **Save**, **Leave match** (Dispose), **Main menu** (suspend). **Загрузка** / **Настройки** / Редактор / Об игре — greyed (следующий срез — Загрузка; затем campaigns / settings — см. [ARCHITECTURE](../ARCHITECTURE.md)).
+**Сейчас в коде:** оболочка пунктов; **Новая игра** — вкладки Mode → Scenario → Level → Composition → Lobby (Left/Right как в Контенте; Start / Back); фильтр уровней по mode+scenario; composition = scenario defaults / bundle; лобби: слоты Local/Bot (кампания: P2 = Bot·Easy по умолчанию; Confirm на Bot циклит Easy/Normal) + **+**/X; схватка — ещё gold/unit cap → loading; **Контент** — панель-библиотека (Modules/Bundles; детальный попап + Remove; Install: From device через `IExternalFilePicker`, From catalog greyed; очередь `{UserData}/Downloads`; Download/Update greyed). **Продолжить** — live suspended (пауза → Main menu) иначе новейший match-сейв; **Загрузка** — список сейвов (Load / Delete; при live — двойной Confirm); пауза: **Save**, **Load** (suspend → Загрузка), **Leave match**, **Main menu** (suspend). **Настройки** / Редактор / Об игре — greyed (см. [ARCHITECTURE](../ARCHITECTURE.md)).
 
 Фоны главного меню / настроек / загрузки / «Об игре»: изображение с плавным сдвигом (камера «летит» над полем). Идея матового стекла панелей — [ideas/ui-frosted-glass.md](../ideas/ui-frosted-glass.md).
 
@@ -58,7 +58,7 @@
 
 ### Загрузка / сохранения
 
-Список от новых к старым; загрузить или удалить. «Продолжить» = **сначала** незавершённый матч этой сессии (пауза → Main menu), иначе самое свежее match-сохранение. Сейв хранит снимок модулей/версий — [SAVE_FORMAT.md](../SAVE_FORMAT.md). Экран Загрузка — следующий срез.
+Список от новых к старым; Confirm → Load / Delete. «Продолжить» = **сначала** незавершённый матч этой сессии (пауза → Main menu), иначе самое свежее match-сохранение. При Load с живым suspended — двойной Confirm (бросить матч). Сейв хранит снимок модулей/версий — [SAVE_FORMAT.md](../SAVE_FORMAT.md).
 
 ### Контент (менеджер модулей)
 
@@ -149,7 +149,7 @@
 | **Карта** | Миникарта: весь уровень влезает в вид. Поверх клеток: **квадрат** цвета владельца постройки; **круг** цвета владельца юнита (если есть и постройка, и юнит — сначала квадрат, поверх круг). Gravestone — миниатюра камня (не на постройках; если есть юнит — gravestone **под** кругом юнита) |
 | **Цели** | Описание задания уровня, условия победы и поражения |
 | **Сохранить** | Пишет `match_*.json` в `{UserData}/Saves/` (hotseat OK; сеть — позже greyed) |
-| **Загрузить** | Greyed до среза «Загрузка» |
+| **Загрузить** | Открывает экран Загрузка; текущий матч suspend (как Main menu). Выбор сейва — с Confirm abandon при необходимости |
 | **Продолжить** (Resume) | Закрыть паузу |
 | **Main menu** | Suspend: главное меню без Dispose; **Continue** вернёт матч |
 | **Leave match** | Полный выход: Dispose матча |

@@ -21,7 +21,7 @@
 
 New Game при живом suspended: повторный Confirm («Confirm New Game again…»), Back отменяет.
 
-Экран **Загрузка** — следующий срез (список / load / delete).
+Экран **Загрузка** (главное меню и пауза → Load): список `match_*.json` newest-first; Confirm → Load / Delete. Load при live suspended — двойной Confirm, затем Dispose live и hydrate с диска. Пауза → Load сначала suspend'ит текущий матч.
 
 ## Match save (v1)
 
