@@ -1,4 +1,3 @@
-using TinyTBS.Game.Buildings.Models;
 using TinyTBS.Game.Maps;
 using TinyTBS.Game.Maps.Models;
 using TinyTBS.Game.Modules;
@@ -7,8 +6,8 @@ using TinyTBS.Game.Units.Models;
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Match rules: activation, path move by Speed, attack / capture / repair / destroy / raise,
-/// turn-start income+heal, recruit with unit cap. Canon: COMBAT / WORLD / TURN_AND_UI.
+/// Match rules facade: activation, movement, and orchestration of combat / economy / overlays.
+/// Details live in <see cref="MatchCombat"/>, <see cref="MatchEconomy"/>, <see cref="MatchUnitActionQueries"/>.
 /// </summary>
 public sealed class MatchState
 {
@@ -113,7 +112,7 @@ public sealed class MatchState
                 ? Math.Clamp(hitPointValue, 1, maxHealth)
                 : maxHealth;
 
-            match.AddUnit(typeId, new GridCell(unit.X, unit.Y), unit.Slot, maxHealth, hitPoints);
+            match.SpawnUnit(typeId, new GridCell(unit.X, unit.Y), unit.Slot, maxHealth, hitPoints);
         }
 
         foreach (var gravestone in map.Gravestones)
@@ -137,6 +136,19 @@ public sealed class MatchState
 
     public MatchContentCatalog ContentCatalog => _catalog;
 
+    /// <summary>Internal alias for helpers in the Match assembly.</summary>
+    internal MatchContentCatalog Catalog => _catalog;
+
+    internal List<MatchUnit> UnitList => _units;
+
+    internal List<MatchBuilding> BuildingList => _buildings;
+
+    internal List<MatchGravestone> GravestoneList => _gravestones;
+
+    internal Dictionary<int, int> KingRehireCounts => _kingRehireCountByPlayer;
+
+    internal Dictionary<int, int> TurnStarts => _turnStartsByPlayer;
+
     public IReadOnlyList<MatchBuilding> Buildings => _buildings;
 
     public IReadOnlyList<MatchUnit> Units => _units;
@@ -149,11 +161,11 @@ public sealed class MatchState
 
     public int TurnNumber { get; private set; } = 1;
 
-    public int? SelectedUnitId { get; private set; }
+    public int? SelectedUnitId { get; internal set; }
 
     public GridCell Cursor { get; private set; }
 
-    public MatchPlayerAction? LastAction { get; private set; }
+    public MatchPlayerAction? LastAction { get; internal set; }
 
     public int? WinnerPlayerIndex { get; private set; }
 
@@ -265,7 +277,7 @@ public sealed class MatchState
                 continue;
             if (!_catalog.TryGetUnit(unit.TypeId, out var definition))
                 continue;
-            if (HasAbility(definition, "uniquePerPlayer"))
+            if (MatchUnitAbilities.HasAbility(definition, "uniquePerPlayer"))
                 return true;
         }
 
@@ -557,123 +569,13 @@ public sealed class MatchState
     }
 
     /// <summary>Recruit onto an owned recruit building cell if gold, cap, and uniqueness allow.</summary>
-    public bool TryRecruitAtCastle(ContentId unitTypeId, int baseCost, int maxHealth, GridCell castleCell)
-    {
-        if (IsMatchOver || IsPlayerEliminated(CurrentPlayer))
-            return false;
-        if (!IsOwnCastleAt(castleCell))
-            return false;
-        if (IsOccupiedByUnit(castleCell))
-            return false;
-        if (CountUnitsForPlayer(CurrentPlayer) >= UnitCap)
-            return false;
-        if (maxHealth <= 0)
-            return false;
-        if (!_catalog.TryGetUnit(unitTypeId, out var definition))
-            return false;
+    public bool TryRecruitAtCastle(ContentId unitTypeId, int baseCost, int maxHealth, GridCell castleCell) =>
+        MatchEconomy.TryRecruitAtCastle(this, unitTypeId, baseCost, maxHealth, castleCell);
 
-        if (HasAbility(definition, "uniquePerPlayer")
-            && _units.Any(unit => unit.PlayerIndex == CurrentPlayer && unit.TypeId == unitTypeId))
-        {
-            return false;
-        }
+    public int ResolveRecruitCost(ContentId unitTypeId, int baseCost) =>
+        MatchEconomy.ResolveRecruitCost(this, unitTypeId, baseCost);
 
-        var cost = ResolveRecruitCost(unitTypeId, baseCost);
-
-        if (GetMoney(CurrentPlayer) < cost)
-            return false;
-
-        AddMoney(CurrentPlayer, -cost);
-        var spawned = AddUnit(unitTypeId, castleCell, CurrentPlayer, maxHealth, maxHealth);
-        spawned.IsActive = true;
-        LastAction = new MatchPlayerAction
-        {
-            Kind = MatchPlayerActionKind.RecruitUnit,
-            PlayerIndex = CurrentPlayer,
-            UnitId = spawned.Id,
-            Source = castleCell,
-            Target = castleCell,
-        };
-        SelectedUnitId = spawned.Id;
-        return true;
-    }
-
-    public int ResolveRecruitCost(ContentId unitTypeId, int baseCost)
-    {
-        if (!_catalog.TryGetUnit(unitTypeId, out var definition))
-            return baseCost;
-
-        if (TryGetAbility(definition, "rehireCostIncrement", out var rehire)
-            && rehire.Amount is int increment)
-        {
-            return baseCost + _kingRehireCountByPlayer[CurrentPlayer] * increment;
-        }
-
-        return baseCost;
-    }
-
-    private void BeginCurrentPlayerTurn()
-    {
-        _turnStartsByPlayer[CurrentPlayer]++;
-        ExpireGravestonesForCurrentPlayer();
-
-        foreach (var building in _buildings)
-            building.RepairedThisOwnerTurn = false;
-
-        foreach (var unit in _units)
-        {
-            if (unit.PlayerIndex != CurrentPlayer)
-                continue;
-            unit.IsActive = true;
-            unit.HasMovedThisActivation = false;
-            unit.CellBeforeMove = unit.Cell;
-        }
-
-        // Income + heal from the player's second turn onward (WORLD.md).
-        if (_turnStartsByPlayer[CurrentPlayer] >= 2)
-            ApplyIncomeAndHeal(CurrentPlayer);
-    }
-
-    private void ExpireGravestonesForCurrentPlayer()
-    {
-        var turnStarts = _turnStartsByPlayer[CurrentPlayer];
-        _gravestones.RemoveAll(stone =>
-            stone.SourcePlayerIndex == CurrentPlayer
-            && turnStarts >= stone.ExpiresWhenTurnStartsReaches);
-    }
-
-    private void ApplyIncomeAndHeal(int playerIndex)
-    {
-        foreach (var building in _buildings)
-        {
-            if (building.OwnerPlayerIndex != playerIndex)
-                continue;
-            if (!_catalog.TryGetBuilding(building.TypeId, out var definition))
-                continue;
-
-            var income = building.IsRuined
-                ? definition.Ruined?.Income ?? 0
-                : definition.Income;
-            if (income > 0)
-                AddMoney(playerIndex, income);
-
-            var healAmount = ResolveHealAmount(definition, building.IsRuined);
-            if (healAmount <= 0)
-                continue;
-
-            if (!TryGetUnitAt(building.Cell, out var occupant) || occupant.PlayerIndex != playerIndex)
-                continue;
-
-            occupant.HitPoints = Math.Min(occupant.MaxHealth, occupant.HitPoints + healAmount);
-        }
-    }
-
-    private static int ResolveHealAmount(BuildingDefinition definition, bool isRuined)
-    {
-        if (isRuined)
-            return definition.Ruined?.Heal?.Amount ?? 0;
-        return definition.Heal?.Amount ?? 0;
-    }
+    private void BeginCurrentPlayerTurn() => MatchEconomy.BeginCurrentPlayerTurn(this);
 
     /// <summary>
     /// Reachable cells for the selected active unit that has not moved yet; empty otherwise.
@@ -715,7 +617,7 @@ public sealed class MatchState
         if (!TryGetSelectedActiveUnit(out var unit, out var definition))
             return false;
 
-        overlay = BuildActionOverlay(unit, definition, respectActivationMove: true);
+        overlay = MatchUnitActionQueries.Build(this, unit, definition, respectActivationMove: true);
         return true;
     }
 
@@ -730,41 +632,8 @@ public sealed class MatchState
         if (!_catalog.TryGetUnit(unit.TypeId, out var definition))
             return false;
 
-        overlay = BuildActionOverlay(unit, definition, respectActivationMove: false);
+        overlay = MatchUnitActionQueries.Build(this, unit, definition, respectActivationMove: false);
         return true;
-    }
-
-    private MatchUnitActionOverlay BuildActionOverlay(
-        MatchUnit unit,
-        UnitDefinition definition,
-        bool respectActivationMove)
-    {
-        var hasMoved = respectActivationMove && unit.HasMovedThisActivation;
-        var moveCells = hasMoved ? (IReadOnlyList<GridCell>)[] : CollectMoveRange(unit, definition);
-
-        var standCells = new List<GridCell>(moveCells.Count + 1) { unit.Cell };
-        foreach (var cell in moveCells)
-            standCells.Add(cell);
-
-        IReadOnlyList<GridCell> attackStands;
-        if (HasAbility(definition, "moveOrAttackExclusive"))
-        {
-            // Exclusive: attack only from current cell, and only if this activation has not moved.
-            attackStands = hasMoved ? [] : [unit.Cell];
-        }
-        else
-        {
-            attackStands = standCells;
-        }
-
-        return new MatchUnitActionOverlay
-        {
-            MoveCells = moveCells,
-            AttackCells = CollectAttackTargetsFromStands(unit, definition, attackStands),
-            CaptureCells = CollectCaptureTargetsFromStands(unit, definition, standCells),
-            RepairCells = CollectRepairTargetsFromStands(unit, definition, standCells),
-            RaiseCells = CollectRaiseTargetsFromStands(unit, definition, standCells),
-        };
     }
 
     private bool TryGetSelectedActiveUnit(out MatchUnit unit, out UnitDefinition definition)
@@ -778,145 +647,6 @@ public sealed class MatchState
         return true;
     }
 
-    private IReadOnlyList<GridCell> CollectMoveRange(MatchUnit unit, UnitDefinition definition) =>
-        MatchPathfinder.CollectReachable(
-            this,
-            unit,
-            definition.MovementClass,
-            definition.Speed,
-            unit.Id);
-
-    private IReadOnlyList<GridCell> CollectAttackTargetsFromStands(
-        MatchUnit unit,
-        UnitDefinition definition,
-        IReadOnlyList<GridCell> standCells)
-    {
-        var targets = new HashSet<GridCell>();
-        foreach (var stand in standCells)
-            CollectAttackTargetsFromCell(unit, definition, stand, targets);
-
-        return targets.Count == 0 ? [] : targets.ToArray();
-    }
-
-    private void CollectAttackTargetsFromCell(
-        MatchUnit unit,
-        UnitDefinition definition,
-        GridCell fromCell,
-        HashSet<GridCell> targets)
-    {
-        foreach (var candidate in _units)
-        {
-            if (candidate.Id == unit.Id || candidate.PlayerIndex == unit.PlayerIndex)
-                continue;
-
-            var range = fromCell.ManhattanDistanceTo(candidate.Cell);
-            if (range < definition.AttackRangeMin || range > definition.AttackRangeMax)
-                continue;
-
-            targets.Add(candidate.Cell);
-        }
-
-        if (!TryGetAbility(definition, "destroyBuilding", out var destroyAbility))
-            return;
-
-        foreach (var building in _buildings)
-        {
-            if (building.IsRuined)
-                continue;
-            if (!_catalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
-                continue;
-            if (!buildingDefinition.Destroyable)
-                continue;
-            if (!TagsIntersect(destroyAbility.Tags, buildingDefinition.Tags))
-                continue;
-            if (IsOccupiedByUnit(building.Cell, exceptUnitId: unit.Id))
-                continue;
-
-            var range = fromCell.ManhattanDistanceTo(building.Cell);
-            if (range < definition.AttackRangeMin || range > definition.AttackRangeMax)
-                continue;
-
-            targets.Add(building.Cell);
-        }
-    }
-
-    private IReadOnlyList<GridCell> CollectCaptureTargetsFromStands(
-        MatchUnit unit,
-        UnitDefinition definition,
-        IReadOnlyList<GridCell> standCells)
-    {
-        var targets = new List<GridCell>();
-        foreach (var stand in standCells)
-        {
-            if (!TryGetBuildingAt(stand, out var building))
-                continue;
-            if (!_catalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
-                continue;
-            if (!IsCapturable(building, buildingDefinition))
-                continue;
-            if (building.OwnerPlayerIndex == unit.PlayerIndex)
-                continue;
-            if (!CanCapture(definition, buildingDefinition))
-                continue;
-
-            targets.Add(stand);
-        }
-
-        return targets;
-    }
-
-    private IReadOnlyList<GridCell> CollectRepairTargetsFromStands(
-        MatchUnit unit,
-        UnitDefinition definition,
-        IReadOnlyList<GridCell> standCells)
-    {
-        var targets = new List<GridCell>();
-        foreach (var stand in standCells)
-        {
-            if (!TryGetBuildingAt(stand, out var building))
-                continue;
-            if (!building.IsRuined)
-                continue;
-            if (!_catalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
-                continue;
-            if (!buildingDefinition.Repairable)
-                continue;
-            if (!CanRepair(definition, buildingDefinition))
-                continue;
-
-            targets.Add(stand);
-        }
-
-        return targets;
-    }
-
-    private IReadOnlyList<GridCell> CollectRaiseTargetsFromStands(
-        MatchUnit unit,
-        UnitDefinition definition,
-        IReadOnlyList<GridCell> standCells)
-    {
-        if (!HasAbility(definition, "raiseSkeleton"))
-            return [];
-        if (CountUnitsForPlayer(unit.PlayerIndex) >= UnitCap)
-            return [];
-
-        var targets = new HashSet<GridCell>();
-        foreach (var stand in standCells)
-        {
-            foreach (var stone in _gravestones)
-            {
-                if (stand.ManhattanDistanceTo(stone.Cell) != 1)
-                    continue;
-                if (IsOccupiedByUnit(stone.Cell, exceptUnitId: unit.Id))
-                    continue;
-
-                targets.Add(stone.Cell);
-            }
-        }
-
-        return targets.Count == 0 ? [] : targets.ToArray();
-    }
-
     /// <summary>
     /// Whether the current player already has a living unit of a <c>uniquePerPlayer</c> type
     /// (e.g. king) — shop should hide that offer.
@@ -925,7 +655,7 @@ public sealed class MatchState
     {
         if (!_catalog.TryGetUnit(unitTypeId, out var definition))
             return false;
-        if (!HasAbility(definition, "uniquePerPlayer"))
+        if (!MatchUnitAbilities.HasAbility(definition, "uniquePerPlayer"))
             return false;
 
         return _units.Any(unit => unit.PlayerIndex == CurrentPlayer && unit.TypeId == unitTypeId);
@@ -949,179 +679,25 @@ public sealed class MatchState
             Target = destination,
         };
 
-        // Exclusive movers finish after moving.
-        if (HasAbility(definition, "moveOrAttackExclusive"))
+        if (MatchUnitAbilities.HasAbility(definition, "moveOrAttackExclusive"))
         {
             FinishUnitActivation(unit, MatchPlayerActionKind.MoveUnit);
             return true;
         }
 
-        // Keep selection so the player can attack / capture / wait on cells.
         SelectedUnitId = unit.Id;
         return true;
     }
 
-    private bool TryAttack(MatchUnit attacker, UnitDefinition attackerDefinition, MatchUnit defender)
-    {
-        if (HasAbility(attackerDefinition, "moveOrAttackExclusive") && attacker.HasMovedThisActivation)
-            return false;
+    private bool TryAttack(MatchUnit attacker, UnitDefinition attackerDefinition, MatchUnit defender) =>
+        MatchCombat.TryAttack(this, attacker, attackerDefinition, defender);
 
-        var range = attacker.Cell.ManhattanDistanceTo(defender.Cell);
-        if (range < attackerDefinition.AttackRangeMin || range > attackerDefinition.AttackRangeMax)
-            return false;
-        if (!_catalog.TryGetUnit(defender.TypeId, out var defenderDefinition))
-            return false;
-
-        var terrainDef = MatchTerrainRules.DefenceBonus(GetTerrain(defender.Cell));
-        var buildingDef = ResolveBuildingDefenceBonus(defender.Cell);
-        var attackAura = ResolveAttackAuraBonus(attacker.Cell, attacker.PlayerIndex);
-        var damage = MatchCombatFormula.ComputeDamage(
-            attackerDefinition,
-            attacker.Level,
-            attacker.HitPoints,
-            defenderDefinition,
-            defender.Level,
-            terrainDef,
-            buildingDef,
-            range,
-            attackAura);
-
-        ApplyDamage(defender, defenderDefinition, damage);
-        var defenderDied = !_units.Contains(defender);
-
-        if (!defenderDied)
-            attacker.GainExperience(1);
-        else
-            attacker.GainExperience(2);
-
-        // Counterattack: adjacent only, unless abilities forbid.
-        if (!defenderDied
-            && range == 1
-            && !HasAbility(defenderDefinition, "noCounterattack")
-            && !SuppressesCounterattack(attackerDefinition, range))
-        {
-            var counterTerrain = MatchTerrainRules.DefenceBonus(GetTerrain(attacker.Cell));
-            var counterBuilding = ResolveBuildingDefenceBonus(attacker.Cell);
-            var counterAura = ResolveAttackAuraBonus(defender.Cell, defender.PlayerIndex);
-            var counterDamage = MatchCombatFormula.ComputeDamage(
-                defenderDefinition,
-                defender.Level,
-                defender.HitPoints,
-                attackerDefinition,
-                attacker.Level,
-                counterTerrain,
-                counterBuilding,
-                range,
-                counterAura);
-            ApplyDamage(attacker, attackerDefinition, counterDamage);
-            if (_units.Contains(attacker))
-                defender.GainExperience(counterDamage > 0 && attacker.HitPoints > 0 ? 1 : 2);
-        }
-
-        LastAction = new MatchPlayerAction
-        {
-            Kind = MatchPlayerActionKind.AttackUnit,
-            PlayerIndex = CurrentPlayer,
-            UnitId = attacker.Id,
-            Source = attacker.Cell,
-            Target = defender.Cell,
-        };
-
-        if (_units.Contains(attacker))
-            FinishUnitActivation(attacker, MatchPlayerActionKind.AttackUnit);
-        else
-            SelectedUnitId = null;
-
-        return true;
-    }
-
-    private static bool SuppressesCounterattack(UnitDefinition attacker, int range) =>
-        attacker.Abilities.Any(ability =>
-            string.Equals(ability.Type, "noCounterattackWhenRangeAtLeast", StringComparison.OrdinalIgnoreCase)
-            && ability.MinRange is int min
-            && range >= min);
-
-    private int ResolveBuildingDefenceBonus(GridCell cell)
-    {
-        if (!TryGetBuildingAt(cell, out var building))
-            return 0;
-        if (!_catalog.TryGetBuilding(building.TypeId, out var definition))
-            return 0;
-
-        if (building.IsRuined)
-            return definition.Ruined?.DefenceBonus ?? 0;
-        return definition.DefenceBonus;
-    }
-
-    private void ApplyDamage(MatchUnit unit, UnitDefinition definition, int damage)
-    {
-        if (damage <= 0)
-            return;
-
-        unit.HitPoints -= damage;
-        if (unit.HitPoints > 0)
-            return;
-
-        var cell = unit.Cell;
-        var playerIndex = unit.PlayerIndex;
-        if (HasAbility(definition, "uniquePerPlayer")
-            || HasAbility(definition, "rehireCostIncrement"))
-        {
-            _kingRehireCountByPlayer[playerIndex] = _kingRehireCountByPlayer.GetValueOrDefault(playerIndex) + 1;
-        }
-
-        _units.Remove(unit);
-        if (SelectedUnitId == unit.Id)
-            SelectedUnitId = null;
-
-        if (definition.LeavesGravestone && !TryGetBuildingAt(cell, out _))
-        {
-            if (!_gravestones.Any(stone => stone.Cell == cell))
-            {
-                var expireAt = _turnStartsByPlayer.GetValueOrDefault(playerIndex) + 2;
-                _gravestones.Add(new MatchGravestone(cell, playerIndex, expireAt));
-            }
-        }
-    }
-
-    private bool TryDestroyBuildingAtCursor(MatchUnit unit, UnitDefinition unitDefinition)
-    {
-        if (HasAbility(unitDefinition, "moveOrAttackExclusive") && unit.HasMovedThisActivation)
-            return false;
-        if (!TryGetAbility(unitDefinition, "destroyBuilding", out var destroyAbility))
-            return false;
-        if (!TryGetBuildingAt(Cursor, out var building) || building.IsRuined)
-            return false;
-        if (!_catalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
-            return false;
-        if (!buildingDefinition.Destroyable)
-            return false;
-        if (!TagsIntersect(destroyAbility.Tags, buildingDefinition.Tags))
-            return false;
-        if (IsOccupiedByUnit(building.Cell))
-            return false;
-
-        var range = unit.Cell.ManhattanDistanceTo(building.Cell);
-        if (range < unitDefinition.AttackRangeMin || range > unitDefinition.AttackRangeMax)
-            return false;
-
-        // Vanilla villages: one-shot to ruined (no building HP in definition yet).
-        building.IsRuined = true;
-        LastAction = new MatchPlayerAction
-        {
-            Kind = MatchPlayerActionKind.DestroyBuilding,
-            PlayerIndex = CurrentPlayer,
-            UnitId = unit.Id,
-            Source = unit.Cell,
-            Target = building.Cell,
-        };
-        FinishUnitActivation(unit, MatchPlayerActionKind.DestroyBuilding);
-        return true;
-    }
+    private bool TryDestroyBuildingAtCursor(MatchUnit unit, UnitDefinition unitDefinition) =>
+        MatchCombat.TryDestroyBuildingAtCursor(this, unit, unitDefinition);
 
     private bool TryRaiseSkeletonAtCursor(MatchUnit unit, UnitDefinition unitDefinition)
     {
-        if (!HasAbility(unitDefinition, "raiseSkeleton"))
+        if (!MatchUnitAbilities.HasAbility(unitDefinition, "raiseSkeleton"))
             return false;
         if (unit.Cell.ManhattanDistanceTo(Cursor) != 1)
             return false;
@@ -1139,7 +715,7 @@ public sealed class MatchState
             return false;
 
         _gravestones.RemoveAt(stoneIndex);
-        var spawned = AddUnit(
+        var spawned = SpawnUnit(
             skeletonTypeId,
             Cursor,
             CurrentPlayer,
@@ -1163,50 +739,7 @@ public sealed class MatchState
     /// Best (max) attackAura value covering <paramref name="cell"/> for <paramref name="playerIndex"/>.
     /// </summary>
     public int GetAttackAuraBonus(GridCell cell, int playerIndex) =>
-        ResolveAttackAuraBonus(cell, playerIndex);
-
-    /// <summary>
-    /// Best (max) attackAura value from allied units whose aura covers <paramref name="cell"/>.
-    /// </summary>
-    private int ResolveAttackAuraBonus(GridCell cell, int playerIndex)
-    {
-        var best = 0;
-        foreach (var ally in _units)
-        {
-            if (ally.PlayerIndex != playerIndex)
-                continue;
-            if (!_catalog.TryGetUnit(ally.TypeId, out var definition))
-                continue;
-            if (!TryGetAbility(definition, "attackAura", out var aura))
-                continue;
-
-            var radius = aura.Radius ?? 0;
-            var value = aura.Value ?? 0;
-            if (radius <= 0 || value <= 0)
-                continue;
-            if (ally.Cell.ManhattanDistanceTo(cell) > radius)
-                continue;
-
-            if (value > best)
-                best = value;
-        }
-
-        return best;
-    }
-
-    private static bool TagsIntersect(IReadOnlyList<string> left, IReadOnlyList<string> right)
-    {
-        foreach (var leftTag in left)
-        {
-            foreach (var rightTag in right)
-            {
-                if (string.Equals(leftTag, rightTag, StringComparison.OrdinalIgnoreCase))
-                    return true;
-            }
-        }
-
-        return false;
-    }
+        MatchCombat.ResolveAttackAuraBonus(this, cell, playerIndex);
 
     private bool TryCaptureOrRepairAtUnitCell(MatchUnit unit, UnitDefinition unitDefinition)
     {
@@ -1217,7 +750,7 @@ public sealed class MatchState
 
         if (building.IsRuined
             && buildingDefinition.Repairable
-            && CanRepair(unitDefinition, buildingDefinition))
+            && MatchUnitAbilities.CanRepair(unitDefinition, buildingDefinition))
         {
             building.IsRuined = false;
             building.OwnerPlayerIndex = null;
@@ -1236,9 +769,9 @@ public sealed class MatchState
 
         if (!building.IsRuined
             && !building.RepairedThisOwnerTurn
-            && IsCapturable(building, buildingDefinition)
+            && MatchUnitAbilities.IsCapturable(building, buildingDefinition)
             && building.OwnerPlayerIndex != CurrentPlayer
-            && CanCapture(unitDefinition, buildingDefinition))
+            && MatchUnitAbilities.CanCapture(unitDefinition, buildingDefinition))
         {
             building.OwnerPlayerIndex = CurrentPlayer;
             LastAction = new MatchPlayerAction
@@ -1256,40 +789,18 @@ public sealed class MatchState
         return false;
     }
 
-    private static bool IsCapturable(MatchBuilding building, BuildingDefinition definition)
-    {
-        if (building.IsRuined)
-            return definition.Ruined?.Capturable ?? false;
-        return definition.Capturable;
-    }
-
-    private static bool CanCapture(UnitDefinition unit, BuildingDefinition building) =>
-        unit.Abilities.Any(ability =>
-            string.Equals(ability.Type, "captureBuilding", StringComparison.OrdinalIgnoreCase)
-            && ability.Tags.Any(tag =>
-                building.Tags.Any(buildingTag =>
-                    string.Equals(tag, buildingTag, StringComparison.OrdinalIgnoreCase))));
-
-    private static bool CanRepair(UnitDefinition unit, BuildingDefinition building) =>
-        unit.Abilities.Any(ability =>
-            string.Equals(ability.Type, "repairBuilding", StringComparison.OrdinalIgnoreCase)
-            && ability.Tags.Any(tag =>
-                building.Tags.Any(buildingTag =>
-                    string.Equals(tag, buildingTag, StringComparison.OrdinalIgnoreCase))));
-
     private void UndoMove(MatchUnit unit)
     {
         if (!unit.HasMovedThisActivation)
             return;
 
-        // Destination must be free for undo; if another unit somehow occupies origin, stay put.
         if (!IsOccupiedByUnit(unit.CellBeforeMove, exceptUnitId: unit.Id))
             unit.Cell = unit.CellBeforeMove;
 
         unit.HasMovedThisActivation = false;
     }
 
-    private void FinishUnitActivation(MatchUnit unit, MatchPlayerActionKind kind)
+    internal void FinishUnitActivation(MatchUnit unit, MatchPlayerActionKind kind)
     {
         unit.IsActive = false;
         SelectedUnitId = null;
@@ -1306,31 +817,13 @@ public sealed class MatchState
         }
     }
 
-    private static bool HasAbility(UnitDefinition definition, string type) =>
-        definition.Abilities.Any(ability =>
-            string.Equals(ability.Type, type, StringComparison.OrdinalIgnoreCase));
-
-    private static bool TryGetAbility(UnitDefinition definition, string type, out UnitAbilityDefinition ability)
-    {
-        foreach (var candidate in definition.Abilities)
-        {
-            if (!string.Equals(candidate.Type, type, StringComparison.OrdinalIgnoreCase))
-                continue;
-            ability = candidate;
-            return true;
-        }
-
-        ability = null!;
-        return false;
-    }
-
     private void EnsureKnownPlayer(int playerIndex)
     {
         if (!_moneyByPlayer.ContainsKey(playerIndex))
             throw new ArgumentOutOfRangeException(nameof(playerIndex), playerIndex, "Unknown player.");
     }
 
-    private MatchUnit AddUnit(
+    internal MatchUnit SpawnUnit(
         ContentId typeId,
         GridCell cell,
         int playerIndex,
