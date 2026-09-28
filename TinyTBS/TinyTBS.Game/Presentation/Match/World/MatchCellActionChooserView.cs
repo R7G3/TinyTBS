@@ -11,8 +11,13 @@ using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.Match.World;
 
+/// <summary>Compact floater above an occupied own castle: Move / Buy (vertical stack).</summary>
 public sealed class MatchCellActionChooserView
 {
+    private const float ButtonWidth = 96f;
+    private const float SidePad = 8f;
+    private const float StackSpacing = 6f;
+
     private Panel? _panel;
     private readonly List<(Button Button, Action Activate)> _focusableEntries = [];
     private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
@@ -39,36 +44,22 @@ public sealed class MatchCellActionChooserView
         stack.Visual.WidthUnits = DimensionUnitType.RelativeToChildren;
         stack.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
         stack.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
-        stack.Visual.StackSpacing = 0;
+        stack.Visual.StackSpacing = StackSpacing;
         _panel.AddChild(stack);
 
         GumUiLayout.AddVerticalSpacer(stack, 6f);
 
-        // Floater is sized to children — do not use LayoutAdaptiveButtonRows (FillParentWidth
-        // against RelativeToChildren collapses the row and breaks hit-tests).
-        var buttonRow = new Panel();
-        buttonRow.Visual.HasEvents = false;
-        buttonRow.Visual.WidthUnits = DimensionUnitType.RelativeToChildren;
-        buttonRow.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        buttonRow.Visual.ChildrenLayout = ChildrenLayout.LeftToRightStack;
-        buttonRow.Visual.StackSpacing = 8;
-        stack.AddChild(buttonRow);
+        // Vertical Move / Buy — floater sizes to children (no FillParentWidth).
+        var buttonColumn = new Panel();
+        buttonColumn.Visual.HasEvents = false;
+        buttonColumn.Visual.WidthUnits = DimensionUnitType.RelativeToChildren;
+        buttonColumn.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+        buttonColumn.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
+        buttonColumn.Visual.StackSpacing = StackSpacing;
+        stack.AddChild(buttonColumn);
 
-        AddHorizontalPad(buttonRow, 6f);
-
-        var moveButton = new Button { Text = "->" };
-        GumUiLayout.SetAbsoluteWidth(moveButton, 72f);
-        moveButton.Click += (_, _) => onCellActionMove();
-        buttonRow.AddChild(moveButton);
-        _focusableEntries.Add((moveButton, onCellActionMove));
-
-        var buyButton = new Button { Text = "$" };
-        GumUiLayout.SetAbsoluteWidth(buyButton, 56f);
-        buyButton.Click += (_, _) => onCellActionBuy();
-        buttonRow.AddChild(buyButton);
-        _focusableEntries.Add((buyButton, onCellActionBuy));
-
-        AddHorizontalPad(buttonRow, 6f);
+        AddChooserButton(buttonColumn, "Move", onCellActionMove);
+        AddChooserButton(buttonColumn, "Buy", onCellActionBuy);
 
         GumUiLayout.AddVerticalSpacer(stack, 6f);
     }
@@ -91,19 +82,40 @@ public sealed class MatchCellActionChooserView
         if (_panel is not { IsVisible: true } || _focusableEntries.Count == 0)
             return;
 
+        // Vertical list: NavigateUp / NavigateDown only (no left/right remap).
         GumFocusableButtonList.HandleVerticalInput(
             commands,
             _focusableEntries,
             ref _focusIndex,
             _navigateRepeat,
             elapsedSeconds,
-            mapHorizontalToVertical: true);
+            mapHorizontalToVertical: false);
     }
 
     public void ClearFocus()
     {
         GumFocusableButtonList.ClearFocus(_focusableEntries);
         _focusIndex = 0;
+    }
+
+    private void AddChooserButton(Panel column, string text, Action onActivate)
+    {
+        var row = new Panel();
+        row.Visual.HasEvents = false;
+        row.Visual.WidthUnits = DimensionUnitType.RelativeToChildren;
+        row.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+        row.Visual.ChildrenLayout = ChildrenLayout.LeftToRightStack;
+        column.AddChild(row);
+
+        AddHorizontalPad(row, SidePad);
+
+        var button = new Button { Text = text };
+        GumUiLayout.SetAbsoluteWidth(button, ButtonWidth);
+        button.Click += (_, _) => onActivate();
+        row.AddChild(button);
+        _focusableEntries.Add((button, onActivate));
+
+        AddHorizontalPad(row, SidePad);
     }
 
     private void Place(GameplayHudViewModel hud)
