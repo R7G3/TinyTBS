@@ -14,6 +14,7 @@ internal sealed class ContentLibraryDetailOverlay
     private Panel? _rootPanel;
     private Panel? _overlay;
     private readonly List<(Button Button, Action Activate)> _focusable = [];
+    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private int _focusIndex;
     private Action? _onClosed;
 
@@ -148,7 +149,7 @@ internal sealed class ContentLibraryDetailOverlay
             onClosed?.Invoke();
     }
 
-    public void HandleInput(IGameCommandSource commands)
+    public void HandleInput(IGameCommandSource commands, float elapsedSeconds)
     {
         if (_focusable.Count == 0)
             return;
@@ -166,6 +167,8 @@ internal sealed class ContentLibraryDetailOverlay
             commands,
             _focusable,
             ref _focusIndex,
+            _navigateRepeat,
+            elapsedSeconds,
             mapHorizontalToVertical: true);
     }
 }

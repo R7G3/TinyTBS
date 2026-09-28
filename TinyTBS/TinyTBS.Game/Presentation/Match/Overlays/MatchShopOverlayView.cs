@@ -40,6 +40,7 @@ public sealed class MatchShopOverlayView
 
     /// <summary>0..N-1 = offer rows; N = Close. Owned by us so Gum spatial nav cannot land on the scrollbar.</summary>
     private int _focusIndex;
+    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
 
     public void Build(Panel root, GameplayHudViewModel hud, Action onCloseShop, Action<int> onBuyOffer)
     {
@@ -107,12 +108,17 @@ public sealed class MatchShopOverlayView
     /// Call after Gum.Update while the shop is open. Owns D-pad / stick / Confirm
     /// (Gum gamepad defaults are disabled — see GumBootstrap).
     /// </summary>
-    public void HandleGamepadNavigation(IGameCommandSource commands)
+    public void HandleGamepadNavigation(IGameCommandSource commands, float elapsedSeconds)
     {
         if (_panel is not { IsVisible: true })
             return;
 
-        if (GumFocusableButtonList.TryHandleVerticalNavigate(commands, FocusSlotCount, ref _focusIndex))
+        if (GumFocusableButtonList.TryHandleVerticalNavigate(
+                commands,
+                FocusSlotCount,
+                ref _focusIndex,
+                _navigateRepeat,
+                elapsedSeconds))
         {
             ApplyFocusIndex();
             return;

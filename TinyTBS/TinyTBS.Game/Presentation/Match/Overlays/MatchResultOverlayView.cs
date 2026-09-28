@@ -13,11 +13,13 @@ public sealed class MatchResultOverlayView
     private Panel? _panel;
     private Label? _titleLabel;
     private readonly List<(Button Button, Action Activate)> _focusableEntries = [];
+    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private int _focusIndex;
 
     public void Build(Panel root, Action onReturnToMenu)
     {
         _focusableEntries.Clear();
+        _navigateRepeat.Reset();
         _focusIndex = 0;
 
         _panel = GumMatchOverlayPanel.Create(
@@ -51,12 +53,17 @@ public sealed class MatchResultOverlayView
         GumMatchVisibility.SetVisible(_panel, hud.IsMatchResultVisible);
     }
 
-    public void HandleGamepadNavigation(IGameCommandSource commands)
+    public void HandleGamepadNavigation(IGameCommandSource commands, float elapsedSeconds)
     {
         if (_panel is not { IsVisible: true } || _focusableEntries.Count == 0)
             return;
 
-        GumFocusableButtonList.HandleVerticalInput(commands, _focusableEntries, ref _focusIndex);
+        GumFocusableButtonList.HandleVerticalInput(
+            commands,
+            _focusableEntries,
+            ref _focusIndex,
+            _navigateRepeat,
+            elapsedSeconds);
     }
 
     public void FocusFirst()

@@ -66,7 +66,7 @@ public sealed class MainMenuScreen : GameScreen
     public override void Update(GameTime gameTime)
     {
         GumService.Default.Update(gameTime);
-        _view.HandleInput(TinyGame.Commands);
+        _view.HandleInput(TinyGame.Commands, (float)gameTime.ElapsedGameTime.TotalSeconds);
 
         if (TinyGame.Commands.WasPressed(GameCommand.Back)
             || TinyGame.Commands.WasPressed(GameCommand.Cancel)

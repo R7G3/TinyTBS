@@ -21,26 +21,21 @@ public static class GumFocusableButtonList
         IGameCommandSource commands,
         IReadOnlyList<(Button Button, Action Activate)> entries,
         ref int focusIndex,
+        MenuVerticalNavigateRepeat navigateRepeat,
+        float elapsedSeconds,
         bool mapHorizontalToVertical = false)
     {
         ArgumentNullException.ThrowIfNull(commands);
         ArgumentNullException.ThrowIfNull(entries);
+        ArgumentNullException.ThrowIfNull(navigateRepeat);
 
         if (entries.Count == 0)
             return GumFocusListResult.None;
 
-        if (commands.WasPressed(GameCommand.NavigateDown)
-            || (mapHorizontalToVertical && commands.WasPressed(GameCommand.NavigateRight)))
+        var delta = navigateRepeat.TryGetDelta(commands, elapsedSeconds, mapHorizontalToVertical);
+        if (delta != 0)
         {
-            focusIndex = Math.Min(focusIndex + 1, entries.Count - 1);
-            ApplyFocus(entries, ref focusIndex);
-            return GumFocusListResult.Navigated;
-        }
-
-        if (commands.WasPressed(GameCommand.NavigateUp)
-            || (mapHorizontalToVertical && commands.WasPressed(GameCommand.NavigateLeft)))
-        {
-            focusIndex = Math.Max(focusIndex - 1, 0);
+            focusIndex = Math.Clamp(focusIndex + delta, 0, entries.Count - 1);
             ApplyFocus(entries, ref focusIndex);
             return GumFocusListResult.Navigated;
         }
@@ -60,25 +55,21 @@ public static class GumFocusableButtonList
     public static bool TryHandleVerticalNavigate(
         IGameCommandSource commands,
         int slotCount,
-        ref int focusIndex)
+        ref int focusIndex,
+        MenuVerticalNavigateRepeat navigateRepeat,
+        float elapsedSeconds)
     {
         ArgumentNullException.ThrowIfNull(commands);
+        ArgumentNullException.ThrowIfNull(navigateRepeat);
         if (slotCount <= 0)
             return false;
 
-        if (commands.WasPressed(GameCommand.NavigateDown))
-        {
-            focusIndex = Math.Min(focusIndex + 1, slotCount - 1);
-            return true;
-        }
+        var delta = navigateRepeat.TryGetDelta(commands, elapsedSeconds);
+        if (delta == 0)
+            return false;
 
-        if (commands.WasPressed(GameCommand.NavigateUp))
-        {
-            focusIndex = Math.Max(focusIndex - 1, 0);
-            return true;
-        }
-
-        return false;
+        focusIndex = Math.Clamp(focusIndex + delta, 0, slotCount - 1);
+        return true;
     }
 
     public static void ApplyFocus(

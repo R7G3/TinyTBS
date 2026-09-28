@@ -67,7 +67,7 @@ public sealed class ContentLibraryScreen : GameScreen
 
         // If detail was open, HandleInput may close it on B/Esc — do not also run screen Back.
         var detailWasOpen = _view.IsDetailOpen;
-        _view.HandleInput(TinyGame.Commands);
+        _view.HandleInput(TinyGame.Commands, (float)gameTime.ElapsedGameTime.TotalSeconds);
 
         if (TinyGame.Commands.WasPressed(GameCommand.Back)
             || TinyGame.Commands.WasPressed(GameCommand.Cancel)

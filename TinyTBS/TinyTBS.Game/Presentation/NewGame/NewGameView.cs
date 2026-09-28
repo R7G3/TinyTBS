@@ -49,6 +49,7 @@ public sealed class NewGameView
     private readonly List<Button> _actionButtons = [];
     private readonly List<(Button Button, Action Activate)> _focusableEntries = [];
     private readonly NewGameLobbyStepperInput _lobbySteppers = new();
+    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private int _focusIndex;
     private int _ownedFocusIndex;
     private int _listFocusStartIndex = -1;
@@ -260,6 +261,7 @@ public sealed class NewGameView
         if (commands.WasPressed(GameCommand.NavigateLeft))
         {
             _lobbySteppers.ClearPointerHold();
+            _navigateRepeat.Reset();
             HandleHorizontalNavigate(-1);
             return;
         }
@@ -267,24 +269,17 @@ public sealed class NewGameView
         if (commands.WasPressed(GameCommand.NavigateRight))
         {
             _lobbySteppers.ClearPointerHold();
+            _navigateRepeat.Reset();
             HandleHorizontalNavigate(+1);
             return;
         }
 
-        if (commands.WasPressed(GameCommand.NavigateDown))
+        var verticalDelta = _navigateRepeat.TryGetDelta(commands, elapsedSeconds);
+        if (verticalDelta != 0)
         {
             _lobbySteppers.ClearPointerHold();
             RememberOwnedFocusFromUi();
-            _focusIndex = Math.Min(_focusIndex + 1, _focusableEntries.Count - 1);
-            ApplyFocusIndex();
-            return;
-        }
-
-        if (commands.WasPressed(GameCommand.NavigateUp))
-        {
-            _lobbySteppers.ClearPointerHold();
-            RememberOwnedFocusFromUi();
-            _focusIndex = Math.Max(_focusIndex - 1, 0);
+            _focusIndex = Math.Clamp(_focusIndex + verticalDelta, 0, _focusableEntries.Count - 1);
             ApplyFocusIndex();
             return;
         }
@@ -332,6 +327,7 @@ public sealed class NewGameView
         _actionButtons.Clear();
         _focusableEntries.Clear();
         _lobbySteppers.Clear();
+        _navigateRepeat.Reset();
         _focusIndex = 0;
         _ownedFocusIndex = 0;
         _listFocusStartIndex = -1;

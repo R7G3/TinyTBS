@@ -3,7 +3,7 @@ using TinyTBS.Game.Input;
 namespace TinyTBS.Game.Input;
 
 /// <summary>
-/// Edge on press, then repeats while the command stays held (match cursor, lobby steppers).
+/// Edge on press, then repeats while the command stays held (match cursor, lobby steppers, menus).
 /// </summary>
 public static class HeldCommandRepeat
 {

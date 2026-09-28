@@ -100,17 +100,17 @@ public sealed class GameplayHudComposer
     public void SyncShopIcons(MatchTextureAtlas textures, int currentPlayerIndex) =>
         _shop.SyncIcons(textures, currentPlayerIndex);
 
-    public void HandleShopGamepadNavigation(IGameCommandSource commands) =>
-        _shop.HandleGamepadNavigation(commands);
+    public void HandleShopGamepadNavigation(IGameCommandSource commands, float elapsedSeconds) =>
+        _shop.HandleGamepadNavigation(commands, elapsedSeconds);
 
-    public void HandlePauseGamepadNavigation(IGameCommandSource commands) =>
-        _pause.HandleGamepadNavigation(commands);
+    public void HandlePauseGamepadNavigation(IGameCommandSource commands, float elapsedSeconds) =>
+        _pause.HandleGamepadNavigation(commands, elapsedSeconds);
 
-    public void HandleCellActionChooserGamepadNavigation(IGameCommandSource commands) =>
-        _cellActionChooser.HandleGamepadNavigation(commands);
+    public void HandleCellActionChooserGamepadNavigation(IGameCommandSource commands, float elapsedSeconds) =>
+        _cellActionChooser.HandleGamepadNavigation(commands, elapsedSeconds);
 
-    public void HandleMatchResultGamepadNavigation(IGameCommandSource commands) =>
-        _matchResult.HandleGamepadNavigation(commands);
+    public void HandleMatchResultGamepadNavigation(IGameCommandSource commands, float elapsedSeconds) =>
+        _matchResult.HandleGamepadNavigation(commands, elapsedSeconds);
 
     public void ClearUiFocus()
     {

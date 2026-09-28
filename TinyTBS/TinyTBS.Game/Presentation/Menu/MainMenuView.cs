@@ -13,6 +13,7 @@ public sealed class MainMenuView
 {
     private Panel? _rootPanel;
     private readonly List<(Button Button, Action Activate)> _focusableEntries = [];
+    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private int _focusIndex;
 
     public void Build(
@@ -66,8 +67,13 @@ public sealed class MainMenuView
     /// After <see cref="GumService"/> Update: D-pad / stick / arrows focus; Confirm activates.
     /// Mouse uses Gum clicks. Greyed items are not in the focus list.
     /// </summary>
-    public void HandleInput(IGameCommandSource commands) =>
-        GumFocusableButtonList.HandleVerticalInput(commands, _focusableEntries, ref _focusIndex);
+    public void HandleInput(IGameCommandSource commands, float elapsedSeconds) =>
+        GumFocusableButtonList.HandleVerticalInput(
+            commands,
+            _focusableEntries,
+            ref _focusIndex,
+            _navigateRepeat,
+            elapsedSeconds);
 
     public void FocusFirst()
     {
@@ -80,6 +86,7 @@ public sealed class MainMenuView
         GumService.Default.Root.Children.Clear();
         _rootPanel = null;
         _focusableEntries.Clear();
+        _navigateRepeat.Reset();
         _focusIndex = 0;
     }
 

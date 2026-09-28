@@ -40,6 +40,7 @@ public sealed class ContentLibraryView
     private readonly List<Button> _tabButtons = [];
     private readonly List<Button> _actionButtons = [];
     private readonly List<(Button Button, Action Activate)> _focusableEntries = [];
+    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private int _focusIndex;
     private int _ownedFocusIndex;
     private int _listFocusStartIndex = -1;
@@ -209,11 +210,11 @@ public sealed class ContentLibraryView
             _statusLabel.Text = text;
     }
 
-    public void HandleInput(IGameCommandSource commands)
+    public void HandleInput(IGameCommandSource commands, float elapsedSeconds)
     {
         if (IsDetailOpen)
         {
-            _detail.HandleInput(commands);
+            _detail.HandleInput(commands, elapsedSeconds);
             return;
         }
 
@@ -222,28 +223,23 @@ public sealed class ContentLibraryView
 
         if (commands.WasPressed(GameCommand.NavigateLeft))
         {
+            _navigateRepeat.Reset();
             HandleHorizontalNavigate(-1);
             return;
         }
 
         if (commands.WasPressed(GameCommand.NavigateRight))
         {
+            _navigateRepeat.Reset();
             HandleHorizontalNavigate(+1);
             return;
         }
 
-        if (commands.WasPressed(GameCommand.NavigateDown))
+        var verticalDelta = _navigateRepeat.TryGetDelta(commands, elapsedSeconds);
+        if (verticalDelta != 0)
         {
             RememberOwnedFocusFromUi();
-            _focusIndex = Math.Min(_focusIndex + 1, _focusableEntries.Count - 1);
-            ApplyFocusIndex();
-            return;
-        }
-
-        if (commands.WasPressed(GameCommand.NavigateUp))
-        {
-            RememberOwnedFocusFromUi();
-            _focusIndex = Math.Max(_focusIndex - 1, 0);
+            _focusIndex = Math.Clamp(_focusIndex + verticalDelta, 0, _focusableEntries.Count - 1);
             ApplyFocusIndex();
             return;
         }
@@ -277,6 +273,7 @@ public sealed class ContentLibraryView
         _tabButtons.Clear();
         _actionButtons.Clear();
         _focusableEntries.Clear();
+        _navigateRepeat.Reset();
         _onUninstallModule = null;
         _focusIndex = 0;
         _ownedFocusIndex = 0;

@@ -11,6 +11,7 @@ public sealed class MatchPauseOverlayView
 {
     private Panel? _panel;
     private readonly List<(Button Button, Action Activate)> _focusableEntries = [];
+    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private int _focusIndex;
 
     public void Build(
@@ -22,6 +23,7 @@ public sealed class MatchPauseOverlayView
         Action onReturnToMenu)
     {
         _focusableEntries.Clear();
+        _navigateRepeat.Reset();
         _focusIndex = 0;
 
         _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 320f, centerXPercent: 50f, centerYPercent: 48f, MatchUiColors.OverlayDark);
@@ -59,12 +61,17 @@ public sealed class MatchPauseOverlayView
         GumMatchVisibility.SetVisible(_panel, hud.IsPauseVisible);
 
     /// <summary>Call after Gum.Update while pause is open. Owns D-pad / stick / Confirm.</summary>
-    public void HandleGamepadNavigation(IGameCommandSource commands)
+    public void HandleGamepadNavigation(IGameCommandSource commands, float elapsedSeconds)
     {
         if (_panel is not { IsVisible: true } || _focusableEntries.Count == 0)
             return;
 
-        GumFocusableButtonList.HandleVerticalInput(commands, _focusableEntries, ref _focusIndex);
+        GumFocusableButtonList.HandleVerticalInput(
+            commands,
+            _focusableEntries,
+            ref _focusIndex,
+            _navigateRepeat,
+            elapsedSeconds);
     }
 
     public void FocusFirst()

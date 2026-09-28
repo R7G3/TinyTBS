@@ -15,11 +15,13 @@ public sealed class MatchCellActionChooserView
 {
     private Panel? _panel;
     private readonly List<(Button Button, Action Activate)> _focusableEntries = [];
+    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private int _focusIndex;
 
     public void Build(Panel root, Action onCellActionMove, Action onCellActionBuy)
     {
         _focusableEntries.Clear();
+        _navigateRepeat.Reset();
         _focusIndex = 0;
         _panel = new Panel();
         _panel.Visual.WidthUnits = DimensionUnitType.RelativeToChildren;
@@ -84,7 +86,7 @@ public sealed class MatchCellActionChooserView
     }
 
     /// <summary>Call after Gum.Update while the chooser is open. Owns D-pad / stick / Confirm.</summary>
-    public void HandleGamepadNavigation(IGameCommandSource commands)
+    public void HandleGamepadNavigation(IGameCommandSource commands, float elapsedSeconds)
     {
         if (_panel is not { IsVisible: true } || _focusableEntries.Count == 0)
             return;
@@ -93,6 +95,8 @@ public sealed class MatchCellActionChooserView
             commands,
             _focusableEntries,
             ref _focusIndex,
+            _navigateRepeat,
+            elapsedSeconds,
             mapHorizontalToVertical: true);
     }
 

@@ -122,17 +122,18 @@ public sealed class GameplayMatchController
         }
 
         var uiHeldConfirm = GameplayHudOverlayState.CapturesGamepadConfirm(_hudSync.Hud);
+        var elapsedSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
         GumService.Default.Update(gameTime);
 
         if (_hudSync.Hud.IsMatchResultVisible)
-            _hudComposer.HandleMatchResultGamepadNavigation(_game.Commands);
+            _hudComposer.HandleMatchResultGamepadNavigation(_game.Commands, elapsedSeconds);
         else if (_hudSync.Hud.IsShopVisible)
-            _hudComposer.HandleShopGamepadNavigation(_game.Commands);
+            _hudComposer.HandleShopGamepadNavigation(_game.Commands, elapsedSeconds);
         else if (_hudSync.Hud.IsPauseVisible)
-            _hudComposer.HandlePauseGamepadNavigation(_game.Commands);
+            _hudComposer.HandlePauseGamepadNavigation(_game.Commands, elapsedSeconds);
         else if (_hudSync.Hud.IsCellActionChooserVisible)
-            _hudComposer.HandleCellActionChooserGamepadNavigation(_game.Commands);
+            _hudComposer.HandleCellActionChooserGamepadNavigation(_game.Commands, elapsedSeconds);
 
         if (_pendingPauseMenuFocus)
         {
@@ -558,10 +559,16 @@ public sealed class GameplayMatchController
         if (_hudSync.Hud.IsCellActionChooserVisible)
             return;
 
-        var actionPressed = _game.Commands.WasPressed(GameCommand.Confirm)
-            || _game.Pointer.WasPrimaryPressed;
-        if (!actionPressed)
+        var confirmPressed = _game.Commands.WasPressed(GameCommand.Confirm);
+        var pointerPressed = _game.Pointer.WasPrimaryPressed;
+        if (!confirmPressed && !pointerPressed)
             return;
+
+        // Primary press on HUD (e.g. bottom Menu) must not open the shop just because
+        // the board cursor sits on an own recruit building.
+        if (pointerPressed && IsPointerOverInteractiveHud())
+            return;
+
         if (_session.State.SelectedUnitId is not null)
             return;
         if (_session.State.LastAction?.Kind == MatchPlayerActionKind.MoveUnit)
