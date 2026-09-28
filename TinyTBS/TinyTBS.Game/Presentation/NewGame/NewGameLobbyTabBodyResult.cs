@@ -9,6 +9,9 @@ internal sealed class NewGameLobbyTabBodyResult
 
     public int CancelAddPlayerTypeFocusIndex { get; init; } = -1;
 
+    /// <summary>First focusable slot caption (cycle bot difficulty), if any.</summary>
+    public int FirstPlayerSlotFocusIndex { get; init; } = -1;
+
     /// <summary>First enabled per-slot X remove button, if any.</summary>
     public int FirstRemovePlayerFocusIndex { get; init; } = -1;
 

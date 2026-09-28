@@ -35,8 +35,13 @@ public sealed class NewGameViewModel
     /// <summary>Empty-state / hint text when the active tab has no rows yet.</summary>
     public string TabEmptyHint { get; set; } = string.Empty;
 
-    /// <summary>True when Mode is Skirmish (lobby steppers and editable slots).</summary>
+    /// <summary>True when Mode is Skirmish (gold / unit-cap steppers).</summary>
     public bool ShowSkirmishLobby { get; set; }
+
+    /// <summary>
+    /// Campaign and Skirmish: Local / Bot seats with + / X (Remote greyed).
+    /// </summary>
+    public bool AllowEditPlayerSeats { get; set; }
 
     /// <summary>True while the Add-player type chooser (Local / Bot / Remote) is open.</summary>
     public bool ShowAddPlayerTypeChooser { get; set; }

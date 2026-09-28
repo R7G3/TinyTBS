@@ -31,7 +31,7 @@
 
 Продолжить (если есть сохранения) · Новая игра · Загрузка · Контент · Редактор · Настройки · Об игре · Выход.
 
-**Сейчас в коде:** оболочка пунктов; **Новая игра** — вкладки Mode → Scenario → Level → Composition → Lobby (Left/Right как в Контенте; Start / Back); фильтр уровней по mode+scenario; composition = scenario defaults / bundle; лобби: слоты (цвет · подпись · X) + **+** (chooser Local / Bot·Remote greyed), схватка — gold/unit cap → loading; **Контент** — панель-библиотека (Modules/Bundles; детальный попап + Remove; Install: From device через `IExternalFilePicker`, From catalog greyed; очередь `{UserData}/Downloads`; Download/Update greyed). **Настройки** / Загрузка / Редактор / Об игре / Продолжить — greyed (playtest-приоритет: бот → сейвы → кампании → редактор; затем `settings-ui` / `ui-scale-hidpi` — см. [ARCHITECTURE](../ARCHITECTURE.md)).
+**Сейчас в коде:** оболочка пунктов; **Новая игра** — вкладки Mode → Scenario → Level → Composition → Lobby (Left/Right как в Контенте; Start / Back); фильтр уровней по mode+scenario; composition = scenario defaults / bundle; лобби: слоты Local/Bot (кампания: P2 = Bot·Easy по умолчанию; Confirm на Bot циклит Easy/Normal) + **+**/X; схватка — ещё gold/unit cap → loading; **Контент** — панель-библиотека (Modules/Bundles; детальный попап + Remove; Install: From device через `IExternalFilePicker`, From catalog greyed; очередь `{UserData}/Downloads`; Download/Update greyed). **Настройки** / Загрузка / Редактор / Об игре / Продолжить — greyed (playtest-приоритет: бот → сейвы → кампании → редактор; затем `settings-ui` / `ui-scale-hidpi` — см. [ARCHITECTURE](../ARCHITECTURE.md)).
 
 Фоны главного меню / настроек / загрузки / «Об игре»: изображение с плавным сдвигом (камера «летит» над полем). Идея матового стекла панелей — [ideas/ui-frosted-glass.md](../ideas/ui-frosted-glass.md).
 
@@ -52,9 +52,9 @@
 ### Новая игра
 
 - Вкладки (по порядку): **Mode** (Campaign / Skirmish) → **Scenario** (модули с уровнями выбранного mode) → **Level** (только уровни выбранного scenario + mode) → **Composition** (scenario.defaults или `*.bundle.json`) → **Lobby** (слоты игроков: Local / Bot / Remote; матч всегда пошаговый — отдельного режима «Hotseat» нет).
-- **Слоты:** ряд на игрока — цвет · подпись · **X** (удалить; greyed у минимума игроков). Внизу списка — **+** → chooser типа (**Local** / Bot greyed / Remote greyed). Схватка: золото и unit cap. Кампания: слоты без X/+ (read-only).
+- **Слоты:** ряд на игрока — цвет · подпись · **X** (удалить; greyed у минимума игроков). Confirm по подписи слота **Bot** циклит Easy ↔ Normal. Внизу списка — **+** → chooser типа (**Local** / **Bot · Easy** / **Bot · Normal** / Remote greyed). Схватка: золото и unit cap. Кампания: те же слоты; по умолчанию P2 = Bot · Easy; золото и unit cap с уровня (без степперов).
 - Нижняя панель: **Start** / **Back** (отдельного пункта Multiplayer нет — Remote только в chooser слота).
-- Навигация: Up/Down по списку вкладки; Left/Right — вкладки (или нижние кнопки, если фокус на action bar); Confirm — выбор. На входе в Lobby фокус на первом **X** (или **+**), чтобы шапка Players оставалась в кадре.
+- Навигация: Up/Down по списку вкладки; Left/Right — вкладки (или нижние кнопки, если фокус на action bar); Confirm — выбор. На входе в Lobby фокус на первом слоте (подпись), чтобы шапка Players оставалась в кадре.
 
 ### Загрузка / сохранения
 

@@ -6,5 +6,5 @@ public sealed class MatchPlayerSeat
     public required MatchPlayerKind Kind { get; init; }
 
     /// <summary>Meaningful when <see cref="Kind"/> is <see cref="MatchPlayerKind.Bot"/>.</summary>
-    public BotDifficulty BotDifficulty { get; init; } = BotDifficulty.Easy;
+    public BotDifficulty BotDifficulty { get; set; } = BotDifficulty.Easy;
 }

@@ -134,7 +134,7 @@ public sealed class NewGameScreen : GameScreen
             {
                 Mode = NewGamePlayMode.Campaign,
                 Title = "Campaign",
-                DetailLine = "story levels, local turns",
+                DetailLine = "story levels, Local vs Bot",
                 IsSelected = _viewModel.SelectedMode == NewGamePlayMode.Campaign,
             },
             new NewGameModeRowViewModel
@@ -211,6 +211,7 @@ public sealed class NewGameScreen : GameScreen
             onAddBotPlayer: AddBotPlayer,
             onCancelAddPlayerChooser: CancelAddPlayerChooser,
             onRemovePlayerAt: RemovePlayerAt,
+            onActivatePlayerSlot: ActivatePlayerSlot,
             onDecreaseGold: () => AdjustGold(-GoldStep),
             onIncreaseGold: () => AdjustGold(GoldStep),
             onDecreaseUnitCap: () => AdjustUnitCap(-UnitCapStep),
@@ -341,6 +342,7 @@ public sealed class NewGameScreen : GameScreen
     private void ApplyLobbyFromLevel(ScenarioLevelInfo? level)
     {
         _viewModel.ShowSkirmishLobby = _viewModel.SelectedMode == NewGamePlayMode.Skirmish;
+        _viewModel.AllowEditPlayerSeats = level is not null;
 
         if (level is null)
         {
@@ -352,6 +354,7 @@ public sealed class NewGameScreen : GameScreen
             _playerSeats.Clear();
             _viewModel.PlayerSlots = [];
             _viewModel.ShowAddPlayerTypeChooser = false;
+            _viewModel.AllowEditPlayerSeats = false;
             _lobbyInitializedForLevel = false;
             return;
         }
@@ -366,7 +369,7 @@ public sealed class NewGameScreen : GameScreen
             _playerSeats.Clear();
             var slotCount = Math.Clamp(level.PlayersDefaultSlots, level.PlayersMin, level.PlayersMax);
             for (var index = 0; index < slotCount; index++)
-                _playerSeats.Add(new MatchPlayerSeat { Kind = MatchPlayerKind.Local });
+                _playerSeats.Add(CreateDefaultSeat(index));
             _lobbyInitializedForLevel = true;
             _viewModel.ShowAddPlayerTypeChooser = false;
         }
@@ -379,15 +382,14 @@ public sealed class NewGameScreen : GameScreen
         if (_viewModel.ShowSkirmishLobby)
         {
             _viewModel.LobbyNote =
-                "Skirmish: Local and Bot (Easy/Normal). Remove a seat then add Bot to replace — minimum players required to Start.";
+                "Skirmish: Local and Bot (Easy/Normal). Confirm a Bot seat to cycle difficulty. Gold and unit cap below.";
         }
         else
         {
             _viewModel.LobbyNote =
-                "Campaign uses local players on this device. Gold and unit cap come from the level.";
+                "Campaign: P2 defaults to Bot · Easy. Confirm a Bot seat to cycle Easy/Normal. Gold and unit cap come from the level.";
             _viewModel.StartingGold = level.DefaultStartingGold;
             _viewModel.UnitCap = level.DefaultUnitCap;
-            _viewModel.ShowAddPlayerTypeChooser = false;
         }
 
         _viewModel.PlayerSlots = _playerSeats
@@ -399,6 +401,21 @@ public sealed class NewGameScreen : GameScreen
                 PaletteIndex = index,
             })
             .ToArray();
+    }
+
+    private MatchPlayerSeat CreateDefaultSeat(int slotIndex)
+    {
+        // Campaign: second seat is Bot Easy so the story opponent is ready out of the box.
+        if (_viewModel.SelectedMode == NewGamePlayMode.Campaign && slotIndex == 1)
+        {
+            return new MatchPlayerSeat
+            {
+                Kind = MatchPlayerKind.Bot,
+                BotDifficulty = BotDifficulty.Easy,
+            };
+        }
+
+        return new MatchPlayerSeat { Kind = MatchPlayerKind.Local };
     }
 
     private void ClampPlayerSlots()
@@ -584,7 +601,7 @@ public sealed class NewGameScreen : GameScreen
 
     private void OpenAddPlayerChooser()
     {
-        if (!_viewModel.CanAddPlayer)
+        if (!_viewModel.AllowEditPlayerSeats || !_viewModel.CanAddPlayer)
             return;
 
         _viewModel.ShowAddPlayerTypeChooser = true;
@@ -594,7 +611,7 @@ public sealed class NewGameScreen : GameScreen
 
     private void AddLocalPlayer()
     {
-        if (!_viewModel.CanAddPlayer)
+        if (!_viewModel.AllowEditPlayerSeats || !_viewModel.CanAddPlayer)
             return;
 
         _playerSeats.Add(new MatchPlayerSeat { Kind = MatchPlayerKind.Local });
@@ -607,7 +624,7 @@ public sealed class NewGameScreen : GameScreen
 
     private void AddBotPlayer(BotDifficulty difficulty)
     {
-        if (!_viewModel.CanAddPlayer)
+        if (!_viewModel.AllowEditPlayerSeats || !_viewModel.CanAddPlayer)
             return;
 
         _playerSeats.Add(new MatchPlayerSeat
@@ -636,7 +653,8 @@ public sealed class NewGameScreen : GameScreen
 
     private void RemovePlayerAt(int slotIndex)
     {
-        if (!_viewModel.CanRemovePlayer
+        if (!_viewModel.AllowEditPlayerSeats
+            || !_viewModel.CanRemovePlayer
             || slotIndex < 0
             || slotIndex >= _playerSeats.Count)
         {
@@ -657,6 +675,30 @@ public sealed class NewGameScreen : GameScreen
             ? NewGameFocusAnchor.RemovePlayer
             : NewGameFocusAnchor.AddPlayer;
         Refresh("Player removed.");
+    }
+
+    private void ActivatePlayerSlot(int slotIndex)
+    {
+        if (!_viewModel.AllowEditPlayerSeats
+            || slotIndex < 0
+            || slotIndex >= _playerSeats.Count)
+        {
+            return;
+        }
+
+        var seat = _playerSeats[slotIndex];
+        if (seat.Kind != MatchPlayerKind.Bot)
+        {
+            _focusAnchor = NewGameFocusAnchor.RemovePlayer;
+            Refresh("Local seat — remove (X) then + Bot to change type.");
+            return;
+        }
+
+        seat.BotDifficulty = seat.BotDifficulty == BotDifficulty.Easy
+            ? BotDifficulty.Normal
+            : BotDifficulty.Easy;
+        _focusAnchor = NewGameFocusAnchor.RemovePlayer;
+        Refresh($"P{slotIndex + 1} → Bot · {seat.BotDifficulty}.");
     }
 
     private void AdjustGold(int delta)

@@ -51,15 +51,19 @@ internal sealed class NewGameListBuilder
     }
 
     /// <summary>
-    /// Slot row: palette swatch + caption + optional X (remove). Returns X focus index, or -1.
+    /// Slot row: palette swatch + caption (optional activate) + optional X.
+    /// Returns X focus index, or -1. <paramref name="slotFocusIndex"/> is the caption button.
     /// </summary>
     public int AddPlayerSlotRow(
         string summary,
         Color swatchColor,
         bool showRemove,
         bool canRemove,
-        Action? onRemove)
+        Action? onRemove,
+        Action? onActivateSlot,
+        out int slotFocusIndex)
     {
+        slotFocusIndex = -1;
         var trailingWidth = showRemove ? PlayerSwatchGap + PlayerRemoveWidth : 0f;
 
         var row = new Panel();
@@ -78,11 +82,25 @@ internal sealed class NewGameListBuilder
         GumUiLayout.AddSolidBackground(swatchHost, swatchColor);
         row.AddChild(swatchHost);
 
-        var label = new Label { Text = summary };
-        label.Visual.WidthUnits = DimensionUnitType.RelativeToParent;
-        label.Visual.Width = -(PlayerSwatchSize + PlayerSwatchGap + trailingWidth);
-        label.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        row.AddChild(label);
+        var captionWidth = -(PlayerSwatchSize + PlayerSwatchGap + trailingWidth);
+        if (onActivateSlot is not null)
+        {
+            var captionButton = new Button { Text = summary, IsEnabled = true };
+            captionButton.Visual.WidthUnits = DimensionUnitType.RelativeToParent;
+            captionButton.Visual.Width = captionWidth;
+            captionButton.Click += (_, _) => onActivateSlot();
+            row.AddChild(captionButton);
+            _focusableEntries.Add((captionButton, onActivateSlot));
+            slotFocusIndex = _focusableEntries.Count - 1;
+        }
+        else
+        {
+            var label = new Label { Text = summary };
+            label.Visual.WidthUnits = DimensionUnitType.RelativeToParent;
+            label.Visual.Width = captionWidth;
+            label.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+            row.AddChild(label);
+        }
 
         if (!showRemove)
             return -1;

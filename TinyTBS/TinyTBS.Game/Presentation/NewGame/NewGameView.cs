@@ -59,6 +59,7 @@ public sealed class NewGameView
     private int _addPlayerFocusIndex = -1;
     private int _addPlayerTypeLocalFocusIndex = -1;
     private int _cancelAddPlayerTypeFocusIndex = -1;
+    private int _playerSlotFocusIndex = -1;
     private int _removePlayerFocusIndex = -1;
     private int _goldDecreaseFocusIndex = -1;
     private int _goldIncreaseFocusIndex = -1;
@@ -79,6 +80,7 @@ public sealed class NewGameView
         Action<TinyTBS.Game.Match.Ai.BotDifficulty> onAddBotPlayer,
         Action onCancelAddPlayerChooser,
         Action<int> onRemovePlayerAt,
+        Action<int> onActivatePlayerSlot,
         Action onDecreaseGold,
         Action onIncreaseGold,
         Action onDecreaseUnitCap,
@@ -158,6 +160,7 @@ public sealed class NewGameView
             onAddBotPlayer,
             onCancelAddPlayerChooser,
             onRemovePlayerAt,
+            onActivatePlayerSlot,
             onDecreaseGold,
             onIncreaseGold,
             onDecreaseUnitCap,
@@ -339,6 +342,7 @@ public sealed class NewGameView
         _addPlayerFocusIndex = -1;
         _addPlayerTypeLocalFocusIndex = -1;
         _cancelAddPlayerTypeFocusIndex = -1;
+        _playerSlotFocusIndex = -1;
         _removePlayerFocusIndex = -1;
         _goldDecreaseFocusIndex = -1;
         _goldIncreaseFocusIndex = -1;
@@ -359,6 +363,7 @@ public sealed class NewGameView
         Action<TinyTBS.Game.Match.Ai.BotDifficulty> onAddBotPlayer,
         Action onCancelAddPlayerChooser,
         Action<int> onRemovePlayerAt,
+        Action<int> onActivatePlayerSlot,
         Action onDecreaseGold,
         Action onIncreaseGold,
         Action onDecreaseUnitCap,
@@ -392,6 +397,7 @@ public sealed class NewGameView
                         onAddBotPlayer,
                         onCancelAddPlayerChooser,
                         onRemovePlayerAt,
+                        onActivatePlayerSlot,
                         onDecreaseGold,
                         onIncreaseGold,
                         onDecreaseUnitCap,
@@ -405,6 +411,7 @@ public sealed class NewGameView
         _addPlayerFocusIndex = result.AddPlayerFocusIndex;
         _addPlayerTypeLocalFocusIndex = result.AddPlayerTypeLocalFocusIndex;
         _cancelAddPlayerTypeFocusIndex = result.CancelAddPlayerTypeFocusIndex;
+        _playerSlotFocusIndex = result.FirstPlayerSlotFocusIndex;
         _removePlayerFocusIndex = result.FirstRemovePlayerFocusIndex;
         _goldDecreaseFocusIndex = result.GoldStepper?.DecreaseFocusIndex ?? -1;
         _goldIncreaseFocusIndex = result.GoldStepper?.IncreaseFocusIndex ?? -1;
@@ -513,7 +520,7 @@ public sealed class NewGameView
             case NewGameFocusAnchor.CancelAddPlayerType:
                 return _cancelAddPlayerTypeFocusIndex;
             case NewGameFocusAnchor.RemovePlayer:
-                return _removePlayerFocusIndex;
+                return _playerSlotFocusIndex >= 0 ? _playerSlotFocusIndex : _removePlayerFocusIndex;
             case NewGameFocusAnchor.GoldDecrease:
                 return _goldDecreaseFocusIndex;
             case NewGameFocusAnchor.GoldIncrease:
@@ -541,7 +548,9 @@ public sealed class NewGameView
     {
         if (_addPlayerTypeLocalFocusIndex >= 0)
             return _addPlayerTypeLocalFocusIndex;
-        // Prefer first slot X so the Players header stays in view (not gold/± far below).
+        // Prefer first slot caption so Players header stays in view (cycle bot / X nearby).
+        if (_playerSlotFocusIndex >= 0)
+            return _playerSlotFocusIndex;
         if (_removePlayerFocusIndex >= 0)
             return _removePlayerFocusIndex;
         if (_addPlayerFocusIndex >= 0)
