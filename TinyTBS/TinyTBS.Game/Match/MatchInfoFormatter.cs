@@ -79,10 +79,30 @@ public static class MatchInfoFormatter
 
         var status = unit.PlayerIndex == match.CurrentPlayer ? "yours" : "enemy";
         var name = contentCatalog.DisplayName(definition);
+        var levelAttackBonus = unit.AttackBonusFromLevel;
         var auraBonus = match.GetAttackAuraBonus(unit.Cell, unit.PlayerIndex);
-        var attackText = auraBonus > 0
-            ? $"Atk: {definition.Attack} +{auraBonus}"
-            : $"Atk: {definition.Attack}";
+        var terrainDefenceBonus = MatchTerrainRules.DefenceBonus(match.GetTerrain(unit.Cell));
+        var buildingDefenceBonus = MatchCombat.ResolveBuildingDefenceBonus(match, unit.Cell);
+
+        var attackParts = new List<string> { definition.Attack.ToString() };
+        if (levelAttackBonus > 0)
+            attackParts.Add($"+{levelAttackBonus}");
+        if (auraBonus > 0)
+            attackParts.Add($"+{auraBonus}");
+        var attackText = attackParts.Count == 1
+            ? $"Atk: {definition.Attack}"
+            : $"Atk: {string.Join(" ", attackParts)}";
+
+        var defenceParts = new List<string> { definition.Defence.ToString() };
+        if (terrainDefenceBonus > 0)
+            defenceParts.Add($"+{terrainDefenceBonus}");
+        if (buildingDefenceBonus > 0)
+            defenceParts.Add($"+{buildingDefenceBonus}");
+        var defenceText = defenceParts.Count == 1
+            ? $"Def: {definition.Defence}"
+            : $"Def: {string.Join(" ", defenceParts)}";
+
+        var levelBonusText = $"Level: {unit.Level} (+{levelAttackBonus} Atk)";
 
         var rangeText = definition.AttackRangeMin == definition.AttackRangeMax
             ? definition.AttackRangeMin.ToString()
@@ -93,7 +113,8 @@ public static class MatchInfoFormatter
             + $"Owner: Player {unit.PlayerIndex + 1}{Environment.NewLine}"
             + $"Status: {status}{Environment.NewLine}"
             + $"HP: {unit.HitPoints}/{unit.MaxHealth}{Environment.NewLine}"
-            + $"{attackText}  Def: {definition.Defence}{Environment.NewLine}"
+            + $"{levelBonusText}{Environment.NewLine}"
+            + $"{attackText}  {defenceText}{Environment.NewLine}"
             + $"Range {rangeText}  Speed {definition.Speed}";
     }
 

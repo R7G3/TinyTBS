@@ -5,6 +5,13 @@ namespace TinyTBS.Game.Match;
 /// <summary>Logical unit on the match grid (no rendering).</summary>
 public sealed class MatchUnit
 {
+    public const int MaxLevel = 9;
+
+    /// <summary>Cumulative XP needed for level N is <c>N * XpPerLevel</c> (L1=2 … L9=18).</summary>
+    public const int XpPerLevel = 2;
+
+    public const int MaxExperience = MaxLevel * XpPerLevel;
+
     public MatchUnit(
         int id,
         ContentId typeId,
@@ -51,21 +58,20 @@ public sealed class MatchUnit
     /// </summary>
     public GridCell CellBeforeMove { get; set; }
 
-    /// <summary>Accumulated XP for level thresholds (L1=2, L2=4, L3=6).</summary>
+    /// <summary>Accumulated XP for level thresholds (L1=2 … L9=18).</summary>
     public int Experience { get; set; }
 
-    /// <summary>0–3 from <see cref="Experience"/>.</summary>
-    public int Level =>
-        Experience >= 6 ? 3 :
-        Experience >= 4 ? 2 :
-        Experience >= 2 ? 1 :
-        0;
+    /// <summary>0–9 from <see cref="Experience"/>.</summary>
+    public int Level => Math.Min(MaxLevel, Experience / XpPerLevel);
+
+    /// <summary>Flat attack bonus from level (+2 per level; L0 = 0).</summary>
+    public int AttackBonusFromLevel => Level * 2;
 
     public void GainExperience(int amount)
     {
         if (amount <= 0)
             return;
-        Experience = Math.Min(Experience + amount, 6);
+        Experience = Math.Min(Experience + amount, MaxExperience);
     }
 
     public void ResetProgression()

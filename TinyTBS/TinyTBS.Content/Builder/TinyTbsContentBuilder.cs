@@ -35,6 +35,15 @@ public sealed class TinyTbsContentBuilder : ContentBuilder
             new OggImporter(),
             new SoundEffectProcessor());
 
+        content.Include<RegexRule>(
+            @"(?i)^Fonts[/\\].+\.spritefont$",
+            new FontDescriptionImporter(),
+            new FontDescriptionProcessor
+            {
+                PremultiplyAlpha = true,
+                TextureFormat = TextureProcessorOutputFormat.Color,
+            });
+
         content.Exclude<RegexRule>(@"(?i)(^|[/\\])\.gitkeep$");
 
         return content;

@@ -1,4 +1,5 @@
 using TinyTBS.Engine.Rendering;
+using TinyTBS.Game.Presentation.Match;
 using TinyTBS.Game.Scripting;
 
 namespace TinyTBS.Game.Match;
@@ -18,7 +19,8 @@ public sealed class GameplaySession : IDisposable
         MapScriptHost scriptHost,
         MatchLevelBrief levelBrief,
         MinimapRenderer minimap,
-        MatchContentCatalog contentCatalog)
+        MatchContentCatalog contentCatalog,
+        UnitLevelLabelRenderer unitLevelLabels)
     {
         State = state;
         Scene = scene;
@@ -27,6 +29,7 @@ public sealed class GameplaySession : IDisposable
         LevelBrief = levelBrief;
         Minimap = minimap;
         ContentCatalog = contentCatalog;
+        UnitLevelLabels = unitLevelLabels;
         _textures = textures;
     }
 
@@ -35,6 +38,8 @@ public sealed class GameplaySession : IDisposable
     public MatchScene Scene { get; }
 
     public CursorHighlightRenderer CursorHighlight { get; }
+
+    public UnitLevelLabelRenderer UnitLevelLabels { get; }
 
     public MapScriptHost ScriptHost { get; }
 

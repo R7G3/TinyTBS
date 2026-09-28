@@ -8,34 +8,32 @@ namespace TinyTBS.Game.Match;
 /// </summary>
 public static class MatchCombatFormula
 {
-    public static int LevelStatPercent(int level) =>
-        level switch
-        {
-            >= 3 => 30,
-            2 => 20,
-            1 => 10,
-            _ => 0,
-        };
+    /// <summary>Flat attack add from unit level (+2 per level above 0).</summary>
+    public static int AttackBonusFromLevel(int level) =>
+        Math.Max(0, level) * 2;
 
     public static int ComputeDamage(
         UnitDefinition attacker,
         int attackerLevel,
         int attackerHitPoints,
+        int attackerMaxHealth,
         UnitDefinition defender,
-        int defenderLevel,
         int terrainDefenceBonus,
         int buildingDefenceBonus,
         int manhattanRange,
         int attackAuraBonus = 0)
     {
-        var levelAtkAdd = attacker.Attack * (LevelStatPercent(attackerLevel) / 100.0);
-        var levelDefAdd = defender.Defence * (LevelStatPercent(defenderLevel) / 100.0);
+        var levelAtkAdd = AttackBonusFromLevel(attackerLevel);
 
+        // Building bonuses apply only to defence (buildingDefenceBonus), never to attack.
         var atk = attacker.Attack + levelAtkAdd + attackAuraBonus;
-        var def = defender.Defence + levelDefAdd + terrainDefenceBonus + buildingDefenceBonus;
+        var def = defender.Defence + terrainDefenceBonus + buildingDefenceBonus;
         var diff = atk - def;
         var special = ResolveSpecial(attacker, defender, manhattanRange);
-        var raw = Math.Floor(diff * special * (attackerHitPoints / 10.0));
+        var healthFraction = attackerMaxHealth > 0
+            ? attackerHitPoints / (double)attackerMaxHealth
+            : 0.0;
+        var raw = Math.Floor(diff * special * healthFraction);
         return raw < 0 ? 0 : (int)raw;
     }
 

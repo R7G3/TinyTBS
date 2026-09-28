@@ -185,6 +185,27 @@ public sealed class MatchBoardLayout
         return true;
     }
 
+    /// <summary>Top-left of a cell in screen pixels.</summary>
+    public Vector2 GetCellTopLeft(int cellX, int cellY)
+    {
+        var tileSize = TileSize;
+        return Origin + new Vector2(cellX * tileSize, cellY * tileSize);
+    }
+
+    /// <summary>Bottom-left of a cell in screen pixels (for unit level digits).</summary>
+    public Vector2 GetCellBottomLeft(int cellX, int cellY)
+    {
+        var tileSize = TileSize;
+        return Origin + new Vector2(cellX * tileSize, (cellY + 1) * tileSize);
+    }
+
+    /// <summary>Bottom-right of a cell in screen pixels (for unit HP digits).</summary>
+    public Vector2 GetCellBottomRight(int cellX, int cellY)
+    {
+        var tileSize = TileSize;
+        return Origin + new Vector2((cellX + 1) * tileSize, (cellY + 1) * tileSize);
+    }
+
     /// <summary>Top-center of a cell in screen pixels (for anchoring UI above the tile).</summary>
     public Vector2 GetCellTopCenter(int cellX, int cellY)
     {

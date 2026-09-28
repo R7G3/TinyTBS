@@ -7,6 +7,7 @@ using TinyTBS.Game.Levels;
 using TinyTBS.Game.Levels.Models;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
+using TinyTBS.Game.Presentation.Match;
 using TinyTBS.Game.Scripting;
 
 namespace TinyTBS.Game.Match;
@@ -41,6 +42,7 @@ public sealed class MatchSessionLoadPipeline
     private MatchScene? _scene;
     private CursorHighlightRenderer? _cursorHighlight;
     private MinimapRenderer? _minimap;
+    private UnitLevelLabelRenderer? _unitLevelLabels;
     private int _nextStageIndex;
     private bool _stageAnnounced;
 
@@ -215,6 +217,7 @@ public sealed class MatchSessionLoadPipeline
         _scene = new MatchScene(_state, _graphicsDevice, _spriteBatch, _textures);
         _cursorHighlight = new CursorHighlightRenderer(_graphicsDevice);
         _minimap = new MinimapRenderer(_graphicsDevice);
+        _unitLevelLabels = new UnitLevelLabelRenderer(_content.Load<SpriteFont>("Fonts/MatchCell"));
     }
 
     private GameplaySession AssembleSession()
@@ -227,6 +230,7 @@ public sealed class MatchSessionLoadPipeline
         ArgumentNullException.ThrowIfNull(_level);
         ArgumentNullException.ThrowIfNull(_minimap);
         ArgumentNullException.ThrowIfNull(_matchContent);
+        ArgumentNullException.ThrowIfNull(_unitLevelLabels);
 
         var levelBrief = new MatchLevelBrief
         {
@@ -247,6 +251,7 @@ public sealed class MatchSessionLoadPipeline
             _scriptHost,
             levelBrief,
             _minimap,
-            _matchContent.Catalog);
+            _matchContent.Catalog,
+            _unitLevelLabels);
     }
 }

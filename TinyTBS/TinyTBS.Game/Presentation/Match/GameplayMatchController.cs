@@ -259,6 +259,15 @@ public sealed class GameplayMatchController
                         raiseTargetCells: raiseTargetCells,
                         captureTargetCells: captureTargetCells,
                         repairTargetCells: repairTargetCells);
+
+                    spriteBatch.Begin(
+                        SpriteSortMode.Deferred,
+                        Microsoft.Xna.Framework.Graphics.BlendState.AlphaBlend,
+                        SamplerState.PointClamp,
+                        DepthStencilState.None,
+                        RasterizerState.CullNone);
+                    _session.UnitLevelLabels.Draw(spriteBatch, layout, match);
+                    spriteBatch.End();
                 });
         }
 

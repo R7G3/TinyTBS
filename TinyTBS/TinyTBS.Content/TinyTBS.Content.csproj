@@ -25,6 +25,7 @@
   <ItemGroup>
     <None Include="Images\**\*" />
     <None Include="Sounds\**\*" />
+    <None Include="Fonts\**\*" />
     <Compile Remove="Vanilla\**\*" />
     <None Include="Vanilla\**\*" />
   </ItemGroup>

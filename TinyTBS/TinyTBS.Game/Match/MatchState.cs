@@ -112,7 +112,9 @@ public sealed class MatchState
                 ? Math.Clamp(hitPointValue, 1, maxHealth)
                 : maxHealth;
 
-            match.SpawnUnit(typeId, new GridCell(unit.X, unit.Y), unit.Slot, maxHealth, hitPoints);
+            var spawned = match.SpawnUnit(typeId, new GridCell(unit.X, unit.Y), unit.Slot, maxHealth, hitPoints);
+            if (unit.Xp is int experience)
+                spawned.Experience = Math.Clamp(experience, 0, MatchUnit.MaxExperience);
         }
 
         foreach (var gravestone in map.Gravestones)

@@ -31,8 +31,8 @@ public static class MatchCombat
             attackerDefinition,
             attacker.Level,
             attacker.HitPoints,
+            attacker.MaxHealth,
             defenderDefinition,
-            defender.Level,
             terrainDef,
             buildingDef,
             range,
@@ -58,8 +58,8 @@ public static class MatchCombat
                 defenderDefinition,
                 defender.Level,
                 defender.HitPoints,
+                defender.MaxHealth,
                 attackerDefinition,
-                attacker.Level,
                 counterTerrain,
                 counterBuilding,
                 range,
@@ -186,7 +186,11 @@ public static class MatchCombat
         }
     }
 
-    private static int ResolveBuildingDefenceBonus(MatchState match, GridCell cell)
+    /// <summary>
+    /// Defence add from a building on <paramref name="cell"/> (never applied to attack).
+    /// Intact uses the building's defence bonus; ruined uses the ruined override or 0.
+    /// </summary>
+    public static int ResolveBuildingDefenceBonus(MatchState match, GridCell cell)
     {
         if (!match.TryGetBuildingAt(cell, out var building))
             return 0;
