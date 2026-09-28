@@ -28,29 +28,27 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
         // Не даём боту «стоять», пока есть нормальные ходы (атака/ход/найм).
         // Easy: Wait всё же допускается, если остались только перестановки без боя.
         var candidates = PreferProductive(state, rootActions, profile);
-        var nodes = 0; // сколько узлов дерева уже раскрыли (лимит NodeLimit)
+        var nodes = 0;
         BotAtomicAction? bestAction = null;
         var bestScore = int.MinValue;
+        var bestCastleDist = int.MaxValue;
+        var bestSafety = int.MaxValue;
+        var opponent = PositionEvaluator.OpponentIndex(state, botPlayerIndex);
+        var rootSafety = PositionEvaluator.MeasureKingSafetyPenalty(
+            state,
+            botPlayerIndex,
+            opponent,
+            profile.KingSafetyWeight);
 
-        // На корне перебираем каждый кандидат: применили → смотрим, чем ответит дерево ниже.
         foreach (var action in candidates.OrderBy(a => a.TieBreak))
         {
             if (nodes >= profile.NodeLimit)
                 break;
 
-            // Клон доски: поиск не должен портить живой матч.
             var child = state.CloneForAi();
             BotAtomicActionApplicator.Apply(child, action);
             nodes++;
 
-            // depthLeft: сколько ещё «обычных» полуходов (ply) можно углубиться.
-            //   MaxDepth=2 → после корневого действия остаётся 1 ply в дереве.
-            // quiescenceLeft: доп. глубина только для «шумных» ходов (удар/найм),
-            //   чтобы не оценивать позицию сразу после атаки, не досмотрев ответ.
-            // alpha / beta: окно отсечения α-β —
-            //   alpha = лучшее, что максимизатор уже гарантировал себе;
-            //   beta  = лучшее (наименьшее), что минимизатор уже гарантировал.
-            //   Если alpha >= beta, ветка бесполезна — дальше не смотрим (cut-off).
             var score = Negamax(
                 child,
                 botPlayerIndex,
@@ -63,16 +61,73 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
                 profile,
                 ref nodes);
 
-            // На корне бот всегда максимизирует свою оценку; при равенстве — меньший TieBreak.
-            if (bestAction is null || score > bestScore
-                || (score == bestScore && action.TieBreak < bestAction.TieBreak))
+            var childCastleDist = PositionEvaluator.MeasureKingEnemyCastleDistance(child, botPlayerIndex);
+            var childSafety = PositionEvaluator.MeasureKingSafetyPenalty(
+                child,
+                botPlayerIndex,
+                opponent,
+                profile.KingSafetyWeight);
+
+            if (bestAction is null
+                || IsBetterRootCandidate(
+                    score,
+                    childSafety,
+                    childCastleDist,
+                    action.TieBreak,
+                    bestScore,
+                    bestSafety,
+                    bestCastleDist,
+                    bestAction.TieBreak,
+                    rootSafety))
             {
                 bestScore = score;
                 bestAction = action;
+                bestCastleDist = childCastleDist;
+                bestSafety = childSafety;
             }
         }
 
         return bestAction ?? candidates[^1];
+    }
+
+    /// <summary>
+    /// Equal-score tie-break: prefer king→castle progress only when safety is not worse than root;
+    /// otherwise prefer safer, then TieBreak.
+    /// </summary>
+    internal static bool IsBetterRootCandidate(
+        int score,
+        int childSafety,
+        int childCastleDist,
+        int childTieBreak,
+        int bestScore,
+        int bestSafety,
+        int bestCastleDist,
+        int bestTieBreak,
+        int rootSafety)
+    {
+        if (score > bestScore)
+            return true;
+        if (score < bestScore)
+            return false;
+
+        var childOk = childSafety <= rootSafety;
+        var bestOk = bestSafety <= rootSafety;
+
+        if (childOk && !bestOk)
+            return true;
+        if (!childOk && bestOk)
+            return false;
+
+        if (childOk && bestOk)
+        {
+            if (childCastleDist != bestCastleDist)
+                return childCastleDist < bestCastleDist;
+            return childTieBreak < bestTieBreak;
+        }
+
+        if (childSafety != bestSafety)
+            return childSafety < bestSafety;
+        return childTieBreak < bestTieBreak;
     }
 
     /// <summary>

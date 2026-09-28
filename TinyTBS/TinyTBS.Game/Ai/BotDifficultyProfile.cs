@@ -43,6 +43,15 @@ public sealed class BotDifficultyProfile
     public int UnitCountWeight { get; init; } = 120;
 
     /// <summary>
+    /// Тяга короля (юнита с capture castle) к вражескому замку.
+    /// Умеренная: не должна перебивать safety / армию.
+    /// </summary>
+    public int CastleObjectiveWeight { get; init; }
+
+    /// <summary>Штраф за оголённого короля (враг ближе своих / зона ≤2).</summary>
+    public int KingSafetyWeight { get; init; }
+
+    /// <summary>
     /// true (Easy): Wait может конкурировать с чистым перемещением,
     /// если нет атаки/захвата/найма. false (Normal): Wait вырезается фильтром.
     /// </summary>
@@ -62,11 +71,12 @@ public sealed class BotDifficultyProfile
                 AggressionRangeCap = 99,
                 HomeBiasWeight = 0,
                 UnitCountWeight = 120,
+                CastleObjectiveWeight = 10,
+                KingSafetyWeight = 12,
                 AllowWaitWithMoves = false,
             },
             BotDifficulty.Hard => new BotDifficultyProfile
             {
-                // Заглушка: позже Hard может уйти в отдельный full-turn IBotSearchPolicy.
                 MaxDepth = 3,
                 NodeLimit = 8000,
                 UseQuiescence = true,
@@ -76,6 +86,8 @@ public sealed class BotDifficultyProfile
                 AggressionRangeCap = 99,
                 HomeBiasWeight = 0,
                 UnitCountWeight = 120,
+                CastleObjectiveWeight = 10,
+                KingSafetyWeight = 12,
                 AllowWaitWithMoves = false,
             },
             _ => new BotDifficultyProfile
@@ -85,11 +97,12 @@ public sealed class BotDifficultyProfile
                 UseQuiescence = false,
                 QuiescencePlies = 0,
                 RichEvaluation = false,
-                // Мягче: короткий горизонт chase, лёгкий home-bias, Wait разрешён без боя.
                 AggressionWeight = 1,
                 AggressionRangeCap = 4,
                 HomeBiasWeight = 2,
                 UnitCountWeight = 70,
+                CastleObjectiveWeight = 6,
+                KingSafetyWeight = 8,
                 AllowWaitWithMoves = true,
             },
         };
