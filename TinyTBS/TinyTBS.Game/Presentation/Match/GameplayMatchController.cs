@@ -24,6 +24,8 @@ public sealed class GameplayMatchController
     private bool _pendingPauseMenuFocus;
     private Action? _returnToMenu;
     private readonly MatchEnemyThreatHold _enemyThreatHold = new();
+    private float _lastBotFollowCursorX = float.NaN;
+    private float _lastBotFollowCursorY = float.NaN;
 
     public GameplayMatchController(
         GameMain game,
@@ -100,10 +102,14 @@ public sealed class GameplayMatchController
             _botDriver.TryStep(_session, _session.PlayerSeats, gameTime);
         }
 
-        var boardInputEnabled = !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud)
+        var overlaysBlockCamera = GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud)
+            || _hudSync.Hud.IsMatchResultVisible;
+        var boardInputEnabled = !overlaysBlockCamera
             && !botTurn
             && !scene.IsMoveAnimating
             && !scene.IsCursorAnimating;
+        // Zoom / pan stay available on the bot's turn (watch and look around).
+        var cameraControlsEnabled = !overlaysBlockCamera;
 
         // Zoom / pan before layout prepare so hit-tests and draws use the updated camera.
         MatchCommandApplicator.ApplyZoom(
@@ -111,16 +117,25 @@ public sealed class GameplayMatchController
             _game.Commands,
             _game.Pointer,
             gameTime,
-            boardInputEnabled);
+            cameraControlsEnabled);
         MatchCommandApplicator.ApplyCameraPan(
             _session.State,
             scene.Layout,
             _game.Commands,
             _game.Pointer,
             gameTime,
-            boardInputEnabled);
+            cameraControlsEnabled,
+            clampMatchCursor: boardInputEnabled);
 
         scene.PrepareFrame(_graphicsDevice.Viewport.Width, _graphicsDevice.Viewport.Height);
+
+        if (botTurn)
+            FollowBotCursorWithCamera(scene);
+        else
+        {
+            _lastBotFollowCursorX = float.NaN;
+            _lastBotFollowCursorY = float.NaN;
+        }
 
         HandleOverlayCommands();
 
@@ -306,6 +321,24 @@ public sealed class GameplayMatchController
         if (_hudSync.Hud.IsMinimapVisible)
         {
             MatchMinimapDraw.Draw(_session, _game.SharedSpriteBatch, _graphicsDevice.Viewport);
+        }
+    }
+
+    private void FollowBotCursorWithCamera(MatchScene scene)
+    {
+        scene.GetVisualCursorCell(out var cursorX, out var cursorY);
+
+        // Soft follow: while the bot aims / acts, keep the cursor in the central zone.
+        // Between actions the spectator may pan freely until the cursor moves again.
+        var cursorMoved = float.IsNaN(_lastBotFollowCursorX)
+            || MathF.Abs(cursorX - _lastBotFollowCursorX) > 0.01f
+            || MathF.Abs(cursorY - _lastBotFollowCursorY) > 0.01f;
+
+        if (cursorMoved || scene.IsCursorAnimating || scene.IsMoveAnimating)
+        {
+            scene.Layout.KeepCellInCentralZone(cursorX, cursorY);
+            _lastBotFollowCursorX = cursorX;
+            _lastBotFollowCursorY = cursorY;
         }
     }
 

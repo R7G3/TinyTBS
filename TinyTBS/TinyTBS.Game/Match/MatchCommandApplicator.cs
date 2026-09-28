@@ -122,9 +122,9 @@ public static class MatchCommandApplicator
         IGameCommandSource commands,
         IPointerSource pointer,
         GameTime gameTime,
-        bool boardInputEnabled)
+        bool cameraControlsEnabled)
     {
-        if (!boardInputEnabled)
+        if (!cameraControlsEnabled)
             return;
 
         var elapsedSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -143,7 +143,8 @@ public static class MatchCommandApplicator
 
     /// <summary>
     /// Camera pan: right stick (camera follows stick) and LMB drag.
-    /// After pan, keeps the match cursor on a cell whose center is still on screen.
+    /// When <paramref name="clampMatchCursor"/> is true, keeps the match cursor on screen after pan
+    /// (human turn). During a bot turn leave it false so the viewer can look around freely.
     /// </summary>
     public static void ApplyCameraPan(
         MatchState match,
@@ -151,9 +152,10 @@ public static class MatchCommandApplicator
         IGameCommandSource commands,
         IPointerSource pointer,
         GameTime gameTime,
-        bool boardInputEnabled)
+        bool cameraControlsEnabled,
+        bool clampMatchCursor = true)
     {
-        if (!boardInputEnabled)
+        if (!cameraControlsEnabled)
         {
             ResetPointerGesture();
             return;
@@ -170,7 +172,7 @@ public static class MatchCommandApplicator
 
         ApplyPointerPan(layout, pointer);
 
-        if (layout.CameraOffset != offsetBefore)
+        if (clampMatchCursor && layout.CameraOffset != offsetBefore)
             KeepCursorOnScreen(match, layout);
     }
 

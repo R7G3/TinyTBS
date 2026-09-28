@@ -104,10 +104,30 @@ public sealed class MatchBoardLayout
         RefreshOrigin();
     }
 
+    /// <summary>Center of a cell in screen pixels.</summary>
+    public Vector2 GetCellCenter(int cellX, int cellY)
+    {
+        var tileSize = TileSize;
+        return Origin + new Vector2((cellX + 0.5f) * tileSize, (cellY + 0.5f) * tileSize);
+    }
+
+    /// <summary>Center for a fractional cell (smooth cursor follow).</summary>
+    public Vector2 GetCellCenter(float cellX, float cellY)
+    {
+        var tileSize = TileSize;
+        return Origin + new Vector2((cellX + 0.5f) * tileSize, (cellY + 0.5f) * tileSize);
+    }
+
     /// <summary>
     /// If the cell center is outside the central zone (half the screen), pans so it sits on the nearest zone edge.
     /// </summary>
-    public void KeepCellInCentralZone(int cellX, int cellY)
+    public void KeepCellInCentralZone(int cellX, int cellY) =>
+        KeepCellInCentralZone(cellX, (float)cellY);
+
+    /// <summary>
+    /// Fractional-cell variant for animated cursor / smooth camera follow.
+    /// </summary>
+    public void KeepCellInCentralZone(float cellX, float cellY)
     {
         if (_viewportWidth <= 0 || _viewportHeight <= 0)
             return;
@@ -211,13 +231,6 @@ public sealed class MatchBoardLayout
     {
         var tileSize = TileSize;
         return Origin + new Vector2((cellX + 0.5f) * tileSize, cellY * tileSize);
-    }
-
-    /// <summary>Center of a cell in screen pixels.</summary>
-    public Vector2 GetCellCenter(int cellX, int cellY)
-    {
-        var tileSize = TileSize;
-        return Origin + new Vector2((cellX + 0.5f) * tileSize, (cellY + 0.5f) * tileSize);
     }
 
     private bool TryGetViewportCellRange(
