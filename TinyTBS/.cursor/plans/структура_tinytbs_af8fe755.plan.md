@@ -47,11 +47,11 @@ isProject: false
 - [x] **map-editor** (срез 3) — метки Neutral/P0–P3 + Undo/Redo + Validate (Save не блокируется)
 - [x] **map-editor** (срез 4) — Levels (slots/gold/cap/`map.ref`) + Campaign (linear chapters + script stub) + map `script.cs` editor/template; двухколоночный UX + геймпад
 - [x] **map-editor** (срез 5) — masters units/buildings (structured UI + DocumentWriters + New Units/Buildings Module; Publish greyed)
+- [x] **map-editor** (срез 6) — theme + export в модуль
+- [x] **map-editor** (срез 7) — bundles (пресеты composition в редакторе)
 
 ### Дальше (playtest-перерыв: бот → сейвы → кампании → редактор)
 
-- [x] **map-editor** (срез 6) — theme + export в модуль
-- [x] **map-editor** (срез 7) — bundles (пресеты composition в редакторе)
 - [ ] **map-editor** (срез 8) — **tags + abilities + условный heal** (gate → docs/runtime/editor): обсудить и по итогам сделать минимум для связок вроде «здание лечит юнитов с тегом X сильнее остальных»; сейчас heal здания = только `amount`+`scope`, теги юнита в heal не участвуют; при необходимости — расширение BUILDING_FORMAT/abilities, логика матча, UI building/unit master + (если нужно для проверки) composition без ручного `scenario.defaults` JSON
 - [ ] **map-editor** (срез 9) — **multi-module workspace + Shared Resources** (UX modding, не блокер матча): проект из нескольких модулей сразу; временный `shared/` (или аналог) на время работы; при Save/Export модуля — раскладка ассетов в его `Resources/` + валидация путей. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md), [CONTENT_MODULE_FORMAT](../../docs/CONTENT_MODULE_FORMAT.md). До playtest можно отложить, если не упираетесь в копипаст ассетов между модулями
 - [ ] **player-colors** — color picker в лобби / профиле (можно с `settings-ui`)

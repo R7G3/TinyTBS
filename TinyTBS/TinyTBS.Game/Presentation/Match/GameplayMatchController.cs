@@ -318,7 +318,7 @@ public sealed class GameplayMatchController
                     if (_enemyThreatHold.PreviewUnitId is int threatUnitId
                         && match.TryGetUnitThreatPreview(threatUnitId, out var overlay))
                     {
-                        ApplyOverlayCells(
+                        ApplyThreatOverlayCells(
                             overlay,
                             out moveRangeCells,
                             out attackTargetCells,
@@ -401,8 +401,24 @@ public sealed class GameplayMatchController
 
         _hudSync.SyncFromSession(_session, _cellActionChooserCell, _campaignService);
         _hudSync.Hud.HintText = _enemyThreatHold.PreviewUnitId is not null
-            ? "Enemy threat preview · release to close"
+            ? "Enemy threat · blue = move · red = attack range · release to close"
             : "WASD move · Enter/click select · Hold Enter/LMB on enemy = threat · Wheel zoom · RMB/I detail · E end · Esc pause";
+    }
+
+    private static void ApplyThreatOverlayCells(
+        MatchUnitActionOverlay overlay,
+        out IReadOnlyList<(int X, int Y)>? moveRangeCells,
+        out IReadOnlyList<(int X, int Y)>? attackTargetCells,
+        out IReadOnlyList<(int X, int Y)>? raiseTargetCells,
+        out IReadOnlyList<(int X, int Y)>? captureTargetCells,
+        out IReadOnlyList<(int X, int Y)>? repairTargetCells)
+    {
+        moveRangeCells = ToCellTuples(overlay.MoveCells);
+        // Full potential attack footprint (empty tiles included), not only current targets.
+        attackTargetCells = ToCellTuples(ExceptCells(overlay.AttackRangeCells, overlay.MoveCells));
+        raiseTargetCells = null;
+        captureTargetCells = null;
+        repairTargetCells = null;
     }
 
     private static void ApplyOverlayCells(
@@ -418,6 +434,18 @@ public sealed class GameplayMatchController
         raiseTargetCells = ToCellTuples(overlay.RaiseCells);
         captureTargetCells = ToCellTuples(overlay.CaptureCells);
         repairTargetCells = ToCellTuples(overlay.RepairCells);
+    }
+
+    private static IReadOnlyList<GridCell> ExceptCells(
+        IReadOnlyList<GridCell> source,
+        IReadOnlyList<GridCell> excluded)
+    {
+        if (source.Count == 0 || excluded.Count == 0)
+            return source;
+
+        var exclude = excluded.ToHashSet();
+        var filtered = source.Where(cell => !exclude.Contains(cell)).ToArray();
+        return filtered.Length == source.Count ? source : filtered;
     }
 
     private static IReadOnlyList<(int X, int Y)>? ToCellTuples(IReadOnlyList<GridCell> cells) =>

@@ -18,7 +18,7 @@ public sealed class GameplayHudViewModel
     public Color StatusBarColor { get; set; } = Color.CornflowerBlue;
 
     public string HintText { get; set; } =
-        "WASD move · Enter/click select · Hold Enter/LMB on enemy = threat · Wheel zoom · RMB/I detail · E end · Esc pause";
+        "WASD move · Enter/click select · Hold Enter/LMB on enemy = move+attack threat · Wheel zoom · RMB/I detail · E end · Esc pause";
 
     /// <summary>Always-on corner summary for the cursor tile.</summary>
     public string CompactInfoText { get; set; } = string.Empty;

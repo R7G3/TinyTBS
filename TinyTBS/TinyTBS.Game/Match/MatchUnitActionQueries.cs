@@ -36,11 +36,48 @@ public static class MatchUnitActionQueries
         return new MatchUnitActionOverlay
         {
             MoveCells = moveCells,
+            AttackRangeCells = CollectAttackRangeFromStands(match, definition, attackStands),
             AttackCells = CollectAttackTargetsFromStands(match, unit, definition, attackStands),
             CaptureCells = CollectCaptureTargetsFromStands(match, unit, definition, standCells),
             RepairCells = CollectRepairTargetsFromStands(match, unit, definition, standCells),
             RaiseCells = CollectRaiseTargetsFromStands(match, unit, definition, standCells),
         };
+    }
+
+    private static IReadOnlyList<GridCell> CollectAttackRangeFromStands(
+        MatchState match,
+        UnitDefinition definition,
+        IReadOnlyList<GridCell> standCells)
+    {
+        if (standCells.Count == 0)
+            return [];
+
+        var rangeMin = definition.AttackRangeMin;
+        var rangeMax = definition.AttackRangeMax;
+        if (rangeMax < rangeMin || rangeMax < 0)
+            return [];
+
+        var cells = new HashSet<GridCell>();
+        foreach (var stand in standCells)
+        {
+            for (var dy = -rangeMax; dy <= rangeMax; dy++)
+            {
+                for (var dx = -rangeMax; dx <= rangeMax; dx++)
+                {
+                    var distance = Math.Abs(dx) + Math.Abs(dy);
+                    if (distance < rangeMin || distance > rangeMax)
+                        continue;
+
+                    var cell = new GridCell(stand.X + dx, stand.Y + dy);
+                    if (!match.IsInBounds(cell))
+                        continue;
+
+                    cells.Add(cell);
+                }
+            }
+        }
+
+        return cells.Count == 0 ? [] : cells.ToArray();
     }
 
     private static IReadOnlyList<GridCell> CollectAttackTargetsFromStands(
