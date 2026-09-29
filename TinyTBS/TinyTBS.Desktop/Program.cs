@@ -14,8 +14,9 @@ internal static class Program
         var bundledContentRoot = Path.Combine(AppContext.BaseDirectory, "Content");
         var assets = new ModAssetResolver(userData, files, bundledContentRoot);
         var filePicker = DesktopExternalFilePickers.CreateDefault();
+        var uriLauncher = new DesktopShellExternalUriLauncher();
 
-        using var game = new GameMain(userData, files, assets, filePicker);
+        using var game = new GameMain(userData, files, assets, filePicker, uriLauncher);
         game.Run();
     }
 }

@@ -123,7 +123,7 @@ flowchart TB
 
 ## Пути к данным
 
-Через `IUserDataPaths` / `IFileContentProvider` / `IExternalFilePicker` (`Engine.IO`, в т.ч. NFD и Linux portal) — не хардкодить пути к exe и не открывать OS-диалоги в Game. Desktop только собирает `DesktopExternalFilePickers.CreateDefault()`.
+Через `IUserDataPaths` / `IFileContentProvider` / `IExternalFilePicker` / `IExternalUriLauncher` (`Engine.IO`, в т.ч. NFD, Linux portal, desktop shell для http(s)) — не хардкодить пути к exe и не открывать OS-диалоги / браузер из Game. Desktop собирает `DesktopExternalFilePickers.CreateDefault()` и `DesktopShellExternalUriLauncher`.
 
 | Каталог | Desktop | Mobile (будущее) |
 |---------|---------|------------------|

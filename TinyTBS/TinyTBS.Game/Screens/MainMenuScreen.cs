@@ -42,7 +42,7 @@ public sealed class MainMenuScreen : GameScreen
         _viewModel.CanOpenContent = true;
         _viewModel.CanOpenEditor = true;
         _viewModel.CanOpenSettings = false;
-        _viewModel.CanOpenAbout = false;
+        _viewModel.CanOpenAbout = true;
         _viewModel.CanStartNewGame = true;
 
         _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
@@ -55,7 +55,7 @@ public sealed class MainMenuScreen : GameScreen
             onContent: OpenContent,
             onEditor: OpenEditor,
             onSettings: () => { },
-            onAbout: () => { },
+            onAbout: OpenAbout,
             onExit: () => Game.Exit());
     }
 
@@ -188,4 +188,7 @@ public sealed class MainMenuScreen : GameScreen
 
     private void OpenEditor() =>
         ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, _assets));
+
+    private void OpenAbout() =>
+        ScreenManager.ReplaceScreen(new AboutScreen(TinyGame, _assets));
 }
