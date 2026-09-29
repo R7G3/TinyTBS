@@ -84,10 +84,10 @@ public sealed class EditableUnitDocument
             throw new EditorException("Missing unit file: " + unitJsonPath);
 
         using var stream = files.OpenRead(unitJsonPath);
-        UnitDefinitionDto? dto;
+        UnitDefinitionDto? definitionDto;
         try
         {
-            dto = JsonSerializer.Deserialize<UnitDefinitionDto>(stream, new JsonSerializerOptions
+            definitionDto = JsonSerializer.Deserialize<UnitDefinitionDto>(stream, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,
@@ -99,26 +99,26 @@ public sealed class EditableUnitDocument
             throw new EditorException("Failed to parse unit JSON.", exception);
         }
 
-        if (dto is null)
+        if (definitionDto is null)
             throw new EditorException("Unit JSON deserialized to null.");
 
-        var id = string.IsNullOrWhiteSpace(dto.Id) ? "unit" : dto.Id.Trim();
+        var id = string.IsNullOrWhiteSpace(definitionDto.Id) ? "unit" : definitionDto.Id.Trim();
         return new EditableUnitDocument
         {
             OriginalId = id,
             Id = id,
-            DisplayNameKey = string.IsNullOrWhiteSpace(dto.DisplayNameKey) ? "units." + id : dto.DisplayNameKey.Trim(),
-            MovementClass = string.IsNullOrWhiteSpace(dto.MovementClass) ? "foot" : dto.MovementClass.Trim(),
-            Tags = dto.Tags?.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList() ?? [],
-            Recruitable = dto.Recruitable ?? true,
-            Attack = dto.Attack,
-            Defence = dto.Defence,
-            MaxHealth = Math.Max(1, dto.MaxHealth),
-            AttackRangeMin = Math.Max(0, dto.AttackRangeMin),
-            AttackRangeMax = Math.Max(dto.AttackRangeMin, dto.AttackRangeMax),
-            Speed = Math.Max(0, dto.Speed),
-            Cost = Math.Max(0, dto.Cost),
-            Abilities = (dto.Abilities ?? [])
+            DisplayNameKey = string.IsNullOrWhiteSpace(definitionDto.DisplayNameKey) ? "units." + id : definitionDto.DisplayNameKey.Trim(),
+            MovementClass = string.IsNullOrWhiteSpace(definitionDto.MovementClass) ? "foot" : definitionDto.MovementClass.Trim(),
+            Tags = definitionDto.Tags?.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList() ?? [],
+            Recruitable = definitionDto.Recruitable ?? true,
+            Attack = definitionDto.Attack,
+            Defence = definitionDto.Defence,
+            MaxHealth = Math.Max(1, definitionDto.MaxHealth),
+            AttackRangeMin = Math.Max(0, definitionDto.AttackRangeMin),
+            AttackRangeMax = Math.Max(definitionDto.AttackRangeMin, definitionDto.AttackRangeMax),
+            Speed = Math.Max(0, definitionDto.Speed),
+            Cost = Math.Max(0, definitionDto.Cost),
+            Abilities = (definitionDto.Abilities ?? [])
                 .Select(ability => new EditableUnitAbility
                 {
                     Type = string.IsNullOrWhiteSpace(ability.Type) ? "captureBuilding" : ability.Type.Trim(),
@@ -130,7 +130,7 @@ public sealed class EditableUnitDocument
                         ?? [],
                 })
                 .ToList(),
-            SpecialCoefficients = (dto.SpecialCoefficients ?? [])
+            SpecialCoefficients = (definitionDto.SpecialCoefficients ?? [])
                 .Select(coefficient => new EditableUnitSpecialCoefficient
                 {
                     WhenDefault = coefficient.When?.Default == true,
@@ -141,9 +141,9 @@ public sealed class EditableUnitDocument
                     Multiply = coefficient.Multiply,
                 })
                 .ToList(),
-            LeavesGravestone = dto.LeavesGravestone ?? true,
-            SpriteBase = string.IsNullOrWhiteSpace(dto.Sprites?.Base) ? null : dto.Sprites!.Base!.Trim().Replace('\\', '/'),
-            SpriteMask = string.IsNullOrWhiteSpace(dto.Sprites?.Mask) ? null : dto.Sprites!.Mask!.Trim().Replace('\\', '/'),
+            LeavesGravestone = definitionDto.LeavesGravestone ?? true,
+            SpriteBase = string.IsNullOrWhiteSpace(definitionDto.Sprites?.Base) ? null : definitionDto.Sprites!.Base!.Trim().Replace('\\', '/'),
+            SpriteMask = string.IsNullOrWhiteSpace(definitionDto.Sprites?.Mask) ? null : definitionDto.Sprites!.Mask!.Trim().Replace('\\', '/'),
             IsDirty = false,
         };
     }

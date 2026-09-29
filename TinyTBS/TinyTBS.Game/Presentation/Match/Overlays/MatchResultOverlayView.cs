@@ -40,7 +40,7 @@ public sealed class MatchResultOverlayView
             maxWidthPixels: 360f,
             centerXPercent: 50f,
             centerYPercent: 48f,
-            MatchUiColors.OverlayDark);
+            UiColors.MatchOverlayDark);
         var stack = GumMatchOverlayPanel.AddContentStack(_panel, spacing: 12f);
 
         GumUiLayout.AddVerticalSpacer(stack, 16f);

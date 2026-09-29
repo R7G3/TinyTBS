@@ -1,3 +1,4 @@
+using TinyTBS.Game.Presentation.Shared;
 using Gum.Forms.Controls;
 using Gum.Forms.DefaultVisuals.V3;
 using Microsoft.Xna.Framework;
@@ -13,8 +14,8 @@ public static class EditorTextFieldStyle
         if (textBox.Visual is not TextBoxVisual visual)
             return;
 
-        visual.BackgroundColor = EditorUiColors.TextField;
-        visual.ForegroundColor = EditorUiColors.TextFieldForeground;
+        visual.BackgroundColor = UiColors.EditorTextField;
+        visual.ForegroundColor = UiColors.EditorTextFieldForeground;
         visual.PlaceholderColor = new Color(110, 118, 130);
     }
 }

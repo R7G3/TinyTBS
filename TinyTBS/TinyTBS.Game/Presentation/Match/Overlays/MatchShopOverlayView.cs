@@ -44,7 +44,7 @@ public sealed class MatchShopOverlayView
 
     public void Build(Panel root, GameplayHudViewModel hud, Action onCloseShop, Action<int> onBuyOffer)
     {
-        _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 480f, centerXPercent: 50f, centerYPercent: 50f, MatchUiColors.OverlayShop);
+        _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 480f, centerXPercent: 50f, centerYPercent: 50f, UiColors.MatchOverlayShop);
         var stack = GumMatchOverlayPanel.AddContentStack(_panel, spacing: 8f);
 
         GumUiLayout.AddVerticalSpacer(stack, 14f);
@@ -378,6 +378,6 @@ public sealed class MatchShopOverlayView
             return;
 
         // Match overlay panel fill so gaps between offer rows are not opaque grey.
-        visual.BackgroundColor = MatchUiColors.OverlayShop;
+        visual.BackgroundColor = UiColors.MatchOverlayShop;
     }
 }

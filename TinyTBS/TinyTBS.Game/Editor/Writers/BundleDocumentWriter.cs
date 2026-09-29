@@ -56,7 +56,7 @@ public sealed class BundleDocumentWriter
         _userDataPaths.EnsureCreated();
         Directory.CreateDirectory(_userDataPaths.Bundles);
 
-        var payload = new BundleWriteDto
+        var payload = new ContentBundleJsonDto
         {
             FormatVersion = 1,
             Id = id,
@@ -66,7 +66,7 @@ public sealed class BundleDocumentWriter
                 .Select(moduleId => moduleId.Trim())
                 .Distinct(StringComparer.Ordinal)
                 .ToList(),
-            Defaults = new BundleDefaultsWriteDto
+            Defaults = new ContentBundleDefaultsDto
             {
                 Scenario = document.ScenarioModuleId.Trim(),
                 Units = document.UnitsModuleIds
@@ -178,38 +178,5 @@ public sealed class BundleDocumentWriter
         {
             throw new EditorException($"Bundle id '{bundleId}' is not a valid file name stem.");
         }
-    }
-
-    private sealed class BundleWriteDto
-    {
-        [JsonPropertyName("formatVersion")]
-        public int FormatVersion { get; set; }
-
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
-
-        [JsonPropertyName("title")]
-        public string Title { get; set; } = string.Empty;
-
-        [JsonPropertyName("modules")]
-        public List<string> Modules { get; set; } = [];
-
-        [JsonPropertyName("defaults")]
-        public BundleDefaultsWriteDto Defaults { get; set; } = new();
-    }
-
-    private sealed class BundleDefaultsWriteDto
-    {
-        [JsonPropertyName("scenario")]
-        public string Scenario { get; set; } = string.Empty;
-
-        [JsonPropertyName("units")]
-        public List<string> Units { get; set; } = [];
-
-        [JsonPropertyName("buildings")]
-        public List<string> Buildings { get; set; } = [];
-
-        [JsonPropertyName("theme")]
-        public string Theme { get; set; } = string.Empty;
     }
 }

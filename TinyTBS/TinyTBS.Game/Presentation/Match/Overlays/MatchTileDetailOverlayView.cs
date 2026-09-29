@@ -2,6 +2,7 @@ using Gum.Forms.Controls;
 using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Match;
+using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.Presentation.Match.Controls;
 using TinyTBS.Game.ViewModels;
 
@@ -22,7 +23,7 @@ public sealed class MatchTileDetailOverlayView
 
     public void Build(Panel root, GameplayHudViewModel hud)
     {
-        _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 400f, centerXPercent: 50f, centerYPercent: 50f, MatchUiColors.OverlayDark);
+        _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 400f, centerXPercent: 50f, centerYPercent: 50f, UiColors.MatchOverlayDark);
         var stack = GumMatchOverlayPanel.AddContentStack(_panel, spacing: 14f);
 
         GumUiLayout.AddVerticalSpacer(stack, 14f);

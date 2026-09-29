@@ -89,7 +89,7 @@ public sealed class EditorCampaignEditView
         var canvasHeight = Math.Max(320f, GumService.Default.CanvasHeight);
         GumUiLayout.SetBoundedHeight(shell, maxPixels: canvasHeight - 24f, parentPercent: 94f);
         body.AddChild(shell);
-        GumUiLayout.AddSolidBackground(shell, EditorUiColors.Panel);
+        GumUiLayout.AddSolidBackground(shell, UiColors.EditorPanel);
 
         var listScroll = new ScrollViewer();
         listScroll.Dock(Dock.Fill);

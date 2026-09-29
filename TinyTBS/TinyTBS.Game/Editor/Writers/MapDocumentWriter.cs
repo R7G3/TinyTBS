@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Map;
 using TinyTBS.Game.Maps;
+using TinyTBS.Game.Maps.Models;
 using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Editor.Writers;
@@ -40,17 +41,17 @@ public sealed class MapDocumentWriter
                 surface[y * document.Width + x] = document.Surface[x, y];
         }
 
-        var payload = new MapWriteDto
+        var payload = new MapJsonDto
         {
             FormatVersion = 1,
             Id = document.Id,
             Title = document.Title,
             Width = document.Width,
             Height = document.Height,
-            Layers = new MapLayersWriteDto
+            Layers = new MapLayersDto
             {
-                Surface = surface,
-                Buildings = document.Buildings.Select(building => new MapBuildingWriteDto
+                Surface = JsonSerializer.SerializeToElement(surface),
+                Buildings = document.Buildings.Select(building => new MapBuildingDto
                 {
                     Type = building.Type.Full,
                     X = building.X,
@@ -58,7 +59,7 @@ public sealed class MapDocumentWriter
                     Slot = building.Slot,
                     State = building.State,
                 }).ToList(),
-                Units = document.Units.Select(unit => new MapUnitWriteDto
+                Units = document.Units.Select(unit => new MapUnitDto
                 {
                     Type = unit.Type.Full,
                     X = unit.X,
@@ -67,7 +68,7 @@ public sealed class MapDocumentWriter
                     Hp = unit.Hp,
                     Xp = unit.Xp,
                 }).ToList(),
-                Gravestones = document.Gravestones.Select(grave => new MapGravestoneWriteDto
+                Gravestones = document.Gravestones.Select(grave => new MapGravestoneDto
                 {
                     X = grave.X,
                     Y = grave.Y,
@@ -91,89 +92,5 @@ public sealed class MapDocumentWriter
 
         document.IsDirty = false;
         return mapRoot;
-    }
-
-    private sealed class MapWriteDto
-    {
-        [JsonPropertyName("formatVersion")]
-        public int FormatVersion { get; set; }
-
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
-
-        [JsonPropertyName("title")]
-        public string Title { get; set; } = string.Empty;
-
-        [JsonPropertyName("width")]
-        public int Width { get; set; }
-
-        [JsonPropertyName("height")]
-        public int Height { get; set; }
-
-        [JsonPropertyName("layers")]
-        public MapLayersWriteDto Layers { get; set; } = new();
-    }
-
-    private sealed class MapLayersWriteDto
-    {
-        [JsonPropertyName("surface")]
-        public string[] Surface { get; set; } = [];
-
-        [JsonPropertyName("buildings")]
-        public List<MapBuildingWriteDto> Buildings { get; set; } = [];
-
-        [JsonPropertyName("units")]
-        public List<MapUnitWriteDto> Units { get; set; } = [];
-
-        [JsonPropertyName("gravestones")]
-        public List<MapGravestoneWriteDto> Gravestones { get; set; } = [];
-    }
-
-    private sealed class MapBuildingWriteDto
-    {
-        [JsonPropertyName("type")]
-        public string Type { get; set; } = string.Empty;
-
-        [JsonPropertyName("x")]
-        public int X { get; set; }
-
-        [JsonPropertyName("y")]
-        public int Y { get; set; }
-
-        [JsonPropertyName("slot")]
-        public int? Slot { get; set; }
-
-        [JsonPropertyName("state")]
-        public string? State { get; set; }
-    }
-
-    private sealed class MapUnitWriteDto
-    {
-        [JsonPropertyName("type")]
-        public string Type { get; set; } = string.Empty;
-
-        [JsonPropertyName("x")]
-        public int X { get; set; }
-
-        [JsonPropertyName("y")]
-        public int Y { get; set; }
-
-        [JsonPropertyName("slot")]
-        public int Slot { get; set; }
-
-        [JsonPropertyName("hp")]
-        public int? Hp { get; set; }
-
-        [JsonPropertyName("xp")]
-        public int? Xp { get; set; }
-    }
-
-    private sealed class MapGravestoneWriteDto
-    {
-        [JsonPropertyName("x")]
-        public int X { get; set; }
-
-        [JsonPropertyName("y")]
-        public int Y { get; set; }
     }
 }

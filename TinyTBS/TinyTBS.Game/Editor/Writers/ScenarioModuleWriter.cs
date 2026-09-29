@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Modules;
+using TinyTBS.Game.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 
@@ -38,7 +39,7 @@ public sealed class ScenarioModuleWriter
 
         ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
         var id = moduleId.Trim();
-        var ns = string.IsNullOrWhiteSpace(contentNamespace) ? id : contentNamespace.Trim();
+        var moduleNamespace = string.IsNullOrWhiteSpace(contentNamespace) ? id : contentNamespace.Trim();
 
         _userDataPaths.EnsureCreated();
         var moduleRoot = _files.Combine(_userDataPaths.Modules, id);
@@ -51,22 +52,22 @@ public sealed class ScenarioModuleWriter
             Directory.CreateDirectory(_files.Combine(moduleRoot, "Maps"));
             Directory.CreateDirectory(_files.Combine(moduleRoot, "Levels"));
 
-            var document = new ScenarioModuleWriteDto
+            var document = new ScenarioModuleJsonDto
             {
                 FormatVersion = 1,
                 Id = id,
                 Type = "scenario",
-                Namespace = ns,
+                Namespace = moduleNamespace,
                 Title = title.Trim(),
                 Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
                 Version = "1.0.0",
-                Defaults = new ScenarioDefaultsWriteDto
+                Defaults = new ScenarioDefaultsDto
                 {
                     Units = ["vanilla_units"],
                     Buildings = ["vanilla_buildings"],
                     Theme = "vanilla_theme",
                 },
-                Requires = new ScenarioRequiresWriteDto
+                Requires = new ScenarioRequiresDto
                 {
                     Units = ["vanilla_units"],
                     Buildings = ["vanilla_buildings"],
@@ -119,31 +120,5 @@ public sealed class ScenarioModuleWriter
         catch (UnauthorizedAccessException)
         {
         }
-    }
-
-    private sealed class ScenarioModuleWriteDto
-    {
-        public int FormatVersion { get; set; }
-        public string Id { get; set; } = string.Empty;
-        public string Type { get; set; } = string.Empty;
-        public string Namespace { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string Version { get; set; } = string.Empty;
-        public ScenarioDefaultsWriteDto? Defaults { get; set; }
-        public ScenarioRequiresWriteDto? Requires { get; set; }
-    }
-
-    private sealed class ScenarioDefaultsWriteDto
-    {
-        public List<string> Units { get; set; } = [];
-        public List<string> Buildings { get; set; } = [];
-        public string Theme { get; set; } = string.Empty;
-    }
-
-    private sealed class ScenarioRequiresWriteDto
-    {
-        public List<string> Units { get; set; } = [];
-        public List<string> Buildings { get; set; } = [];
     }
 }

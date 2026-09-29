@@ -1,7 +1,6 @@
 using Gum;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
-using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Themes;
@@ -9,87 +8,51 @@ using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Modules.Models;
-using TinyTBS.Game.Presentation.Menu;
+using TinyTBS.Engine.Input;
 
 namespace TinyTBS.Game.Editor.Screens;
 
 /// <summary>Edit theme module.json (paths + sprite remaps).</summary>
-public sealed class EditorThemeEditScreen : GameScreen
+public sealed class EditorThemeEditScreen : EditorFormScreen
 {
-    private readonly IAssetResolver _assets;
     private readonly EditorWorkspaceSession _session;
     private readonly EditorThemeEditView _view = new();
-    private MainMenuBackground? _background;
     private ThemeDocumentWriter? _writer;
 
     public EditorThemeEditScreen(GameMain game, IAssetResolver assets, EditorWorkspaceSession session)
-        : base(game)
+        : base(game, assets)
     {
-        _assets = assets;
         _session = session ?? throw new ArgumentNullException(nameof(session));
         if (_session.Type != ContentModuleType.Theme)
             throw new ArgumentException("Session must be a theme module.", nameof(session));
     }
 
-    private GameMain TinyGame => (GameMain)Game;
+    protected override bool IsOverlayOpen => _view.IsOverlayOpen;
 
-    public override void LoadContent()
+    protected override bool IsTextEntryActive => _view.IsTextEntryActive;
+
+    protected override void OnFormLoad()
     {
-        base.LoadContent();
         _writer = new ThemeDocumentWriter(TinyGame.Files);
-        _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
-
         var document = EditableThemeDocument.Load(_session.ModuleRootPath, TinyGame.Files);
         _view.Build(document, Save, GoToHub);
     }
 
-    public override void UnloadContent()
+    protected override void OnFormUnload()
     {
         _view.Clear();
-        _background?.Dispose();
-        _background = null;
         _writer = null;
-        base.UnloadContent();
     }
 
-    public override void Update(GameTime gameTime)
+    protected override void HandleFormInput(
+        IGameCommandSource commands,
+        IPointerSource pointer,
+        float elapsedSeconds)
     {
-        GumService.Default.Update(gameTime);
-
-        var overlayWasOpen = _view.IsOverlayOpen;
-        _view.HandleInput(TinyGame.Commands, (float)gameTime.ElapsedGameTime.TotalSeconds);
-
-        if (overlayWasOpen || _view.IsOverlayOpen)
-            return;
-
-        if (_view.IsTextEntryActive)
-            return;
-
-        if (TinyGame.Commands.WasPressed(GameCommand.Back)
-            || TinyGame.Commands.WasPressed(GameCommand.Cancel)
-            || TinyGame.Commands.WasPressed(GameCommand.Info)
-            || TinyGame.Commands.WasPressed(GameCommand.Pause))
-        {
-            GoToHub();
-        }
+        _view.HandleInput(commands, elapsedSeconds);
     }
 
-    public override void Draw(GameTime gameTime)
-    {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
-        var texture = _background?.Texture;
-        if (texture is not null)
-        {
-            ViewportFit.DrawCentered(
-                TinyGame.SharedSpriteBatch,
-                texture,
-                GraphicsDevice.Viewport.Width,
-                GraphicsDevice.Viewport.Height,
-                Color.White * 0.35f);
-        }
-
-        GumService.Default.Draw();
-    }
+    protected override void OnBackRequested() => GoToHub();
 
     private void Save()
     {
@@ -109,5 +72,5 @@ public sealed class EditorThemeEditScreen : GameScreen
     }
 
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, _assets, _session));
+        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
 }

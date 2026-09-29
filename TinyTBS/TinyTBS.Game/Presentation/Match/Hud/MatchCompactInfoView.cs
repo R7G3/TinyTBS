@@ -4,6 +4,7 @@ using Gum.GueDeriving;
 using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Presentation.Match.Controls;
+using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.Match.Hud;
@@ -24,7 +25,7 @@ public sealed class MatchCompactInfoView
         _panel.Visual.HasEvents = false;
         root.AddChild(_panel);
 
-        GumUiLayout.AddSolidBackground(_panel, MatchUiColors.CompactInfo);
+        GumUiLayout.AddSolidBackground(_panel, UiColors.MatchCompactInfo);
 
         var stack = GumUiLayout.CreateVerticalStackPanel(spacing: 4f, widthPercent: 92f);
         stack.Visual.HasEvents = false;

@@ -29,7 +29,7 @@ public sealed class MatchPauseOverlayView
         _navigateRepeat.Reset();
         _focusIndex = 0;
 
-        _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 320f, centerXPercent: 50f, centerYPercent: 48f, MatchUiColors.OverlayDark);
+        _panel = GumMatchOverlayPanel.Create(root, maxWidthPixels: 320f, centerXPercent: 50f, centerYPercent: 48f, UiColors.MatchOverlayDark);
         var stack = GumMatchOverlayPanel.AddContentStack(_panel, spacing: 10f);
 
         GumUiLayout.AddVerticalSpacer(stack, 14f);

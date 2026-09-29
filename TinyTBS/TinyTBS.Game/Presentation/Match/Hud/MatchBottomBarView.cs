@@ -4,6 +4,7 @@ using Gum.GueDeriving;
 using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.ViewModels;
+using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Presentation.Match.Hud;
 
@@ -27,7 +28,7 @@ public sealed class MatchBottomBarView
         bottomBar.Visual.HasEvents = false;
         root.AddChild(bottomBar);
 
-        GumUiLayout.AddSolidBackground(bottomBar, MatchUiColors.BottomBar);
+        GumUiLayout.AddSolidBackground(bottomBar, UiColors.MatchBottomBar);
 
         _hintLabel = new Label { Text = hud.HintText };
         _hintLabel.Dock(Dock.Fill);

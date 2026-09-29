@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Levels;
 using TinyTBS.Game.Levels;
+using TinyTBS.Game.Levels.Models;
 using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Editor.Writers;
@@ -37,15 +38,15 @@ public sealed class LevelDocumentWriter
         var playersMax = Math.Max(playersMin, document.PlayersMax);
         var defaultSlots = Math.Clamp(document.DefaultSlots, playersMin, playersMax);
 
-        var payload = new LevelWriteDto
+        var payload = new LevelJsonDto
         {
             FormatVersion = 1,
             Id = document.Id.Trim(),
             Title = string.IsNullOrWhiteSpace(document.Title) ? document.Id : document.Title.Trim(),
             Description = string.IsNullOrWhiteSpace(document.Description) ? null : document.Description.Trim(),
             Modes = document.Modes.Count > 0 ? document.Modes.ToList() : ["skirmish"],
-            Map = new LevelMapRefWriteDto { Ref = document.MapRef.Replace('\\', '/') },
-            Players = new LevelPlayersWriteDto
+            Map = new LevelMapRefDto { Ref = document.MapRef.Replace('\\', '/') },
+            Players = new LevelPlayersDto
             {
                 Min = playersMin,
                 Max = playersMax,
@@ -56,11 +57,11 @@ public sealed class LevelDocumentWriter
             TeamDefeatMode = string.IsNullOrWhiteSpace(document.TeamDefeatMode)
                 ? "allMembers"
                 : document.TeamDefeatMode.Trim(),
-            Victory = new LevelConditionWriteDto
+            Victory = new LevelConditionDto
             {
                 Type = string.IsNullOrWhiteSpace(document.VictoryType) ? "standard" : document.VictoryType.Trim(),
             },
-            Defeat = new LevelConditionWriteDto
+            Defeat = new LevelConditionDto
             {
                 Type = string.IsNullOrWhiteSpace(document.DefeatType) ? "standard" : document.DefeatType.Trim(),
             },
@@ -70,68 +71,5 @@ public sealed class LevelDocumentWriter
         File.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
         document.IsDirty = false;
         return levelRoot;
-    }
-
-    private sealed class LevelWriteDto
-    {
-        [JsonPropertyName("formatVersion")]
-        public int FormatVersion { get; set; }
-
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
-
-        [JsonPropertyName("title")]
-        public string Title { get; set; } = string.Empty;
-
-        [JsonPropertyName("description")]
-        public string? Description { get; set; }
-
-        [JsonPropertyName("modes")]
-        public List<string> Modes { get; set; } = [];
-
-        [JsonPropertyName("map")]
-        public LevelMapRefWriteDto Map { get; set; } = new();
-
-        [JsonPropertyName("players")]
-        public LevelPlayersWriteDto Players { get; set; } = new();
-
-        [JsonPropertyName("defaultStartingGold")]
-        public int DefaultStartingGold { get; set; }
-
-        [JsonPropertyName("defaultUnitCap")]
-        public int DefaultUnitCap { get; set; }
-
-        [JsonPropertyName("teamDefeatMode")]
-        public string TeamDefeatMode { get; set; } = string.Empty;
-
-        [JsonPropertyName("victory")]
-        public LevelConditionWriteDto Victory { get; set; } = new();
-
-        [JsonPropertyName("defeat")]
-        public LevelConditionWriteDto Defeat { get; set; } = new();
-    }
-
-    private sealed class LevelMapRefWriteDto
-    {
-        [JsonPropertyName("ref")]
-        public string Ref { get; set; } = string.Empty;
-    }
-
-    private sealed class LevelPlayersWriteDto
-    {
-        [JsonPropertyName("min")]
-        public int Min { get; set; }
-
-        [JsonPropertyName("max")]
-        public int Max { get; set; }
-
-        [JsonPropertyName("defaultSlots")]
-        public int DefaultSlots { get; set; }
-    }
-
-    private sealed class LevelConditionWriteDto
-    {
-        [JsonPropertyName("type")]
-        public string Type { get; set; } = string.Empty;
     }
 }

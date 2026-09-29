@@ -37,7 +37,7 @@ public sealed class MatchCellActionChooserView
         _panel.Visual.YOrigin = VerticalAlignment.Bottom;
         root.AddChild(_panel);
 
-        GumUiLayout.AddSolidBackground(_panel, MatchUiColors.OverlayDark);
+        GumUiLayout.AddSolidBackground(_panel, UiColors.MatchOverlayDark);
 
         var stack = new Panel();
         stack.Visual.HasEvents = false;

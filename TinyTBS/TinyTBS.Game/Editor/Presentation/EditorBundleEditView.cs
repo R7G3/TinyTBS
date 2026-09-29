@@ -20,10 +20,8 @@ public sealed class EditorBundleEditView
         Menu = 1,
     }
 
-    private const float TextFieldHeight = 36f;
     private const float StackSpacing = 6f;
     private const float MinScrollViewport = 120f;
-    private const float SettingsListMinHeight = 260f;
 
     private Panel? _rootPanel;
     private ScrollViewer? _settingsScroll;
@@ -62,58 +60,36 @@ public sealed class EditorBundleEditView
         _availableModules = availableModules ?? [];
         _isNew = isNew;
 
-        _rootPanel = new Panel();
-        _rootPanel.Dock(Dock.Fill);
-        _rootPanel.AddToRoot();
+        var built = EditorTwoColumnFormShell.Build(
+            isNew ? "New Bundle" : "Edit Bundle — " + _document.Id,
+            "Modules = preset contents. Defaults = New Game start composition (must be listed above). Theme is required.",
+            maxShellWidthPixels: 780f);
+        _rootPanel = built.RootPanel;
+        _settingsHost = built.SettingsHost;
+        _settingsScroll = built.SettingsScroll;
 
-        var body = new Panel();
-        body.Dock(Dock.Fill);
-        _rootPanel.AddChild(body);
+        _statusLabel = new Label { Text = string.Empty };
+        GumUiLayout.FillParentWidth(_statusLabel);
+        built.MenuHost.AddChild(_statusLabel);
 
-        var shell = new Panel();
-        GumUiLayout.CenterHorizontallyInParent(shell);
-        shell.Visual.Y = 12f;
-        GumUiLayout.SetBoundedWidth(shell, maxPixels: 780f, parentPercent: 96f);
-        var canvasHeight = Math.Max(320f, GumService.Default.CanvasHeight);
-        var shellHeight = Math.Max(320f, canvasHeight - 24f);
-        const float topChrome = 10f + 26f + 26f + StackSpacing * 3f;
-        const float bottomChrome = 10f;
-        const float columnHeader = 26f + 4f;
-        var listHeight = Math.Max(SettingsListMinHeight, shellHeight - topChrome - bottomChrome - columnHeader);
-        GumUiLayout.SetAbsoluteHeight(shell, topChrome + bottomChrome + columnHeader + listHeight);
-        body.AddChild(shell);
-        GumUiLayout.AddSolidBackground(shell, EditorUiColors.Panel);
-
-        var rootStack = GumUiLayout.CreateVerticalStackPanel(spacing: StackSpacing, widthPercent: 94f);
-        GumUiLayout.CenterHorizontallyInParent(rootStack);
-        shell.AddChild(rootStack);
-        GumUiLayout.AddVerticalSpacer(rootStack, 10f);
-
-        var heading = new Label { Text = isNew ? "New Bundle" : "Edit Bundle — " + _document.Id };
-        GumUiLayout.FillParentWidth(heading);
-        rootStack.AddChild(heading);
-
-        var hint = new Label
-        {
-            Text = "Modules = preset contents. Defaults = New Game start composition (must be listed above). Theme is required.",
-        };
-        GumUiLayout.FillParentWidth(hint);
-        rootStack.AddChild(hint);
-
-        var columns = new Panel();
-        GumUiLayout.FillParentWidth(columns);
-        columns.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        columns.Visual.ChildrenLayout = ChildrenLayout.LeftToRightStack;
-        columns.Visual.StackSpacing = 10f;
-        rootStack.AddChild(columns);
-
-        var leftColumn = CreateColumn(columns, "Settings", listHeight, out _settingsHost, out _settingsScroll);
-        var rightColumn = CreateMenuColumn(columns, listHeight, onSave, onBack);
-        GumUiLayout.SetWidthPercent(leftColumn, 62f);
-        GumUiLayout.SetWidthPercent(rightColumn, 36f);
+        EditorTwoColumnFormShell.AddMenuButton(
+            built.MenuHost,
+            _menuEntries,
+            "Save bundle",
+            () =>
+            {
+                ApplyTextFields();
+                onSave();
+            },
+            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
+        EditorTwoColumnFormShell.AddMenuButton(
+            built.MenuHost,
+            _menuEntries,
+            "Back",
+            onBack,
+            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
 
         RebuildSettingsColumn();
-        GumUiLayout.AddVerticalSpacer(rootStack, 10f);
         SetFocusZone(FocusZone.Settings, resetIndex: true);
     }
 
@@ -209,11 +185,11 @@ public sealed class EditorBundleEditView
         _settingsHost.Visual.Children.Clear();
         _settingsEntries.Clear();
 
-        AddTextField(_settingsHost, "Id (file stem)", _document.Id, out _idBox);
+        EditorTwoColumnFormShell.AddTextField(_settingsHost, "Id (file stem)", _document.Id, out _idBox);
         if (!_isNew && _idBox is not null)
             _idBox.IsEnabled = false;
 
-        AddTextField(_settingsHost, "Title", _document.Title, out _titleBox);
+        EditorTwoColumnFormShell.AddTextField(_settingsHost, "Title", _document.Title, out _titleBox);
 
         AddSectionLabel("Modules (toggle)");
         foreach (var module in _availableModules.OrderBy(module => module.ModuleId, StringComparer.OrdinalIgnoreCase))
@@ -441,100 +417,14 @@ public sealed class EditorBundleEditView
         _settingsHost.AddChild(label);
     }
 
-    private Panel CreateMenuColumn(Panel columns, float listHeight, Action onSave, Action onBack)
-    {
-        var column = new Panel();
-        column.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        column.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
-        column.Visual.StackSpacing = 4f;
-        columns.AddChild(column);
-
-        var header = new Label { Text = "Menu" };
-        GumUiLayout.FillParentWidth(header);
-        column.AddChild(header);
-
-        var host = new Panel();
-        GumUiLayout.FillParentWidth(host);
-        host.Visual.Height = listHeight;
-        host.Visual.HeightUnits = DimensionUnitType.Absolute;
-        host.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
-        host.Visual.StackSpacing = 6f;
-        column.AddChild(host);
-
-        _statusLabel = new Label { Text = string.Empty };
-        GumUiLayout.FillParentWidth(_statusLabel);
-        host.AddChild(_statusLabel);
-
-        AddMenuButton(host, "Save bundle", () =>
-        {
-            ApplyTextFields();
-            onSave();
-        });
-        AddMenuButton(host, "Back", onBack);
-        return column;
-    }
-
-    private static Panel CreateColumn(
-        Panel columns,
-        string headerText,
-        float listHeight,
-        out Panel host,
-        out ScrollViewer scroll)
-    {
-        var column = new Panel();
-        column.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        column.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
-        column.Visual.StackSpacing = 4f;
-        columns.AddChild(column);
-
-        var header = new Label { Text = headerText };
-        GumUiLayout.FillParentWidth(header);
-        column.AddChild(header);
-
-        scroll = new ScrollViewer();
-        GumUiLayout.FillParentWidth(scroll);
-        scroll.Visual.Height = listHeight;
-        scroll.Visual.HeightUnits = DimensionUnitType.Absolute;
-        scroll.InnerPanel.WidthUnits = DimensionUnitType.RelativeToParent;
-        scroll.InnerPanel.Width = 0;
-        scroll.InnerPanel.HeightUnits = DimensionUnitType.RelativeToChildren;
-        scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-        GumScrollViewerChrome.DisableScrollChromeFocus(scroll);
-        column.AddChild(scroll);
-
-        host = new Panel();
-        host.Visual.HasEvents = false;
-        host.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        host.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
-        host.Visual.StackSpacing = StackSpacing;
-        GumUiLayout.FillParentWidth(host);
-        scroll.AddChild(host);
-        return column;
-    }
-
-    private bool TrySwitchColumn(IGameCommandSource commands)
-    {
-        var toMenu = commands.WasPressed(GameCommand.NavigateRight)
-            || commands.WasPressed(GameCommand.FocusNextRegion)
-            || commands.WasPressed(GameCommand.ZoomIn);
-        var toSettings = commands.WasPressed(GameCommand.NavigateLeft)
-            || commands.WasPressed(GameCommand.FocusPreviousRegion)
-            || commands.WasPressed(GameCommand.ZoomOut);
-
-        if (toMenu && _focusZone == FocusZone.Settings)
-        {
-            SetFocusZone(FocusZone.Menu, resetIndex: false);
-            return true;
-        }
-
-        if (toSettings && _focusZone == FocusZone.Menu)
-        {
-            SetFocusZone(FocusZone.Settings, resetIndex: false);
-            return true;
-        }
-
-        return (toMenu && _focusZone == FocusZone.Menu) || (toSettings && _focusZone == FocusZone.Settings);
-    }
+    private bool TrySwitchColumn(IGameCommandSource commands) =>
+        EditorTwoColumnFormShell.TrySwitchTwoZones(
+            commands,
+            allowDpadColumnSwitch: true,
+            currentZone: (int)_focusZone,
+            settingsZone: (int)FocusZone.Settings,
+            menuZone: (int)FocusZone.Menu,
+            setZone: zone => SetFocusZone((FocusZone)zone, resetIndex: false));
 
     private void SetFocusZone(FocusZone zone, bool resetIndex)
     {
@@ -582,18 +472,6 @@ public sealed class EditorBundleEditView
             MinScrollViewport);
     }
 
-    private static void AddTextField(Panel parent, string caption, string initialText, out TextBox textBox)
-    {
-        var label = new Label { Text = caption };
-        GumUiLayout.FillParentWidth(label);
-        parent.AddChild(label);
-        textBox = new TextBox { Text = initialText };
-        GumUiLayout.FillParentWidth(textBox);
-        GumUiLayout.SetAbsoluteHeight(textBox, TextFieldHeight);
-        EditorTextFieldStyle.Apply(textBox);
-        parent.AddChild(textBox);
-    }
-
     private void AddSettingsButton(string text, Action onClick)
     {
         if (_settingsHost is null)
@@ -615,26 +493,5 @@ public sealed class EditorBundleEditView
             SetFocusZone(FocusZone.Settings, resetIndex: false);
             onClick();
         };
-    }
-
-    private void AddMenuButton(Panel parent, string text, Action onClick)
-    {
-        var button = new Button { Text = text };
-        GumUiLayout.FillParentWidth(button);
-        button.Click += (_, _) =>
-        {
-            for (var i = 0; i < _menuEntries.Count; i++)
-            {
-                if (!ReferenceEquals(_menuEntries[i].Button, button))
-                    continue;
-                _menuFocusIndex = i;
-                break;
-            }
-
-            SetFocusZone(FocusZone.Menu, resetIndex: false);
-            onClick();
-        };
-        parent.AddChild(button);
-        _menuEntries.Add((button, onClick));
     }
 }

@@ -82,10 +82,10 @@ public sealed class EditableBuildingDocument
             throw new EditorException("Missing building file: " + buildingJsonPath);
 
         using var stream = files.OpenRead(buildingJsonPath);
-        BuildingDefinitionDto? dto;
+        BuildingDefinitionDto? definitionDto;
         try
         {
-            dto = JsonSerializer.Deserialize<BuildingDefinitionDto>(stream, new JsonSerializerOptions
+            definitionDto = JsonSerializer.Deserialize<BuildingDefinitionDto>(stream, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,
@@ -97,37 +97,37 @@ public sealed class EditableBuildingDocument
             throw new EditorException("Failed to parse building JSON.", exception);
         }
 
-        if (dto is null)
+        if (definitionDto is null)
             throw new EditorException("Building JSON deserialized to null.");
 
-        var id = string.IsNullOrWhiteSpace(dto.Id) ? "building" : dto.Id.Trim();
+        var id = string.IsNullOrWhiteSpace(definitionDto.Id) ? "building" : definitionDto.Id.Trim();
         EditableBuildingHeal? heal = null;
-        if (dto.Heal is not null)
+        if (definitionDto.Heal is not null)
         {
             heal = new EditableBuildingHeal
             {
-                Amount = dto.Heal.Amount,
-                Scope = string.IsNullOrWhiteSpace(dto.Heal.Scope) ? "allied" : dto.Heal.Scope.Trim(),
+                Amount = definitionDto.Heal.Amount,
+                Scope = string.IsNullOrWhiteSpace(definitionDto.Heal.Scope) ? "allied" : definitionDto.Heal.Scope.Trim(),
             };
         }
 
         EditableBuildingRuined? ruined = null;
-        var hasRuined = dto.Ruined is not null;
-        if (dto.Ruined is not null)
+        var hasRuined = definitionDto.Ruined is not null;
+        if (definitionDto.Ruined is not null)
         {
             ruined = new EditableBuildingRuined
             {
-                Income = dto.Ruined.Income,
-                DefenceBonus = dto.Ruined.DefenceBonus,
-                Capturable = dto.Ruined.Capturable,
-                Heal = dto.Ruined.Heal is null
+                Income = definitionDto.Ruined.Income,
+                DefenceBonus = definitionDto.Ruined.DefenceBonus,
+                Capturable = definitionDto.Ruined.Capturable,
+                Heal = definitionDto.Ruined.Heal is null
                     ? null
                     : new EditableBuildingHeal
                     {
-                        Amount = dto.Ruined.Heal.Amount,
-                        Scope = string.IsNullOrWhiteSpace(dto.Ruined.Heal.Scope)
+                        Amount = definitionDto.Ruined.Heal.Amount,
+                        Scope = string.IsNullOrWhiteSpace(definitionDto.Ruined.Heal.Scope)
                             ? "none"
-                            : dto.Ruined.Heal.Scope.Trim(),
+                            : definitionDto.Ruined.Heal.Scope.Trim(),
                     },
             };
         }
@@ -136,34 +136,34 @@ public sealed class EditableBuildingDocument
         {
             OriginalId = id,
             Id = id,
-            DisplayNameKey = string.IsNullOrWhiteSpace(dto.DisplayNameKey)
+            DisplayNameKey = string.IsNullOrWhiteSpace(definitionDto.DisplayNameKey)
                 ? "buildings." + id
-                : dto.DisplayNameKey.Trim(),
-            Tags = dto.Tags?.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList() ?? [],
-            SpriteBase = string.IsNullOrWhiteSpace(dto.Sprites?.Base)
+                : definitionDto.DisplayNameKey.Trim(),
+            Tags = definitionDto.Tags?.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList() ?? [],
+            SpriteBase = string.IsNullOrWhiteSpace(definitionDto.Sprites?.Base)
                 ? "Resources/Images/buildings/" + id + "_base.png"
-                : dto.Sprites!.Base!.Trim().Replace('\\', '/'),
-            SpriteMask = string.IsNullOrWhiteSpace(dto.Sprites?.Mask)
+                : definitionDto.Sprites!.Base!.Trim().Replace('\\', '/'),
+            SpriteMask = string.IsNullOrWhiteSpace(definitionDto.Sprites?.Mask)
                 ? "Resources/Images/buildings/" + id + "_mask.png"
-                : dto.Sprites!.Mask!.Trim().Replace('\\', '/'),
-            SpriteRuinedBase = string.IsNullOrWhiteSpace(dto.Sprites?.RuinedBase)
+                : definitionDto.Sprites!.Mask!.Trim().Replace('\\', '/'),
+            SpriteRuinedBase = string.IsNullOrWhiteSpace(definitionDto.Sprites?.RuinedBase)
                 ? null
-                : dto.Sprites!.RuinedBase!.Trim().Replace('\\', '/'),
-            SpriteRuinedMask = string.IsNullOrWhiteSpace(dto.Sprites?.RuinedMask)
+                : definitionDto.Sprites!.RuinedBase!.Trim().Replace('\\', '/'),
+            SpriteRuinedMask = string.IsNullOrWhiteSpace(definitionDto.Sprites?.RuinedMask)
                 ? null
-                : dto.Sprites!.RuinedMask!.Trim().Replace('\\', '/'),
-            Income = dto.Income,
-            DefenceBonus = dto.DefenceBonus,
-            AllowsRecruit = dto.AllowsRecruit,
-            RecruitFromTags = dto.RecruitFromTags?
+                : definitionDto.Sprites!.RuinedMask!.Trim().Replace('\\', '/'),
+            Income = definitionDto.Income,
+            DefenceBonus = definitionDto.DefenceBonus,
+            AllowsRecruit = definitionDto.AllowsRecruit,
+            RecruitFromTags = definitionDto.RecruitFromTags?
                 .Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList() ?? [],
             Heal = heal,
-            Capturable = dto.Capturable,
-            Destroyable = dto.Destroyable,
-            Repairable = dto.Repairable,
+            Capturable = definitionDto.Capturable,
+            Destroyable = definitionDto.Destroyable,
+            Repairable = definitionDto.Repairable,
             HasRuined = hasRuined,
             Ruined = ruined,
-            CountsTowardPlayerDefeat = dto.CountsTowardPlayerDefeat,
+            CountsTowardPlayerDefeat = definitionDto.CountsTowardPlayerDefeat,
             IsDirty = false,
         };
     }

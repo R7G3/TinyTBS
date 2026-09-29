@@ -106,7 +106,7 @@ public sealed class EditorHubView
         var listHeight = Math.Max(ListMinHeight, shellHeight - topChrome - bottomChrome - columnHeader);
         GumUiLayout.SetAbsoluteHeight(_shell, topChrome + bottomChrome + columnHeader + listHeight);
         body.AddChild(_shell);
-        GumUiLayout.AddSolidBackground(_shell, EditorUiColors.Panel);
+        GumUiLayout.AddSolidBackground(_shell, UiColors.EditorPanel);
 
         var rootStack = GumUiLayout.CreateVerticalStackPanel(spacing: StackSpacing, widthPercent: 94f);
         GumUiLayout.CenterHorizontallyInParent(rootStack);
@@ -773,6 +773,6 @@ public sealed class EditorHubView
         if (scrollViewer.Visual is not ScrollViewerVisual visual)
             return;
 
-        visual.BackgroundColor = EditorUiColors.ListWell;
+        visual.BackgroundColor = UiColors.EditorListWell;
     }
 }

@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Units;
 using TinyTBS.Game.Modules;
+using TinyTBS.Game.Units.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 
@@ -33,7 +34,7 @@ public sealed class UnitDocumentWriter
         var unitsDir = ResolveUnitsDir(unitsModuleRoot);
         Directory.CreateDirectory(unitsDir);
 
-        var payload = new UnitWriteDto
+        var payload = new UnitDefinitionDto
         {
             FormatVersion = 1,
             Id = id,
@@ -50,7 +51,7 @@ public sealed class UnitDocumentWriter
             AttackRangeMax = Math.Max(document.AttackRangeMin, document.AttackRangeMax),
             Speed = Math.Max(0, document.Speed),
             Cost = Math.Max(0, document.Cost),
-            Abilities = document.Abilities.Select(ability => new UnitAbilityWriteDto
+            Abilities = document.Abilities.Select(ability => new UnitAbilityDto
             {
                 Type = ability.Type.Trim(),
                 Amount = ability.Amount,
@@ -61,9 +62,9 @@ public sealed class UnitDocumentWriter
                     ? null
                     : ability.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList(),
             }).ToList(),
-            SpecialCoefficients = document.SpecialCoefficients.Select(coefficient => new UnitSpecialWriteDto
+            SpecialCoefficients = document.SpecialCoefficients.Select(coefficient => new UnitSpecialCoefficientDto
             {
-                When = new UnitSpecialWhenWriteDto
+                When = new UnitSpecialWhenDto
                 {
                     Default = coefficient.WhenDefault ? true : null,
                     TargetHasTag = coefficient.WhenDefault || string.IsNullOrWhiteSpace(coefficient.TargetHasTag)
@@ -76,7 +77,7 @@ public sealed class UnitDocumentWriter
                 Multiply = coefficient.Multiply,
             }).ToList(),
             LeavesGravestone = document.LeavesGravestone,
-            Sprites = new UnitSpritesWriteDto
+            Sprites = new UnitSpritesDto
             {
                 Base = string.IsNullOrWhiteSpace(document.SpriteBase) ? null : document.SpriteBase.Trim().Replace('\\', '/'),
                 Mask = string.IsNullOrWhiteSpace(document.SpriteMask) ? null : document.SpriteMask.Trim().Replace('\\', '/'),
@@ -109,7 +110,7 @@ public sealed class UnitDocumentWriter
         try
         {
             using var stream = File.OpenRead(moduleJsonPath);
-            var manifest = JsonSerializer.Deserialize<UnitModuleManifestReadDto>(stream, new JsonSerializerOptions
+            var manifest = JsonSerializer.Deserialize<UnitModuleJsonDto>(stream, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
             });
@@ -133,7 +134,7 @@ public sealed class UnitDocumentWriter
         try
         {
             using var stream = File.OpenRead(moduleJsonPath);
-            var manifest = JsonSerializer.Deserialize<UnitModuleManifestReadDto>(stream, new JsonSerializerOptions
+            var manifest = JsonSerializer.Deserialize<UnitModuleJsonDto>(stream, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
             });
@@ -212,128 +213,5 @@ public sealed class UnitDocumentWriter
     {
         var value = string.IsNullOrWhiteSpace(movementClass) ? "foot" : movementClass.Trim().ToLowerInvariant();
         return value is "foot" or "water" or "fly" ? value : "foot";
-    }
-
-    private sealed class UnitModuleManifestReadDto
-    {
-        [JsonPropertyName("id")]
-        public string? Id { get; set; }
-
-        [JsonPropertyName("namespace")]
-        public string? Namespace { get; set; }
-
-        [JsonPropertyName("content")]
-        public UnitModuleContentReadDto? Content { get; set; }
-    }
-
-    private sealed class UnitModuleContentReadDto
-    {
-        [JsonPropertyName("unitsDir")]
-        public string? UnitsDir { get; set; }
-    }
-
-    private sealed class UnitWriteDto
-    {
-        [JsonPropertyName("formatVersion")]
-        public int FormatVersion { get; set; }
-
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
-
-        [JsonPropertyName("displayNameKey")]
-        public string DisplayNameKey { get; set; } = string.Empty;
-
-        [JsonPropertyName("movementClass")]
-        public string MovementClass { get; set; } = "foot";
-
-        [JsonPropertyName("tags")]
-        public List<string> Tags { get; set; } = [];
-
-        [JsonPropertyName("recruitable")]
-        public bool Recruitable { get; set; }
-
-        [JsonPropertyName("attack")]
-        public int Attack { get; set; }
-
-        [JsonPropertyName("defence")]
-        public int Defence { get; set; }
-
-        [JsonPropertyName("maxHealth")]
-        public int MaxHealth { get; set; }
-
-        [JsonPropertyName("attackRangeMin")]
-        public int AttackRangeMin { get; set; }
-
-        [JsonPropertyName("attackRangeMax")]
-        public int AttackRangeMax { get; set; }
-
-        [JsonPropertyName("speed")]
-        public int Speed { get; set; }
-
-        [JsonPropertyName("cost")]
-        public int Cost { get; set; }
-
-        [JsonPropertyName("abilities")]
-        public List<UnitAbilityWriteDto> Abilities { get; set; } = [];
-
-        [JsonPropertyName("specialCoefficients")]
-        public List<UnitSpecialWriteDto> SpecialCoefficients { get; set; } = [];
-
-        [JsonPropertyName("leavesGravestone")]
-        public bool LeavesGravestone { get; set; }
-
-        [JsonPropertyName("sprites")]
-        public UnitSpritesWriteDto? Sprites { get; set; }
-    }
-
-    private sealed class UnitAbilityWriteDto
-    {
-        [JsonPropertyName("type")]
-        public string Type { get; set; } = string.Empty;
-
-        [JsonPropertyName("amount")]
-        public int? Amount { get; set; }
-
-        [JsonPropertyName("minRange")]
-        public int? MinRange { get; set; }
-
-        [JsonPropertyName("value")]
-        public int? Value { get; set; }
-
-        [JsonPropertyName("radius")]
-        public int? Radius { get; set; }
-
-        [JsonPropertyName("tags")]
-        public List<string>? Tags { get; set; }
-    }
-
-    private sealed class UnitSpecialWriteDto
-    {
-        [JsonPropertyName("when")]
-        public UnitSpecialWhenWriteDto When { get; set; } = new();
-
-        [JsonPropertyName("multiply")]
-        public double Multiply { get; set; }
-    }
-
-    private sealed class UnitSpecialWhenWriteDto
-    {
-        [JsonPropertyName("default")]
-        public bool? Default { get; set; }
-
-        [JsonPropertyName("targetHasTag")]
-        public string? TargetHasTag { get; set; }
-
-        [JsonPropertyName("manhattanRange")]
-        public int? ManhattanRange { get; set; }
-    }
-
-    private sealed class UnitSpritesWriteDto
-    {
-        [JsonPropertyName("base")]
-        public string? Base { get; set; }
-
-        [JsonPropertyName("mask")]
-        public string? Mask { get; set; }
     }
 }

@@ -84,7 +84,7 @@ public sealed class EditorNewMapView
         var canvasHeight = Math.Max(320f, GumService.Default.CanvasHeight);
         GumUiLayout.SetBoundedHeight(shell, maxPixels: canvasHeight - 32f, parentPercent: 94f);
         body.AddChild(shell);
-        GumUiLayout.AddSolidBackground(shell, EditorUiColors.Panel);
+        GumUiLayout.AddSolidBackground(shell, UiColors.EditorPanel);
 
         var scroll = new ScrollViewer();
         scroll.Dock(Dock.Fill);

@@ -42,7 +42,7 @@ public sealed class EditorMapScriptView
         var canvasHeight = Math.Max(320f, GumService.Default.CanvasHeight);
         GumUiLayout.SetBoundedHeight(shell, maxPixels: canvasHeight - 24f, parentPercent: 94f);
         body.AddChild(shell);
-        GumUiLayout.AddSolidBackground(shell, EditorUiColors.Panel);
+        GumUiLayout.AddSolidBackground(shell, UiColors.EditorPanel);
 
         var stack = GumUiLayout.CreateVerticalStackPanel(spacing: 8f, widthPercent: 94f);
         GumUiLayout.CenterHorizontallyInParent(stack);

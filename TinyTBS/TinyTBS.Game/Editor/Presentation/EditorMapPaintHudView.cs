@@ -17,13 +17,6 @@ using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Editor.Presentation;
 
-public enum EditorContentTab
-{
-    Terrain = 0,
-    Buildings = 1,
-    Units = 2,
-}
-
 /// <summary>
 /// Map paint HUD: left Content (tabs + icons), right Tools; LB/RB cycles Content/Map/Tools.
 /// </summary>
@@ -331,7 +324,7 @@ public sealed class EditorMapPaintHudView
                 continue;
             background.FillColor = focused
                 ? new Color(28, 42, 64, 245)
-                : EditorUiColors.Panel;
+                : UiColors.EditorPanel;
             break;
         }
     }
@@ -344,7 +337,7 @@ public sealed class EditorMapPaintHudView
         panel.Visual.Height = height;
         panel.Visual.HeightUnits = DimensionUnitType.Absolute;
         panel.Visual.HasEvents = true;
-        GumUiLayout.AddSolidBackground(panel, EditorUiColors.Panel);
+        GumUiLayout.AddSolidBackground(panel, UiColors.EditorPanel);
 
         stack = GumUiLayout.CreateVerticalStackPanel(spacing: 4f, widthPercent: 94f);
         GumUiLayout.CenterHorizontallyInParent(stack);

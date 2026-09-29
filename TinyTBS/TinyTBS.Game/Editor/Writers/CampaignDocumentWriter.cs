@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Campaigns;
+using TinyTBS.Game.Campaigns.Models;
 using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Editor.Writers;
@@ -44,14 +44,14 @@ public sealed class CampaignDocumentWriter
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .Select(id => id.Trim())
             .Distinct(StringComparer.Ordinal)
-            .Select(id => new CampaignLevelWriteDto
+            .Select(id => new CampaignLevelJsonDto
             {
                 LevelId = id,
                 Path = "Levels/" + id,
             })
             .ToList();
 
-        var payload = new CampaignWriteDto
+        var payload = new CampaignJsonDto
         {
             FormatVersion = 1,
             Id = campaignId.Trim(),
@@ -74,29 +74,5 @@ public sealed class CampaignDocumentWriter
 
         ScenarioModuleCampaignLinker.EnsureCampaignContentPath(scenarioModuleRoot, _files);
         return manifestPath;
-    }
-
-    private sealed class CampaignWriteDto
-    {
-        [JsonPropertyName("formatVersion")]
-        public int FormatVersion { get; set; }
-
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
-
-        [JsonPropertyName("title")]
-        public string Title { get; set; } = string.Empty;
-
-        [JsonPropertyName("levels")]
-        public List<CampaignLevelWriteDto> Levels { get; set; } = [];
-    }
-
-    private sealed class CampaignLevelWriteDto
-    {
-        [JsonPropertyName("levelId")]
-        public string LevelId { get; set; } = string.Empty;
-
-        [JsonPropertyName("path")]
-        public string Path { get; set; } = string.Empty;
     }
 }

@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
+using TinyTBS.Game.Buildings.Models;
 using TinyTBS.Game.Editor.Buildings;
 using TinyTBS.Game.Modules;
 
@@ -33,28 +34,28 @@ public sealed class BuildingDocumentWriter
         var buildingsDir = ResolveBuildingsDir(buildingsModuleRoot);
         Directory.CreateDirectory(buildingsDir);
 
-        BuildingHealWriteDto? heal = null;
+        BuildingHealDto? heal = null;
         if (document.Heal is not null)
         {
-            heal = new BuildingHealWriteDto
+            heal = new BuildingHealDto
             {
                 Amount = Math.Max(0, document.Heal.Amount),
                 Scope = string.IsNullOrWhiteSpace(document.Heal.Scope) ? "allied" : document.Heal.Scope.Trim(),
             };
         }
 
-        BuildingRuinedWriteDto? ruined = null;
+        BuildingRuinedDto? ruined = null;
         if (document.HasRuined)
         {
             var source = document.Ruined ?? new EditableBuildingRuined();
-            ruined = new BuildingRuinedWriteDto
+            ruined = new BuildingRuinedDto
             {
                 Income = source.Income,
                 DefenceBonus = source.DefenceBonus,
                 Capturable = source.Capturable,
                 Heal = source.Heal is null
                     ? null
-                    : new BuildingHealWriteDto
+                    : new BuildingHealDto
                     {
                         Amount = Math.Max(0, source.Heal.Amount),
                         Scope = string.IsNullOrWhiteSpace(source.Heal.Scope) ? "none" : source.Heal.Scope.Trim(),
@@ -62,7 +63,7 @@ public sealed class BuildingDocumentWriter
             };
         }
 
-        var payload = new BuildingWriteDto
+        var payload = new BuildingDefinitionDto
         {
             FormatVersion = 1,
             Id = id,
@@ -70,7 +71,7 @@ public sealed class BuildingDocumentWriter
                 ? "buildings." + id
                 : document.DisplayNameKey.Trim(),
             Tags = document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList(),
-            Sprites = new BuildingSpritesWriteDto
+            Sprites = new BuildingSpritesDto
             {
                 Base = document.SpriteBase.Trim().Replace('\\', '/'),
                 Mask = document.SpriteMask.Trim().Replace('\\', '/'),
@@ -119,7 +120,7 @@ public sealed class BuildingDocumentWriter
         try
         {
             using var stream = File.OpenRead(moduleJsonPath);
-            var manifest = JsonSerializer.Deserialize<BuildingModuleManifestReadDto>(stream, new JsonSerializerOptions
+            var manifest = JsonSerializer.Deserialize<BuildingModuleJsonDto>(stream, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
             });
@@ -132,104 +133,5 @@ public sealed class BuildingDocumentWriter
         }
 
         return _files.Combine(moduleRoot, "Buildings");
-    }
-
-    private sealed class BuildingModuleManifestReadDto
-    {
-        [JsonPropertyName("content")]
-        public BuildingModuleContentReadDto? Content { get; set; }
-    }
-
-    private sealed class BuildingModuleContentReadDto
-    {
-        [JsonPropertyName("buildingsDir")]
-        public string? BuildingsDir { get; set; }
-    }
-
-    private sealed class BuildingWriteDto
-    {
-        [JsonPropertyName("formatVersion")]
-        public int FormatVersion { get; set; }
-
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
-
-        [JsonPropertyName("displayNameKey")]
-        public string DisplayNameKey { get; set; } = string.Empty;
-
-        [JsonPropertyName("tags")]
-        public List<string> Tags { get; set; } = [];
-
-        [JsonPropertyName("sprites")]
-        public BuildingSpritesWriteDto Sprites { get; set; } = new();
-
-        [JsonPropertyName("income")]
-        public int Income { get; set; }
-
-        [JsonPropertyName("defenceBonus")]
-        public int DefenceBonus { get; set; }
-
-        [JsonPropertyName("allowsRecruit")]
-        public bool AllowsRecruit { get; set; }
-
-        [JsonPropertyName("recruitFromTags")]
-        public List<string> RecruitFromTags { get; set; } = [];
-
-        [JsonPropertyName("heal")]
-        public BuildingHealWriteDto? Heal { get; set; }
-
-        [JsonPropertyName("capturable")]
-        public bool Capturable { get; set; }
-
-        [JsonPropertyName("destroyable")]
-        public bool Destroyable { get; set; }
-
-        [JsonPropertyName("repairable")]
-        public bool Repairable { get; set; }
-
-        [JsonPropertyName("ruined")]
-        public BuildingRuinedWriteDto? Ruined { get; set; }
-
-        [JsonPropertyName("countsTowardPlayerDefeat")]
-        public bool CountsTowardPlayerDefeat { get; set; }
-    }
-
-    private sealed class BuildingSpritesWriteDto
-    {
-        [JsonPropertyName("base")]
-        public string Base { get; set; } = string.Empty;
-
-        [JsonPropertyName("mask")]
-        public string Mask { get; set; } = string.Empty;
-
-        [JsonPropertyName("ruinedBase")]
-        public string? RuinedBase { get; set; }
-
-        [JsonPropertyName("ruinedMask")]
-        public string? RuinedMask { get; set; }
-    }
-
-    private sealed class BuildingHealWriteDto
-    {
-        [JsonPropertyName("amount")]
-        public int Amount { get; set; }
-
-        [JsonPropertyName("scope")]
-        public string Scope { get; set; } = "allied";
-    }
-
-    private sealed class BuildingRuinedWriteDto
-    {
-        [JsonPropertyName("income")]
-        public int Income { get; set; }
-
-        [JsonPropertyName("defenceBonus")]
-        public int DefenceBonus { get; set; }
-
-        [JsonPropertyName("heal")]
-        public BuildingHealWriteDto? Heal { get; set; }
-
-        [JsonPropertyName("capturable")]
-        public bool Capturable { get; set; }
     }
 }

@@ -19,6 +19,9 @@ internal sealed class ScenarioModuleJsonDto
     [JsonPropertyName("title")]
     public string? Title { get; set; }
 
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+
     [JsonPropertyName("version")]
     public string? Version { get; set; }
 

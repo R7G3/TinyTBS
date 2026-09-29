@@ -4,6 +4,7 @@ using Gum.GueDeriving;
 using Gum.Wireframe;
 using RenderingLibrary.Graphics;
 using TinyTBS.Engine.GumLayout;
+using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Presentation.Match.Controls;
 
@@ -53,7 +54,7 @@ internal sealed class GumTeamIconSlot
         iconSlot.Visual.WidthUnits = DimensionUnitType.Absolute;
         iconSlot.Visual.Height = iconSize;
         iconSlot.Visual.HeightUnits = DimensionUnitType.Absolute;
-        GumUiLayout.AddSolidBackground(iconSlot, MatchUiColors.IconSlot);
+        GumUiLayout.AddSolidBackground(iconSlot, UiColors.MatchIconSlot);
         return iconSlot;
     }
 

@@ -3,6 +3,7 @@ using Gum.Forms.Controls;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TinyTBS.Game.Campaigns;
+using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Ai;
@@ -298,7 +299,7 @@ public sealed class GameplayMatchController
 
     public void Draw(GameTime gameTime)
     {
-        _graphicsDevice.Clear(MatchUiColors.SceneClear);
+        _graphicsDevice.Clear(UiColors.MatchSceneClear);
 
         if (_session is not null)
         {

@@ -54,7 +54,7 @@ public sealed class AboutView
         var shellHeight = Math.Max(300f, Math.Min(canvasHeight - 24f, 560f));
         GumUiLayout.SetAbsoluteHeight(shell, shellHeight);
         body.AddChild(shell);
-        GumUiLayout.AddSolidBackground(shell, ContentUiColors.Panel);
+        GumUiLayout.AddSolidBackground(shell, UiColors.MenuPanel);
 
         var rootStack = GumUiLayout.CreateVerticalStackPanel(spacing: StackSpacing, widthPercent: 94f);
         GumUiLayout.CenterHorizontallyInParent(rootStack);
@@ -292,7 +292,7 @@ public sealed class AboutView
     {
         if (scrollViewer.Visual is not ScrollViewerVisual visual)
             return;
-        visual.BackgroundColor = ContentUiColors.ListWell;
+        visual.BackgroundColor = UiColors.MenuListWell;
     }
 
     /// <summary>Per-command repeat timers for scroll (Up and Down independently).</summary>

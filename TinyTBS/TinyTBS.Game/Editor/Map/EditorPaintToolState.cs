@@ -3,21 +3,6 @@ using TinyTBS.Game.Match;
 
 namespace TinyTBS.Game.Editor.Map;
 
-public enum EditorPaintMode
-{
-    Place,
-    Erase,
-    Label,
-}
-
-public enum EditorPaintContentKind
-{
-    Terrain,
-    Building,
-    Unit,
-    Gravestone,
-}
-
 /// <summary>Selected content (left) + mode Place/Erase/Label + owner slot (right).</summary>
 public sealed class EditorPaintToolState
 {

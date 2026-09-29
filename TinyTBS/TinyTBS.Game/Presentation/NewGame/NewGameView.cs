@@ -112,7 +112,7 @@ public sealed class NewGameView
         GumUiLayout.SetBoundedWidth(_shell, PanelMaxWidth, parentPercent: 94f);
         _shell.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
         bodyPanel.AddChild(_shell);
-        GumUiLayout.AddSolidBackground(_shell, UiPanelColors.Panel);
+        GumUiLayout.AddSolidBackground(_shell, UiColors.MenuPanel);
 
         var stack = GumUiLayout.CreateVerticalStackPanel(spacing: stackSpacing, widthPercent: 94f);
         GumUiLayout.CenterHorizontallyInParent(stack);
