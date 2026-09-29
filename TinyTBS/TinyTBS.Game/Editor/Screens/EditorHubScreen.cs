@@ -4,8 +4,10 @@ using MonoGame.Extended.Screens;
 using TinyTBS.Engine.Input;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
+using TinyTBS.Game.Editor.Buildings;
 using TinyTBS.Game.Editor.Map;
 using TinyTBS.Game.Editor.Presentation;
+using TinyTBS.Game.Editor.Units;
 using TinyTBS.Game.Editor.ViewModels;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
@@ -19,7 +21,7 @@ using TinyTBS.Game.Screens;
 namespace TinyTBS.Game.Editor.Screens;
 
 /// <summary>
-/// Editor hub: modules, CoW duplicate, open session, maps/levels/campaign (slice 1–4).
+/// Editor hub: modules, CoW duplicate, open session, maps/levels/campaign/units/buildings.
 /// </summary>
 public sealed class EditorHubScreen : GameScreen
 {
@@ -66,7 +68,7 @@ public sealed class EditorHubScreen : GameScreen
         RefreshLibrary(
             _session is null
                 ? "Create a scenario or Confirm a bundled module to copy into your library."
-                : $"Editing '{_session.ModuleId}'. Maps, levels, or campaign below.");
+                : $"Editing '{_session.ModuleId}'. Content below.");
     }
 
     public override void UnloadContent()
@@ -92,7 +94,6 @@ public sealed class EditorHubScreen : GameScreen
             EndInputSuppress();
         }
 
-        // If detail was open, HandleInput may close it on B/Esc — do not also leave the hub.
         var detailWasOpen = _view.IsAnyDetailOpen;
         _view.HandleInput(TinyGame.Commands, (float)gameTime.ElapsedGameTime.TotalSeconds);
 
@@ -171,14 +172,22 @@ public sealed class EditorHubScreen : GameScreen
         _view.Build(
             _viewModel,
             onNewScenario: OpenNewScenarioWizard,
+            onNewUnitsModule: () => OpenNewContentTypeWizard(ContentModuleType.Units),
+            onNewBuildingsModule: () => OpenNewContentTypeWizard(ContentModuleType.Buildings),
             onNewMap: OpenNewMapWizard,
             onNewLevel: OpenNewLevelWizard,
             onEditCampaign: OpenCampaignEditor,
+            onNewUnit: OpenNewUnit,
+            onNewBuilding: OpenNewBuilding,
             onActivateModule: ActivateModule,
             onOpenMap: OpenExistingMap,
             onDeleteMap: DeleteMap,
             onOpenLevel: OpenExistingLevel,
             onDeleteLevel: DeleteLevel,
+            onOpenUnit: OpenExistingUnit,
+            onDeleteUnit: DeleteUnit,
+            onOpenBuilding: OpenExistingBuilding,
+            onDeleteBuilding: DeleteBuilding,
             onCloseModule: CloseModule,
             onBack: HandleBack);
     }
@@ -189,17 +198,31 @@ public sealed class EditorHubScreen : GameScreen
         {
             _viewModel.OpenModuleId = null;
             _viewModel.OpenModuleTitle = null;
+            _viewModel.OpenModuleType = null;
             _viewModel.CanCreateMap = false;
             _viewModel.Maps = [];
             _viewModel.Levels = [];
+            _viewModel.Units = [];
+            _viewModel.Buildings = [];
             return;
         }
 
         _viewModel.OpenModuleId = _session.ModuleId;
         _viewModel.OpenModuleTitle = _session.Title;
+        _viewModel.OpenModuleType = _session.Type;
         _viewModel.CanCreateMap = _session.Type == ContentModuleType.Scenario;
-        _viewModel.Maps = ListMapIds(_session.ModuleRootPath);
-        _viewModel.Levels = ListLevelIds(_session.ModuleRootPath);
+        _viewModel.Maps = _session.Type == ContentModuleType.Scenario
+            ? ListMapIds(_session.ModuleRootPath)
+            : [];
+        _viewModel.Levels = _session.Type == ContentModuleType.Scenario
+            ? ListLevelIds(_session.ModuleRootPath)
+            : [];
+        _viewModel.Units = _session.Type == ContentModuleType.Units
+            ? ListJsonIds(_session.ModuleRootPath, "Units")
+            : [];
+        _viewModel.Buildings = _session.Type == ContentModuleType.Buildings
+            ? ListJsonIds(_session.ModuleRootPath, "Buildings")
+            : [];
     }
 
     private static IReadOnlyList<string> ListMapIds(string moduleRoot)
@@ -230,8 +253,25 @@ public sealed class EditorHubScreen : GameScreen
             .ToArray();
     }
 
+    private static IReadOnlyList<string> ListJsonIds(string moduleRoot, string folderName)
+    {
+        var folder = Path.Combine(moduleRoot, folderName);
+        if (!Directory.Exists(folder))
+            return [];
+
+        return Directory.EnumerateFiles(folder, "*.json", SearchOption.TopDirectoryOnly)
+            .Select(Path.GetFileNameWithoutExtension)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     private void OpenNewScenarioWizard() =>
         ScreenManager.ReplaceScreen(new EditorNewScenarioScreen(TinyGame, _assets, _session));
+
+    private void OpenNewContentTypeWizard(ContentModuleType type) =>
+        ScreenManager.ReplaceScreen(new EditorNewContentTypeModuleScreen(TinyGame, _assets, _session, type));
 
     private void OpenNewMapWizard()
     {
@@ -263,6 +303,28 @@ public sealed class EditorHubScreen : GameScreen
             return;
 
         ScreenManager.ReplaceScreen(new EditorCampaignEditScreen(TinyGame, _assets, _session));
+    }
+
+    private void OpenNewUnit()
+    {
+        if (_session is null || _session.Type != ContentModuleType.Units)
+            return;
+
+        var unitId = AllocateUniqueJsonId(_session.ModuleRootPath, "Units", "unit");
+        var document = EditableUnitDocument.CreateDefault(unitId);
+        ScreenManager.ReplaceScreen(
+            new EditorUnitEditScreen(TinyGame, _assets, _session, document, isNew: true));
+    }
+
+    private void OpenNewBuilding()
+    {
+        if (_session is null || _session.Type != ContentModuleType.Buildings)
+            return;
+
+        var buildingId = AllocateUniqueJsonId(_session.ModuleRootPath, "Buildings", "building");
+        var document = EditableBuildingDocument.CreateDefault(buildingId);
+        ScreenManager.ReplaceScreen(
+            new EditorBuildingEditScreen(TinyGame, _assets, _session, document, isNew: true));
     }
 
     private void OpenExistingMap(string mapId)
@@ -344,6 +406,138 @@ public sealed class EditorHubScreen : GameScreen
         }
     }
 
+    private void OpenExistingUnit(string unitId)
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            var path = TinyGame.Files.Combine(_session.ModuleRootPath, "Units", unitId + ".json");
+            var document = EditableUnitDocument.Load(path, TinyGame.Files);
+            ScreenManager.ReplaceScreen(
+                new EditorUnitEditScreen(TinyGame, _assets, _session, document, isNew: false));
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusText = "Open unit failed: " + exception.Message;
+            _view.SyncStatus(_viewModel);
+        }
+    }
+
+    private void DeleteUnit(string unitId)
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            var path = TinyGame.Files.Combine(_session.ModuleRootPath, "Units", unitId + ".json");
+            if (File.Exists(path))
+                File.Delete(path);
+
+            RemoveFromRecruitPool(_session.ModuleRootPath, unitId);
+            RefreshLibrary($"Deleted unit '{unitId}'.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or EditorException)
+        {
+            _viewModel.StatusText = "Delete unit failed: " + exception.Message;
+            _view.SyncStatus(_viewModel);
+        }
+    }
+
+    private void OpenExistingBuilding(string buildingId)
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            var path = TinyGame.Files.Combine(_session.ModuleRootPath, "Buildings", buildingId + ".json");
+            var document = EditableBuildingDocument.Load(path, TinyGame.Files);
+            ScreenManager.ReplaceScreen(
+                new EditorBuildingEditScreen(TinyGame, _assets, _session, document, isNew: false));
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusText = "Open building failed: " + exception.Message;
+            _view.SyncStatus(_viewModel);
+        }
+    }
+
+    private void DeleteBuilding(string buildingId)
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            var path = TinyGame.Files.Combine(_session.ModuleRootPath, "Buildings", buildingId + ".json");
+            if (File.Exists(path))
+                File.Delete(path);
+
+            RefreshLibrary($"Deleted building '{buildingId}'.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _viewModel.StatusText = "Delete building failed: " + exception.Message;
+            _view.SyncStatus(_viewModel);
+        }
+    }
+
+    private void RemoveFromRecruitPool(string moduleRoot, string localUnitId)
+    {
+        var moduleJsonPath = TinyGame.Files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
+        if (!File.Exists(moduleJsonPath))
+            return;
+
+        System.Text.Json.Nodes.JsonNode? root;
+        try
+        {
+            root = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(moduleJsonPath));
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return;
+        }
+
+        if (root is not System.Text.Json.Nodes.JsonObject rootObject)
+            return;
+        if (rootObject["recruit"] is not System.Text.Json.Nodes.JsonObject recruitObject)
+            return;
+        if (recruitObject["addsToPool"] is not System.Text.Json.Nodes.JsonArray existing)
+            return;
+
+        var contentNamespace = rootObject["namespace"]?.GetValue<string>()?.Trim();
+        if (string.IsNullOrWhiteSpace(contentNamespace))
+            contentNamespace = rootObject["id"]?.GetValue<string>()?.Trim() ?? string.Empty;
+
+        var fullId = string.IsNullOrWhiteSpace(contentNamespace)
+            ? localUnitId
+            : contentNamespace + "/" + localUnitId;
+
+        var pool = new System.Text.Json.Nodes.JsonArray();
+        foreach (var entry in existing)
+        {
+            var value = entry?.GetValue<string>();
+            if (string.IsNullOrWhiteSpace(value))
+                continue;
+            if (string.Equals(value, fullId, StringComparison.Ordinal)
+                || string.Equals(value, localUnitId, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            pool.Add(value.Trim());
+        }
+
+        recruitObject["addsToPool"] = pool;
+        File.WriteAllText(
+            moduleJsonPath,
+            rootObject.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true })
+                + Environment.NewLine);
+    }
+
     private static string AllocateUniqueChildId(string moduleRoot, string folderName, string stem)
     {
         var root = Path.Combine(moduleRoot, folderName);
@@ -359,6 +553,23 @@ public sealed class EditorHubScreen : GameScreen
         }
 
         throw new EditorException("Could not allocate a unique id under " + folderName + ".");
+    }
+
+    private static string AllocateUniqueJsonId(string moduleRoot, string folderName, string stem)
+    {
+        var root = Path.Combine(moduleRoot, folderName);
+        Directory.CreateDirectory(root);
+        if (!File.Exists(Path.Combine(root, stem + ".json")))
+            return stem;
+
+        for (var suffix = 2; suffix < 10_000; suffix++)
+        {
+            var candidate = stem + "_" + suffix;
+            if (!File.Exists(Path.Combine(root, candidate + ".json")))
+                return candidate;
+        }
+
+        throw new EditorException("Could not allocate a unique json id under " + folderName + ".");
     }
 
     private void ActivateModule(EditorModuleRowViewModel row)

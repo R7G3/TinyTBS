@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
-using TinyTBS.Game.Campaigns;
+using TinyTBS.Game.Editor.Buildings;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
@@ -13,20 +13,29 @@ using TinyTBS.Game.Presentation.Menu;
 
 namespace TinyTBS.Game.Editor.Screens;
 
-/// <summary>Create/edit Campaign/campaign.json for the open scenario.</summary>
-public sealed class EditorCampaignEditScreen : GameScreen
+/// <summary>Create or edit Buildings/{id}.json in an open buildings module.</summary>
+public sealed class EditorBuildingEditScreen : GameScreen
 {
     private readonly IAssetResolver _assets;
     private readonly EditorWorkspaceSession _session;
-    private readonly EditorCampaignEditView _view = new();
+    private readonly EditableBuildingDocument _document;
+    private readonly bool _isNew;
+    private readonly EditorBuildingEditView _view = new();
     private MainMenuBackground? _background;
-    private CampaignDocumentWriter? _writer;
+    private BuildingDocumentWriter? _writer;
 
-    public EditorCampaignEditScreen(GameMain game, IAssetResolver assets, EditorWorkspaceSession session)
+    public EditorBuildingEditScreen(
+        GameMain game,
+        IAssetResolver assets,
+        EditorWorkspaceSession session,
+        EditableBuildingDocument document,
+        bool isNew)
         : base(game)
     {
         _assets = assets;
         _session = session ?? throw new ArgumentNullException(nameof(session));
+        _document = document ?? throw new ArgumentNullException(nameof(document));
+        _isNew = isNew;
     }
 
     private GameMain TinyGame => (GameMain)Game;
@@ -34,20 +43,9 @@ public sealed class EditorCampaignEditScreen : GameScreen
     public override void LoadContent()
     {
         base.LoadContent();
-        _writer = new CampaignDocumentWriter(TinyGame.Files);
+        _writer = new BuildingDocumentWriter(TinyGame.Files);
         _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
-
-        var existing = CampaignLoader.TryLoadFromScenario(
-            _session.ModuleRootPath,
-            campaignRelativePath: null,
-            TinyGame.Files);
-
-        var campaignId = existing?.CampaignId ?? SanitizeId(_session.ModuleId + "_campaign");
-        var title = existing?.Title ?? _session.Title + " Campaign";
-        var chapters = existing?.Chapters.Select(chapter => chapter.LevelId).ToArray() ?? [];
-        var levels = ListLevelIds(_session.ModuleRootPath);
-
-        _view.Build(campaignId, title, chapters, levels, Save, GoToHub);
+        _view.Build(_document, Save, GoToHub);
     }
 
     public override void UnloadContent()
@@ -63,11 +61,13 @@ public sealed class EditorCampaignEditScreen : GameScreen
     {
         GumService.Default.Update(gameTime);
 
-        var choiceWasOpen = _view.IsChoiceOpen;
-        _view.HandleInput(TinyGame.Commands, (float)gameTime.ElapsedGameTime.TotalSeconds);
+        var overlayWasOpen = _view.IsOverlayOpen;
+        _view.HandleInput(
+            TinyGame.Commands,
+            TinyGame.Pointer,
+            (float)gameTime.ElapsedGameTime.TotalSeconds);
 
-        // Choice overlay closes itself on Back inside HandleInput — do not also leave the screen.
-        if (choiceWasOpen || _view.IsChoiceOpen)
+        if (overlayWasOpen || _view.IsOverlayOpen)
             return;
 
         if (_view.IsTextEntryActive)
@@ -106,19 +106,24 @@ public sealed class EditorCampaignEditScreen : GameScreen
 
         try
         {
-            if (_view.Chapters.Count == 0)
+            _view.ApplyTextFields();
+            var id = SanitizeId(_document.Id);
+            _document.Id = id;
+            ContentModuleManifestParser.ValidateModuleId(id);
+
+            var buildingsDir = TinyGame.Files.Combine(_session.ModuleRootPath, "Buildings");
+            var targetPath = TinyGame.Files.Combine(buildingsDir, id + ".json");
+            var renamed = !_isNew
+                && !string.Equals(id, _document.OriginalId, StringComparison.Ordinal);
+            if ((_isNew || renamed) && File.Exists(targetPath))
             {
-                _view.SyncStatus("Add at least one chapter level before Save.");
-                return;
+                id = AllocateUniqueBuildingId(buildingsDir, id);
+                _document.Id = id;
             }
 
-            var id = SanitizeId(_view.CampaignId);
-            _writer.Write(
-                _session.ModuleRootPath,
-                id,
-                _view.CampaignTitle,
-                _view.Chapters);
-            _view.SyncStatus("Saved Campaign/campaign.json (" + _view.Chapters.Count + " chapters).");
+            _writer.Write(_session.ModuleRootPath, _document);
+            _view.SyncIdentityFromDocument();
+            _view.SyncStatus("Saved Buildings/" + _document.Id + ".json");
         }
         catch (Exception exception)
         {
@@ -128,7 +133,7 @@ public sealed class EditorCampaignEditScreen : GameScreen
 
     private static string SanitizeId(string raw)
     {
-        var trimmed = string.IsNullOrWhiteSpace(raw) ? "campaign" : raw.Trim().Replace(' ', '_');
+        var trimmed = string.IsNullOrWhiteSpace(raw) ? "building" : raw.Trim();
         try
         {
             ContentModuleManifestParser.ValidateModuleId(trimmed);
@@ -136,22 +141,21 @@ public sealed class EditorCampaignEditScreen : GameScreen
         }
         catch (TinymodInstallException)
         {
-            return "campaign";
+            return "building";
         }
     }
 
-    private static IReadOnlyList<string> ListLevelIds(string moduleRoot)
+    private string AllocateUniqueBuildingId(string buildingsDir, string stem)
     {
-        var levelsRoot = Path.Combine(moduleRoot, "Levels");
-        if (!Directory.Exists(levelsRoot))
-            return [];
+        for (var suffix = 2; suffix < 10_000; suffix++)
+        {
+            var candidate = stem + "_" + suffix;
+            var path = TinyGame.Files.Combine(buildingsDir, candidate + ".json");
+            if (!File.Exists(path))
+                return candidate;
+        }
 
-        return Directory.GetDirectories(levelsRoot)
-            .Select(Path.GetFileName)
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Select(name => name!)
-            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        throw new EditorException("Could not allocate a unique building id.");
     }
 
     private void GoToHub() =>

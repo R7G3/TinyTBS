@@ -1,7 +1,6 @@
 using Gum;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
-using Gum.Managers;
 using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Input;
@@ -10,8 +9,8 @@ using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Editor.Presentation;
 
-/// <summary>Small action menu (Add / Move / Cancel) over editor forms.</summary>
-public sealed class EditorChoiceOverlay
+/// <summary>Generic Open / Delete / Back detail for hub library rows (unit/building types).</summary>
+public sealed class EditorItemDetailOverlay
 {
     private Panel? _rootPanel;
     private Panel? _overlay;
@@ -19,20 +18,18 @@ public sealed class EditorChoiceOverlay
     private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private int _focusIndex;
     private Action? _onClosed;
-    private bool _useVerticalNavigation;
 
     public bool IsOpen => _overlay is not null;
 
     public void Open(
         Panel rootPanel,
         string title,
-        IReadOnlyList<(string Label, Action Activate)> actions,
+        string metaLine,
+        Action onOpen,
+        Action onDelete,
         Action onClosed)
     {
         ArgumentNullException.ThrowIfNull(rootPanel);
-        ArgumentNullException.ThrowIfNull(actions);
-        ArgumentNullException.ThrowIfNull(onClosed);
-
         Close(notifyClosed: false);
         _rootPanel = rootPanel;
         _onClosed = onClosed;
@@ -62,58 +59,40 @@ public sealed class EditorChoiceOverlay
         GumUiLayout.FillParentWidth(titleLabel);
         stack.AddChild(titleLabel);
 
+        var meta = new Label { Text = metaLine };
+        GumUiLayout.FillParentWidth(meta);
+        stack.AddChild(meta);
+
         var actionsHost = new Panel();
         GumUiLayout.FillParentWidth(actionsHost);
         actionsHost.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
         stack.AddChild(actionsHost);
 
         var detailButtons = new List<Button>();
-        foreach (var (label, activate) in actions)
-        {
-            var captured = activate;
-            var button = new Button { Text = label };
-            button.Click += (_, _) =>
-            {
-                Close(notifyClosed: false);
-                captured();
-            };
-            detailButtons.Add(button);
-            _focusable.Add((button, () =>
-            {
-                Close(notifyClosed: false);
-                captured();
-            }));
-        }
+        var openButton = new Button { Text = "Open" };
+        openButton.Click += (_, _) => onOpen();
+        detailButtons.Add(openButton);
+        _focusable.Add((openButton, onOpen));
 
-        var cancelButton = new Button { Text = "Cancel" };
-        cancelButton.Click += (_, _) => Close();
-        detailButtons.Add(cancelButton);
-        _focusable.Add((cancelButton, () => Close()));
+        var deleteButton = new Button { Text = "Delete" };
+        deleteButton.Click += (_, _) => onDelete();
+        detailButtons.Add(deleteButton);
+        _focusable.Add((deleteButton, onDelete));
 
-        _useVerticalNavigation = actions.Count > 4;
-        if (_useVerticalNavigation)
-        {
-            actionsHost.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
-            actionsHost.Visual.StackSpacing = 8f;
-            foreach (var button in detailButtons)
-            {
-                GumUiLayout.FillParentWidth(button);
-                actionsHost.AddChild(button);
-            }
-        }
-        else
-        {
-            var canvasWidth = GumService.Default.CanvasWidth;
-            var cardInner = Math.Min(480f, canvasWidth > 0 ? canvasWidth * 0.9f : 480f) * 0.92f;
-            GumUiLayout.LayoutAdaptiveButtonRows(
-                actionsHost,
-                detailButtons,
-                cardInner,
-                spacing: 8f,
-                minButtonWidth: 88f,
-                preferredButtonWidth: 140f);
-        }
+        var backButton = new Button { Text = "Back" };
+        backButton.Click += (_, _) => Close();
+        detailButtons.Add(backButton);
+        _focusable.Add((backButton, () => Close()));
 
+        var canvasWidth = GumService.Default.CanvasWidth;
+        var cardInner = Math.Min(480f, canvasWidth > 0 ? canvasWidth * 0.9f : 480f) * 0.92f;
+        GumUiLayout.LayoutAdaptiveButtonRows(
+            actionsHost,
+            detailButtons,
+            cardInner,
+            spacing: 8f,
+            minButtonWidth: 88f,
+            preferredButtonWidth: 140f);
         GumUiLayout.AddVerticalSpacer(stack, 14f);
 
         _focusIndex = 0;
@@ -157,7 +136,6 @@ public sealed class EditorChoiceOverlay
         _focusable.Clear();
         _navigateRepeat.Reset();
         _focusIndex = 0;
-        _useVerticalNavigation = false;
         _rootPanel = null;
         var onClosed = _onClosed;
         _onClosed = null;
@@ -179,23 +157,11 @@ public sealed class EditorChoiceOverlay
             return;
         }
 
-        if (_useVerticalNavigation)
-        {
-            GumFocusableButtonList.HandleVerticalInput(
-                commands,
-                _focusable,
-                ref _focusIndex,
-                _navigateRepeat,
-                elapsedSeconds);
-        }
-        else
-        {
-            GumFocusableButtonList.HandleHorizontalInput(
-                commands,
-                _focusable,
-                ref _focusIndex,
-                _navigateRepeat,
-                elapsedSeconds);
-        }
+        GumFocusableButtonList.HandleHorizontalInput(
+            commands,
+            _focusable,
+            ref _focusIndex,
+            _navigateRepeat,
+            elapsedSeconds);
     }
 }

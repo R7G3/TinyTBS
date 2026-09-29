@@ -35,6 +35,7 @@ public sealed class EditorHubView
     private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private readonly EditorMapDetailOverlay _mapDetail = new();
     private readonly EditorLevelDetailOverlay _levelDetail = new();
+    private readonly EditorItemDetailOverlay _itemDetail = new();
     private FocusZone _focusZone = FocusZone.Library;
     private int _libraryFocusIndex;
     private int _menuFocusIndex;
@@ -49,19 +50,29 @@ public sealed class EditorHubView
 
     public bool IsLevelDetailOpen => _levelDetail.IsOpen;
 
-    public bool IsAnyDetailOpen => IsMapDetailOpen || IsLevelDetailOpen;
+    public bool IsItemDetailOpen => _itemDetail.IsOpen;
+
+    public bool IsAnyDetailOpen => IsMapDetailOpen || IsLevelDetailOpen || IsItemDetailOpen;
 
     public void Build(
         EditorHubViewModel viewModel,
         Action onNewScenario,
+        Action onNewUnitsModule,
+        Action onNewBuildingsModule,
         Action onNewMap,
         Action onNewLevel,
         Action onEditCampaign,
+        Action onNewUnit,
+        Action onNewBuilding,
         Action<EditorModuleRowViewModel> onActivateModule,
         Action<string> onOpenMap,
         Action<string> onDeleteMap,
         Action<string> onOpenLevel,
         Action<string> onDeleteLevel,
+        Action<string> onOpenUnit,
+        Action<string> onDeleteUnit,
+        Action<string> onOpenBuilding,
+        Action<string> onDeleteBuilding,
         Action onCloseModule,
         Action onBack)
     {
@@ -113,7 +124,9 @@ public sealed class EditorHubView
 
         var hint = new Label
         {
-            Text = "Left/Right (or LB/RB): library ↔ menu. Confirm opens detail. Back closes module, then leaves editor.",
+            Text = viewModel.CanEditUnits || viewModel.CanEditBuildings
+                ? "Confirm a type to Open/Edit (Save is on the edit Menu). LB/RB: columns. Back closes module."
+                : "Left/Right (or LB/RB): library ↔ menu. Confirm opens detail. Back closes module, then leaves editor.",
         };
         GumUiLayout.FillParentWidth(hint);
         rootStack.AddChild(hint);
@@ -131,15 +144,29 @@ public sealed class EditorHubView
             listHeight,
             viewModel,
             onNewScenario,
+            onNewUnitsModule,
+            onNewBuildingsModule,
             onNewMap,
             onNewLevel,
             onEditCampaign,
+            onNewUnit,
+            onNewBuilding,
             onCloseModule,
             onBack);
         GumUiLayout.SetWidthPercent(leftColumn, 58f);
         GumUiLayout.SetWidthPercent(rightColumn, 40f);
 
-        PopulateLibrary(viewModel, onActivateModule, onOpenMap, onDeleteMap, onOpenLevel, onDeleteLevel);
+        PopulateLibrary(
+            viewModel,
+            onActivateModule,
+            onOpenMap,
+            onDeleteMap,
+            onOpenLevel,
+            onDeleteLevel,
+            onOpenUnit,
+            onDeleteUnit,
+            onOpenBuilding,
+            onDeleteBuilding);
         GumUiLayout.AddVerticalSpacer(rootStack, 10f);
 
         var startZone = _libraryEntries.Count > 0 ? FocusZone.Library : FocusZone.Menu;
@@ -173,6 +200,12 @@ public sealed class EditorHubView
         if (_levelDetail.IsOpen)
         {
             _levelDetail.HandleInput(commands, elapsedSeconds);
+            return;
+        }
+
+        if (_itemDetail.IsOpen)
+        {
+            _itemDetail.HandleInput(commands, elapsedSeconds);
             return;
         }
 
@@ -210,7 +243,10 @@ public sealed class EditorHubView
 
     public bool TryCloseLevelDetail() => _levelDetail.TryClose();
 
-    public bool TryCloseAnyDetail() => TryCloseMapDetail() || TryCloseLevelDetail();
+    public bool TryCloseItemDetail() => _itemDetail.TryClose();
+
+    public bool TryCloseAnyDetail() =>
+        TryCloseMapDetail() || TryCloseLevelDetail() || TryCloseItemDetail();
 
     public void ApplyResponsiveLayout()
     {
@@ -228,6 +264,7 @@ public sealed class EditorHubView
     {
         _mapDetail.Close(notifyClosed: false);
         _levelDetail.Close(notifyClosed: false);
+        _itemDetail.Close(notifyClosed: false);
         GumService.Default.Root.Children.Clear();
         _rootPanel = null;
         _shell = null;
@@ -249,10 +286,65 @@ public sealed class EditorHubView
         Action<string> onOpenMap,
         Action<string> onDeleteMap,
         Action<string> onOpenLevel,
-        Action<string> onDeleteLevel)
+        Action<string> onDeleteLevel,
+        Action<string> onOpenUnit,
+        Action<string> onDeleteUnit,
+        Action<string> onOpenBuilding,
+        Action<string> onDeleteBuilding)
     {
         if (_libraryHost is null)
             return;
+
+        if (viewModel.CanEditUnits)
+        {
+            if (viewModel.Units.Count == 0)
+            {
+                var empty = new Label { Text = "(No unit types — Menu → New Unit, then Save.)" };
+                GumUiLayout.FillParentWidth(empty);
+                _libraryHost.AddChild(empty);
+            }
+            else
+            {
+                AddLibraryHeader("Units");
+                foreach (var unitId in viewModel.Units)
+                {
+                    var captured = unitId;
+                    AddLibraryButton(
+                        "Unit: " + captured,
+                        () => ShowItemDetail("Unit: " + captured, "Units/" + captured + ".json", captured, onOpenUnit, onDeleteUnit));
+                }
+            }
+
+            return;
+        }
+
+        if (viewModel.CanEditBuildings)
+        {
+            if (viewModel.Buildings.Count == 0)
+            {
+                var empty = new Label { Text = "(No building types — Menu → New Building, then Save.)" };
+                GumUiLayout.FillParentWidth(empty);
+                _libraryHost.AddChild(empty);
+            }
+            else
+            {
+                AddLibraryHeader("Buildings");
+                foreach (var buildingId in viewModel.Buildings)
+                {
+                    var captured = buildingId;
+                    AddLibraryButton(
+                        "Building: " + captured,
+                        () => ShowItemDetail(
+                            "Building: " + captured,
+                            "Buildings/" + captured + ".json",
+                            captured,
+                            onOpenBuilding,
+                            onDeleteBuilding));
+                }
+            }
+
+            return;
+        }
 
         if (viewModel.HasOpenModule && viewModel.Maps.Count > 0)
         {
@@ -330,9 +422,13 @@ public sealed class EditorHubView
         float listHeight,
         EditorHubViewModel viewModel,
         Action onNewScenario,
+        Action onNewUnitsModule,
+        Action onNewBuildingsModule,
         Action onNewMap,
         Action onNewLevel,
         Action onEditCampaign,
+        Action onNewUnit,
+        Action onNewBuilding,
         Action onCloseModule,
         Action onBack)
     {
@@ -354,7 +450,27 @@ public sealed class EditorHubView
         host.Visual.StackSpacing = 6f;
         column.AddChild(host);
 
+        if (viewModel.CanEditUnits)
+        {
+            AddMenuButton(host, "New Unit", onNewUnit);
+            AddMenuButton(host, "Close Module", onCloseModule, isEnabled: viewModel.HasOpenModule);
+            AddMenuButton(host, "Publish", () => { }, isEnabled: viewModel.CanPublish);
+            AddMenuButton(host, "Back", onBack);
+            return column;
+        }
+
+        if (viewModel.CanEditBuildings)
+        {
+            AddMenuButton(host, "New Building", onNewBuilding);
+            AddMenuButton(host, "Close Module", onCloseModule, isEnabled: viewModel.HasOpenModule);
+            AddMenuButton(host, "Publish", () => { }, isEnabled: viewModel.CanPublish);
+            AddMenuButton(host, "Back", onBack);
+            return column;
+        }
+
         AddMenuButton(host, "New Scenario Module", onNewScenario);
+        AddMenuButton(host, "New Units Module", onNewUnitsModule);
+        AddMenuButton(host, "New Buildings Module", onNewBuildingsModule);
         AddMenuButton(host, "New Map", onNewMap, isEnabled: viewModel.CanCreateMap);
         AddMenuButton(host, "New Level", onNewLevel, isEnabled: viewModel.CanEditScenarioContent);
         AddMenuButton(host, "Edit Campaign", onEditCampaign, isEnabled: viewModel.CanEditScenarioContent);
@@ -366,7 +482,6 @@ public sealed class EditorHubView
 
     private bool TrySwitchColumn(IGameCommandSource commands)
     {
-        // No horizontal button rows in either column — Left/Right switch columns (plus LB/RB).
         var toMenu = commands.WasPressed(GameCommand.NavigateRight)
             || commands.WasPressed(GameCommand.FocusNextRegion)
             || commands.WasPressed(GameCommand.ZoomIn);
@@ -475,6 +590,33 @@ public sealed class EditorHubView
             {
                 _levelDetail.Close(notifyClosed: false);
                 onDeleteLevel(levelId);
+            },
+            onClosed: () => SetFocusZone(FocusZone.Library, resetIndex: false));
+    }
+
+    private void ShowItemDetail(
+        string title,
+        string metaLine,
+        string itemId,
+        Action<string> onOpen,
+        Action<string> onDelete)
+    {
+        if (_rootPanel is null)
+            return;
+
+        _itemDetail.Open(
+            _rootPanel,
+            title,
+            metaLine,
+            onOpen: () =>
+            {
+                _itemDetail.Close(notifyClosed: false);
+                onOpen(itemId);
+            },
+            onDelete: () =>
+            {
+                _itemDetail.Close(notifyClosed: false);
+                onDelete(itemId);
             },
             onClosed: () => SetFocusZone(FocusZone.Library, resetIndex: false));
     }

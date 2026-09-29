@@ -46,10 +46,10 @@ isProject: false
 - [x] **map-editor** (срез 2) — paint карты (terrain/units/buildings) + Save + level-stub
 - [x] **map-editor** (срез 3) — метки Neutral/P0–P3 + Undo/Redo + Validate (Save не блокируется)
 - [x] **map-editor** (срез 4) — Levels (slots/gold/cap/`map.ref`) + Campaign (linear chapters + script stub) + map `script.cs` editor/template; двухколоночный UX + геймпад
+- [x] **map-editor** (срез 5) — masters units/buildings (structured UI + DocumentWriters + New Units/Buildings Module; Publish greyed)
 
 ### Дальше (playtest-перерыв: бот → сейвы → кампании → редактор)
 
-- [ ] **map-editor** (срез 5) — masters units/buildings (редактирование JSON в модуле)
 - [ ] **map-editor** (срез 6) — theme + export в модуль
 - [ ] **map-editor** (срез 7) — bundles (пресеты composition в редакторе)
 - [ ] **player-colors** — color picker в лобби / профиле (можно с `settings-ui`)
@@ -373,8 +373,7 @@ ScriptOptions.Default
 21. **`save-format`** — сейвы + «Продолжить» — **выполнено** (срезы 1–2 в чеклисте).
 22. **`campaigns`** — главы + прогресс — **выполнено**.
 23. **`map-editor`** — workspace модулей (срезы в чеклисте):
-    - срез 1–4 — **выполнено** (Hub/CoW, paint/Save, labels/Undo/Validate, levels/campaign/script + двухколоночный UX)
-    - срез 5 — units/buildings masters
+    - срез 1–5 — **выполнено** (Hub/CoW, paint/Save, labels/Undo/Validate, levels/campaign/script, units/buildings masters)
     - срез 6 — theme + export
     - срез 7 — bundles
 24. `player-colors` — color picker (можно с settings).

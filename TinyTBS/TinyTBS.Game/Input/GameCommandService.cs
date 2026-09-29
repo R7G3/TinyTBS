@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using TinyTBS.Game.Editor.Presentation;
 
 namespace TinyTBS.Game.Input;
 
@@ -29,6 +30,10 @@ public sealed class GameCommandService : IGameCommandSource
 
         foreach (var command in Enum.GetValues<GameCommand>())
             _current[Index(command)] = DefaultInputBindings.IsPressed(command, keyboard, gamePad);
+
+        // Backspace is Cancel for menus; while a Gum TextBox has caret, keep it for editing.
+        if (EditorGumTextEntry.IsReceiverTextBox())
+            _current[Index(GameCommand.Cancel)] = false;
 
         CameraPanStick = ReadCameraPanStick(gamePad);
     }

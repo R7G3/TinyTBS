@@ -217,7 +217,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
     - срез 2 — paint + Save + level-stub — **выполнено**
     - срез 3 — метки Neutral/P0–P3 + Undo/Redo + Validate — **выполнено**
     - срез 4 — Levels + Campaign + map `script.cs` + двухколоночный UX/геймпад — **выполнено**
-    - срез 5 — units/buildings masters
+    - срез 5 — units/buildings masters (structured UI + DocumentWriters + New Units/Buildings Module) — **выполнено**
     - срез 6 — theme + export
     - срез 7 — bundles
 24. `player-colors` — color picker в лобби / профиле (dimFactor отрисовки уже в матче); можно совместить с профилем в `settings-ui`.
