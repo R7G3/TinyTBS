@@ -10,6 +10,8 @@ public sealed class ContentBundleRowViewModel
 
     public required string ModulesSummary { get; init; }
 
+    public bool CanUninstall { get; init; }
+
     public string SummaryLine => $"{Title}  ·  {SourceLabel}";
 
     public string DetailLine => ModulesSummary;

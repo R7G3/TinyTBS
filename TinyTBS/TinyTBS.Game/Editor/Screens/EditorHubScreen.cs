@@ -5,6 +5,7 @@ using TinyTBS.Engine.Input;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Buildings;
+using TinyTBS.Game.Editor.Bundles;
 using TinyTBS.Game.Editor.Map;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Units;
@@ -31,7 +32,9 @@ public sealed class EditorHubScreen : GameScreen
 
     private MainMenuBackground? _background;
     private ContentModuleLibrary? _moduleLibrary;
+    private ContentBundleLibrary? _bundleLibrary;
     private ScenarioModuleWriter? _scenarioWriter;
+    private BundleDocumentWriter? _bundleWriter;
     private EditorWorkspaceSession? _session;
 
     /// <summary>
@@ -61,7 +64,9 @@ public sealed class EditorHubScreen : GameScreen
 
         TinyGame.UserDataPaths.EnsureCreated();
         _moduleLibrary = new ContentModuleLibrary(TinyGame.Files, TinyGame.UserDataPaths);
+        _bundleLibrary = new ContentBundleLibrary(TinyGame.Files, TinyGame.UserDataPaths);
         _scenarioWriter = new ScenarioModuleWriter(TinyGame.Files, TinyGame.UserDataPaths);
+        _bundleWriter = new BundleDocumentWriter(TinyGame.Files, TinyGame.UserDataPaths);
         _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
 
         BeginInputSuppress();
@@ -77,7 +82,9 @@ public sealed class EditorHubScreen : GameScreen
         _background?.Dispose();
         _background = null;
         _moduleLibrary = null;
+        _bundleLibrary = null;
         _scenarioWriter = null;
+        _bundleWriter = null;
         base.UnloadContent();
     }
 
@@ -153,6 +160,7 @@ public sealed class EditorHubScreen : GameScreen
     private void RefreshLibrary(string statusText)
     {
         ArgumentNullException.ThrowIfNull(_moduleLibrary);
+        ArgumentNullException.ThrowIfNull(_bundleLibrary);
 
         var modules = _moduleLibrary.ListEffectiveModules()
             .Select(module => new EditorModuleRowViewModel
@@ -165,7 +173,18 @@ public sealed class EditorHubScreen : GameScreen
             })
             .ToArray();
 
+        var bundles = _bundleLibrary.ListEffectiveBundles()
+            .Select(bundle => new EditorBundleRowViewModel
+            {
+                BundleId = bundle.BundleId,
+                Title = bundle.Title,
+                Source = bundle.Source,
+                BundleFilePath = bundle.BundleFilePath,
+            })
+            .ToArray();
+
         _viewModel.Modules = modules;
+        _viewModel.Bundles = bundles;
         _viewModel.StatusText = statusText;
         _viewModel.CanPublish = false;
         SyncOpenFields();
@@ -182,7 +201,9 @@ public sealed class EditorHubScreen : GameScreen
             onNewUnit: OpenNewUnit,
             onNewBuilding: OpenNewBuilding,
             onEditTheme: OpenThemeEditor,
+            onNewBundle: OpenNewBundle,
             onActivateModule: ActivateModule,
+            onActivateBundle: ActivateBundle,
             onOpenMap: OpenExistingMap,
             onDeleteMap: DeleteMap,
             onOpenLevel: OpenExistingLevel,
@@ -191,6 +212,8 @@ public sealed class EditorHubScreen : GameScreen
             onDeleteUnit: DeleteUnit,
             onOpenBuilding: OpenExistingBuilding,
             onDeleteBuilding: DeleteBuilding,
+            onOpenBundle: OpenExistingBundle,
+            onDeleteBundle: DeleteBundle,
             onCloseModule: CloseModule,
             onBack: HandleBack);
     }
@@ -282,6 +305,92 @@ public sealed class EditorHubScreen : GameScreen
             return;
 
         ScreenManager.ReplaceScreen(new EditorThemeEditScreen(TinyGame, _assets, _session));
+    }
+
+    private void OpenNewBundle()
+    {
+        ArgumentNullException.ThrowIfNull(_moduleLibrary);
+        ArgumentNullException.ThrowIfNull(_bundleWriter);
+
+        var modules = _moduleLibrary.ListEffectiveModules();
+        var bundleId = _bundleWriter.AllocateUniqueBundleId("user_bundle");
+        var document = EditableBundleDocument.CreateDefault(bundleId, modules);
+        ScreenManager.ReplaceScreen(
+            new EditorBundleEditScreen(TinyGame, _assets, _session, document, isNew: true));
+    }
+
+    private void OpenExistingBundle(string bundleId)
+    {
+        try
+        {
+            var path = TinyGame.Files.Combine(
+                TinyGame.UserDataPaths.Bundles,
+                bundleId + ContentBundleFiles.BundleJsonExtension);
+            var document = EditableBundleDocument.Load(path, TinyGame.Files);
+            ScreenManager.ReplaceScreen(
+                new EditorBundleEditScreen(TinyGame, _assets, _session, document, isNew: false));
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusText = "Open bundle failed: " + exception.Message;
+            _view.SyncStatus(_viewModel);
+        }
+    }
+
+    private void DeleteBundle(string bundleId)
+    {
+        ArgumentNullException.ThrowIfNull(_bundleWriter);
+
+        try
+        {
+            if (_bundleWriter.Delete(bundleId))
+                RefreshLibrary($"Deleted bundle '{bundleId}'.");
+            else
+            {
+                _viewModel.StatusText = $"Bundle '{bundleId}' was already gone.";
+                _view.SyncStatus(_viewModel);
+            }
+        }
+        catch (Exception exception) when (exception is EditorException or IOException or UnauthorizedAccessException)
+        {
+            _viewModel.StatusText = "Delete bundle failed: " + exception.Message;
+            _view.SyncStatus(_viewModel);
+        }
+    }
+
+    private void ActivateBundle(EditorBundleRowViewModel row)
+    {
+        ArgumentNullException.ThrowIfNull(_bundleWriter);
+        ArgumentNullException.ThrowIfNull(_bundleLibrary);
+
+        try
+        {
+            if (row.Source == ContentModuleSource.UserLibrary)
+            {
+                OpenExistingBundle(row.BundleId);
+                return;
+            }
+
+            var definition = ContentBundleLoader.Load(
+                row.BundleFilePath,
+                TinyGame.Files,
+                ContentModuleSource.Bundled);
+            var targetId = _bundleWriter.AllocateUniqueBundleId(row.BundleId);
+            var title = targetId == row.BundleId ? row.Title : row.Title + " (copy)";
+            _bundleWriter.CopyToUserLibrary(definition, targetId, title);
+            var document = EditableBundleDocument.Load(
+                TinyGame.Files.Combine(
+                    TinyGame.UserDataPaths.Bundles,
+                    targetId + ContentBundleFiles.BundleJsonExtension),
+                TinyGame.Files);
+            ScreenManager.ReplaceScreen(
+                new EditorBundleEditScreen(TinyGame, _assets, _session, document, isNew: false));
+        }
+        catch (Exception exception) when (exception is EditorException or ContentBundleException or IOException)
+        {
+            _viewModel.StatusText = "Open/Duplicate bundle failed: " + exception.Message;
+            _view.SyncStatus(_viewModel);
+        }
     }
 
     private void ExportOpenModule()

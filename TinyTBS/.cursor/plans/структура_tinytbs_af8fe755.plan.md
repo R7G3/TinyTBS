@@ -51,7 +51,7 @@ isProject: false
 ### Дальше (playtest-перерыв: бот → сейвы → кампании → редактор)
 
 - [x] **map-editor** (срез 6) — theme + export в модуль
-- [ ] **map-editor** (срез 7) — bundles (пресеты composition в редакторе)
+- [x] **map-editor** (срез 7) — bundles (пресеты composition в редакторе)
 - [ ] **map-editor** (срез 8) — **tags + abilities + условный heal** (gate → docs/runtime/editor): обсудить и по итогам сделать минимум для связок вроде «здание лечит юнитов с тегом X сильнее остальных»; сейчас heal здания = только `amount`+`scope`, теги юнита в heal не участвуют; при необходимости — расширение BUILDING_FORMAT/abilities, логика матча, UI building/unit master + (если нужно для проверки) composition без ручного `scenario.defaults` JSON
 - [ ] **map-editor** (срез 9) — **multi-module workspace + Shared Resources** (UX modding, не блокер матча): проект из нескольких модулей сразу; временный `shared/` (или аналог) на время работы; при Save/Export модуля — раскладка ассетов в его `Resources/` + валидация путей. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md), [CONTENT_MODULE_FORMAT](../../docs/CONTENT_MODULE_FORMAT.md). До playtest можно отложить, если не упираетесь в копипаст ассетов между модулями
 - [ ] **player-colors** — color picker в лобби / профиле (можно с `settings-ui`)
@@ -377,7 +377,7 @@ ScriptOptions.Default
 23. **`map-editor`** — workspace модулей (**Map editor slices**, чеклист выше):
     - срез 1–5 — **выполнено** (Hub/CoW, paint/Save, labels/Undo/Validate, levels/campaign/script, units/buildings masters)
     - срез 6 — theme + export — **выполнено**
-    - срез 7 — bundles
+    - срез 7 — bundles — **выполнено**
     - срез 8 — **tags / abilities / conditional heal**: gate-обсуждение → зафиксировать формат (или отложить в ideas); затем runtime + редактор. Целевой UX: modder задаёт теги юнитов и правила лечения здания (напр. бонус heal для выбранных тегов), без сырого JSON и без расхождения с матчем. Зависимости: [BUILDING_FORMAT](../../docs/BUILDING_FORMAT.md), [UNIT_FORMAT](../../docs/UNIT_FORMAT.md), heal end-turn в матче; опционально UI composition для playtest user modules.
     - срез 9 — **multi-module workspace + Shared Resources** (последний срез редактора по канону): несколько модулей в одном проекте; shared ассеты до Save/Export → раскладка в `Resources/` модуля. Удобство modding (меньше копипаста PNG между units/buildings/theme/scenario); рантайму матча не нужно. Можно после playtest, если не жмёт UX.
 24. `player-colors` — color picker (можно с settings).

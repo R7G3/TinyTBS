@@ -4,6 +4,7 @@ using MonoGame.Extended.Screens;
 using TinyTBS.Engine.IO;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
+using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
@@ -140,6 +141,7 @@ public sealed class ContentLibraryScreen : GameScreen
             _viewModel,
             onSelectTab: SelectTab,
             onUninstallModule: UninstallModule,
+            onUninstallBundle: UninstallBundle,
             onPickInstallFromDevice: PickInstallFromDevice,
             onInstallArchive: InstallArchive,
             onBack: HandleBackCommand);
@@ -194,6 +196,22 @@ public sealed class ContentLibraryScreen : GameScreen
         }
     }
 
+    private void UninstallBundle(string bundleId)
+    {
+        try
+        {
+            var writer = new BundleDocumentWriter(TinyGame.Files, TinyGame.UserDataPaths);
+            if (writer.Delete(bundleId))
+                RefreshLibrary($"Removed bundle '{bundleId}'.");
+            else
+                _view.SetStatus($"Bundle '{bundleId}' is not in the user library.");
+        }
+        catch (Exception exception)
+        {
+            _view.SetStatus("Remove bundle failed: " + exception.Message);
+        }
+    }
+
     private void HandleBackCommand()
     {
         if (_view.TryCloseDetail())
@@ -231,5 +249,6 @@ public sealed class ContentLibraryScreen : GameScreen
             Title = bundle.Title,
             SourceLabel = bundle.Source == ContentModuleSource.UserLibrary ? "user" : "bundled",
             ModulesSummary = string.Join(", ", bundle.ModuleIds),
+            CanUninstall = bundle.Source == ContentModuleSource.UserLibrary,
         };
 }

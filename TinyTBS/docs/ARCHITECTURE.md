@@ -219,7 +219,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
     - срез 4 — Levels + Campaign + map `script.cs` + двухколоночный UX/геймпад — **выполнено**
     - срез 5 — units/buildings masters (structured UI + DocumentWriters + New Units/Buildings Module) — **выполнено**
     - срез 6 — theme master + Export Module → `{UserData}/Downloads/*.tinymod.zip` — **выполнено**
-    - срез 7 — bundles
+    - срез 7 — bundles (New/Edit/Delete user `*.bundle.json` + CoW bundled; Content Remove) — **выполнено**
     - срез 8 — tags/abilities/conditional heal (gate → format + runtime + editor; напр. здание лечит выбранные теги сильнее)
     - срез 9 — multi-module workspace + Shared Resources (раскладка в Resources/ при Save/Export; UX modding)
 24. `player-colors` — color picker в лобби / профиле (dimFactor отрисовки уже в матче); можно совместить с профилем в `settings-ui`.

@@ -7,6 +7,7 @@ using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Editor.ViewModels;
 using TinyTBS.Game.Input;
+using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Editor.Presentation;
@@ -67,7 +68,9 @@ public sealed class EditorHubView
         Action onNewUnit,
         Action onNewBuilding,
         Action onEditTheme,
+        Action onNewBundle,
         Action<EditorModuleRowViewModel> onActivateModule,
+        Action<EditorBundleRowViewModel> onActivateBundle,
         Action<string> onOpenMap,
         Action<string> onDeleteMap,
         Action<string> onOpenLevel,
@@ -76,6 +79,8 @@ public sealed class EditorHubView
         Action<string> onDeleteUnit,
         Action<string> onOpenBuilding,
         Action<string> onDeleteBuilding,
+        Action<string> onOpenBundle,
+        Action<string> onDeleteBundle,
         Action onCloseModule,
         Action onBack)
     {
@@ -131,7 +136,7 @@ public sealed class EditorHubView
                 ? "Confirm a type to Open/Edit (Save is on the edit Menu). LB/RB: columns. Back closes module."
                 : viewModel.CanEditTheme
                     ? "Menu → Edit Theme or Export Module (.tinymod.zip → Downloads). Back closes module."
-                    : "Left/Right (or LB/RB): library ↔ menu. Confirm opens detail. Export packs open module to Downloads.",
+                    : "Left/Right (or LB/RB): library ↔ menu. Bundles: New/Open/Delete (bundled Confirm = copy). Export packs open module.",
         };
         GumUiLayout.FillParentWidth(hint);
         rootStack.AddChild(hint);
@@ -159,6 +164,7 @@ public sealed class EditorHubView
             onNewUnit,
             onNewBuilding,
             onEditTheme,
+            onNewBundle,
             onCloseModule,
             onBack);
         GumUiLayout.SetWidthPercent(leftColumn, 58f);
@@ -167,6 +173,7 @@ public sealed class EditorHubView
         PopulateLibrary(
             viewModel,
             onActivateModule,
+            onActivateBundle,
             onOpenMap,
             onDeleteMap,
             onOpenLevel,
@@ -175,6 +182,8 @@ public sealed class EditorHubView
             onDeleteUnit,
             onOpenBuilding,
             onDeleteBuilding,
+            onOpenBundle,
+            onDeleteBundle,
             onEditTheme);
         GumUiLayout.AddVerticalSpacer(rootStack, 10f);
 
@@ -292,6 +301,7 @@ public sealed class EditorHubView
     private void PopulateLibrary(
         EditorHubViewModel viewModel,
         Action<EditorModuleRowViewModel> onActivateModule,
+        Action<EditorBundleRowViewModel> onActivateBundle,
         Action<string> onOpenMap,
         Action<string> onDeleteMap,
         Action<string> onOpenLevel,
@@ -300,6 +310,8 @@ public sealed class EditorHubView
         Action<string> onDeleteUnit,
         Action<string> onOpenBuilding,
         Action<string> onDeleteBuilding,
+        Action<string> onOpenBundle,
+        Action<string> onDeleteBundle,
         Action onEditTheme)
     {
         if (_libraryHost is null)
@@ -383,11 +395,38 @@ public sealed class EditorHubView
             }
         }
 
+        if (viewModel.CanEditBundles && viewModel.Bundles.Count > 0)
+        {
+            AddLibraryHeader("Bundles");
+            foreach (var bundle in viewModel.Bundles)
+            {
+                var captured = bundle;
+                if (captured.Source == ContentModuleSource.UserLibrary)
+                {
+                    AddLibraryButton(
+                        captured.SummaryLine,
+                        () => ShowItemDetail(
+                            "Bundle: " + captured.BundleId,
+                            "Bundles/" + captured.BundleId + ".bundle.json",
+                            captured.BundleId,
+                            onOpenBundle,
+                            onDeleteBundle));
+                }
+                else
+                {
+                    AddLibraryButton(captured.SummaryLine, () => onActivateBundle(captured));
+                }
+            }
+        }
+
         if (viewModel.Modules.Count == 0)
         {
-            var empty = new Label { Text = "(No modules — create a scenario or duplicate bundled.)" };
-            GumUiLayout.FillParentWidth(empty);
-            _libraryHost.AddChild(empty);
+            if (!viewModel.CanEditBundles || viewModel.Bundles.Count == 0)
+            {
+                var empty = new Label { Text = "(No modules — create a scenario or duplicate bundled.)" };
+                GumUiLayout.FillParentWidth(empty);
+                _libraryHost.AddChild(empty);
+            }
         }
         else
         {
@@ -449,6 +488,7 @@ public sealed class EditorHubView
         Action onNewUnit,
         Action onNewBuilding,
         Action onEditTheme,
+        Action onNewBundle,
         Action onCloseModule,
         Action onBack)
     {
@@ -504,6 +544,7 @@ public sealed class EditorHubView
         AddMenuButton(host, "New Units Module", onNewUnitsModule);
         AddMenuButton(host, "New Buildings Module", onNewBuildingsModule);
         AddMenuButton(host, "New Theme Module", onNewThemeModule);
+        AddMenuButton(host, "New Bundle", onNewBundle, isEnabled: viewModel.CanEditBundles);
         AddMenuButton(host, "New Map", onNewMap, isEnabled: viewModel.CanCreateMap);
         AddMenuButton(host, "New Level", onNewLevel, isEnabled: viewModel.CanEditScenarioContent);
         AddMenuButton(host, "Edit Campaign", onEditCampaign, isEnabled: viewModel.CanEditScenarioContent);

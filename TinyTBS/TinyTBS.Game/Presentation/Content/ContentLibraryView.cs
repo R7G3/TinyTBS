@@ -49,6 +49,7 @@ public sealed class ContentLibraryView
     private int _actionFocusCount;
     private float _lastButtonBarWidth = -1f;
     private Action<string>? _onUninstallModule;
+    private Action<string>? _onUninstallBundle;
 
     public bool IsDetailOpen => _detail.IsOpen;
 
@@ -56,6 +57,7 @@ public sealed class ContentLibraryView
         ContentLibraryViewModel viewModel,
         Action<ContentLibraryTab> onSelectTab,
         Action<string> onUninstallModule,
+        Action<string> onUninstallBundle,
         Action onPickInstallFromDevice,
         Action<string> onInstallArchive,
         Action onBack)
@@ -65,6 +67,7 @@ public sealed class ContentLibraryView
         _activeTab = viewModel.ActiveTab;
         _onSelectTab = onSelectTab;
         _onUninstallModule = onUninstallModule;
+        _onUninstallBundle = onUninstallBundle;
 
         var canvasHeight = GumService.Default.CanvasHeight;
         var compact = canvasHeight > 0f && canvasHeight < 640f;
@@ -275,6 +278,7 @@ public sealed class ContentLibraryView
         _focusableEntries.Clear();
         _navigateRepeat.Reset();
         _onUninstallModule = null;
+        _onUninstallBundle = null;
         _focusIndex = 0;
         _ownedFocusIndex = 0;
         _listFocusStartIndex = -1;
@@ -339,7 +343,14 @@ public sealed class ContentLibraryView
             bundle.Title,
             $"bundle  ·  {bundle.SourceLabel}  ·  {bundle.BundleId}",
             "Modules: " + bundle.ModulesSummary,
-            removeAction: null,
+            bundle.CanUninstall
+                ? () =>
+                {
+                    var bundleId = bundle.BundleId;
+                    _detail.Close();
+                    _onUninstallBundle?.Invoke(bundleId);
+                }
+                : null,
             onClosed: RestoreShellFocusAfterDetail);
     }
 

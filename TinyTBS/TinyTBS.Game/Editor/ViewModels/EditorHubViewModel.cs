@@ -19,6 +19,8 @@ public sealed class EditorHubViewModel
 
     public IReadOnlyList<string> Buildings { get; set; } = [];
 
+    public IReadOnlyList<EditorBundleRowViewModel> Bundles { get; set; } = [];
+
     public string? OpenModuleId { get; set; }
 
     public string? OpenModuleTitle { get; set; }
@@ -36,6 +38,10 @@ public sealed class EditorHubViewModel
     public bool CanEditBuildings => OpenModuleType == ContentModuleType.Buildings;
 
     public bool CanEditTheme => OpenModuleType == ContentModuleType.Theme;
+
+    /// <summary>Bundles are edited outside an open module session (root hub / scenario view).</summary>
+    public bool CanEditBundles =>
+        !CanEditUnits && !CanEditBuildings && !CanEditTheme;
 
     public bool CanExportModule => HasOpenModule;
 
