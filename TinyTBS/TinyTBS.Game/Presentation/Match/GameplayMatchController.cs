@@ -401,7 +401,7 @@ public sealed class GameplayMatchController
 
         _hudSync.SyncFromSession(_session, _cellActionChooserCell, _campaignService);
         _hudSync.Hud.HintText = _enemyThreatHold.PreviewUnitId is not null
-            ? "Enemy threat · blue = move · red = attack range · release to close"
+            ? "Enemy threat · blue move · red attack · green capture · yellow repair · purple raise · release to close"
             : "WASD move · Enter/click select · Hold Enter/LMB on enemy = threat · Wheel zoom · RMB/I detail · E end · Esc pause";
     }
 
@@ -416,9 +416,9 @@ public sealed class GameplayMatchController
         moveRangeCells = ToCellTuples(overlay.MoveCells);
         // Full potential attack footprint (empty tiles included), not only current targets.
         attackTargetCells = ToCellTuples(ExceptCells(overlay.AttackRangeCells, overlay.MoveCells));
-        raiseTargetCells = null;
-        captureTargetCells = null;
-        repairTargetCells = null;
+        raiseTargetCells = ToCellTuples(overlay.RaiseCells);
+        captureTargetCells = ToCellTuples(overlay.CaptureCells);
+        repairTargetCells = ToCellTuples(overlay.RepairCells);
     }
 
     private static void ApplyOverlayCells(
