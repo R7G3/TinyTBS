@@ -38,8 +38,7 @@ public sealed class EditorPaintToolState
     /// <summary>Null = Neutral (buildings). Units fall back to slot 0 when placing.</summary>
     public int? OwnerSlot { get; private set; }
 
-    public string OwnerLabel =>
-        OwnerSlot is int slot ? "P" + slot : "Neutral";
+    public string OwnerLabel => PlayerDisplayNames.EditorOwner(OwnerSlot);
 
     public string StatusLabel
     {
@@ -65,8 +64,7 @@ public sealed class EditorPaintToolState
         }
     }
 
-    private string UnitPlaceSlotLabel =>
-        OwnerSlot is int slot ? "P" + slot : "P0 (Neutral→P0)";
+    private string UnitPlaceSlotLabel => PlayerDisplayNames.EditorUnitPlace(OwnerSlot);
 
     public void SelectOwner(int? slot)
     {
@@ -81,15 +79,7 @@ public sealed class EditorPaintToolState
             OwnerSlot = null;
         }
 
-        // Keep Place when stamping a building/unit so Owner only sets the slot for the next drop.
-        // Otherwise enter Label mode (Neutral/P# after terrain was painting leftover grass / no-ops).
-        if (Mode == EditorPaintMode.Place
-            && (ContentKind == EditorPaintContentKind.Building
-                || ContentKind == EditorPaintContentKind.Unit))
-        {
-            return;
-        }
-
+        // Owner buttons always stamp labels — never keep Place (that would drop another building/unit).
         Mode = EditorPaintMode.Label;
     }
 

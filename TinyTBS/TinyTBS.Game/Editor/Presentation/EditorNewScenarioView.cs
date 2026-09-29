@@ -1,6 +1,7 @@
 using Gum;
 using Gum.DataTypes;
 using Gum.Forms.Controls;
+using Gum.Managers;
 using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Input;
@@ -8,18 +9,27 @@ using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Editor.Presentation;
 
-/// <summary>New scenario module: Id/Title fields (same pattern as New Map).</summary>
+/// <summary>New scenario module: settings (left) + Create/Back menu (right).</summary>
 public sealed class EditorNewScenarioView
 {
+    private enum FocusZone
+    {
+        Settings = 0,
+        Menu = 1,
+    }
+
     private const float TextFieldHeight = 40f;
+    private const float StackSpacing = 6f;
+    private const float ColumnMinHeight = 180f;
 
     private Panel? _rootPanel;
     private Label? _statusLabel;
     private TextBox? _idBox;
     private TextBox? _titleBox;
-    private readonly List<(Button Button, Action Activate)> _focusableEntries = [];
+    private readonly List<(Button Button, Action Activate)> _menuEntries = [];
     private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
-    private int _focusIndex;
+    private FocusZone _focusZone = FocusZone.Menu;
+    private int _menuFocusIndex;
 
     public string ModuleId =>
         string.IsNullOrWhiteSpace(_idBox?.Text) ? "user_scenario" : _idBox!.Text.Trim();
@@ -45,38 +55,48 @@ public sealed class EditorNewScenarioView
 
         var shell = new Panel();
         GumUiLayout.CenterHorizontallyInParent(shell);
-        shell.Visual.Y = 16f;
-        GumUiLayout.SetBoundedWidth(shell, maxPixels: 560f, parentPercent: 94f);
-        shell.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+        shell.Visual.Y = 12f;
+        GumUiLayout.SetBoundedWidth(shell, maxPixels: 720f, parentPercent: 94f);
+        var canvasHeight = Math.Max(320f, GumService.Default.CanvasHeight);
+        var shellHeight = Math.Max(300f, Math.Min(canvasHeight - 24f, 420f));
+        const float topChrome = 10f + 26f + 22f + StackSpacing * 3f;
+        const float bottomChrome = 10f;
+        const float columnHeader = 26f + 4f;
+        var columnHeight = Math.Max(ColumnMinHeight, shellHeight - topChrome - bottomChrome - columnHeader);
+        GumUiLayout.SetAbsoluteHeight(shell, topChrome + bottomChrome + columnHeader + columnHeight);
         body.AddChild(shell);
         GumUiLayout.AddSolidBackground(shell, EditorUiColors.Panel);
 
-        var stack = GumUiLayout.CreateVerticalStackPanel(spacing: 8f, widthPercent: 94f);
-        GumUiLayout.CenterHorizontallyInParent(stack);
-        shell.AddChild(stack);
-
-        GumUiLayout.AddVerticalSpacer(stack, 12f);
+        var rootStack = GumUiLayout.CreateVerticalStackPanel(spacing: StackSpacing, widthPercent: 94f);
+        GumUiLayout.CenterHorizontallyInParent(rootStack);
+        shell.AddChild(rootStack);
+        GumUiLayout.AddVerticalSpacer(rootStack, 10f);
 
         var title = new Label { Text = "New Scenario Module" };
         GumUiLayout.FillParentWidth(title);
-        stack.AddChild(title);
+        rootStack.AddChild(title);
 
-        var hint = new Label { Text = "Set Id/Title. Click a field to type." };
+        var hint = new Label
+        {
+            Text = "Left: Id/Title (click to type). Right: Create / Back. Left/Right (or LB/RB) switches columns.",
+        };
         GumUiLayout.FillParentWidth(hint);
-        stack.AddChild(hint);
+        rootStack.AddChild(hint);
 
-        AddTextField(stack, "Id (folder name)", defaultModuleId, out _idBox);
-        AddTextField(stack, "Title (display name)", defaultTitle, out _titleBox);
+        var columns = new Panel();
+        GumUiLayout.FillParentWidth(columns);
+        columns.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+        columns.Visual.ChildrenLayout = ChildrenLayout.LeftToRightStack;
+        columns.Visual.StackSpacing = 10f;
+        rootStack.AddChild(columns);
 
-        _statusLabel = new Label { Text = string.Empty };
-        GumUiLayout.FillParentWidth(_statusLabel);
-        stack.AddChild(_statusLabel);
+        var left = CreateSettingsColumn(columns, columnHeight, defaultModuleId, defaultTitle);
+        var right = CreateMenuColumn(columns, columnHeight, onCreate, onBack);
+        GumUiLayout.SetWidthPercent(left, 58f);
+        GumUiLayout.SetWidthPercent(right, 40f);
 
-        AddPlainButton(stack, "Create", onCreate);
-        AddPlainButton(stack, "Back", onBack);
-
-        GumUiLayout.AddVerticalSpacer(stack, 14f);
-        FocusFirst();
+        GumUiLayout.AddVerticalSpacer(rootStack, 10f);
+        SetFocusZone(FocusZone.Menu, resetIndex: true);
     }
 
     public void SyncStatus(string text)
@@ -90,10 +110,17 @@ public sealed class EditorNewScenarioView
         if (IsTextEntryActive)
             return;
 
+        if (TrySwitchColumn(commands))
+            return;
+
+        // Settings column has no gamepad buttons — Create/Back are vertical only.
+        if (_focusZone != FocusZone.Menu || _menuEntries.Count == 0)
+            return;
+
         GumFocusableButtonList.HandleVerticalInput(
             commands,
-            _focusableEntries,
-            ref _focusIndex,
+            _menuEntries,
+            ref _menuFocusIndex,
             _navigateRepeat,
             elapsedSeconds);
     }
@@ -105,15 +132,113 @@ public sealed class EditorNewScenarioView
         _statusLabel = null;
         _idBox = null;
         _titleBox = null;
-        _focusableEntries.Clear();
+        _menuEntries.Clear();
         _navigateRepeat.Reset();
-        _focusIndex = 0;
+        _focusZone = FocusZone.Menu;
+        _menuFocusIndex = 0;
     }
 
-    private void FocusFirst()
+    private Panel CreateSettingsColumn(
+        Panel columns,
+        float columnHeight,
+        string defaultModuleId,
+        string defaultTitle)
     {
-        _focusIndex = 0;
-        GumFocusableButtonList.ApplyFocus(_focusableEntries, ref _focusIndex);
+        var column = new Panel();
+        column.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+        column.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
+        column.Visual.StackSpacing = 4f;
+        columns.AddChild(column);
+
+        var header = new Label { Text = "Settings" };
+        GumUiLayout.FillParentWidth(header);
+        column.AddChild(header);
+
+        var host = new Panel();
+        GumUiLayout.FillParentWidth(host);
+        host.Visual.Height = columnHeight;
+        host.Visual.HeightUnits = DimensionUnitType.Absolute;
+        host.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
+        host.Visual.StackSpacing = StackSpacing;
+        column.AddChild(host);
+
+        AddTextField(host, "Id (folder name)", defaultModuleId, out _idBox);
+        AddTextField(host, "Title (display name)", defaultTitle, out _titleBox);
+
+        _statusLabel = new Label { Text = string.Empty };
+        GumUiLayout.FillParentWidth(_statusLabel);
+        host.AddChild(_statusLabel);
+        return column;
+    }
+
+    private Panel CreateMenuColumn(Panel columns, float columnHeight, Action onCreate, Action onBack)
+    {
+        var column = new Panel();
+        column.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+        column.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
+        column.Visual.StackSpacing = 4f;
+        columns.AddChild(column);
+
+        var header = new Label { Text = "Menu" };
+        GumUiLayout.FillParentWidth(header);
+        column.AddChild(header);
+
+        var host = new Panel();
+        GumUiLayout.FillParentWidth(host);
+        host.Visual.Height = columnHeight;
+        host.Visual.HeightUnits = DimensionUnitType.Absolute;
+        host.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
+        host.Visual.StackSpacing = 6f;
+        column.AddChild(host);
+
+        AddMenuButton(host, "Create", onCreate);
+        AddMenuButton(host, "Back", onBack);
+        return column;
+    }
+
+    private bool TrySwitchColumn(IGameCommandSource commands)
+    {
+        // No horizontal rows in columns — Left/Right switch Settings ↔ Menu (plus LB/RB).
+        var toMenu = commands.WasPressed(GameCommand.NavigateRight)
+            || commands.WasPressed(GameCommand.FocusNextRegion)
+            || commands.WasPressed(GameCommand.ZoomIn);
+        var toSettings = commands.WasPressed(GameCommand.NavigateLeft)
+            || commands.WasPressed(GameCommand.FocusPreviousRegion)
+            || commands.WasPressed(GameCommand.ZoomOut);
+
+        if (toMenu)
+        {
+            SetFocusZone(FocusZone.Menu, resetIndex: false);
+            return true;
+        }
+
+        if (toSettings)
+        {
+            // No gamepad targets in Settings — clear menu focus so mouse can use text fields.
+            SetFocusZone(FocusZone.Settings, resetIndex: false);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void SetFocusZone(FocusZone zone, bool resetIndex)
+    {
+        _focusZone = zone;
+        if (zone == FocusZone.Menu)
+        {
+            if (resetIndex)
+                _menuFocusIndex = 0;
+            else
+                _menuFocusIndex = Math.Clamp(_menuFocusIndex, 0, Math.Max(0, _menuEntries.Count - 1));
+
+            if (_menuEntries.Count > 0)
+                GumFocusableButtonList.ApplyFocus(_menuEntries, ref _menuFocusIndex);
+            return;
+        }
+
+        // Settings: release gamepad button focus so TextBox can take keyboard.
+        GumFocusableButtonList.ClearFocus(_menuEntries);
     }
 
     private static void AddTextField(Panel parent, string caption, string initialText, out TextBox textBox)
@@ -125,15 +250,28 @@ public sealed class EditorNewScenarioView
         textBox = new TextBox { Text = initialText };
         GumUiLayout.FillParentWidth(textBox);
         GumUiLayout.SetAbsoluteHeight(textBox, TextFieldHeight);
+        EditorTextFieldStyle.Apply(textBox);
         parent.AddChild(textBox);
     }
 
-    private void AddPlainButton(Panel parent, string text, Action onClick)
+    private void AddMenuButton(Panel parent, string text, Action onClick)
     {
         var button = new Button { Text = text };
         GumUiLayout.FillParentWidth(button);
-        button.Click += (_, _) => onClick();
+        button.Click += (_, _) =>
+        {
+            for (var i = 0; i < _menuEntries.Count; i++)
+            {
+                if (!ReferenceEquals(_menuEntries[i].Button, button))
+                    continue;
+                _menuFocusIndex = i;
+                break;
+            }
+
+            SetFocusZone(FocusZone.Menu, resetIndex: false);
+            onClick();
+        };
         parent.AddChild(button);
-        _focusableEntries.Add((button, onClick));
+        _menuEntries.Add((button, onClick));
     }
 }

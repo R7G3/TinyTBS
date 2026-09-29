@@ -32,8 +32,9 @@ public sealed class GameplayHudSync
     {
         var match = session.State;
 
-        _hud.PlayerLabel = $"P{match.CurrentPlayer + 1}";
+        _hud.PlayerLabel = FormatCurrentPlayerLabel(session);
         _hud.GoldText = $"{match.GetMoney(match.CurrentPlayer)}g";
+        _hud.IncomeText = "Income: " + MatchEconomy.CalculateOwnedBuildingIncome(match, match.CurrentPlayer) + "g";
         _hud.UnitsText = $"{match.CountUnitsForPlayer(match.CurrentPlayer)}/{session.LevelBrief.UnitCap}";
         _hud.TurnText = $"Turn {match.TurnNumber}";
         _hud.StatusBarColor = PlayerPalette.ForPlayer(match.CurrentPlayer);
@@ -78,7 +79,7 @@ public sealed class GameplayHudSync
 
         if (match.IsMatchOver)
         {
-            _hud.MatchResultText = FormatMatchResult(match);
+            _hud.MatchResultText = FormatMatchResult(match, session);
             GameplayHudOverlayState.PrepareForMatchResult(_hud);
             ResolveCampaignResultOnce(session, campaignService);
         }
@@ -142,15 +143,28 @@ public sealed class GameplayHudSync
         return session.PlayerSeats[winner].Kind == MatchPlayerKind.Local;
     }
 
-    private static string FormatMatchResult(MatchState match)
+    private static string FormatCurrentPlayerLabel(GameplaySession session)
+    {
+        var index = session.State.CurrentPlayer;
+        if ((uint)index < (uint)session.PlayerSeats.Count)
+            return PlayerDisplayNames.ForSeat(index, session.PlayerSeats[index]);
+
+        return PlayerDisplayNames.Number(index);
+    }
+
+    private static string FormatMatchResult(MatchState match, GameplaySession session)
     {
         if (match.WinnerPlayerIndex is not int winner)
             return "Match over";
 
+        var who = (uint)winner < (uint)session.PlayerSeats.Count
+            ? PlayerDisplayNames.ForSeat(winner, session.PlayerSeats[winner])
+            : PlayerDisplayNames.Number(winner);
+
         var reason = string.IsNullOrWhiteSpace(match.VictoryReason) ? "victory" : match.VictoryReason;
         return reason.Equals("standard", StringComparison.OrdinalIgnoreCase)
-            ? $"Player {winner + 1} wins"
-            : $"Player {winner + 1} wins ({reason})";
+            ? who + " wins"
+            : who + " wins (" + reason + ")";
     }
 
     private static string BuildGoalsText(MatchLevelBrief brief)

@@ -155,10 +155,10 @@ public static class MatchInfoFormatter
     }
 
     private static string OwnerShort(int? ownerPlayerIndex) =>
-        ownerPlayerIndex is int index ? $"P{index + 1}" : "N";
+        ownerPlayerIndex is int index ? PlayerDisplayNames.Number(index) : "N";
 
     private static string OwnerLabel(int? ownerPlayerIndex) =>
-        ownerPlayerIndex is int index ? $"Player {index + 1}" : "Neutral";
+        PlayerDisplayNames.EditorOwner(ownerPlayerIndex);
 
     private static string TerrainLabel(TerrainKind terrain) => terrain switch
     {

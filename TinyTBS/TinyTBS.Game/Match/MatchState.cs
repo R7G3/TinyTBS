@@ -573,18 +573,19 @@ public sealed class MatchState
             if (WinnerPlayerIndex is int winner)
             {
                 var reason = string.IsNullOrWhiteSpace(VictoryReason) ? "victory" : VictoryReason;
-                return $"P{winner + 1} wins ({reason})";
+                return PlayerDisplayNames.Number(winner) + " wins (" + reason + ")";
             }
 
             var gold = GetMoney(CurrentPlayer);
             var army = CountUnitsForPlayer(CurrentPlayer);
+            var player = PlayerDisplayNames.Number(CurrentPlayer);
             if (SelectedUnitId is int unitId && TryGetUnit(unitId, out var unit))
             {
                 var active = unit.IsActive ? "ready" : "done";
-                return $"P{CurrentPlayer + 1} · {gold}g · {army}/{UnitCap} · T{TurnNumber} — {unit.TypeId.LocalId} L{unit.Level} ({active})";
+                return player + $" · {gold}g · {army}/{UnitCap} · T{TurnNumber} — {unit.TypeId.LocalId} L{unit.Level} ({active})";
             }
 
-            return $"P{CurrentPlayer + 1} · {gold}g · {army}/{UnitCap} · T{TurnNumber} — {GetTerrain(Cursor)} @ {Cursor}";
+            return player + $" · {gold}g · {army}/{UnitCap} · T{TurnNumber} — {GetTerrain(Cursor)} @ {Cursor}";
         }
     }
 

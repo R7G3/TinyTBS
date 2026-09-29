@@ -78,6 +78,7 @@ public sealed class EditorMapPaintHudView
         MatchTextureAtlas textures,
         MatchContentCatalog catalog,
         Action onSave,
+        Action onScript,
         Action onBack,
         Action onUndo,
         Action onRedo,
@@ -145,7 +146,17 @@ public sealed class EditorMapPaintHudView
         _rightPanel.X = -8f;
         _rightPanel.Y = PanelTop;
         _rootPanel.AddChild(_rightPanel);
-        FillToolsPanel(rightStack, panelHeight, tool, onSave, onBack, onUndo, onRedo, onValidate, onToolChanged);
+        FillToolsPanel(
+            rightStack,
+            panelHeight,
+            tool,
+            onSave,
+            onScript,
+            onBack,
+            onUndo,
+            onRedo,
+            onValidate,
+            onToolChanged);
 
         _focusZone = EditorPaintFocusZone.Map;
         ApplyZoneChrome();
@@ -505,6 +516,7 @@ public sealed class EditorMapPaintHudView
         float panelHeight,
         EditorPaintToolState tool,
         Action onSave,
+        Action onScript,
         Action onBack,
         Action onUndo,
         Action onRedo,
@@ -553,7 +565,7 @@ public sealed class EditorMapPaintHudView
         for (var slot = 0; slot < EditorPaintToolState.PlayerSlotCount; slot++)
         {
             var captured = slot;
-            AddPlainButton(toolsHost, "P" + captured, () =>
+            AddPlainButton(toolsHost, PlayerDisplayNames.Number(captured), () =>
             {
                 tool.SelectOwner(captured);
                 onToolChanged();
@@ -565,6 +577,7 @@ public sealed class EditorMapPaintHudView
         AddPlainButton(toolsHost, "Redo (Ctrl+Y)", onRedo, _toolEntries);
         AddPlainButton(toolsHost, "Validate", onValidate, _toolEntries);
         AddPlainButton(toolsHost, "Save", onSave, _toolEntries);
+        AddPlainButton(toolsHost, "Script", onScript, _toolEntries);
         AddPlainButton(toolsHost, "Back", onBack, _toolEntries);
         AddHeader(toolsHost, "LB/RB · Q/E");
     }

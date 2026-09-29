@@ -5,9 +5,11 @@ namespace TinyTBS.Game.ViewModels;
 /// <summary>UI-state bag for gameplay HUD (not an MVVM architecture layer).</summary>
 public sealed class GameplayHudViewModel
 {
-    public string PlayerLabel { get; set; } = "P1";
+    public string PlayerLabel { get; set; } = "Player 1 (local)";
 
     public string GoldText { get; set; } = "0g";
+
+    public string IncomeText { get; set; } = "Income: 0g";
 
     public string UnitsText { get; set; } = "0/0";
 

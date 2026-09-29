@@ -97,6 +97,7 @@ public static class GumScrollListLayout
         if (listPanel.Visual.Children is null)
             return false;
 
+        // Stack layouts often keep child.Y at 0 — walk siblings and sum heights (do this first).
         var found = false;
         for (var index = 0; index < listPanel.Visual.Children.Count; index++)
         {
@@ -105,7 +106,7 @@ public static class GumScrollListLayout
             if (ReferenceEquals(child, focusedVisual) || IsDescendantOf(focusedVisual, child))
             {
                 itemHeight = MeasureVisualHeight(focusedVisual, rowHeightFallback);
-                if (itemHeight <= 1f)
+                if (itemHeight <= 1f || childHeight > itemHeight)
                     itemHeight = childHeight;
                 found = true;
                 break;
@@ -114,7 +115,44 @@ public static class GumScrollListLayout
             itemTop += childHeight + stackSpacing;
         }
 
-        return found;
+        if (found)
+            return true;
+
+        // AbsoluteTop delta when sibling walk missed (unusual nesting).
+        return TryMeasureViaAbsoluteTop(listPanel.Visual, focusedVisual, out itemTop, out itemHeight, rowHeightFallback);
+    }
+
+    public static bool TryMeasureViaAbsoluteTop(
+        GraphicalUiElement listRoot,
+        GraphicalUiElement item,
+        out float itemTop,
+        out float itemHeight,
+        float rowHeightFallback = DefaultRowHeightFallback)
+    {
+        itemTop = 0f;
+        itemHeight = MeasureVisualHeight(item, rowHeightFallback);
+
+        var rootTop = listRoot.AbsoluteTop;
+        var itemAbsoluteTop = item.AbsoluteTop;
+        if (float.IsNaN(rootTop) || float.IsNaN(itemAbsoluteTop))
+            return false;
+
+        itemTop = itemAbsoluteTop - rootTop;
+        if (itemTop < -1f)
+            return false;
+
+        if (item.Parent is GraphicalUiElement row && !ReferenceEquals(row, listRoot))
+        {
+            var rowHeight = MeasureVisualHeight(row, rowHeightFallback);
+            if (rowHeight > itemHeight)
+                itemHeight = rowHeight;
+            // Align to the containing row top when the focused visual is nested.
+            var rowTop = row.AbsoluteTop - rootTop;
+            if (!float.IsNaN(rowTop) && rowTop >= 0f)
+                itemTop = rowTop;
+        }
+
+        return true;
     }
 
     public static void EnsureFocusedRowVisible(

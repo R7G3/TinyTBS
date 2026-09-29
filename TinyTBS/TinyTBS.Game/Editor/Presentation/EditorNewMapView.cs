@@ -203,6 +203,7 @@ public sealed class EditorNewMapView
         textBox = new TextBox { Text = initialText };
         GumUiLayout.FillParentWidth(textBox);
         GumUiLayout.SetAbsoluteHeight(textBox, TextFieldHeight);
+        EditorTextFieldStyle.Apply(textBox);
         parent.AddChild(textBox);
     }
 

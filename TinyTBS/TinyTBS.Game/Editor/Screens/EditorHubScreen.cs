@@ -1,6 +1,7 @@
 using Gum;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
+using TinyTBS.Engine.Input;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Map;
@@ -18,7 +19,7 @@ using TinyTBS.Game.Screens;
 namespace TinyTBS.Game.Editor.Screens;
 
 /// <summary>
-/// Editor hub: modules, CoW duplicate, open session, New Map / open existing map (slice 1–2).
+/// Editor hub: modules, CoW duplicate, open session, maps/levels/campaign (slice 1–4).
 /// </summary>
 public sealed class EditorHubScreen : GameScreen
 {
@@ -30,6 +31,13 @@ public sealed class EditorHubScreen : GameScreen
     private ContentModuleLibrary? _moduleLibrary;
     private ScenarioModuleWriter? _scenarioWriter;
     private EditorWorkspaceSession? _session;
+
+    /// <summary>
+    /// After ReplaceScreen from a child (e.g. New Scenario Back), ignore exit commands,
+    /// Confirm, and Gum clicks until pointer + exit/confirm keys are released — otherwise
+    /// Hub Back under the same cursor (or leftover Confirm) jumps to the main menu.
+    /// </summary>
+    private bool _suppressInputUntilIdle;
 
     public EditorHubScreen(GameMain game, IAssetResolver assets)
         : this(game, assets, session: null)
@@ -54,10 +62,11 @@ public sealed class EditorHubScreen : GameScreen
         _scenarioWriter = new ScenarioModuleWriter(TinyGame.Files, TinyGame.UserDataPaths);
         _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
 
+        BeginInputSuppress();
         RefreshLibrary(
             _session is null
                 ? "Create a scenario or Confirm a bundled module to copy into your library."
-                : $"Editing '{_session.ModuleId}'. New Map or open a map below.");
+                : $"Editing '{_session.ModuleId}'. Maps, levels, or campaign below.");
     }
 
     public override void UnloadContent()
@@ -75,8 +84,16 @@ public sealed class EditorHubScreen : GameScreen
         GumService.Default.Update(gameTime);
         _view.ApplyResponsiveLayout();
 
-        // If map detail was open, HandleInput may close it on B/Esc — do not also leave the hub.
-        var detailWasOpen = _view.IsMapDetailOpen;
+        if (_suppressInputUntilIdle)
+        {
+            if (IsIngressBusy(TinyGame.Commands, TinyGame.Pointer))
+                return;
+
+            EndInputSuppress();
+        }
+
+        // If detail was open, HandleInput may close it on B/Esc — do not also leave the hub.
+        var detailWasOpen = _view.IsAnyDetailOpen;
         _view.HandleInput(TinyGame.Commands, (float)gameTime.ElapsedGameTime.TotalSeconds);
 
         if (TinyGame.Commands.WasPressed(GameCommand.Back)
@@ -84,15 +101,35 @@ public sealed class EditorHubScreen : GameScreen
             || TinyGame.Commands.WasPressed(GameCommand.Info)
             || TinyGame.Commands.WasPressed(GameCommand.Pause))
         {
-            if (detailWasOpen || _view.IsMapDetailOpen)
+            if (detailWasOpen || _view.IsAnyDetailOpen)
             {
-                _view.TryCloseMapDetail();
+                _view.TryCloseAnyDetail();
                 return;
             }
 
-            GoToMainMenu();
+            HandleBack();
         }
     }
+
+    private void BeginInputSuppress()
+    {
+        _suppressInputUntilIdle = true;
+        _view.SuppressActivations = true;
+    }
+
+    private void EndInputSuppress()
+    {
+        _suppressInputUntilIdle = false;
+        _view.SuppressActivations = false;
+    }
+
+    private static bool IsIngressBusy(IGameCommandSource commands, IPointerSource pointer) =>
+        pointer.IsPrimaryDown
+        || commands.IsPressed(GameCommand.Confirm)
+        || commands.IsPressed(GameCommand.Back)
+        || commands.IsPressed(GameCommand.Cancel)
+        || commands.IsPressed(GameCommand.Info)
+        || commands.IsPressed(GameCommand.Pause);
 
     public override void Draw(GameTime gameTime)
     {
@@ -135,11 +172,15 @@ public sealed class EditorHubScreen : GameScreen
             _viewModel,
             onNewScenario: OpenNewScenarioWizard,
             onNewMap: OpenNewMapWizard,
+            onNewLevel: OpenNewLevelWizard,
+            onEditCampaign: OpenCampaignEditor,
             onActivateModule: ActivateModule,
             onOpenMap: OpenExistingMap,
             onDeleteMap: DeleteMap,
+            onOpenLevel: OpenExistingLevel,
+            onDeleteLevel: DeleteLevel,
             onCloseModule: CloseModule,
-            onBack: GoToMainMenu);
+            onBack: HandleBack);
     }
 
     private void SyncOpenFields()
@@ -150,6 +191,7 @@ public sealed class EditorHubScreen : GameScreen
             _viewModel.OpenModuleTitle = null;
             _viewModel.CanCreateMap = false;
             _viewModel.Maps = [];
+            _viewModel.Levels = [];
             return;
         }
 
@@ -157,6 +199,7 @@ public sealed class EditorHubScreen : GameScreen
         _viewModel.OpenModuleTitle = _session.Title;
         _viewModel.CanCreateMap = _session.Type == ContentModuleType.Scenario;
         _viewModel.Maps = ListMapIds(_session.ModuleRootPath);
+        _viewModel.Levels = ListLevelIds(_session.ModuleRootPath);
     }
 
     private static IReadOnlyList<string> ListMapIds(string moduleRoot)
@@ -173,6 +216,20 @@ public sealed class EditorHubScreen : GameScreen
             .ToArray();
     }
 
+    private static IReadOnlyList<string> ListLevelIds(string moduleRoot)
+    {
+        var levelsRoot = Path.Combine(moduleRoot, "Levels");
+        if (!Directory.Exists(levelsRoot))
+            return [];
+
+        return Directory.GetDirectories(levelsRoot)
+            .Select(Path.GetFileName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     private void OpenNewScenarioWizard() =>
         ScreenManager.ReplaceScreen(new EditorNewScenarioScreen(TinyGame, _assets, _session));
 
@@ -182,6 +239,30 @@ public sealed class EditorHubScreen : GameScreen
             return;
 
         ScreenManager.ReplaceScreen(new EditorNewMapScreen(TinyGame, _assets, _session));
+    }
+
+    private void OpenNewLevelWizard()
+    {
+        if (_session is null || _session.Type != ContentModuleType.Scenario)
+            return;
+
+        var maps = ListMapIds(_session.ModuleRootPath);
+        var mapId = maps.Count > 0 ? maps[0] : "map";
+        var levelId = AllocateUniqueChildId(_session.ModuleRootPath, "Levels", mapId);
+        var document = TinyTBS.Game.Editor.Levels.EditableLevelDocument.CreateDefault(
+            levelId,
+            title: levelId,
+            mapId: mapId);
+        ScreenManager.ReplaceScreen(
+            new EditorLevelEditScreen(TinyGame, _assets, _session, document, isNew: true));
+    }
+
+    private void OpenCampaignEditor()
+    {
+        if (_session is null || _session.Type != ContentModuleType.Scenario)
+            return;
+
+        ScreenManager.ReplaceScreen(new EditorCampaignEditScreen(TinyGame, _assets, _session));
     }
 
     private void OpenExistingMap(string mapId)
@@ -215,10 +296,6 @@ public sealed class EditorHubScreen : GameScreen
             if (Directory.Exists(mapRoot))
                 Directory.Delete(mapRoot, recursive: true);
 
-            var levelRoot = TinyGame.Files.Combine(_session.ModuleRootPath, "Levels", mapId);
-            if (Directory.Exists(levelRoot))
-                Directory.Delete(levelRoot, recursive: true);
-
             RefreshLibrary($"Deleted map '{mapId}'.");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -226,6 +303,62 @@ public sealed class EditorHubScreen : GameScreen
             _viewModel.StatusText = "Delete map failed: " + exception.Message;
             _view.SyncStatus(_viewModel);
         }
+    }
+
+    private void OpenExistingLevel(string levelId)
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            var levelRoot = TinyGame.Files.Combine(_session.ModuleRootPath, "Levels", levelId);
+            var document = TinyTBS.Game.Editor.Levels.EditableLevelDocument.Load(levelRoot, TinyGame.Files);
+            ScreenManager.ReplaceScreen(
+                new EditorLevelEditScreen(TinyGame, _assets, _session, document, isNew: false));
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusText = "Open level failed: " + exception.Message;
+            _view.SyncStatus(_viewModel);
+        }
+    }
+
+    private void DeleteLevel(string levelId)
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            var levelRoot = TinyGame.Files.Combine(_session.ModuleRootPath, "Levels", levelId);
+            if (Directory.Exists(levelRoot))
+                Directory.Delete(levelRoot, recursive: true);
+
+            RefreshLibrary($"Deleted level '{levelId}'.");
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _viewModel.StatusText = "Delete level failed: " + exception.Message;
+            _view.SyncStatus(_viewModel);
+        }
+    }
+
+    private static string AllocateUniqueChildId(string moduleRoot, string folderName, string stem)
+    {
+        var root = Path.Combine(moduleRoot, folderName);
+        Directory.CreateDirectory(root);
+        if (!Directory.Exists(Path.Combine(root, stem)))
+            return stem;
+
+        for (var suffix = 2; suffix < 10_000; suffix++)
+        {
+            var candidate = stem + "_" + suffix;
+            if (!Directory.Exists(Path.Combine(root, candidate)))
+                return candidate;
+        }
+
+        throw new EditorException("Could not allocate a unique id under " + folderName + ".");
     }
 
     private void ActivateModule(EditorModuleRowViewModel row)
@@ -293,6 +426,20 @@ public sealed class EditorHubScreen : GameScreen
     {
         _session = null;
         RefreshLibrary("Module closed.");
+    }
+
+    /// <summary>
+    /// Open module → close session (hub root). No module → leave editor to main menu.
+    /// </summary>
+    private void HandleBack()
+    {
+        if (_session is not null)
+        {
+            CloseModule();
+            return;
+        }
+
+        GoToMainMenu();
     }
 
     private void GoToMainMenu() =>

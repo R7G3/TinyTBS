@@ -27,6 +27,31 @@ public static class MatchEconomy
             ApplyIncomeAndHeal(match, match.CurrentPlayer);
     }
 
+    /// <summary>
+    /// Gold the player would receive from currently owned buildings (same rules as turn-start income).
+    /// </summary>
+    public static int CalculateOwnedBuildingIncome(MatchState match, int playerIndex)
+    {
+        ArgumentNullException.ThrowIfNull(match);
+
+        var total = 0;
+        foreach (var building in match.BuildingList)
+        {
+            if (building.OwnerPlayerIndex != playerIndex)
+                continue;
+            if (!match.Catalog.TryGetBuilding(building.TypeId, out var definition))
+                continue;
+
+            var income = building.IsRuined
+                ? definition.Ruined?.Income ?? 0
+                : definition.Income;
+            if (income > 0)
+                total += income;
+        }
+
+        return total;
+    }
+
     public static bool TryRecruitAtCastle(
         MatchState match,
         ContentId unitTypeId,

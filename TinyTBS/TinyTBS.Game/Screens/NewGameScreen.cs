@@ -476,7 +476,7 @@ public sealed class NewGameScreen : GameScreen
         else
         {
             _viewModel.LobbyNote =
-                "Campaign: P2 defaults to Bot · Easy. Confirm a Bot seat to cycle Easy/Normal. Gold and unit cap come from the level.";
+                "Campaign: Player 2 defaults to Bot · Easy. Confirm a Bot seat to cycle Easy/Normal. Gold and unit cap come from the level.";
             _viewModel.StartingGold = level.DefaultStartingGold;
             _viewModel.UnitCap = level.DefaultUnitCap;
         }
@@ -794,7 +794,7 @@ public sealed class NewGameScreen : GameScreen
             ? BotDifficulty.Normal
             : BotDifficulty.Easy;
         _focusAnchor = NewGameFocusAnchor.RemovePlayer;
-        Refresh($"P{slotIndex + 1} → Bot · {seat.BotDifficulty}.");
+        Refresh($"Player {slotIndex + 1} → bot {PlayerDisplayNames.FormatBotDifficulty(seat.BotDifficulty)}.");
     }
 
     private void AdjustGold(int delta)

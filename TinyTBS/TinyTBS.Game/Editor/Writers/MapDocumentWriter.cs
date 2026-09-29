@@ -79,10 +79,14 @@ public sealed class MapDocumentWriter
         var json = JsonSerializer.Serialize(payload, WriteOptions);
         File.WriteAllText(mapJsonPath, json + Environment.NewLine, Encoding.UTF8);
 
+        var scriptPath = _files.Combine(mapRoot, "script.cs");
         if (scriptText is not null)
         {
-            var scriptPath = _files.Combine(mapRoot, "script.cs");
             File.WriteAllText(scriptPath, scriptText, Encoding.UTF8);
+        }
+        else if (!File.Exists(scriptPath))
+        {
+            File.WriteAllText(scriptPath, MapScriptTemplates.EmptyHooks, Encoding.UTF8);
         }
 
         document.IsDirty = false;

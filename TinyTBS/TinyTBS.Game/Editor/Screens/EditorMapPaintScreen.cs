@@ -253,7 +253,8 @@ public sealed class EditorMapPaintScreen : GameScreen
 
         try
         {
-            _mapWriter.Write(_session.ModuleRootPath, _document, MapScriptTemplates.EmptyHooks);
+            // null scriptText: keep existing Maps/{id}/script.cs (edited on Script screen).
+            _mapWriter.Write(_session.ModuleRootPath, _document, scriptText: null);
             if (_isNewMap)
             {
                 var playerSlots = EditableMapDocument.InferPlayerSlotCount(_document);
@@ -295,6 +296,7 @@ public sealed class EditorMapPaintScreen : GameScreen
             _textures,
             _catalog,
             onSave: Save,
+            onScript: OpenMapScript,
             onBack: GoToHub,
             onUndo: Undo,
             onRedo: Redo,
@@ -317,6 +319,32 @@ public sealed class EditorMapPaintScreen : GameScreen
         };
         var hint = string.IsNullOrWhiteSpace(_statusHint) ? string.Empty : " | " + _statusHint;
         return $"{_session.ModuleId}/{_document.Id}{dirty} | {zone} | {_tool.StatusLabel}{hint}";
+    }
+
+    private void OpenMapScript()
+    {
+        if (_document.IsDirty)
+        {
+            try
+            {
+                if (_mapWriter is not null)
+                    _mapWriter.Write(_session.ModuleRootPath, _document, scriptText: null);
+            }
+            catch (Exception exception)
+            {
+                _statusHint = "Save before Script failed: " + exception.Message;
+                SyncHudStatus();
+                return;
+            }
+        }
+
+        ScreenManager.ReplaceScreen(
+            new EditorMapScriptScreen(
+                TinyGame,
+                _assets,
+                _session,
+                _document.Id,
+                returnToPaint: true));
     }
 
     private void GoToHub() =>

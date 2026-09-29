@@ -42,10 +42,16 @@ isProject: false
 - [x] **save-format** (срез 1) — match JSON + Pause Save / Leave / Main menu suspend + Continue live→диск
 - [x] **save-format** (срез 2) — экран Загрузка
 - [x] **campaigns** — campaign.json + прохождение по главам + прогресс
+- [x] **map-editor** (срез 1) — Hub: New Scenario / Duplicate bundled (CoW) → user Modules; open session; Publish greyed
+- [x] **map-editor** (срез 2) — paint карты (terrain/units/buildings) + Save + level-stub
+- [x] **map-editor** (срез 3) — метки Neutral/P0–P3 + Undo/Redo + Validate (Save не блокируется)
+- [x] **map-editor** (срез 4) — Levels (slots/gold/cap/`map.ref`) + Campaign (linear chapters + script stub) + map `script.cs` editor/template; двухколоночный UX + геймпад
 
 ### Дальше (playtest-перерыв: бот → сейвы → кампании → редактор)
 
-- [ ] **map-editor** — workspace модулей; Publish greyed
+- [ ] **map-editor** (срез 5) — masters units/buildings (редактирование JSON в модуле)
+- [ ] **map-editor** (срез 6) — theme + export в модуль
+- [ ] **map-editor** (срез 7) — bundles (пресеты composition в редакторе)
 - [ ] **player-colors** — color picker в лобби / профиле (можно с `settings-ui`)
 - [ ] **settings-ui** — экран **Настройки**: графика (в т.ч. `ui-scale-hidpi`), ввод (3 столбца), профиль; persist JSON. Канон: [UI_AND_FLOW § Настройки](../../docs/design/UI_AND_FLOW.md#настройки)
 - [ ] **ui-scale-hidpi** — масштаб UI/поля под HiDPI / 4K. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#масштаб--разрешение); [ideas/ui-scale-hidpi.md](../../docs/ideas/ui-scale-hidpi.md)
@@ -364,9 +370,13 @@ ScriptOptions.Default
 18. Content pipeline дальше: `new-game-flow` — **выполнено** (см. чеклист выше / ARCHITECTURE).
 19. **`match-gdd-loop`** — **выполнено** (см. чеклист).
 20. **`bot-search-ab`** — бот (αβ); **Easy + Normal** до playtest-перерыва; Hard позже. Идея: [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md). Перед кодом — открытые вопросы.
-21. **`save-format`** — сейвы + «Продолжить».
+21. **`save-format`** — сейвы + «Продолжить» — **выполнено** (срезы 1–2 в чеклисте).
 22. **`campaigns`** — главы + прогресс — **выполнено**.
-23. **`map-editor`** — workspace модулей.
+23. **`map-editor`** — workspace модулей (срезы в чеклисте):
+    - срез 1–4 — **выполнено** (Hub/CoW, paint/Save, labels/Undo/Validate, levels/campaign/script + двухколоночный UX)
+    - срез 5 — units/buildings masters
+    - срез 6 — theme + export
+    - срез 7 — bundles
 24. `player-colors` — color picker (можно с settings).
 25. **`settings-ui`** + `ui-scale-hidpi` — после playtest-приоритета. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#настройки).
 26. **`terrain-autotile`** — после HiDPI; идея: [terrain-autotile-edges](../../docs/ideas/terrain-autotile-edges.md). Перед кодом — обязательный gate (вопросы с терминами/примерами/оценкой).

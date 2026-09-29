@@ -22,6 +22,13 @@ public sealed class EditorNewScenarioScreen : GameScreen
     private MainMenuBackground? _background;
     private ScenarioModuleWriter? _scenarioWriter;
 
+    /// <summary>
+    /// Navigate only after Gum.Update finishes — building Hub mid-Click would place
+    /// Hub's Back under the cursor and fire GoToMainMenu (same for leftover Confirm).
+    /// </summary>
+    private bool _pendingGoToHub;
+    private bool _pendingCreate;
+
     public EditorNewScenarioScreen(
         GameMain game,
         IAssetResolver assets,
@@ -45,7 +52,7 @@ public sealed class EditorNewScenarioScreen : GameScreen
         var defaultTitle = defaultId == "user_scenario"
             ? "User Scenario"
             : "User Scenario (" + defaultId + ")";
-        _view.Build(defaultId, defaultTitle, CreateScenario, GoToHub);
+        _view.Build(defaultId, defaultTitle, RequestCreate, RequestGoToHub);
     }
 
     public override void UnloadContent()
@@ -54,6 +61,8 @@ public sealed class EditorNewScenarioScreen : GameScreen
         _background?.Dispose();
         _background = null;
         _scenarioWriter = null;
+        _pendingGoToHub = false;
+        _pendingCreate = false;
         base.UnloadContent();
     }
 
@@ -68,8 +77,23 @@ public sealed class EditorNewScenarioScreen : GameScreen
             return;
 
         if (TinyGame.Commands.WasPressed(GameCommand.Back)
-            || TinyGame.Commands.WasPressed(GameCommand.Cancel))
+            || TinyGame.Commands.WasPressed(GameCommand.Cancel)
+            || TinyGame.Commands.WasPressed(GameCommand.Info)
+            || TinyGame.Commands.WasPressed(GameCommand.Pause))
         {
+            RequestGoToHub();
+        }
+
+        if (_pendingCreate)
+        {
+            _pendingCreate = false;
+            CreateScenario();
+            return;
+        }
+
+        if (_pendingGoToHub)
+        {
+            _pendingGoToHub = false;
             GoToHub();
         }
     }
@@ -90,6 +114,10 @@ public sealed class EditorNewScenarioScreen : GameScreen
 
         GumService.Default.Draw();
     }
+
+    private void RequestGoToHub() => _pendingGoToHub = true;
+
+    private void RequestCreate() => _pendingCreate = true;
 
     private void CreateScenario()
     {

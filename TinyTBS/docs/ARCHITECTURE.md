@@ -212,7 +212,14 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 20. **`bot-search-ab`** — **выполнено** (код в `TinyTBS.Game/Ai/`: атомарный αβ Easy+Normal, quiescence у Normal, лобби Bot, `IBotSearchPolicy` шов под Hard/full-turn). Идея: [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md). Hard / harness — позже.
 21. **`save-format`** — match-сейвы + Continue (live → диск) + Pause Save / Leave + экран **Загрузка** (Load/Delete) — **выполнено**. Канон: [SAVE_FORMAT.md](SAVE_FORMAT.md).
 22. **`campaigns`** — **выполнено** (campaign.json, linear unlock, progress save, Next/Retry, script API, Continue/Load обоих kind). Канон: [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md), [SAVE_FORMAT.md](SAVE_FORMAT.md).
-23. **`map-editor`** — **в работе** (срезы 1–3: Hub + CoW; paint + Save + level-stub; **метки владельцев Neutral/P0–P3 + Label tool**; **Undo/Redo** (~100, Ctrl+Z/Y); **Validate** + индикатор, Save не блокируется; код в `TinyTBS.Game/Editor/`). Дальше: levels/campaign → units/buildings → theme/export → bundles.
+23. **`map-editor`** — **в работе** (код в `TinyTBS.Game/Editor/`; срезы как в плане):
+    - срез 1 — Hub + CoW / open session; Publish greyed — **выполнено**
+    - срез 2 — paint + Save + level-stub — **выполнено**
+    - срез 3 — метки Neutral/P0–P3 + Undo/Redo + Validate — **выполнено**
+    - срез 4 — Levels + Campaign + map `script.cs` + двухколоночный UX/геймпад — **выполнено**
+    - срез 5 — units/buildings masters
+    - срез 6 — theme + export
+    - срез 7 — bundles
 24. `player-colors` — color picker в лобби / профиле (dimFactor отрисовки уже в матче); можно совместить с профилем в `settings-ui`.
 25. `settings-ui` — экран **Настройки** (меню сейчас greyed): графика (разрешение/окно, UI scale / `ui-scale-hidpi`, фильтр зума nearest vs bicubic), ввод (три столбца биндов), профиль. Persist в user data. Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки).
 26. `ui-scale-hidpi` — масштаб UI/поля под HiDPI и 4K (вместе с или сразу после `settings-ui`). Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](ideas/ui-scale-hidpi.md).
