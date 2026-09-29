@@ -35,8 +35,8 @@ public sealed class EditorNewContentTypeModuleScreen : GameScreen
     {
         _assets = assets;
         _session = session;
-        if (moduleType is not (ContentModuleType.Units or ContentModuleType.Buildings))
-            throw new ArgumentOutOfRangeException(nameof(moduleType), "Only units or buildings modules are supported.");
+        if (moduleType is not (ContentModuleType.Units or ContentModuleType.Buildings or ContentModuleType.Theme))
+            throw new ArgumentOutOfRangeException(nameof(moduleType), "Unsupported module type for this wizard.");
         _moduleType = moduleType;
     }
 
@@ -49,11 +49,23 @@ public sealed class EditorNewContentTypeModuleScreen : GameScreen
         _moduleWriter = new ContentTypeModuleWriter(TinyGame.Files, TinyGame.UserDataPaths);
         _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
 
-        var baseId = _moduleType == ContentModuleType.Units ? "user_units" : "user_buildings";
+        var baseId = _moduleType switch
+        {
+            ContentModuleType.Units => "user_units",
+            ContentModuleType.Buildings => "user_buildings",
+            ContentModuleType.Theme => "user_theme",
+            _ => "user_module",
+        };
         var defaultId = _moduleWriter.AllocateUniqueModuleId(baseId);
-        var defaultTitle = _moduleType == ContentModuleType.Units
-            ? (defaultId == "user_units" ? "User Units" : "User Units (" + defaultId + ")")
-            : (defaultId == "user_buildings" ? "User Buildings" : "User Buildings (" + defaultId + ")");
+        var defaultTitle = _moduleType switch
+        {
+            ContentModuleType.Units => defaultId == "user_units" ? "User Units" : "User Units (" + defaultId + ")",
+            ContentModuleType.Buildings => defaultId == "user_buildings"
+                ? "User Buildings"
+                : "User Buildings (" + defaultId + ")",
+            ContentModuleType.Theme => defaultId == "user_theme" ? "User Theme" : "User Theme (" + defaultId + ")",
+            _ => defaultId,
+        };
 
         _view.Build(_moduleType, defaultId, defaultTitle, RequestCreate, RequestGoToHub);
     }
@@ -128,7 +140,13 @@ public sealed class EditorNewContentTypeModuleScreen : GameScreen
 
         try
         {
-            var baseId = _moduleType == ContentModuleType.Units ? "user_units" : "user_buildings";
+            var baseId = _moduleType switch
+            {
+                ContentModuleType.Units => "user_units",
+                ContentModuleType.Buildings => "user_buildings",
+                ContentModuleType.Theme => "user_theme",
+                _ => "user_module",
+            };
             var moduleId = SanitizeModuleId(_view.ModuleId, baseId);
             var title = string.IsNullOrWhiteSpace(_view.ModuleTitle) ? moduleId : _view.ModuleTitle.Trim();
             if (Directory.Exists(TinyGame.Files.Combine(TinyGame.UserDataPaths.Modules, moduleId)))

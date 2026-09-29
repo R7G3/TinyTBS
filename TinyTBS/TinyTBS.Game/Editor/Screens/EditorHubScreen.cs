@@ -174,11 +174,14 @@ public sealed class EditorHubScreen : GameScreen
             onNewScenario: OpenNewScenarioWizard,
             onNewUnitsModule: () => OpenNewContentTypeWizard(ContentModuleType.Units),
             onNewBuildingsModule: () => OpenNewContentTypeWizard(ContentModuleType.Buildings),
+            onNewThemeModule: () => OpenNewContentTypeWizard(ContentModuleType.Theme),
+            onExportModule: ExportOpenModule,
             onNewMap: OpenNewMapWizard,
             onNewLevel: OpenNewLevelWizard,
             onEditCampaign: OpenCampaignEditor,
             onNewUnit: OpenNewUnit,
             onNewBuilding: OpenNewBuilding,
+            onEditTheme: OpenThemeEditor,
             onActivateModule: ActivateModule,
             onOpenMap: OpenExistingMap,
             onDeleteMap: DeleteMap,
@@ -272,6 +275,32 @@ public sealed class EditorHubScreen : GameScreen
 
     private void OpenNewContentTypeWizard(ContentModuleType type) =>
         ScreenManager.ReplaceScreen(new EditorNewContentTypeModuleScreen(TinyGame, _assets, _session, type));
+
+    private void OpenThemeEditor()
+    {
+        if (_session is null || _session.Type != ContentModuleType.Theme)
+            return;
+
+        ScreenManager.ReplaceScreen(new EditorThemeEditScreen(TinyGame, _assets, _session));
+    }
+
+    private void ExportOpenModule()
+    {
+        if (_session is null)
+            return;
+
+        try
+        {
+            var exporter = new TinymodModuleExporter(TinyGame.Files, TinyGame.UserDataPaths);
+            var zipPath = exporter.ExportToDownloads(_session.ModuleRootPath, _session.ModuleId);
+            RefreshLibrary($"Exported → {zipPath}");
+        }
+        catch (Exception exception) when (exception is TinymodExportException or IOException)
+        {
+            _viewModel.StatusText = "Export failed: " + exception.Message;
+            _view.SyncStatus(_viewModel);
+        }
+    }
 
     private void OpenNewMapWizard()
     {

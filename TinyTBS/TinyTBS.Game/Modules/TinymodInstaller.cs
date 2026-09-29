@@ -112,6 +112,8 @@ public sealed class TinymodInstaller
 
     /// <summary>
     /// Removes a module folder from the user library. Bundled vanilla is never deleted.
+    /// Also removes a matching <c>{moduleId}.tinymod.zip</c> from Downloads if present
+    /// (editor Export / install queue leftover).
     /// </summary>
     /// <returns><see langword="true"/> if a user folder was removed.</returns>
     public bool Uninstall(string moduleId)
@@ -119,13 +121,15 @@ public sealed class TinymodInstaller
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
         ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
 
-        var moduleRoot = _files.Combine(_userDataPaths.Modules, moduleId.Trim());
+        var id = moduleId.Trim();
+        var moduleRoot = _files.Combine(_userDataPaths.Modules, id);
         if (!Directory.Exists(moduleRoot))
             return false;
 
         try
         {
             Directory.Delete(moduleRoot, recursive: true);
+            TryDeleteDownloadArchive(id);
             return true;
         }
         catch (IOException ioException)
@@ -139,6 +143,30 @@ public sealed class TinymodInstaller
             throw new TinymodInstallException(
                 $"Failed to uninstall module '{moduleId}'.",
                 unauthorizedAccessException);
+        }
+    }
+
+    /// <summary>
+    /// Deletes <c>{UserData}/Downloads/{moduleId}.tinymod.zip</c> if it exists.
+    /// Best-effort: I/O errors are ignored so uninstall still succeeds.
+    /// </summary>
+    public void TryDeleteDownloadArchive(string moduleId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
+        var id = moduleId.Trim();
+        var zipPath = _files.Combine(
+            _userDataPaths.Downloads,
+            id + ContentModuleFiles.TinymodZipExtension);
+        try
+        {
+            if (File.Exists(zipPath))
+                File.Delete(zipPath);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
         }
     }
 

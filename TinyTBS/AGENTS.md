@@ -18,6 +18,10 @@
 - Локализация: resx в Content-проекте
 - Геймдизайн: [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md)
 
+## NuGet / About
+
+При **добавлении** новой библиотеки (`PackageReference` в любом `.csproj` solution) или **обновлении версии** уже используемой — синхронно обновить список в [`TinyTBS.Game/Presentation/About/AboutSolutionLibraries.cs`](TinyTBS.Game/Presentation/About/AboutSolutionLibraries.cs) (экран «Об игре» → Used libs). Имена и версии должны совпадать с прямыми PackageReference по solution (не транзитивные).
+
 ## Архитектура (кратко)
 
 - **TinyTBS.Game** — правила, модели, экраны / деревья Gum, матч, оркестрация map/mod → домен

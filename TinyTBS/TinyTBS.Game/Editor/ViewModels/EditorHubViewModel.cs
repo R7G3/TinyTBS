@@ -35,5 +35,9 @@ public sealed class EditorHubViewModel
 
     public bool CanEditBuildings => OpenModuleType == ContentModuleType.Buildings;
 
+    public bool CanEditTheme => OpenModuleType == ContentModuleType.Theme;
+
+    public bool CanExportModule => HasOpenModule;
+
     public bool HasOpenModule => !string.IsNullOrWhiteSpace(OpenModuleId);
 }

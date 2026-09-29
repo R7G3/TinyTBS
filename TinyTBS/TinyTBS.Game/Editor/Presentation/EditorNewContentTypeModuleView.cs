@@ -36,7 +36,13 @@ public sealed class EditorNewContentTypeModuleView
     {
         get
         {
-            var fallback = _moduleType == ContentModuleType.Units ? "user_units" : "user_buildings";
+            var fallback = _moduleType switch
+            {
+                ContentModuleType.Units => "user_units",
+                ContentModuleType.Buildings => "user_buildings",
+                ContentModuleType.Theme => "user_theme",
+                _ => "user_module",
+            };
             return string.IsNullOrWhiteSpace(_idBox?.Text) ? fallback : _idBox!.Text.Trim();
         }
     }
@@ -86,9 +92,13 @@ public sealed class EditorNewContentTypeModuleView
         shell.AddChild(rootStack);
         GumUiLayout.AddVerticalSpacer(rootStack, 10f);
 
-        var titleText = moduleType == ContentModuleType.Units
-            ? "New Units Module"
-            : "New Buildings Module";
+        var titleText = moduleType switch
+        {
+            ContentModuleType.Units => "New Units Module",
+            ContentModuleType.Buildings => "New Buildings Module",
+            ContentModuleType.Theme => "New Theme Module",
+            _ => "New Module",
+        };
         var title = new Label { Text = titleText };
         GumUiLayout.FillParentWidth(title);
         rootStack.AddChild(title);

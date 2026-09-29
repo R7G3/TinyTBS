@@ -218,8 +218,10 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
     - срез 3 — метки Neutral/P0–P3 + Undo/Redo + Validate — **выполнено**
     - срез 4 — Levels + Campaign + map `script.cs` + двухколоночный UX/геймпад — **выполнено**
     - срез 5 — units/buildings masters (structured UI + DocumentWriters + New Units/Buildings Module) — **выполнено**
-    - срез 6 — theme + export
+    - срез 6 — theme master + Export Module → `{UserData}/Downloads/*.tinymod.zip` — **выполнено**
     - срез 7 — bundles
+    - срез 8 — tags/abilities/conditional heal (gate → format + runtime + editor; напр. здание лечит выбранные теги сильнее)
+    - срез 9 — multi-module workspace + Shared Resources (раскладка в Resources/ при Save/Export; UX modding)
 24. `player-colors` — color picker в лобби / профиле (dimFactor отрисовки уже в матче); можно совместить с профилем в `settings-ui`.
 25. `settings-ui` — экран **Настройки** (меню сейчас greyed): графика (разрешение/окно, UI scale / `ui-scale-hidpi`, фильтр зума nearest vs bicubic), ввод (три столбца биндов), профиль. Persist в user data. Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки).
 26. `ui-scale-hidpi` — масштаб UI/поля под HiDPI и 4K (вместе с или сразу после `settings-ui`). Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](ideas/ui-scale-hidpi.md).

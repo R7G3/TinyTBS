@@ -6,7 +6,7 @@ using TinyTBS.Game.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 
-/// <summary>Creates empty user units or buildings modules.</summary>
+/// <summary>Creates empty user units, buildings, or theme modules.</summary>
 public sealed class ContentTypeModuleWriter
 {
     private static readonly JsonSerializerOptions WriteOptions = new()
@@ -50,8 +50,8 @@ public sealed class ContentTypeModuleWriter
         string title,
         string? description = null)
     {
-        if (type is not (ContentModuleType.Units or ContentModuleType.Buildings))
-            throw new EditorException("Only units or buildings modules can be created here.");
+        if (type is not (ContentModuleType.Units or ContentModuleType.Buildings or ContentModuleType.Theme))
+            throw new EditorException("Unsupported module type for this wizard.");
 
         ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
         var id = moduleId.Trim();
@@ -60,17 +60,24 @@ public sealed class ContentTypeModuleWriter
         if (Directory.Exists(moduleRoot))
             throw new EditorException($"User module '{id}' already exists.");
 
-        var typeName = type == ContentModuleType.Units ? "units" : "buildings";
-        var contentFolder = type == ContentModuleType.Units ? "Units" : "Buildings";
+        var typeName = type switch
+        {
+            ContentModuleType.Units => "units",
+            ContentModuleType.Buildings => "buildings",
+            ContentModuleType.Theme => "theme",
+            _ => throw new EditorException("Unsupported module type for this wizard."),
+        };
 
         try
         {
             Directory.CreateDirectory(moduleRoot);
-            Directory.CreateDirectory(_files.Combine(moduleRoot, contentFolder));
-            Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", contentFolder.ToLowerInvariant()));
 
-            object document = type == ContentModuleType.Units
-                ? new
+            object document;
+            if (type == ContentModuleType.Units)
+            {
+                Directory.CreateDirectory(_files.Combine(moduleRoot, "Units"));
+                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "units"));
+                document = new
                 {
                     formatVersion = 1,
                     id,
@@ -81,8 +88,13 @@ public sealed class ContentTypeModuleWriter
                     version = "1.0.0",
                     content = new { unitsDir = "Units" },
                     recruit = new { addsToPool = Array.Empty<string>() },
-                }
-                : new
+                };
+            }
+            else if (type == ContentModuleType.Buildings)
+            {
+                Directory.CreateDirectory(_files.Combine(moduleRoot, "Buildings"));
+                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "buildings"));
+                document = new
                 {
                     formatVersion = 1,
                     id,
@@ -93,6 +105,28 @@ public sealed class ContentTypeModuleWriter
                     version = "1.0.0",
                     content = new { buildingsDir = "Buildings" },
                 };
+            }
+            else
+            {
+                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "terrain"));
+                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "misc"));
+                document = new
+                {
+                    formatVersion = 1,
+                    id,
+                    type = typeName,
+                    @namespace = id,
+                    title = title.Trim(),
+                    description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                    version = "1.0.0",
+                    content = new
+                    {
+                        terrainDir = "Resources/Images/terrain/",
+                        gravestone = "Resources/Images/misc/gravestone.png",
+                    },
+                    remaps = new Dictionary<string, object>(),
+                };
+            }
 
             var path = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
             File.WriteAllText(

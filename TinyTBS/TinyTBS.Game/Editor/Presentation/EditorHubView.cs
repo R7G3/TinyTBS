@@ -59,11 +59,14 @@ public sealed class EditorHubView
         Action onNewScenario,
         Action onNewUnitsModule,
         Action onNewBuildingsModule,
+        Action onNewThemeModule,
+        Action onExportModule,
         Action onNewMap,
         Action onNewLevel,
         Action onEditCampaign,
         Action onNewUnit,
         Action onNewBuilding,
+        Action onEditTheme,
         Action<EditorModuleRowViewModel> onActivateModule,
         Action<string> onOpenMap,
         Action<string> onDeleteMap,
@@ -126,7 +129,9 @@ public sealed class EditorHubView
         {
             Text = viewModel.CanEditUnits || viewModel.CanEditBuildings
                 ? "Confirm a type to Open/Edit (Save is on the edit Menu). LB/RB: columns. Back closes module."
-                : "Left/Right (or LB/RB): library ↔ menu. Confirm opens detail. Back closes module, then leaves editor.",
+                : viewModel.CanEditTheme
+                    ? "Menu → Edit Theme or Export Module (.tinymod.zip → Downloads). Back closes module."
+                    : "Left/Right (or LB/RB): library ↔ menu. Confirm opens detail. Export packs open module to Downloads.",
         };
         GumUiLayout.FillParentWidth(hint);
         rootStack.AddChild(hint);
@@ -146,11 +151,14 @@ public sealed class EditorHubView
             onNewScenario,
             onNewUnitsModule,
             onNewBuildingsModule,
+            onNewThemeModule,
+            onExportModule,
             onNewMap,
             onNewLevel,
             onEditCampaign,
             onNewUnit,
             onNewBuilding,
+            onEditTheme,
             onCloseModule,
             onBack);
         GumUiLayout.SetWidthPercent(leftColumn, 58f);
@@ -166,7 +174,8 @@ public sealed class EditorHubView
             onOpenUnit,
             onDeleteUnit,
             onOpenBuilding,
-            onDeleteBuilding);
+            onDeleteBuilding,
+            onEditTheme);
         GumUiLayout.AddVerticalSpacer(rootStack, 10f);
 
         var startZone = _libraryEntries.Count > 0 ? FocusZone.Library : FocusZone.Menu;
@@ -290,10 +299,18 @@ public sealed class EditorHubView
         Action<string> onOpenUnit,
         Action<string> onDeleteUnit,
         Action<string> onOpenBuilding,
-        Action<string> onDeleteBuilding)
+        Action<string> onDeleteBuilding,
+        Action onEditTheme)
     {
         if (_libraryHost is null)
             return;
+
+        if (viewModel.CanEditTheme)
+        {
+            AddLibraryHeader("Theme");
+            AddLibraryButton("Manifest (module.json)", onEditTheme);
+            return;
+        }
 
         if (viewModel.CanEditUnits)
         {
@@ -424,11 +441,14 @@ public sealed class EditorHubView
         Action onNewScenario,
         Action onNewUnitsModule,
         Action onNewBuildingsModule,
+        Action onNewThemeModule,
+        Action onExportModule,
         Action onNewMap,
         Action onNewLevel,
         Action onEditCampaign,
         Action onNewUnit,
         Action onNewBuilding,
+        Action onEditTheme,
         Action onCloseModule,
         Action onBack)
     {
@@ -453,6 +473,7 @@ public sealed class EditorHubView
         if (viewModel.CanEditUnits)
         {
             AddMenuButton(host, "New Unit", onNewUnit);
+            AddMenuButton(host, "Export Module", onExportModule, isEnabled: viewModel.CanExportModule);
             AddMenuButton(host, "Close Module", onCloseModule, isEnabled: viewModel.HasOpenModule);
             AddMenuButton(host, "Publish", () => { }, isEnabled: viewModel.CanPublish);
             AddMenuButton(host, "Back", onBack);
@@ -462,6 +483,17 @@ public sealed class EditorHubView
         if (viewModel.CanEditBuildings)
         {
             AddMenuButton(host, "New Building", onNewBuilding);
+            AddMenuButton(host, "Export Module", onExportModule, isEnabled: viewModel.CanExportModule);
+            AddMenuButton(host, "Close Module", onCloseModule, isEnabled: viewModel.HasOpenModule);
+            AddMenuButton(host, "Publish", () => { }, isEnabled: viewModel.CanPublish);
+            AddMenuButton(host, "Back", onBack);
+            return column;
+        }
+
+        if (viewModel.CanEditTheme)
+        {
+            AddMenuButton(host, "Edit Theme", onEditTheme);
+            AddMenuButton(host, "Export Module", onExportModule, isEnabled: viewModel.CanExportModule);
             AddMenuButton(host, "Close Module", onCloseModule, isEnabled: viewModel.HasOpenModule);
             AddMenuButton(host, "Publish", () => { }, isEnabled: viewModel.CanPublish);
             AddMenuButton(host, "Back", onBack);
@@ -471,9 +503,11 @@ public sealed class EditorHubView
         AddMenuButton(host, "New Scenario Module", onNewScenario);
         AddMenuButton(host, "New Units Module", onNewUnitsModule);
         AddMenuButton(host, "New Buildings Module", onNewBuildingsModule);
+        AddMenuButton(host, "New Theme Module", onNewThemeModule);
         AddMenuButton(host, "New Map", onNewMap, isEnabled: viewModel.CanCreateMap);
         AddMenuButton(host, "New Level", onNewLevel, isEnabled: viewModel.CanEditScenarioContent);
         AddMenuButton(host, "Edit Campaign", onEditCampaign, isEnabled: viewModel.CanEditScenarioContent);
+        AddMenuButton(host, "Export Module", onExportModule, isEnabled: viewModel.CanExportModule);
         AddMenuButton(host, "Close Module", onCloseModule, isEnabled: viewModel.HasOpenModule);
         AddMenuButton(host, "Publish", () => { }, isEnabled: viewModel.CanPublish);
         AddMenuButton(host, "Back", onBack);
