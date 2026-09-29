@@ -35,6 +35,19 @@ public sealed class MatchContentCatalog
     /// <summary>Recruit offers in module pool order (cost from unit JSON).</summary>
     public IReadOnlyList<MatchShopOffer> ShopOffers { get; }
 
+    /// <summary>
+    /// Editor palette order: <c>uniquePerPlayer</c> (king) first, then by cost ascending, then id.
+    /// </summary>
+    public IReadOnlyList<ContentId> ListUnitTypeIdsForEditor()
+    {
+        return UnitsModule.UnitsById.Values
+            .OrderBy(definition => MatchUnitAbilities.HasAbility(definition, "uniquePerPlayer") ? 0 : 1)
+            .ThenBy(definition => definition.Cost)
+            .ThenBy(definition => definition.ContentId.Full, StringComparer.Ordinal)
+            .Select(definition => definition.ContentId)
+            .ToArray();
+    }
+
     public bool TryGetUnit(ContentId contentId, out UnitDefinition definition) =>
         UnitsModule.UnitsById.TryGetValue(contentId, out definition!);
 

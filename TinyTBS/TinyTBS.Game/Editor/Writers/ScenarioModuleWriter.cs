@@ -1,0 +1,149 @@
+using System.Text;
+using System.Text.Json;
+using TinyTBS.Engine.IO;
+using TinyTBS.Game.Modules;
+
+namespace TinyTBS.Game.Editor.Writers;
+
+/// <summary>Creates an empty user scenario module folder (module.json + Maps/ + Levels/).</summary>
+public sealed class ScenarioModuleWriter
+{
+    private static readonly JsonSerializerOptions WriteOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+    };
+
+    private readonly IFileContentProvider _files;
+    private readonly IUserDataPaths _userDataPaths;
+
+    public ScenarioModuleWriter(IFileContentProvider files, IUserDataPaths userDataPaths)
+    {
+        _files = files ?? throw new ArgumentNullException(nameof(files));
+        _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
+    }
+
+    /// <summary>
+    /// Creates <c>{Modules}/{moduleId}/</c> with vanilla composition defaults and empty Maps/Levels.
+    /// </summary>
+    public string CreateNew(
+        string moduleId,
+        string title,
+        string? contentNamespace = null,
+        string? description = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+
+        ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
+        var id = moduleId.Trim();
+        var ns = string.IsNullOrWhiteSpace(contentNamespace) ? id : contentNamespace.Trim();
+
+        _userDataPaths.EnsureCreated();
+        var moduleRoot = _files.Combine(_userDataPaths.Modules, id);
+        if (Directory.Exists(moduleRoot))
+            throw new EditorException($"User module '{id}' already exists.");
+
+        try
+        {
+            Directory.CreateDirectory(moduleRoot);
+            Directory.CreateDirectory(_files.Combine(moduleRoot, "Maps"));
+            Directory.CreateDirectory(_files.Combine(moduleRoot, "Levels"));
+
+            var document = new ScenarioModuleWriteDto
+            {
+                FormatVersion = 1,
+                Id = id,
+                Type = "scenario",
+                Namespace = ns,
+                Title = title.Trim(),
+                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                Version = "1.0.0",
+                Defaults = new ScenarioDefaultsWriteDto
+                {
+                    Units = ["vanilla_units"],
+                    Buildings = ["vanilla_buildings"],
+                    Theme = "vanilla_theme",
+                },
+                Requires = new ScenarioRequiresWriteDto
+                {
+                    Units = ["vanilla_units"],
+                    Buildings = ["vanilla_buildings"],
+                },
+            };
+
+            var json = JsonSerializer.Serialize(document, WriteOptions);
+            var moduleJsonPath = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
+            File.WriteAllText(moduleJsonPath, json + Environment.NewLine, Encoding.UTF8);
+            return moduleRoot;
+        }
+        catch (Exception exception) when (exception is not EditorException)
+        {
+            TryDeleteDirectory(moduleRoot);
+            throw new EditorException($"Failed to create scenario module '{id}'.", exception);
+        }
+    }
+
+    /// <summary>Picks <c>user_scenario</c>, <c>user_scenario_2</c>, … not yet used in user Modules.</summary>
+    public string AllocateUniqueModuleId(string baseId = "user_scenario")
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseId);
+        ContentModuleManifestParser.ValidateModuleId(baseId.Trim());
+        var stem = baseId.Trim();
+
+        _userDataPaths.EnsureCreated();
+        if (!Directory.Exists(_files.Combine(_userDataPaths.Modules, stem)))
+            return stem;
+
+        for (var suffix = 2; suffix < 10_000; suffix++)
+        {
+            var candidate = stem + "_" + suffix;
+            if (!Directory.Exists(_files.Combine(_userDataPaths.Modules, candidate)))
+                return candidate;
+        }
+
+        throw new EditorException("Could not allocate a unique module id.");
+    }
+
+    private static void TryDeleteDirectory(string path)
+    {
+        try
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private sealed class ScenarioModuleWriteDto
+    {
+        public int FormatVersion { get; set; }
+        public string Id { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public string Namespace { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string Version { get; set; } = string.Empty;
+        public ScenarioDefaultsWriteDto? Defaults { get; set; }
+        public ScenarioRequiresWriteDto? Requires { get; set; }
+    }
+
+    private sealed class ScenarioDefaultsWriteDto
+    {
+        public List<string> Units { get; set; } = [];
+        public List<string> Buildings { get; set; } = [];
+        public string Theme { get; set; } = string.Empty;
+    }
+
+    private sealed class ScenarioRequiresWriteDto
+    {
+        public List<string> Units { get; set; } = [];
+        public List<string> Buildings { get; set; } = [];
+    }
+}

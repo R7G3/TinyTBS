@@ -19,4 +19,12 @@ public enum GameCommand
     EndTurn,
     ZoomIn,
     ZoomOut,
+    /// <summary>Cycle UI focus region backward (LB / Q) — Editor paint panels.</summary>
+    FocusPreviousRegion,
+    /// <summary>Cycle UI focus region forward (RB / E) — Editor paint panels.</summary>
+    FocusNextRegion,
+    /// <summary>Editor undo (Ctrl+Z).</summary>
+    Undo,
+    /// <summary>Editor redo (Ctrl+Y).</summary>
+    Redo,
 }

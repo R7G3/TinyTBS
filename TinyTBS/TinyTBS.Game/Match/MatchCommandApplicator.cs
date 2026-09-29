@@ -38,6 +38,41 @@ public static class MatchCommandApplicator
     /// <summary>True while primary is down and the gesture has crossed the pan threshold.</summary>
     public static bool IsPrimaryGesturePanning => _pointerIsPanning;
 
+    /// <summary>True while a primary press is being tracked (click or pan).</summary>
+    public static bool IsPrimaryGestureActive => _pointerPressActive;
+
+    /// <summary>
+    /// Starts click-vs-pan tracking for the current primary press (call on WasPrimaryPressed over the board).
+    /// </summary>
+    public static void ArmPrimaryPointerGesture(IPointerSource pointer)
+    {
+        ArgumentNullException.ThrowIfNull(pointer);
+        var position = new Vector2(pointer.Position.X, pointer.Position.Y);
+        _pointerPressActive = true;
+        _pointerIsPanning = false;
+        _pointerPressPosition = position;
+        _pointerLastPosition = position;
+    }
+
+    /// <summary>
+    /// Ends the primary gesture on release. Returns true when it was a short click (not a pan).
+    /// </summary>
+    public static bool TryConsumePrimaryClick(IPointerSource pointer)
+    {
+        ArgumentNullException.ThrowIfNull(pointer);
+        if (pointer.WasPrimaryReleased)
+        {
+            var wasClick = _pointerPressActive && !_pointerIsPanning;
+            ResetPointerGesture();
+            return wasClick;
+        }
+
+        if (!pointer.IsPrimaryDown && _pointerPressActive)
+            ResetPointerGesture();
+
+        return false;
+    }
+
     /// <summary>
     /// Applies board commands when the match is not blocked by pause/shop UI.
     /// Leave-to-menu is only via the pause menu item, not a board command.
@@ -155,13 +190,26 @@ public static class MatchCommandApplicator
         bool cameraControlsEnabled,
         bool clampMatchCursor = true)
     {
+        var offsetBefore = layout.CameraOffset;
+        ApplyCameraPan(layout, commands, pointer, gameTime, cameraControlsEnabled);
+        if (clampMatchCursor && cameraControlsEnabled && layout.CameraOffset != offsetBefore)
+            KeepCursorOnScreen(match, layout);
+    }
+
+    /// <summary>Camera pan without a match cursor (editor / free look).</summary>
+    public static void ApplyCameraPan(
+        MatchBoardLayout layout,
+        IGameCommandSource commands,
+        IPointerSource pointer,
+        GameTime gameTime,
+        bool cameraControlsEnabled)
+    {
         if (!cameraControlsEnabled)
         {
             ResetPointerGesture();
             return;
         }
 
-        var offsetBefore = layout.CameraOffset;
         var elapsedSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
         var stick = commands.CameraPanStick;
         if (stick != Vector2.Zero)
@@ -171,9 +219,6 @@ public static class MatchCommandApplicator
         }
 
         ApplyPointerPan(layout, pointer);
-
-        if (clampMatchCursor && layout.CameraOffset != offsetBefore)
-            KeepCursorOnScreen(match, layout);
     }
 
     /// <summary>
@@ -186,14 +231,10 @@ public static class MatchCommandApplicator
         bool allowConfirm = true)
     {
         var match = session.State;
-        var position = new Vector2(pointer.Position.X, pointer.Position.Y);
 
         if (pointer.WasPrimaryPressed)
         {
-            _pointerPressActive = true;
-            _pointerIsPanning = false;
-            _pointerPressPosition = position;
-            _pointerLastPosition = position;
+            ArmPrimaryPointerGesture(pointer);
             if (layout.TryScreenToCell(pointer.Position, out var cellX, out var cellY))
                 match.HandlePointer(new GridCell(cellX, cellY));
             return;
@@ -201,6 +242,7 @@ public static class MatchCommandApplicator
 
         if (_pointerPressActive && pointer.IsPrimaryDown && !_pointerIsPanning)
         {
+            var position = new Vector2(pointer.Position.X, pointer.Position.Y);
             var fromPress = position - _pointerPressPosition;
             if (fromPress.LengthSquared() >= PointerPanThresholdPixels * PointerPanThresholdPixels)
                 _pointerIsPanning = true;
@@ -208,8 +250,7 @@ public static class MatchCommandApplicator
 
         if (pointer.WasPrimaryReleased)
         {
-            var wasClick = _pointerPressActive && !_pointerIsPanning;
-            ResetPointerGesture();
+            var wasClick = TryConsumePrimaryClick(pointer);
             if (!wasClick || !allowConfirm)
                 return;
 

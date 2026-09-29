@@ -65,6 +65,10 @@ public sealed class MatchTextureAtlas : IDisposable
         throw new InvalidOperationException($"No unit sprite loaded for '{typeId.Full}'.");
     }
 
+    /// <summary>All unit type ids that have sprites loaded (palette / editor).</summary>
+    public IReadOnlyList<ContentId> ListUnitTypeIds() =>
+        _units.Keys.OrderBy(id => id.Full, StringComparer.Ordinal).ToArray();
+
     public TeamSprite Building(ContentId typeId, bool isRuined = false)
     {
         if (isRuined && _buildingsRuined.TryGetValue(typeId, out var ruined))

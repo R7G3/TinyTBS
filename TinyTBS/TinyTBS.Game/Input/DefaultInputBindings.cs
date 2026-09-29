@@ -57,6 +57,22 @@ internal static class DefaultInputBindings
 
             GameCommand.ZoomOut => gamePad.Triggers.Left > 0.25f,
 
+            GameCommand.FocusPreviousRegion => keyboard.IsKeyDown(Keys.Q)
+                || gamePad.Buttons.LeftShoulder == ButtonState.Pressed,
+
+            GameCommand.FocusNextRegion => keyboard.IsKeyDown(Keys.E)
+                || gamePad.Buttons.RightShoulder == ButtonState.Pressed,
+
+            GameCommand.Undo => (keyboard.IsKeyDown(Keys.LeftControl) || keyboard.IsKeyDown(Keys.RightControl))
+                && keyboard.IsKeyDown(Keys.Z)
+                && !keyboard.IsKeyDown(Keys.LeftShift)
+                && !keyboard.IsKeyDown(Keys.RightShift),
+
+            GameCommand.Redo => (keyboard.IsKeyDown(Keys.LeftControl) || keyboard.IsKeyDown(Keys.RightControl))
+                && (keyboard.IsKeyDown(Keys.Y)
+                    || ((keyboard.IsKeyDown(Keys.LeftShift) || keyboard.IsKeyDown(Keys.RightShift))
+                        && keyboard.IsKeyDown(Keys.Z))),
+
             _ => false,
         };
     }

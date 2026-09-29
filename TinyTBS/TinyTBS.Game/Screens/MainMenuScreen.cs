@@ -4,6 +4,7 @@ using MonoGame.Extended.Screens;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Campaigns;
+using TinyTBS.Game.Editor.Screens;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Presentation.Menu;
 using TinyTBS.Game.Saves;
@@ -39,7 +40,7 @@ public sealed class MainMenuScreen : GameScreen
 
         RefreshContinueAndLoadState();
         _viewModel.CanOpenContent = true;
-        _viewModel.CanOpenEditor = false;
+        _viewModel.CanOpenEditor = true;
         _viewModel.CanOpenSettings = false;
         _viewModel.CanOpenAbout = false;
         _viewModel.CanStartNewGame = true;
@@ -52,7 +53,7 @@ public sealed class MainMenuScreen : GameScreen
             onNewGame: StartNewGame,
             onLoadGame: OpenLoadGame,
             onContent: OpenContent,
-            onEditor: () => { },
+            onEditor: OpenEditor,
             onSettings: () => { },
             onAbout: () => { },
             onExit: () => Game.Exit());
@@ -184,4 +185,7 @@ public sealed class MainMenuScreen : GameScreen
 
     private void OpenContent() =>
         ScreenManager.ReplaceScreen(new ContentLibraryScreen(TinyGame, _assets));
+
+    private void OpenEditor() =>
+        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, _assets));
 }
