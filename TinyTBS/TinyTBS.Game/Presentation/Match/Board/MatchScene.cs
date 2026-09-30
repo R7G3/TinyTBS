@@ -234,7 +234,6 @@ public sealed class MatchScene : IDisposable
             PlayerPalette.ForPlayer(unit.PlayerIndex),
             SpriteDrawLayer.Unit);
 
-        World.GetEntity(entityId).Attach(new UnitOwner(unit.PlayerIndex));
         World.GetEntity(entityId).Attach(new GridPosition(unit.Cell.X, unit.Cell.Y));
         _unitEntityById[unit.Id] = entityId;
     }
