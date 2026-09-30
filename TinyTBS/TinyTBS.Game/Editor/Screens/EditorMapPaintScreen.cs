@@ -99,6 +99,7 @@ public sealed class EditorMapPaintScreen : GameScreen
     public override void Update(GameTime gameTime)
     {
         GumService.Default.Update(gameTime);
+        _hud.ApplyResponsiveLayout();
         var elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
         if (TinyGame.Commands.WasPressed(GameCommand.FocusNextRegion))

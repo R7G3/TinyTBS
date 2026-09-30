@@ -76,7 +76,9 @@ public sealed class AboutView
         GumUiLayout.FillParentWidth(_statusLabel);
         rootStack.AddChild(_statusLabel);
 
-        const float chrome = 12f + 26f + 22f + 22f + 48f + StackSpacing * 6f + 12f;
+        const float topInset = 12f;
+        const float bottomInset = 4f;
+        const float chrome = topInset + 26f + 22f + 22f + 26f + StackSpacing * 6f + bottomInset;
         var scrollHeight = Math.Max(ScrollMinHeight, shellHeight - chrome);
 
         _scroll = new ScrollViewer();
@@ -120,7 +122,7 @@ public sealed class AboutView
         rootStack.AddChild(backButton);
         _focusableEntries.Add((backButton, onBack));
 
-        GumUiLayout.AddVerticalSpacer(rootStack, 12f);
+        GumUiLayout.AddVerticalSpacer(rootStack, bottomInset);
         FocusBack();
     }
 

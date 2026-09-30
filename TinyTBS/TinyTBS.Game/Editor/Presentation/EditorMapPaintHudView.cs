@@ -25,12 +25,25 @@ public sealed class EditorMapPaintHudView
     private const float SidePanelWidth = 188f;
     private const float IconSize = 32f;
     private const float PanelTop = 40f;
-    private const float PanelBottomInset = 12f;
+    private const float PanelBottomInset = 16f;
+    private const float SidePanelInnerPad = 8f;
+    private const float SidePanelStackSpacing = 4f;
+    private const float MinScrollHeight = 72f;
+    private const float MinPanelHeight = 120f;
+    private const float HeaderHeightFallback = 24f;
+    private const float ToolRowHeightFallback = 36f;
+    private const float ScrollViewerChromeHeight = 8f;
 
     private Panel? _rootPanel;
     private Panel? _leftPanel;
     private Panel? _rightPanel;
+    private Panel? _leftStack;
+    private Panel? _rightStack;
     private Panel? _contentListHost;
+    private Panel? _toolsHost;
+    private Panel? _tabHost;
+    private ScrollViewer? _contentScroll;
+    private ScrollViewer? _toolsScroll;
     private Label? _statusLabel;
     private RectangleRuntime? _validationDot;
     private readonly List<(Button Button, Action Activate)> _contentEntries = [];
@@ -44,6 +57,7 @@ public sealed class EditorMapPaintHudView
     private EditorPaintFocusZone _focusZone = EditorPaintFocusZone.Map;
     private EditorContentTab _contentTab = EditorContentTab.Terrain;
     private EditorValidationIndicator _validationIndicator = EditorValidationIndicator.Idle;
+    private float _lastLayoutCanvasHeight = -1f;
 
     private EditorPaintToolState? _tool;
     private MatchTextureAtlas? _textures;
@@ -126,22 +140,18 @@ public sealed class EditorMapPaintHudView
         GumUiLayout.FillParentWidth(_statusLabel);
         statusRow.AddChild(_statusLabel);
 
-        var canvasHeight = Math.Max(320f, GumService.Default.CanvasHeight);
-        var panelHeight = Math.Clamp(canvasHeight - PanelTop - PanelBottomInset, 180f, canvasHeight - PanelTop - 8f);
-
-        _leftPanel = CreateSidePanel(Anchor.Left, panelHeight, out var leftStack);
+        _leftPanel = CreateSidePanel(Anchor.Left, out _leftStack);
         _leftPanel.X = 8f;
         _leftPanel.Y = PanelTop;
         _rootPanel.AddChild(_leftPanel);
-        BuildContentChrome(leftStack, panelHeight);
+        BuildContentChrome(_leftStack);
 
-        _rightPanel = CreateSidePanel(Anchor.Right, panelHeight, out var rightStack);
+        _rightPanel = CreateSidePanel(Anchor.Right, out _rightStack);
         _rightPanel.X = -8f;
         _rightPanel.Y = PanelTop;
         _rootPanel.AddChild(_rightPanel);
         FillToolsPanel(
-            rightStack,
-            panelHeight,
+            _rightStack,
             tool,
             onSave,
             onScript,
@@ -154,6 +164,83 @@ public sealed class EditorMapPaintHudView
         _focusZone = EditorPaintFocusZone.Map;
         ApplyZoneChrome();
         RebuildContentList();
+    }
+
+    /// <summary>
+    /// Sizes side panels from nested content, capped by canvas top/bottom insets. Call on resize.
+    /// </summary>
+    public void ApplyResponsiveLayout(bool force = false)
+    {
+        if (_leftPanel is null || _rightPanel is null || _leftStack is null || _rightStack is null)
+            return;
+
+        var canvasHeight = GumService.Default.CanvasHeight;
+        if (canvasHeight <= 0f)
+            return;
+
+        if (!force && Math.Abs(canvasHeight - _lastLayoutCanvasHeight) < 0.5f)
+            return;
+
+        _lastLayoutCanvasHeight = canvasHeight;
+        var maxPanelHeight = Math.Max(MinPanelHeight, canvasHeight - PanelTop - PanelBottomInset);
+
+        var tabsHeight = _tabHost is null
+            ? 40f
+            : GumScrollListLayout.MeasureVisualHeight(_tabHost.Visual, 40f);
+        // Header + tabs + stack spacings + top/bottom pads (scroll sits between tabs and bottom pad).
+        var contentChrome = SidePanelInnerPad
+            + HeaderHeightFallback
+            + SidePanelStackSpacing
+            + tabsHeight
+            + SidePanelStackSpacing
+            + SidePanelStackSpacing
+            + SidePanelInnerPad
+            + ScrollViewerChromeHeight;
+        var contentBody = _contentListHost is null
+            ? MinScrollHeight
+            : GumScrollListLayout.MeasureStackContentHeight(
+                _contentListHost,
+                stackSpacing: 3f,
+                rowHeightFallback: IconSize + 8f);
+        var contentScrollHeight = Math.Clamp(
+            contentBody + 2f,
+            MinScrollHeight,
+            Math.Max(MinScrollHeight, maxPanelHeight - contentChrome));
+        if (_contentScroll is not null)
+            GumUiLayout.SetAbsoluteHeight(_contentScroll, contentScrollHeight);
+
+        var toolsChrome = SidePanelInnerPad
+            + HeaderHeightFallback
+            + SidePanelStackSpacing
+            + SidePanelStackSpacing
+            + SidePanelInnerPad
+            + ScrollViewerChromeHeight;
+        var toolsBody = _toolsHost is null
+            ? MinScrollHeight
+            : GumScrollListLayout.MeasureStackContentHeight(
+                _toolsHost,
+                stackSpacing: 3f,
+                rowHeightFallback: ToolRowHeightFallback);
+        var toolsScrollHeight = Math.Clamp(
+            toolsBody + 2f,
+            MinScrollHeight,
+            Math.Max(MinScrollHeight, maxPanelHeight - toolsChrome));
+        if (_toolsScroll is not null)
+            GumUiLayout.SetAbsoluteHeight(_toolsScroll, toolsScrollHeight);
+
+        FitSidePanelHeight(_leftPanel, _leftStack, maxPanelHeight);
+        FitSidePanelHeight(_rightPanel, _rightStack, maxPanelHeight);
+    }
+
+    private static void FitSidePanelHeight(Panel panel, Panel stack, float maxHeight)
+    {
+        var stackHeight = GumScrollListLayout.MeasureStackContentHeight(
+            stack,
+            SidePanelStackSpacing,
+            ToolRowHeightFallback);
+        // stack.Y = SidePanelInnerPad; bottom inset is a spacer inside the stack.
+        var desired = SidePanelInnerPad + stackHeight;
+        GumUiLayout.SetAbsoluteHeight(panel, Math.Clamp(desired, MinPanelHeight, maxHeight));
     }
 
     public void SyncStatus(string statusText, EditorValidationIndicator indicator)
@@ -210,7 +297,13 @@ public sealed class EditorMapPaintHudView
         _rootPanel = null;
         _leftPanel = null;
         _rightPanel = null;
+        _leftStack = null;
+        _rightStack = null;
         _contentListHost = null;
+        _toolsHost = null;
+        _tabHost = null;
+        _contentScroll = null;
+        _toolsScroll = null;
         _statusLabel = null;
         _validationDot = null;
         _contentEntries.Clear();
@@ -224,6 +317,7 @@ public sealed class EditorMapPaintHudView
         _focusZone = EditorPaintFocusZone.Map;
         _contentTab = EditorContentTab.Terrain;
         _validationIndicator = EditorValidationIndicator.Idle;
+        _lastLayoutCanvasHeight = -1f;
         _tool = null;
         _textures = null;
         _catalog = null;
@@ -329,50 +423,45 @@ public sealed class EditorMapPaintHudView
         }
     }
 
-    private static Panel CreateSidePanel(Anchor anchor, float height, out Panel stack)
+    private static Panel CreateSidePanel(Anchor anchor, out Panel stack)
     {
         var panel = new Panel();
         panel.Anchor(anchor);
         GumUiLayout.SetAbsoluteWidth(panel, SidePanelWidth);
-        panel.Visual.Height = height;
-        panel.Visual.HeightUnits = DimensionUnitType.Absolute;
+        GumUiLayout.SetAbsoluteHeight(panel, MinPanelHeight);
         panel.Visual.HasEvents = true;
         GumUiLayout.AddSolidBackground(panel, UiColors.EditorPanel);
 
-        stack = GumUiLayout.CreateVerticalStackPanel(spacing: 4f, widthPercent: 94f);
-        GumUiLayout.CenterHorizontallyInParent(stack);
-        stack.Visual.Y = 6f;
+        stack = new Panel();
+        stack.Visual.Width = 94f;
+        stack.Visual.WidthUnits = DimensionUnitType.PercentageOfParent;
+        stack.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+        stack.Visual.Y = SidePanelInnerPad;
+        stack.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
+        stack.Visual.StackSpacing = SidePanelStackSpacing;
         stack.Visual.HasEvents = false;
+        GumUiLayout.CenterHorizontallyInParent(stack);
         panel.AddChild(stack);
         return panel;
     }
 
-    private void BuildContentChrome(Panel stack, float panelHeight)
+    private void BuildContentChrome(Panel stack)
     {
         AddHeader(stack, "Content");
 
-        var tabHost = new Panel();
-        GumUiLayout.FillParentWidth(tabHost);
-        tabHost.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        stack.AddChild(tabHost);
+        _tabHost = new Panel();
+        GumUiLayout.FillParentWidth(_tabHost);
+        _tabHost.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+        stack.AddChild(_tabHost);
 
         var tabButtons = new List<Button>();
         AddTabButton(tabButtons, "Terrain", EditorContentTab.Terrain);
         AddTabButton(tabButtons, "Buildings", EditorContentTab.Buildings);
         AddTabButton(tabButtons, "Units", EditorContentTab.Units);
-        GumUiLayout.LayoutAdaptiveButtonRows(tabHost, tabButtons, availableWidth: SidePanelWidth - 16f, spacing: 4f);
+        GumUiLayout.LayoutAdaptiveButtonRows(_tabHost, tabButtons, availableWidth: SidePanelWidth - 16f, spacing: 4f);
 
-        var listHeight = Math.Max(80f, panelHeight - 72f);
-        var scroll = new ScrollViewer();
-        GumUiLayout.FillParentWidth(scroll);
-        scroll.Visual.Height = listHeight;
-        scroll.Visual.HeightUnits = DimensionUnitType.Absolute;
-        scroll.InnerPanel.WidthUnits = DimensionUnitType.RelativeToParent;
-        scroll.InnerPanel.Width = 0;
-        scroll.InnerPanel.HeightUnits = DimensionUnitType.RelativeToChildren;
-        scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-        GumScrollViewerChrome.DisableScrollChromeFocus(scroll);
-        stack.AddChild(scroll);
+        _contentScroll = CreateListScroll();
+        stack.AddChild(_contentScroll);
 
         _contentListHost = new Panel();
         _contentListHost.Visual.HasEvents = false;
@@ -380,7 +469,22 @@ public sealed class EditorMapPaintHudView
         _contentListHost.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
         _contentListHost.Visual.StackSpacing = 3f;
         GumUiLayout.FillParentWidth(_contentListHost);
-        scroll.AddChild(_contentListHost);
+        _contentScroll.AddChild(_contentListHost);
+
+        GumUiLayout.AddVerticalSpacer(stack, SidePanelInnerPad);
+    }
+
+    private static ScrollViewer CreateListScroll()
+    {
+        var scroll = new ScrollViewer();
+        GumUiLayout.FillParentWidth(scroll);
+        GumUiLayout.SetAbsoluteHeight(scroll, MinScrollHeight);
+        scroll.InnerPanel.WidthUnits = DimensionUnitType.RelativeToParent;
+        scroll.InnerPanel.Width = 0;
+        scroll.InnerPanel.HeightUnits = DimensionUnitType.RelativeToChildren;
+        scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
+        GumScrollViewerChrome.DisableScrollChromeFocus(scroll);
+        return scroll;
     }
 
     private void AddTabButton(List<Button> tabButtons, string text, EditorContentTab tab)
@@ -440,6 +544,8 @@ public sealed class EditorMapPaintHudView
                 PopulateTerrain(_contentListHost, _tool, _textures, _onToolChanged);
                 break;
         }
+
+        ApplyResponsiveLayout(force: true);
     }
 
     private void PopulateTerrain(
@@ -506,7 +612,6 @@ public sealed class EditorMapPaintHudView
 
     private void FillToolsPanel(
         Panel stack,
-        float panelHeight,
         EditorPaintToolState tool,
         Action onSave,
         Action onScript,
@@ -518,39 +623,30 @@ public sealed class EditorMapPaintHudView
     {
         AddHeader(stack, "Tools");
 
-        var listHeight = Math.Max(80f, panelHeight - 36f);
-        var scroll = new ScrollViewer();
-        GumUiLayout.FillParentWidth(scroll);
-        scroll.Visual.Height = listHeight;
-        scroll.Visual.HeightUnits = DimensionUnitType.Absolute;
-        scroll.InnerPanel.WidthUnits = DimensionUnitType.RelativeToParent;
-        scroll.InnerPanel.Width = 0;
-        scroll.InnerPanel.HeightUnits = DimensionUnitType.RelativeToChildren;
-        scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-        GumScrollViewerChrome.DisableScrollChromeFocus(scroll);
-        stack.AddChild(scroll);
+        _toolsScroll = CreateListScroll();
+        stack.AddChild(_toolsScroll);
 
-        var toolsHost = new Panel();
-        toolsHost.Visual.HasEvents = false;
-        toolsHost.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        toolsHost.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
-        toolsHost.Visual.StackSpacing = 3f;
-        GumUiLayout.FillParentWidth(toolsHost);
-        scroll.AddChild(toolsHost);
+        _toolsHost = new Panel();
+        _toolsHost.Visual.HasEvents = false;
+        _toolsHost.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
+        _toolsHost.Visual.ChildrenLayout = ChildrenLayout.TopToBottomStack;
+        _toolsHost.Visual.StackSpacing = 3f;
+        GumUiLayout.FillParentWidth(_toolsHost);
+        _toolsScroll.AddChild(_toolsHost);
 
-        AddPlainButton(toolsHost, "Place (Add)", () =>
+        AddPlainButton(_toolsHost, "Place (Add)", () =>
         {
             tool.Mode = EditorPaintMode.Place;
             onToolChanged();
         }, _toolEntries);
-        AddPlainButton(toolsHost, "Erase (Delete)", () =>
+        AddPlainButton(_toolsHost, "Erase (Delete)", () =>
         {
             tool.Mode = EditorPaintMode.Erase;
             onToolChanged();
         }, _toolEntries);
 
-        AddHeader(toolsHost, "Owner");
-        AddPlainButton(toolsHost, "Neutral", () =>
+        AddHeader(_toolsHost, "Owner");
+        AddPlainButton(_toolsHost, "Neutral", () =>
         {
             tool.SelectOwner(null);
             onToolChanged();
@@ -558,21 +654,23 @@ public sealed class EditorMapPaintHudView
         for (var slot = 0; slot < EditorPaintToolState.PlayerSlotCount; slot++)
         {
             var captured = slot;
-            AddPlainButton(toolsHost, PlayerDisplayNames.Number(captured), () =>
+            AddPlainButton(_toolsHost, PlayerDisplayNames.Number(captured), () =>
             {
                 tool.SelectOwner(captured);
                 onToolChanged();
             }, _toolEntries);
         }
 
-        AddHeader(toolsHost, "History");
-        AddPlainButton(toolsHost, "Undo (Ctrl+Z)", onUndo, _toolEntries);
-        AddPlainButton(toolsHost, "Redo (Ctrl+Y)", onRedo, _toolEntries);
-        AddPlainButton(toolsHost, "Validate", onValidate, _toolEntries);
-        AddPlainButton(toolsHost, "Save", onSave, _toolEntries);
-        AddPlainButton(toolsHost, "Script", onScript, _toolEntries);
-        AddPlainButton(toolsHost, "Back", onBack, _toolEntries);
-        AddHeader(toolsHost, "LB/RB · Q/E");
+        AddHeader(_toolsHost, "History");
+        AddPlainButton(_toolsHost, "Undo (Ctrl+Z)", onUndo, _toolEntries);
+        AddPlainButton(_toolsHost, "Redo (Ctrl+Y)", onRedo, _toolEntries);
+        AddPlainButton(_toolsHost, "Validate", onValidate, _toolEntries);
+        AddPlainButton(_toolsHost, "Save", onSave, _toolEntries);
+        AddPlainButton(_toolsHost, "Script", onScript, _toolEntries);
+        AddPlainButton(_toolsHost, "Back", onBack, _toolEntries);
+        AddHeader(_toolsHost, "LB/RB · Q/E");
+
+        GumUiLayout.AddVerticalSpacer(stack, SidePanelInnerPad);
     }
 
     private static Color IndicatorColor(EditorValidationIndicator indicator) => indicator switch
