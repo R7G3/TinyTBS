@@ -4,6 +4,8 @@
 
 **Жанр:** пошаговая стратегия с упором на тактику.
 
+Вход для игроков и авторов (pitch, требования, сборка, туториал редактора): [WELCOME.md](WELCOME.md), [welcome/CREATOR_GUIDE.md](welcome/CREATOR_GUIDE.md).
+
 Связанная архитектура: [ARCHITECTURE.md](ARCHITECTURE.md). Форматы: [MAP_FORMAT.md](MAP_FORMAT.md), [LEVEL_FORMAT.md](LEVEL_FORMAT.md), [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md), [UNIT_FORMAT.md](UNIT_FORMAT.md), [CONTENT_MODULE_FORMAT.md](CONTENT_MODULE_FORMAT.md).
 
 ## Ключевой цикл

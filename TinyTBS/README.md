@@ -15,6 +15,8 @@
 
 | Документ | Содержание |
 |----------|------------|
+| [docs/WELCOME.md](docs/WELCOME.md) | Вход для игроков: о чём игра, требования, сборка из исходников |
+| [docs/welcome/CREATOR_GUIDE.md](docs/welcome/CREATOR_GUIDE.md) | Подробное руководство автора контента (встроенный редактор) |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Архитектура, стек, порядок внедрения |
 | [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md) | Геймдизайн (канон) |
 | [docs/CONTENT_MODULE_FORMAT.md](docs/CONTENT_MODULE_FORMAT.md) | Контент-модули `.tinymod.zip` |

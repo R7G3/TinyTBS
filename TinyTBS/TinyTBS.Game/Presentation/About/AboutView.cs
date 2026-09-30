@@ -22,6 +22,7 @@ public sealed class AboutView
     private const float StackSpacing = 8f;
 
     public const string SiteUrl = "https://github.com/R7G3/TinyTBS";
+    public const string WelcomeDocsUrl = "https://github.com/R7G3/TinyTBS/blob/main/TinyTBS/docs/WELCOME.md";
     public const string MonoGameUrl = "https://monogame.net/";
 
     private Panel? _rootPanel;
@@ -104,6 +105,8 @@ public sealed class AboutView
         AddBodyLine(_scrollHost, "Author: Vadim (R7G3) Trofimov");
         AddBodyLine(_scrollHost, "Site:");
         AddLinkButton(_scrollHost, SiteUrl, () => onOpenUrl(SiteUrl));
+        AddBodyLine(_scrollHost, "Welcome:");
+        AddLinkButton(_scrollHost, WelcomeDocsUrl, () => onOpenUrl(WelcomeDocsUrl));
         AddBodyLine(_scrollHost, "Based on:");
         AddLinkButton(_scrollHost, MonoGameUrl, () => onOpenUrl(MonoGameUrl));
         AddBodyLine(_scrollHost, "Used libs:");
