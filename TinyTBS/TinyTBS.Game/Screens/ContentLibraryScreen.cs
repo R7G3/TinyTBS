@@ -1,10 +1,8 @@
-using Gum;
 using Microsoft.Xna.Framework;
-using MonoGame.Extended.Screens;
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Writers;
-using TinyTBS.Game.Input;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.Content;
@@ -16,82 +14,54 @@ namespace TinyTBS.Game.Screens;
 /// Content library: modules/bundles, install from device (file picker) or queued Downloads,
 /// uninstall user modules. Online catalog is reserved (greyed).
 /// </summary>
-public sealed class ContentLibraryScreen : GameScreen
+public sealed class ContentLibraryScreen : MenuScreen
 {
-    private readonly IAssetResolver _assets;
     private readonly ContentLibraryViewModel _viewModel = new();
     private readonly ContentLibraryView _view = new();
 
-    private MainMenuBackground? _background;
     private ContentModuleLibrary? _moduleLibrary;
     private ContentBundleLibrary? _bundleLibrary;
     private TinymodInstaller? _installer;
 
     public ContentLibraryScreen(GameMain game, IAssetResolver assets)
-        : base(game)
+        : base(game, assets)
     {
-        _assets = assets;
     }
 
-    private GameMain TinyGame => (GameMain)Game;
-
-    public override void LoadContent()
+    protected override void OnLoad()
     {
-        base.LoadContent();
-
         TinyGame.UserDataPaths.EnsureCreated();
         _moduleLibrary = new ContentModuleLibrary(TinyGame.Files, TinyGame.UserDataPaths);
         _bundleLibrary = new ContentBundleLibrary(TinyGame.Files, TinyGame.UserDataPaths);
         _installer = new TinymodInstaller(TinyGame.Files, TinyGame.UserDataPaths);
 
-        _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
         _viewModel.ActiveTab = ContentLibraryTab.Modules;
         RefreshLibrary("Modules / Bundles / Install tabs. Confirm a row for details.");
     }
 
-    public override void UnloadContent()
+    protected override void OnUnload()
     {
         _view.Clear();
-        _background?.Dispose();
-        _background = null;
         _moduleLibrary = null;
         _bundleLibrary = null;
         _installer = null;
-        base.UnloadContent();
     }
 
-    public override void Update(GameTime gameTime)
+    protected override void OnUpdate(GameTime gameTime, float elapsedSeconds)
     {
-        GumService.Default.Update(gameTime);
         _view.ApplyResponsiveLayout();
 
         // If detail was open, HandleInput may close it on B/Esc — do not also run screen Back.
         var detailWasOpen = _view.IsDetailOpen;
-        _view.HandleInput(TinyGame.Commands, (float)gameTime.ElapsedGameTime.TotalSeconds);
+        _view.HandleInput(TinyGame.Commands, elapsedSeconds);
 
-        if (TinyGame.Commands.WasPressed(GameCommand.Back)
-            || TinyGame.Commands.WasPressed(GameCommand.Cancel)
-            || TinyGame.Commands.WasPressed(GameCommand.Info)
-            || TinyGame.Commands.WasPressed(GameCommand.Pause))
-        {
-            if (_view.IsDetailOpen)
-                _view.TryCloseDetail();
-            else if (!detailWasOpen)
-                HandleBackCommand();
-        }
-    }
+        if (!WasLeavePressed())
+            return;
 
-    public override void Draw(GameTime gameTime)
-    {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
-
-        _background?.Draw(
-            TinyGame.SharedSpriteBatch,
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            gameTime);
-
-        GumService.Default.Draw();
+        if (_view.IsDetailOpen)
+            _view.TryCloseDetail();
+        else if (!detailWasOpen)
+            HandleBackCommand();
     }
 
     private void SelectTab(ContentLibraryTab tab)
@@ -170,6 +140,7 @@ public sealed class ContentLibraryScreen : GameScreen
         }
         catch (Exception exception)
         {
+            GameLog.Error($"Installing '{archivePath}' failed.", exception);
             _view.SetStatus("Install failed: " + exception.Message);
         }
     }
@@ -222,7 +193,7 @@ public sealed class ContentLibraryScreen : GameScreen
     }
 
     private void GoToMainMenu() =>
-        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, _assets));
+        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
 
     private static ContentModuleRowViewModel ToModuleRow(ContentModuleInfo module) =>
         new()

@@ -65,19 +65,12 @@ public sealed class EditorBuildingEditScreen : EditorFormScreen
         try
         {
             _view.ApplyTextFields();
-            var id = SanitizeId(_document.Id);
-            _document.Id = id;
-            ContentModuleManifestParser.ValidateModuleId(id);
-
-            var buildingsDir = TinyGame.Files.Combine(_session.ModuleRootPath, "Buildings");
-            var targetPath = TinyGame.Files.Combine(buildingsDir, id + ".json");
+            var id = EditorIds.SanitizeOrDefault(_document.Id, "building");
             var renamed = !_isNew
                 && !string.Equals(id, _document.OriginalId, StringComparison.Ordinal);
-            if ((_isNew || renamed) && File.Exists(targetPath))
-            {
-                id = AllocateUniqueBuildingId(buildingsDir, id);
-                _document.Id = id;
-            }
+            if (_isNew || renamed)
+                id = Workspace.AllocateBuildingId(_session, id);
+            _document.Id = id;
 
             _writer.Write(_session.ModuleRootPath, _document);
             _view.SyncIdentityFromDocument();
@@ -87,33 +80,6 @@ public sealed class EditorBuildingEditScreen : EditorFormScreen
         {
             _view.SyncStatus("Save failed: " + exception.Message);
         }
-    }
-
-    private static string SanitizeId(string raw)
-    {
-        var trimmed = string.IsNullOrWhiteSpace(raw) ? "building" : raw.Trim();
-        try
-        {
-            ContentModuleManifestParser.ValidateModuleId(trimmed);
-            return trimmed;
-        }
-        catch (TinymodInstallException)
-        {
-            return "building";
-        }
-    }
-
-    private string AllocateUniqueBuildingId(string buildingsDir, string stem)
-    {
-        for (var suffix = 2; suffix < 10_000; suffix++)
-        {
-            var candidate = stem + "_" + suffix;
-            var path = TinyGame.Files.Combine(buildingsDir, candidate + ".json");
-            if (!File.Exists(path))
-                return candidate;
-        }
-
-        throw new EditorException("Could not allocate a unique building id.");
     }
 
     private void GoToHub() =>

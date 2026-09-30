@@ -1,6 +1,6 @@
 using TinyTBS.Game.Campaigns.Models;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Scripting.Models;
+using TinyTBS.Scripting.Api;
 
 namespace TinyTBS.Game.Campaigns;
 

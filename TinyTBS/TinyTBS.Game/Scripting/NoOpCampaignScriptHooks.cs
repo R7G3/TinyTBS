@@ -1,4 +1,4 @@
-using TinyTBS.Game.Scripting.Models;
+using TinyTBS.Scripting.Api;
 
 namespace TinyTBS.Game.Scripting;
 

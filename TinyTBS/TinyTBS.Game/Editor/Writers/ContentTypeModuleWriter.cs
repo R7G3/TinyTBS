@@ -25,25 +25,6 @@ public sealed class ContentTypeModuleWriter
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
     }
 
-    public string AllocateUniqueModuleId(string baseId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseId);
-        ContentModuleManifestParser.ValidateModuleId(baseId.Trim());
-        var stem = baseId.Trim();
-        _userDataPaths.EnsureCreated();
-        if (!Directory.Exists(_files.Combine(_userDataPaths.Modules, stem)))
-            return stem;
-
-        for (var suffix = 2; suffix < 10_000; suffix++)
-        {
-            var candidate = stem + "_" + suffix;
-            if (!Directory.Exists(_files.Combine(_userDataPaths.Modules, candidate)))
-                return candidate;
-        }
-
-        throw new EditorException("Could not allocate a unique module id.");
-    }
-
     public string CreateNew(
         ContentModuleType type,
         string moduleId,

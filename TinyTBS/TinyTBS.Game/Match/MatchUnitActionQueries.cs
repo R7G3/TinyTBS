@@ -3,7 +3,8 @@ using TinyTBS.Game.Units.Models;
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Read-only move / attack / capture / repair / raise cell overlays for a unit.
+/// Read-only move / attack / capture / repair / raise cell overlays for a unit, built from the same
+/// predicates as the rules (<see cref="MatchActionRules"/>) evaluated from every cell the unit could stand on.
 /// </summary>
 public static class MatchUnitActionQueries
 {
@@ -24,11 +25,10 @@ public static class MatchUnitActionQueries
                 unit.Id);
 
         var standCells = new List<GridCell>(moveCells.Count + 1) { unit.Cell };
-        foreach (var cell in moveCells)
-            standCells.Add(cell);
+        standCells.AddRange(moveCells);
 
         IReadOnlyList<GridCell> attackStands;
-        if (MatchUnitAbilities.HasAbility(definition, "moveOrAttackExclusive"))
+        if (MatchUnitAbilities.HasAbility(definition, UnitAbilityTypes.MoveOrAttackExclusive))
             attackStands = hasMoved ? [] : [unit.Cell];
         else
             attackStands = standCells;
@@ -38,8 +38,12 @@ public static class MatchUnitActionQueries
             MoveCells = moveCells,
             AttackRangeCells = CollectAttackRangeFromStands(match, definition, attackStands),
             AttackCells = CollectAttackTargetsFromStands(match, unit, definition, attackStands),
-            CaptureCells = CollectCaptureTargetsFromStands(match, unit, definition, standCells),
-            RepairCells = CollectRepairTargetsFromStands(match, unit, definition, standCells),
+            CaptureCells = standCells
+                .Where(stand => MatchActionRules.CanCaptureAt(match, unit, definition, stand))
+                .ToArray(),
+            RepairCells = standCells
+                .Where(stand => MatchActionRules.CanRepairAt(match, unit, definition, stand))
+                .ToArray(),
             RaiseCells = CollectRaiseTargetsFromStands(match, unit, definition, standCells),
         };
     }
@@ -69,10 +73,8 @@ public static class MatchUnitActionQueries
                         continue;
 
                     var cell = new GridCell(stand.X + dx, stand.Y + dy);
-                    if (!match.IsInBounds(cell))
-                        continue;
-
-                    cells.Add(cell);
+                    if (match.IsInBounds(cell))
+                        cells.Add(cell);
                 }
             }
         }
@@ -88,104 +90,21 @@ public static class MatchUnitActionQueries
     {
         var targets = new HashSet<GridCell>();
         foreach (var stand in standCells)
-            CollectAttackTargetsFromCell(match, unit, definition, stand, targets);
+        {
+            foreach (var candidate in match.Units)
+            {
+                if (MatchActionRules.IsAttackTargetFrom(match, unit, definition, stand, candidate))
+                    targets.Add(candidate.Cell);
+            }
+
+            foreach (var building in match.Buildings)
+            {
+                if (MatchActionRules.IsDestroyTargetFrom(match, unit, definition, stand, building))
+                    targets.Add(building.Cell);
+            }
+        }
 
         return targets.Count == 0 ? [] : targets.ToArray();
-    }
-
-    private static void CollectAttackTargetsFromCell(
-        MatchState match,
-        MatchUnit unit,
-        UnitDefinition definition,
-        GridCell fromCell,
-        HashSet<GridCell> targets)
-    {
-        foreach (var candidate in match.Units)
-        {
-            if (candidate.Id == unit.Id || candidate.PlayerIndex == unit.PlayerIndex)
-                continue;
-
-            var range = fromCell.ManhattanDistanceTo(candidate.Cell);
-            if (range < definition.AttackRangeMin || range > definition.AttackRangeMax)
-                continue;
-
-            targets.Add(candidate.Cell);
-        }
-
-        if (!MatchUnitAbilities.TryGetAbility(definition, "destroyBuilding", out var destroyAbility))
-            return;
-
-        foreach (var building in match.Buildings)
-        {
-            if (building.IsRuined)
-                continue;
-            if (!match.ContentCatalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
-                continue;
-            if (!buildingDefinition.Destroyable)
-                continue;
-            if (!MatchUnitAbilities.TagsIntersect(destroyAbility.Tags, buildingDefinition.Tags))
-                continue;
-            if (match.IsOccupiedByUnitPublic(building.Cell, exceptUnitId: unit.Id))
-                continue;
-
-            var range = fromCell.ManhattanDistanceTo(building.Cell);
-            if (range < definition.AttackRangeMin || range > definition.AttackRangeMax)
-                continue;
-
-            targets.Add(building.Cell);
-        }
-    }
-
-    private static IReadOnlyList<GridCell> CollectCaptureTargetsFromStands(
-        MatchState match,
-        MatchUnit unit,
-        UnitDefinition definition,
-        IReadOnlyList<GridCell> standCells)
-    {
-        var targets = new List<GridCell>();
-        foreach (var stand in standCells)
-        {
-            if (!match.TryGetBuildingAt(stand, out var building))
-                continue;
-            if (!match.ContentCatalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
-                continue;
-            if (!MatchUnitAbilities.IsCapturable(building, buildingDefinition))
-                continue;
-            if (building.OwnerPlayerIndex == unit.PlayerIndex)
-                continue;
-            if (!MatchUnitAbilities.CanCapture(definition, buildingDefinition))
-                continue;
-
-            targets.Add(stand);
-        }
-
-        return targets;
-    }
-
-    private static IReadOnlyList<GridCell> CollectRepairTargetsFromStands(
-        MatchState match,
-        MatchUnit unit,
-        UnitDefinition definition,
-        IReadOnlyList<GridCell> standCells)
-    {
-        var targets = new List<GridCell>();
-        foreach (var stand in standCells)
-        {
-            if (!match.TryGetBuildingAt(stand, out var building))
-                continue;
-            if (!building.IsRuined)
-                continue;
-            if (!match.ContentCatalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
-                continue;
-            if (!buildingDefinition.Repairable)
-                continue;
-            if (!MatchUnitAbilities.CanRepair(definition, buildingDefinition))
-                continue;
-
-            targets.Add(stand);
-        }
-
-        return targets;
     }
 
     private static IReadOnlyList<GridCell> CollectRaiseTargetsFromStands(
@@ -194,22 +113,13 @@ public static class MatchUnitActionQueries
         UnitDefinition definition,
         IReadOnlyList<GridCell> standCells)
     {
-        if (!MatchUnitAbilities.HasAbility(definition, "raiseSkeleton"))
-            return [];
-        if (match.CountUnitsForPlayer(unit.PlayerIndex) >= match.UnitCap)
-            return [];
-
         var targets = new HashSet<GridCell>();
         foreach (var stand in standCells)
         {
             foreach (var stone in match.Gravestones)
             {
-                if (stand.ManhattanDistanceTo(stone.Cell) != 1)
-                    continue;
-                if (match.IsOccupiedByUnitPublic(stone.Cell, exceptUnitId: unit.Id))
-                    continue;
-
-                targets.Add(stone.Cell);
+                if (MatchActionRules.IsRaiseTargetFrom(match, unit, definition, stand, stone.Cell))
+                    targets.Add(stone.Cell);
             }
         }
 

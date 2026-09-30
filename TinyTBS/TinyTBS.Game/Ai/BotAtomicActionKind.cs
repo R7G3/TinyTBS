@@ -1,23 +1,23 @@
 namespace TinyTBS.Game.Ai;
 
-/// <summary>Виды атомарных действий бота (см. LegalActionGenerator).</summary>
+/// <summary>The input a human would use for a bot decision (see <see cref="LegalActionGenerator"/>).</summary>
 public enum BotAtomicActionKind
 {
-    /// <summary>Закончить ход игрока.</summary>
+    /// <summary>End the player's turn.</summary>
     EndTurn,
 
-    /// <summary>Выбрать своего активного юнита (Confirm на его клетку без выбранного).</summary>
+    /// <summary>Select an own active unit (Confirm on its cell with nothing selected).</summary>
     SelectUnit,
 
     /// <summary>
-    /// Confirm на клетке при уже выбранном юните: ход / атака / захват / raise —
-    /// точный исход решает MatchState.HandleConfirm.
+    /// Confirm on a cell with a unit selected: move / attack / capture / raise / wait,
+    /// resolved by <see cref="Match.MatchActionResolver"/>.
     /// </summary>
     ConfirmAt,
 
-    /// <summary>Явно завершить активацию юнита без атаки (кнопка Wait / Y).</summary>
+    /// <summary>Finish the unit's activation without attacking (Wait / Y).</summary>
     WaitSelected,
 
-    /// <summary>Купить юнита в своём замке (клетка свободна, хватает золота).</summary>
+    /// <summary>Buy a unit in an own castle from the shop.</summary>
     Recruit,
 }

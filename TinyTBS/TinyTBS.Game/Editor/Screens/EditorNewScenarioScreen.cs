@@ -1,24 +1,22 @@
-using Gum;
 using Microsoft.Xna.Framework;
-using MonoGame.Extended.Screens;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
-using TinyTBS.Game.Input;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
-using TinyTBS.Game.Presentation.Menu;
+using TinyTBS.Game.Screens;
 
 namespace TinyTBS.Game.Editor.Screens;
 
 /// <summary>Id/Title wizard before creating a user scenario module.</summary>
-public sealed class EditorNewScenarioScreen : GameScreen
+public sealed class EditorNewScenarioScreen : MenuScreen
 {
-    private readonly IAssetResolver _assets;
+    private const string DefaultModuleId = "user_scenario";
+
     private readonly EditorWorkspaceSession? _session;
+    private readonly EditorWorkspaceService _workspace;
     private readonly EditorNewScenarioView _view = new();
-    private MainMenuBackground? _background;
     private ScenarioModuleWriter? _scenarioWriter;
 
     /// <summary>
@@ -32,56 +30,41 @@ public sealed class EditorNewScenarioScreen : GameScreen
         GameMain game,
         IAssetResolver assets,
         EditorWorkspaceSession? session)
-        : base(game)
+        : base(game, assets)
     {
-        _assets = assets;
         _session = session;
+        _workspace = new EditorWorkspaceService(game.Files, game.UserDataPaths);
     }
 
-    private GameMain TinyGame => (GameMain)Game;
-
-    public override void LoadContent()
+    protected override void OnLoad()
     {
-        base.LoadContent();
         TinyGame.UserDataPaths.EnsureCreated();
         _scenarioWriter = new ScenarioModuleWriter(TinyGame.Files, TinyGame.UserDataPaths);
-        _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
 
-        var defaultId = _scenarioWriter.AllocateUniqueModuleId();
-        var defaultTitle = defaultId == "user_scenario"
+        var defaultId = _workspace.AllocateModuleId(DefaultModuleId);
+        var defaultTitle = defaultId == DefaultModuleId
             ? "User Scenario"
             : "User Scenario (" + defaultId + ")";
         _view.Build(defaultId, defaultTitle, RequestCreate, RequestGoToHub);
     }
 
-    public override void UnloadContent()
+    protected override void OnUnload()
     {
         _view.Clear();
-        _background?.Dispose();
-        _background = null;
         _scenarioWriter = null;
         _pendingGoToHub = false;
         _pendingCreate = false;
-        base.UnloadContent();
     }
 
-    public override void Update(GameTime gameTime)
+    protected override void OnUpdate(GameTime gameTime, float elapsedSeconds)
     {
-        GumService.Default.Update(gameTime);
-        _view.HandleInput(
-            TinyGame.Commands,
-            (float)gameTime.ElapsedGameTime.TotalSeconds);
+        _view.HandleInput(TinyGame.Commands, elapsedSeconds);
 
         if (_view.IsTextEntryActive)
             return;
 
-        if (TinyGame.Commands.WasPressed(GameCommand.Back)
-            || TinyGame.Commands.WasPressed(GameCommand.Cancel)
-            || TinyGame.Commands.WasPressed(GameCommand.Info)
-            || TinyGame.Commands.WasPressed(GameCommand.Pause))
-        {
+        if (WasLeavePressed())
             RequestGoToHub();
-        }
 
         if (_pendingCreate)
         {
@@ -97,18 +80,6 @@ public sealed class EditorNewScenarioScreen : GameScreen
         }
     }
 
-    public override void Draw(GameTime gameTime)
-    {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
-        _background?.Draw(
-            TinyGame.SharedSpriteBatch,
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            gameTime);
-
-        GumService.Default.Draw();
-    }
-
     private void RequestGoToHub() => _pendingGoToHub = true;
 
     private void RequestCreate() => _pendingCreate = true;
@@ -119,10 +90,8 @@ public sealed class EditorNewScenarioScreen : GameScreen
 
         try
         {
-            var moduleId = SanitizeModuleId(_view.ModuleId);
+            var moduleId = _workspace.AllocateModuleId(EditorIds.SanitizeOrDefault(_view.ModuleId, DefaultModuleId));
             var title = string.IsNullOrWhiteSpace(_view.ModuleTitle) ? moduleId : _view.ModuleTitle.Trim();
-            if (Directory.Exists(TinyGame.Files.Combine(TinyGame.UserDataPaths.Modules, moduleId)))
-                moduleId = _scenarioWriter.AllocateUniqueModuleId(moduleId);
 
             var root = _scenarioWriter.CreateNew(
                 moduleId,
@@ -134,7 +103,7 @@ public sealed class EditorNewScenarioScreen : GameScreen
                 root,
                 ContentModuleType.Scenario,
                 title);
-            ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, _assets, session));
+            ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, session));
         }
         catch (Exception exception) when (exception is EditorException or TinymodInstallException or IOException)
         {
@@ -142,20 +111,6 @@ public sealed class EditorNewScenarioScreen : GameScreen
         }
     }
 
-    private static string SanitizeModuleId(string raw)
-    {
-        var trimmed = string.IsNullOrWhiteSpace(raw) ? "user_scenario" : raw.Trim();
-        try
-        {
-            ContentModuleManifestParser.ValidateModuleId(trimmed);
-            return trimmed;
-        }
-        catch (TinymodInstallException)
-        {
-            return "user_scenario";
-        }
-    }
-
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, _assets, _session));
+        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
 }

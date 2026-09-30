@@ -9,7 +9,6 @@ using TinyTBS.Game.ViewModels;
 namespace TinyTBS.Game.Presentation.Match.Overlays;
 
 public sealed class MatchTileDetailOverlayView
-
 {
     private Panel? _panel;
     private Label? _terrainLabel;
@@ -71,17 +70,17 @@ public sealed class MatchTileDetailOverlayView
         GumMatchVisibility.SetVisible(_panel, hud.IsTileDetailVisible);
     }
 
-    public void SyncIcons(MatchTextureAtlas textures, MatchState match)
+    public void SyncIcons(MatchTextureAtlas textures, MatchState match, GridCell cell)
     {
         if (_panel is null || !_panel.IsVisible)
             return;
 
         if (_terrainIcon is not null)
-            _terrainIcon.BaseSprite.Texture = textures.Terrain(match.GetTerrain(match.Cursor));
+            _terrainIcon.BaseSprite.Texture = textures.Terrain(match.GetTerrain(cell));
 
         if (_buildingRow is { IsVisible: true }
             && _buildingIcon?.MaskSprite is not null
-            && match.TryGetBuildingAt(match.Cursor, out var building))
+            && match.TryGetBuildingAt(cell, out var building))
         {
             var sprite = textures.Building(building.TypeId, building.IsRuined);
             _buildingIcon.BaseSprite.Texture = sprite.Base;
@@ -91,7 +90,7 @@ public sealed class MatchTileDetailOverlayView
 
         if (_unitRow is { IsVisible: true }
             && _unitIcon?.MaskSprite is not null
-            && match.TryGetUnitAt(match.Cursor, out var unit))
+            && match.TryGetUnitAt(cell, out var unit))
         {
             var sprite = textures.Unit(unit.TypeId);
             _unitIcon.BaseSprite.Texture = sprite.Base;

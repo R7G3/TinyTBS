@@ -49,22 +49,19 @@ public static class MatchUnitAbilities
     }
 
     public static bool CanCapture(UnitDefinition unit, BuildingDefinition building) =>
-        unit.Abilities.Any(ability =>
-            string.Equals(ability.Type, "captureBuilding", StringComparison.OrdinalIgnoreCase)
-            && ability.Tags.Any(tag =>
-                building.Tags.Any(buildingTag =>
-                    string.Equals(tag, buildingTag, StringComparison.OrdinalIgnoreCase))));
+        HasTaggedAbility(unit, UnitAbilityTypes.CaptureBuilding, building);
 
     public static bool CanRepair(UnitDefinition unit, BuildingDefinition building) =>
-        unit.Abilities.Any(ability =>
-            string.Equals(ability.Type, "repairBuilding", StringComparison.OrdinalIgnoreCase)
-            && ability.Tags.Any(tag =>
-                building.Tags.Any(buildingTag =>
-                    string.Equals(tag, buildingTag, StringComparison.OrdinalIgnoreCase))));
+        HasTaggedAbility(unit, UnitAbilityTypes.RepairBuilding, building);
 
     public static bool SuppressesCounterattack(UnitDefinition attacker, int range) =>
         attacker.Abilities.Any(ability =>
-            string.Equals(ability.Type, "noCounterattackWhenRangeAtLeast", StringComparison.OrdinalIgnoreCase)
+            string.Equals(ability.Type, UnitAbilityTypes.NoCounterattackWhenRangeAtLeast, StringComparison.OrdinalIgnoreCase)
             && ability.MinRange is int min
             && range >= min);
+
+    private static bool HasTaggedAbility(UnitDefinition unit, string abilityType, BuildingDefinition building) =>
+        unit.Abilities.Any(ability =>
+            string.Equals(ability.Type, abilityType, StringComparison.OrdinalIgnoreCase)
+            && TagsIntersect(ability.Tags, building.Tags));
 }

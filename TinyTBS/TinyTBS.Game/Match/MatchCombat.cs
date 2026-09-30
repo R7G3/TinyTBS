@@ -1,127 +1,64 @@
-using TinyTBS.Game.Maps.Models;
 using TinyTBS.Game.Units.Models;
 
 namespace TinyTBS.Game.Match;
 
 /// <summary>
 /// Attack, counterattack, destroy-building, damage/death, and attack-aura resolution.
+/// Callers validate commands through <see cref="MatchActionRules"/> first.
 /// </summary>
 public static class MatchCombat
 {
-    public static bool TryAttack(
+    internal static void ApplyAttack(
         MatchState match,
         MatchUnit attacker,
         UnitDefinition attackerDefinition,
         MatchUnit defender)
     {
-        if (MatchUnitAbilities.HasAbility(attackerDefinition, "moveOrAttackExclusive")
-            && attacker.HasMovedThisActivation)
-            return false;
-
+        var defenderDefinition = RequireUnitDefinition(match, defender);
         var range = attacker.Cell.ManhattanDistanceTo(defender.Cell);
-        if (range < attackerDefinition.AttackRangeMin || range > attackerDefinition.AttackRangeMax)
-            return false;
-        if (!match.Catalog.TryGetUnit(defender.TypeId, out var defenderDefinition))
-            return false;
+        var damage = ComputeDamage(match, attacker, attackerDefinition, defender, defenderDefinition, range);
+        var defenderDied = ApplyDamage(match, defender, defenderDefinition, damage);
+        attacker.GainExperience(defenderDied ? 2 : 1);
 
-        var terrainDef = MatchTerrainRules.DefenceBonus(match.GetTerrain(defender.Cell));
-        var buildingDef = ResolveBuildingDefenceBonus(match, defender.Cell);
-        var attackAura = ResolveAttackAuraBonus(match, attacker.Cell, attacker.PlayerIndex);
-        var damage = MatchCombatFormula.ComputeDamage(
-            attackerDefinition,
-            attacker.Level,
-            attacker.HitPoints,
-            attacker.MaxHealth,
-            defenderDefinition,
-            terrainDef,
-            buildingDef,
-            range,
-            attackAura);
-
-        ApplyDamage(match, defender, defenderDefinition, damage);
-        var defenderDied = !match.UnitList.Contains(defender);
-
-        if (!defenderDied)
-            attacker.GainExperience(1);
-        else
-            attacker.GainExperience(2);
-
+        var attackerDied = false;
         if (!defenderDied
             && range == 1
-            && !MatchUnitAbilities.HasAbility(defenderDefinition, "noCounterattack")
+            && !MatchUnitAbilities.HasAbility(defenderDefinition, UnitAbilityTypes.NoCounterattack)
             && !MatchUnitAbilities.SuppressesCounterattack(attackerDefinition, range))
         {
-            var counterTerrain = MatchTerrainRules.DefenceBonus(match.GetTerrain(attacker.Cell));
-            var counterBuilding = ResolveBuildingDefenceBonus(match, attacker.Cell);
-            var counterAura = ResolveAttackAuraBonus(match, defender.Cell, defender.PlayerIndex);
-            var counterDamage = MatchCombatFormula.ComputeDamage(
-                defenderDefinition,
-                defender.Level,
-                defender.HitPoints,
-                defender.MaxHealth,
-                attackerDefinition,
-                counterTerrain,
-                counterBuilding,
-                range,
-                counterAura);
-            ApplyDamage(match, attacker, attackerDefinition, counterDamage);
-            if (match.UnitList.Contains(attacker))
-                defender.GainExperience(counterDamage > 0 && attacker.HitPoints > 0 ? 1 : 2);
+            var counterDamage = ComputeDamage(match, defender, defenderDefinition, attacker, attackerDefinition, range);
+            attackerDied = ApplyDamage(match, attacker, attackerDefinition, counterDamage);
+            if (!attackerDied)
+                defender.GainExperience(counterDamage > 0 ? 1 : 2);
         }
 
         match.LastAction = new MatchPlayerAction
         {
-            Kind = MatchPlayerActionKind.AttackUnit,
+            Kind = MatchActionKind.AttackUnit,
             PlayerIndex = match.CurrentPlayer,
             UnitId = attacker.Id,
             Source = attacker.Cell,
             Target = defender.Cell,
         };
 
-        if (match.UnitList.Contains(attacker))
-            match.FinishUnitActivation(attacker, MatchPlayerActionKind.AttackUnit);
-        else
+        if (attackerDied)
             match.SelectedUnitId = null;
-
-        return true;
+        else
+            match.FinishUnitActivation(attacker, MatchActionKind.AttackUnit);
     }
 
-    public static bool TryDestroyBuildingAtCursor(
-        MatchState match,
-        MatchUnit unit,
-        UnitDefinition unitDefinition)
+    internal static void ApplyDestroyBuilding(MatchState match, MatchUnit unit, MatchBuilding building)
     {
-        if (MatchUnitAbilities.HasAbility(unitDefinition, "moveOrAttackExclusive")
-            && unit.HasMovedThisActivation)
-            return false;
-        if (!MatchUnitAbilities.TryGetAbility(unitDefinition, "destroyBuilding", out var destroyAbility))
-            return false;
-        if (!match.TryGetBuildingAt(match.Cursor, out var building) || building.IsRuined)
-            return false;
-        if (!match.Catalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
-            return false;
-        if (!buildingDefinition.Destroyable)
-            return false;
-        if (!MatchUnitAbilities.TagsIntersect(destroyAbility.Tags, buildingDefinition.Tags))
-            return false;
-        if (match.IsOccupiedByUnitPublic(building.Cell))
-            return false;
-
-        var range = unit.Cell.ManhattanDistanceTo(building.Cell);
-        if (range < unitDefinition.AttackRangeMin || range > unitDefinition.AttackRangeMax)
-            return false;
-
         building.IsRuined = true;
         match.LastAction = new MatchPlayerAction
         {
-            Kind = MatchPlayerActionKind.DestroyBuilding,
+            Kind = MatchActionKind.DestroyBuilding,
             PlayerIndex = match.CurrentPlayer,
             UnitId = unit.Id,
             Source = unit.Cell,
             Target = building.Cell,
         };
-        match.FinishUnitActivation(unit, MatchPlayerActionKind.DestroyBuilding);
-        return true;
+        match.FinishUnitActivation(unit, MatchActionKind.DestroyBuilding);
     }
 
     public static int ResolveAttackAuraBonus(MatchState match, GridCell cell, int playerIndex)
@@ -131,9 +68,9 @@ public static class MatchCombat
         {
             if (ally.PlayerIndex != playerIndex)
                 continue;
-            if (!match.Catalog.TryGetUnit(ally.TypeId, out var definition))
+            if (!match.ContentCatalog.TryGetUnit(ally.TypeId, out var definition))
                 continue;
-            if (!MatchUnitAbilities.TryGetAbility(definition, "attackAura", out var aura))
+            if (!MatchUnitAbilities.TryGetAbility(definition, UnitAbilityTypes.AttackAura, out var aura))
                 continue;
 
             var radius = aura.Radius ?? 0;
@@ -150,23 +87,58 @@ public static class MatchCombat
         return best;
     }
 
-    public static void ApplyDamage(
+    /// <summary>
+    /// Defence add from a building on <paramref name="cell"/> (never applied to attack).
+    /// Intact uses the building's defence bonus; ruined uses the ruined override or 0.
+    /// </summary>
+    public static int ResolveBuildingDefenceBonus(MatchState match, GridCell cell)
+    {
+        if (!match.TryGetBuildingAt(cell, out var building))
+            return 0;
+        if (!match.ContentCatalog.TryGetBuilding(building.TypeId, out var definition))
+            return 0;
+
+        if (building.IsRuined)
+            return definition.Ruined?.DefenceBonus ?? 0;
+        return definition.DefenceBonus;
+    }
+
+    private static int ComputeDamage(
+        MatchState match,
+        MatchUnit attacker,
+        UnitDefinition attackerDefinition,
+        MatchUnit defender,
+        UnitDefinition defenderDefinition,
+        int range) =>
+        MatchCombatFormula.ComputeDamage(
+            attackerDefinition,
+            attacker.Level,
+            attacker.HitPoints,
+            attacker.MaxHealth,
+            defenderDefinition,
+            MatchTerrainRules.DefenceBonus(match.GetTerrain(defender.Cell)),
+            ResolveBuildingDefenceBonus(match, defender.Cell),
+            range,
+            ResolveAttackAuraBonus(match, attacker.Cell, attacker.PlayerIndex));
+
+    /// <summary>Returns true when the unit died (removed, maybe leaving a gravestone).</summary>
+    private static bool ApplyDamage(
         MatchState match,
         MatchUnit unit,
         UnitDefinition definition,
         int damage)
     {
         if (damage <= 0)
-            return;
+            return false;
 
         unit.HitPoints -= damage;
         if (unit.HitPoints > 0)
-            return;
+            return false;
 
         var cell = unit.Cell;
         var playerIndex = unit.PlayerIndex;
-        if (MatchUnitAbilities.HasAbility(definition, "uniquePerPlayer")
-            || MatchUnitAbilities.HasAbility(definition, "rehireCostIncrement"))
+        if (MatchUnitAbilities.HasAbility(definition, UnitAbilityTypes.UniquePerPlayer)
+            || MatchUnitAbilities.HasAbility(definition, UnitAbilityTypes.RehireCostIncrement))
         {
             match.KingRehireCounts[playerIndex] =
                 match.KingRehireCounts.GetValueOrDefault(playerIndex) + 1;
@@ -176,29 +148,17 @@ public static class MatchCombat
         if (match.SelectedUnitId == unit.Id)
             match.SelectedUnitId = null;
 
-        if (definition.LeavesGravestone && !match.TryGetBuildingAt(cell, out _))
+        if (definition.LeavesGravestone && !match.TryGetBuildingAt(cell, out _) && !match.HasGravestoneAt(cell))
         {
-            if (!match.GravestoneList.Any(stone => stone.Cell == cell))
-            {
-                var expireAt = match.TurnStarts.GetValueOrDefault(playerIndex) + 2;
-                match.GravestoneList.Add(new MatchGravestone(cell, playerIndex, expireAt));
-            }
+            var expireAt = match.TurnStarts.GetValueOrDefault(playerIndex) + 2;
+            match.GravestoneList.Add(new MatchGravestone(cell, playerIndex, expireAt));
         }
+
+        return true;
     }
 
-    /// <summary>
-    /// Defence add from a building on <paramref name="cell"/> (never applied to attack).
-    /// Intact uses the building's defence bonus; ruined uses the ruined override or 0.
-    /// </summary>
-    public static int ResolveBuildingDefenceBonus(MatchState match, GridCell cell)
-    {
-        if (!match.TryGetBuildingAt(cell, out var building))
-            return 0;
-        if (!match.Catalog.TryGetBuilding(building.TypeId, out var definition))
-            return 0;
-
-        if (building.IsRuined)
-            return definition.Ruined?.DefenceBonus ?? 0;
-        return definition.DefenceBonus;
-    }
+    private static UnitDefinition RequireUnitDefinition(MatchState match, MatchUnit unit) =>
+        match.ContentCatalog.TryGetUnit(unit.TypeId, out var definition)
+            ? definition
+            : throw new InvalidOperationException($"Unit type '{unit.TypeId.Full}' is not in the match content catalog.");
 }

@@ -99,7 +99,7 @@ public sealed class GameplayHudComposer
             _shop.FocusFirstOffer();
         else if (hud.IsCellActionChooserVisible && !_cellActionChooserWasVisible)
             _cellActionChooser.FocusMove();
-        else if (GameplayHudOverlayState.ShouldClearUiFocus(hud))
+        else if (!hud.Overlays.IsAnyOpen)
             ClearUiFocus();
 
         _matchResultWasVisible = hud.IsMatchResultVisible;
@@ -108,8 +108,8 @@ public sealed class GameplayHudComposer
         _cellActionChooserWasVisible = hud.IsCellActionChooserVisible;
     }
 
-    public void SyncDetailIcons(MatchTextureAtlas textures, MatchState match) =>
-        _tileDetail.SyncIcons(textures, match);
+    public void SyncDetailIcons(MatchTextureAtlas textures, MatchState match, GridCell cell) =>
+        _tileDetail.SyncIcons(textures, match, cell);
 
     public void SyncShopIcons(MatchTextureAtlas textures, int currentPlayerIndex) =>
         _shop.SyncIcons(textures, currentPlayerIndex);
@@ -147,7 +147,7 @@ public sealed class GameplayHudComposer
 
     private void UpdateOverlayFocusTrap(GameplayHudViewModel hud)
     {
-        var trapActive = GameplayHudOverlayState.MenuFocusTrapActive(hud);
+        var trapActive = hud.Overlays.IsAnyOpen;
         _bottomBar.SetMenuEnabled(!trapActive);
 
         if (!trapActive || _bottomBar.MenuButton is not { IsFocused: true })

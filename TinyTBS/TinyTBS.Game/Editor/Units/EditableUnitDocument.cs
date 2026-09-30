@@ -13,7 +13,7 @@ public sealed class EditableUnitDocument
 
     public string DisplayNameKey { get; set; } = "units.unit";
 
-    public string MovementClass { get; set; } = "foot";
+    public string MovementClass { get; set; } = MovementClassIds.Foot;
 
     public List<string> Tags { get; set; } = [];
 
@@ -53,7 +53,7 @@ public sealed class EditableUnitDocument
             OriginalId = id,
             Id = id,
             DisplayNameKey = "units." + id,
-            MovementClass = "foot",
+            MovementClass = MovementClassIds.Foot,
             Tags = [],
             Recruitable = true,
             Attack = 40,
@@ -108,7 +108,9 @@ public sealed class EditableUnitDocument
             OriginalId = id,
             Id = id,
             DisplayNameKey = string.IsNullOrWhiteSpace(definitionDto.DisplayNameKey) ? "units." + id : definitionDto.DisplayNameKey.Trim(),
-            MovementClass = string.IsNullOrWhiteSpace(definitionDto.MovementClass) ? "foot" : definitionDto.MovementClass.Trim(),
+            MovementClass = string.IsNullOrWhiteSpace(definitionDto.MovementClass)
+                ? MovementClassIds.Foot
+                : definitionDto.MovementClass.Trim(),
             Tags = definitionDto.Tags?.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList() ?? [],
             Recruitable = definitionDto.Recruitable ?? true,
             Attack = definitionDto.Attack,
@@ -121,7 +123,7 @@ public sealed class EditableUnitDocument
             Abilities = (definitionDto.Abilities ?? [])
                 .Select(ability => new EditableUnitAbility
                 {
-                    Type = string.IsNullOrWhiteSpace(ability.Type) ? "captureBuilding" : ability.Type.Trim(),
+                    Type = string.IsNullOrWhiteSpace(ability.Type) ? UnitAbilityTypes.CaptureBuilding : ability.Type.Trim(),
                     Amount = ability.Amount,
                     MinRange = ability.MinRange,
                     Value = ability.Value,

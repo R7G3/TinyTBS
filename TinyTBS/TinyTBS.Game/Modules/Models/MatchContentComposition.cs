@@ -48,6 +48,27 @@ public sealed class MatchContentComposition
     }
 
     /// <summary>
+    /// A chosen scenario with units / buildings / theme from a bundle preset; replaces stay the scenario's
+    /// because bundles do not carry replaces.
+    /// </summary>
+    public static MatchContentComposition FromScenarioWithBundle(
+        ScenarioModuleDefinition scenario,
+        ContentBundleDefinition bundle)
+    {
+        ArgumentNullException.ThrowIfNull(scenario);
+        ArgumentNullException.ThrowIfNull(bundle);
+
+        return new MatchContentComposition
+        {
+            ScenarioModuleId = scenario.ModuleId,
+            UnitsModuleIds = bundle.Defaults.UnitsModuleIds,
+            BuildingsModuleIds = bundle.Defaults.BuildingsModuleIds,
+            ThemeModuleId = bundle.Defaults.ThemeModuleId,
+            Replaces = scenario.Replaces,
+        };
+    }
+
+    /// <summary>
     /// Builds match composition from a bundle preset.
     /// <paramref name="replaces"/> usually comes from the scenario module (bundles do not carry replaces).
     /// </summary>

@@ -41,7 +41,7 @@ public sealed class UnitDocumentWriter
             DisplayNameKey = string.IsNullOrWhiteSpace(document.DisplayNameKey)
                 ? "units." + id
                 : document.DisplayNameKey.Trim(),
-            MovementClass = NormalizeMovement(document.MovementClass),
+            MovementClass = MovementClassIds.Normalize(document.MovementClass),
             Tags = document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList(),
             Recruitable = document.Recruitable,
             Attack = document.Attack,
@@ -207,11 +207,5 @@ public sealed class UnitDocumentWriter
             moduleJsonPath,
             rootObject.ToJsonString(WriteOptions) + Environment.NewLine,
             Encoding.UTF8);
-    }
-
-    private static string NormalizeMovement(string movementClass)
-    {
-        var value = string.IsNullOrWhiteSpace(movementClass) ? "foot" : movementClass.Trim().ToLowerInvariant();
-        return value is "foot" or "water" or "fly" ? value : "foot";
     }
 }

@@ -8,6 +8,9 @@ namespace TinyTBS.Game.Presentation.Shared;
 /// </summary>
 public static class UiColors
 {
+    /// <summary>Clear color behind the animated menu background (menus, loading, editor forms).</summary>
+    public static readonly Color MenuBackground = new(24, 28, 38);
+
     /// <summary>Standard dark panel (Content, New Game, About, Editor, match pause/detail).</summary>
     public static readonly Color MenuPanel = new(16, 18, 28, 235);
 

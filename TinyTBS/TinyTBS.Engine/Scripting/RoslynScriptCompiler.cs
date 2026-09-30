@@ -1,5 +1,8 @@
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Runtime.Loader;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -7,15 +10,32 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace TinyTBS.Engine.Scripting;
 
 /// <summary>
-/// Compiles a wrapped user script into an in-memory assembly and creates a hook instance.
-/// Callers supply usings, generated type names, and extra assemblies (typically the game assembly).
+/// Compiles a wrapped user script in the sandbox and loads it into a collectible load context:
+/// compile (errors reported in script line numbers) → <see cref="ScriptSandboxValidator"/> →
+/// <see cref="ScriptBudgetRewriter"/> → emit. Emitted assemblies are cached by source hash.
 /// </summary>
 public static class RoslynScriptCompiler
 {
-    private static readonly string[] LineSeparators = ["\r\n", "\n", "\r"];
+    private const int CompiledCacheCapacity = 32;
 
-    public static THooks CreateInstance<THooks>(RoslynScriptCompileOptions options)
-        where THooks : class
+    /// <summary>Framework assemblies scripts compile against; the sandbox policy narrows usable types further.</summary>
+    private static readonly HashSet<string> PlatformAssemblyFileNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "System.Private.CoreLib.dll",
+        "System.Runtime.dll",
+        "System.Runtime.Extensions.dll",
+        "System.Collections.dll",
+        "netstandard.dll",
+        "mscorlib.dll",
+    };
+
+    private static readonly ConcurrentDictionary<string, byte[]> CompiledAssemblies = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<string, MetadataReference> AssemblyReferences =
+        new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Lazy<ImmutableArray<MetadataReference>> PlatformReferences =
+        new(CreatePlatformReferences, LazyThreadSafetyMode.ExecutionAndPublication);
+
+    public static CompiledScript Compile(RoslynScriptCompileOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.UserSource);
@@ -23,35 +43,26 @@ public static class RoslynScriptCompiler
         ArgumentException.ThrowIfNullOrWhiteSpace(options.GeneratedTypeName);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.ImplementsTypeName);
         ArgumentException.ThrowIfNullOrWhiteSpace(options.AssemblyNamePrefix);
+        ArgumentException.ThrowIfNullOrWhiteSpace(options.BudgetTypeName);
         ArgumentNullException.ThrowIfNull(options.Usings);
-        ArgumentNullException.ThrowIfNull(options.ExtraAssemblies);
-
-        ScriptSourceValidator.Validate(options.UserSource);
+        ArgumentNullException.ThrowIfNull(options.ApiAssemblies);
+        ArgumentNullException.ThrowIfNull(options.ApiNamespaces);
 
         var compilationUnit = WrapUserSource(options);
-        var assemblyBytes = CompileToAssembly(
-            compilationUnit,
-            options.SourceFileName,
-            options.AssemblyNamePrefix,
-            options.ExtraAssemblies);
-
-        var assembly = Assembly.Load(assemblyBytes);
-        var fullTypeName = $"{options.GeneratedNamespace}.{options.GeneratedTypeName}";
-        var scriptType = assembly.GetType(fullTypeName)
-            ?? throw new ScriptHostException($"Compiled script is missing type '{fullTypeName}'.");
-
-        if (Activator.CreateInstance(scriptType) is not THooks hooks)
+        var cacheKey = CreateCacheKey(options, compilationUnit);
+        if (!CompiledAssemblies.TryGetValue(cacheKey, out var assemblyBytes))
         {
-            throw new ScriptHostException(
-                $"Compiled script type '{scriptType.FullName}' does not implement '{typeof(THooks).FullName}'.");
+            assemblyBytes = CompileToAssembly(compilationUnit, options);
+            if (CompiledAssemblies.Count >= CompiledCacheCapacity)
+                CompiledAssemblies.Clear();
+            CompiledAssemblies[cacheKey] = assemblyBytes;
         }
 
-        return hooks;
+        return Load(assemblyBytes, options);
     }
 
     private static string WrapUserSource(RoslynScriptCompileOptions options)
     {
-        var indented = Indent(options.UserSource, options.UserSourceIndentSpaces);
         var extraUsings = string.Join(
             Environment.NewLine,
             options.Usings
@@ -61,86 +72,118 @@ public static class RoslynScriptCompiler
         if (extraUsings.Length > 0)
             extraUsings += Environment.NewLine;
 
+        var lineFileName = options.SourceFileName.Replace('"', '\'');
+
+        // #line maps compiler errors and sandbox violations back to the author's own script lines.
         return $$"""
             #nullable enable
             using System;
             using System.Collections.Generic;
-            using System.Linq;
             {{extraUsings}}namespace {{options.GeneratedNamespace}}
             {
-                public sealed class {{options.GeneratedTypeName}} : {{options.ImplementsTypeName}}
-                {
-            {{indented}}
-                }
+            public sealed class {{options.GeneratedTypeName}} : {{options.ImplementsTypeName}}
+            {
+            #line 1 "{{lineFileName}}"
+            {{options.UserSource}}
+            #line default
+            }
             }
             """;
     }
 
-    private static string Indent(string text, int indentSpaces)
-    {
-        var indent = new string(' ', Math.Max(0, indentSpaces));
-        var lines = text.Split(LineSeparators, StringSplitOptions.None);
-        return string.Join(Environment.NewLine, lines.Select(line => indent + line));
-    }
-
-    private static byte[] CompileToAssembly(
-        string compilationUnit,
-        string sourceFileName,
-        string assemblyNamePrefix,
-        IReadOnlyList<Assembly> extraAssemblies)
+    private static byte[] CompileToAssembly(string compilationUnit, RoslynScriptCompileOptions options)
     {
         var syntaxTree = CSharpSyntaxTree.ParseText(
             compilationUnit,
-            path: sourceFileName,
+            path: options.SourceFileName,
             encoding: Encoding.UTF8);
 
         var compilation = CSharpCompilation.Create(
-            assemblyName: $"{assemblyNamePrefix}_{Guid.NewGuid():N}",
+            assemblyName: $"{options.AssemblyNamePrefix}_{Guid.NewGuid():N}",
             syntaxTrees: [syntaxTree],
-            references: CreateMetadataReferences(extraAssemblies),
+            references: CreateReferences(options.ApiAssemblies),
             options: new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
                 optimizationLevel: OptimizationLevel.Release,
                 allowUnsafe: false));
 
-        using var stream = new MemoryStream();
-        var emitResult = compilation.Emit(stream);
-        if (!emitResult.Success)
+        ThrowOnErrors(compilation.GetDiagnostics(), "Failed to compile script:");
+
+        var policy = new ScriptSandboxPolicy(
+            options.ApiNamespaces,
+            options.ForbiddenApiTypes,
+            options.GeneratedNamespace,
+            compilation.Assembly);
+        var violations = ScriptSandboxValidator.Validate(compilation, syntaxTree, policy);
+        if (violations.Count > 0)
         {
-            var errors = string.Join(
-                Environment.NewLine,
-                emitResult.Diagnostics
-                    .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-                    .Select(diagnostic => diagnostic.ToString()));
-            throw new ScriptHostException($"Failed to compile script:{Environment.NewLine}{errors}");
+            throw new ScriptHostException(
+                "Script uses features that are not available to scripts:"
+                + Environment.NewLine
+                + string.Join(Environment.NewLine, violations));
         }
 
+        var guardedTree = ScriptBudgetRewriter.Rewrite(
+            syntaxTree,
+            compilation.GetSemanticModel(syntaxTree),
+            options.BudgetTypeName);
+        var guardedCompilation = compilation.ReplaceSyntaxTree(syntaxTree, guardedTree);
+
+        using var stream = new MemoryStream();
+        var emitResult = guardedCompilation.Emit(stream);
+        ThrowOnErrors(emitResult.Diagnostics, "Failed to prepare script for the sandbox:");
         return stream.ToArray();
     }
 
-    private static ImmutableArray<MetadataReference> CreateMetadataReferences(
-        IReadOnlyList<Assembly> extraAssemblies)
+    private static CompiledScript Load(byte[] assemblyBytes, RoslynScriptCompileOptions options)
     {
-        var references = new List<MetadataReference>();
-        var trustedAssemblies = (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES");
-        if (!string.IsNullOrWhiteSpace(trustedAssemblies))
+        var loadContext = new AssemblyLoadContext(
+            $"{options.AssemblyNamePrefix}.{Guid.NewGuid():N}",
+            isCollectible: true);
+        try
         {
-            foreach (var path in trustedAssemblies.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-            {
-                var fileName = Path.GetFileName(path);
-                if (!IsAllowedPlatformAssembly(fileName))
-                    continue;
-
-                references.Add(MetadataReference.CreateFromFile(path));
-            }
+            using var stream = new MemoryStream(assemblyBytes, writable: false);
+            var assembly = loadContext.LoadFromStream(stream);
+            var fullTypeName = $"{options.GeneratedNamespace}.{options.GeneratedTypeName}";
+            var scriptType = assembly.GetType(fullTypeName)
+                ?? throw new ScriptHostException($"Compiled script is missing type '{fullTypeName}'.");
+            return new CompiledScript(loadContext, scriptType);
         }
-
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var assembly in extraAssemblies)
+        catch
         {
-            if (assembly is null)
-                continue;
+            loadContext.Unload();
+            throw;
+        }
+    }
 
+    private static void ThrowOnErrors(IEnumerable<Diagnostic> diagnostics, string header)
+    {
+        var errors = diagnostics
+            .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .Select(diagnostic => diagnostic.ToString())
+            .ToArray();
+        if (errors.Length > 0)
+            throw new ScriptHostException(header + Environment.NewLine + string.Join(Environment.NewLine, errors));
+    }
+
+    private static string CreateCacheKey(RoslynScriptCompileOptions options, string compilationUnit)
+    {
+        var identity = string.Join(
+            "\n",
+            compilationUnit,
+            options.AssemblyNamePrefix,
+            options.BudgetTypeName,
+            string.Join(",", options.ApiNamespaces),
+            string.Join(",", options.ForbiddenApiTypes),
+            string.Join(",", options.ApiAssemblies.Select(assembly => assembly.ManifestModule.ModuleVersionId)));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
+    }
+
+    private static ImmutableArray<MetadataReference> CreateReferences(IReadOnlyList<Assembly> apiAssemblies)
+    {
+        var references = PlatformReferences.Value.ToBuilder();
+        foreach (var assembly in apiAssemblies)
+        {
             var path = assembly.Location;
             if (string.IsNullOrWhiteSpace(path))
             {
@@ -148,30 +191,25 @@ public static class RoslynScriptCompiler
                     $"Cannot resolve assembly path for script references: '{assembly.FullName}'.");
             }
 
-            if (!seen.Add(path))
-                continue;
-
-            references.Add(MetadataReference.CreateFromFile(path));
+            references.Add(AssemblyReferences.GetOrAdd(path, static filePath => MetadataReference.CreateFromFile(filePath)));
         }
 
-        return references.ToImmutableArray();
+        return references.ToImmutable();
     }
 
-    private static bool IsAllowedPlatformAssembly(string fileName)
+    private static ImmutableArray<MetadataReference> CreatePlatformReferences()
     {
-        return fileName.Equals("netstandard.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("mscorlib.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.Runtime.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.Private.CoreLib.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.Collections.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.Linq.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.Linq.Expressions.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.Console.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.ObjectModel.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.Threading.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.Threading.Thread.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.Text.RegularExpressions.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.Runtime.Extensions.dll", StringComparison.OrdinalIgnoreCase)
-            || fileName.Equals("System.Collections.Concurrent.dll", StringComparison.OrdinalIgnoreCase);
+        var references = ImmutableArray.CreateBuilder<MetadataReference>();
+        var trustedAssemblies = (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES");
+        if (string.IsNullOrWhiteSpace(trustedAssemblies))
+            return references.ToImmutable();
+
+        foreach (var path in trustedAssemblies.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (PlatformAssemblyFileNames.Contains(Path.GetFileName(path)))
+                references.Add(MetadataReference.CreateFromFile(path));
+        }
+
+        return references.ToImmutable();
     }
 }

@@ -13,6 +13,9 @@ using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
+using TinyTBS.Game.Presentation.Match;
+using TinyTBS.Game.Presentation.Match.Board;
+using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Editor.Screens;
 
@@ -26,6 +29,7 @@ public sealed class EditorMapPaintScreen : GameScreen
     private readonly EditorPaintToolState _tool = new();
     private readonly EditorMapPaintHudView _hud = new();
     private readonly EditorMapHistory _history = new();
+    private readonly BoardInputController _boardInput = new();
 
     private MatchTextureAtlas? _textures;
     private MatchContentCatalog? _catalog;
@@ -129,23 +133,23 @@ public sealed class EditorMapPaintScreen : GameScreen
         var pointer = TinyGame.Pointer;
 
         if (pointer.WasPrimaryPressed && !pointerOverUi)
-            MatchCommandApplicator.ArmPrimaryPointerGesture(pointer);
+            _boardInput.ArmPrimaryPointerGesture(pointer);
 
-        var cameraEnabled = _hud.IsMapFocused || MatchCommandApplicator.IsPrimaryGestureActive;
-        MatchCommandApplicator.ApplyZoom(
+        var cameraEnabled = _hud.IsMapFocused || _boardInput.IsPrimaryGestureActive;
+        _boardInput.ApplyZoom(
             _board.Layout,
             TinyGame.Commands,
             pointer,
             gameTime,
             cameraControlsEnabled: cameraEnabled);
-        MatchCommandApplicator.ApplyCameraPan(
+        _boardInput.ApplyCameraPan(
             _board.Layout,
             TinyGame.Commands,
             pointer,
             gameTime,
             cameraControlsEnabled: cameraEnabled);
 
-        if (MatchCommandApplicator.TryConsumePrimaryClick(pointer) && !pointerOverUi)
+        if (_boardInput.TryConsumePrimaryClick(pointer) && !pointerOverUi)
         {
             if (_board.Layout.TryScreenToCell(pointer.Position, out var cellX, out var cellY))
             {
@@ -183,7 +187,7 @@ public sealed class EditorMapPaintScreen : GameScreen
 
     public override void Draw(GameTime gameTime)
     {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
+        GraphicsDevice.Clear(UiColors.MenuBackground);
         _board?.Draw(gameTime, mapFocused: _hud.IsMapFocused);
         GumService.Default.Draw();
     }

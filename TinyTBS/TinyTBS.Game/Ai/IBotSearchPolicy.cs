@@ -3,13 +3,13 @@ using TinyTBS.Game.Match;
 namespace TinyTBS.Game.Ai;
 
 /// <summary>
-/// Политика выбора хода. Сейчас — atomic α-β; Hard позже может дать другую реализацию
-/// (например, планирование целого хода), не меняя BotTurnDriver.
+/// Move selection policy. Today: atomic α-β; Hard may plug in another implementation
+/// (for example whole-turn planning) without touching the live bot driver.
 /// </summary>
 public interface IBotSearchPolicy
 {
-    /// <param name="state">Текущее состояние матча (поиск клонирует сам).</param>
-    /// <param name="botPlayerIndex">Индекс игрока-бота — оценка всегда с его стороны.</param>
-    /// <param name="profile">Лимиты глубины / узлов и веса оценки для сложности.</param>
+    /// <param name="state">Current match state; the search works on clones and never mutates it.</param>
+    /// <param name="botPlayerIndex">The bot's player index; evaluation is always from its side.</param>
+    /// <param name="profile">Depth / node limits and evaluation weights for the difficulty.</param>
     BotAtomicAction ChooseAction(MatchState state, int botPlayerIndex, BotDifficultyProfile profile);
 }

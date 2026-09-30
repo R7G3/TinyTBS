@@ -7,6 +7,8 @@ using TinyTBS.Engine.Ecs.Systems;
 using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Maps;
 using TinyTBS.Game.Match;
+using TinyTBS.Game.Presentation.Match;
+using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Editor.Map;
 

@@ -1,4 +1,4 @@
-using TinyTBS.Game.Match;
+using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.NewGame;

@@ -38,7 +38,7 @@ public sealed class EditorCampaignEditScreen : EditorFormScreen
         var campaignId = existing?.CampaignId ?? SanitizeId(_session.ModuleId + "_campaign");
         var title = existing?.Title ?? _session.Title + " Campaign";
         var chapters = existing?.Chapters.Select(chapter => chapter.LevelId).ToArray() ?? [];
-        var levels = ListLevelIds(_session.ModuleRootPath);
+        var levels = Workspace.ListLevelIds(_session);
 
         _view.Build(campaignId, title, chapters, levels, Save, GoToHub);
     }
@@ -86,33 +86,8 @@ public sealed class EditorCampaignEditScreen : EditorFormScreen
         }
     }
 
-    private static string SanitizeId(string raw)
-    {
-        var trimmed = string.IsNullOrWhiteSpace(raw) ? "campaign" : raw.Trim().Replace(' ', '_');
-        try
-        {
-            ContentModuleManifestParser.ValidateModuleId(trimmed);
-            return trimmed;
-        }
-        catch (TinymodInstallException)
-        {
-            return "campaign";
-        }
-    }
-
-    private static IReadOnlyList<string> ListLevelIds(string moduleRoot)
-    {
-        var levelsRoot = Path.Combine(moduleRoot, "Levels");
-        if (!Directory.Exists(levelsRoot))
-            return [];
-
-        return Directory.GetDirectories(levelsRoot)
-            .Select(Path.GetFileName)
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Select(name => name!)
-            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-    }
+    private static string SanitizeId(string raw) =>
+        EditorIds.SanitizeOrDefault(raw.Trim().Replace(' ', '_'), "campaign");
 
     private void GoToHub() =>
         ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));

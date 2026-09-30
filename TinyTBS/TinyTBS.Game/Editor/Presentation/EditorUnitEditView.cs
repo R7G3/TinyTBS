@@ -9,19 +9,13 @@ using TinyTBS.Game.Editor.Units;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Presentation.Content;
 using TinyTBS.Game.Presentation.Shared;
+using TinyTBS.Game.Units.Models;
 
 namespace TinyTBS.Game.Editor.Presentation;
 
 /// <summary>Edit Units/{id}.json: settings scroll (left) + Save/Back menu (right).</summary>
 public sealed class EditorUnitEditView
 {
-    private enum FocusZone
-    {
-        Settings = 0,
-        Menu = 1,
-        Detail = 2,
-    }
-
     private enum DetailKind
     {
         None,
@@ -29,27 +23,9 @@ public sealed class EditorUnitEditView
         Special,
     }
 
-    private static readonly string[] MovementClasses = ["foot", "water", "fly"];
-
-    private static readonly string[] AbilityTypes =
-    [
-        "captureBuilding",
-        "repairBuilding",
-        "raiseSkeleton",
-        "attackAura",
-        "destroyBuilding",
-        "noCounterattack",
-        "noCounterattackWhenRangeAtLeast",
-        "moveOrAttackExclusive",
-        "uniquePerPlayer",
-        "rehireCostIncrement",
-    ];
-
-    private const float StackSpacing = 6f;
-    private const float MinScrollViewport = 120f;
+    private readonly EditorTwoColumnFormController _form = new(allowDpadColumnSwitch: false);
 
     private Panel? _rootPanel;
-    private ScrollViewer? _settingsScroll;
     private Panel? _settingsHost;
     private Label? _statusLabel;
     private TextBox? _idBox;
@@ -57,11 +33,6 @@ public sealed class EditorUnitEditView
     private TextBox? _spriteBaseBox;
     private TextBox? _spriteMaskBox;
     private TextBox? _newTagBox;
-    private readonly List<(Button Button, Action Activate)> _settingsEntries = [];
-    private readonly List<(Button Button, Action Activate)> _menuEntries = [];
-    private readonly List<(Button Decrease, Button Increase)> _stepperRows = [];
-    private readonly HashSet<Button> _stepperButtons = [];
-    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private readonly EditorChoiceOverlay _choiceOverlay = new();
 
     private Panel? _detailOverlay;
@@ -76,15 +47,8 @@ public sealed class EditorUnitEditView
     private Label? _detailManhattanRangeLabel;
     private Label? _detailDamageMultiplierLabel;
 
-    private FocusZone _focusZone = FocusZone.Settings;
-    private int _settingsFocusIndex;
-    private int _menuFocusIndex;
     private int _detailFocusIndex;
     private EditableUnitDocument _document = EditableUnitDocument.CreateDefault("unit");
-
-    private float _confirmRepeatTimer;
-    private float _pointerRepeatTimer;
-    private int _pointerHoldFocusIndex = -1;
 
     private Label? _tagsSummaryLabel;
     private Label? _attackLabel;
@@ -120,31 +84,24 @@ public sealed class EditorUnitEditView
             "LB/RB: columns. L/R: −/+ on steppers. Up/Down: rows. Confirm opens pickers / activates.");
         _rootPanel = built.RootPanel;
         _settingsHost = built.SettingsHost;
-        _settingsScroll = built.SettingsScroll;
+        _form.Attach(built);
 
         _statusLabel = new Label { Text = string.Empty };
         GumUiLayout.FillParentWidth(_statusLabel);
         built.MenuHost.AddChild(_statusLabel);
 
-        EditorTwoColumnFormShell.AddMenuButton(
+        _form.AddMenuButton(
             built.MenuHost,
-            _menuEntries,
             "Save unit",
             () =>
             {
                 ApplyTextFields();
                 onSave();
-            },
-            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
-        EditorTwoColumnFormShell.AddMenuButton(
-            built.MenuHost,
-            _menuEntries,
-            "Back",
-            onBack,
-            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
+            });
+        _form.AddMenuButton(built.MenuHost, "Back", onBack);
 
         RebuildSettingsColumn();
-        SetFocusZone(FocusZone.Settings, resetIndex: true);
+        _form.FocusSettings(resetIndex: true);
     }
 
     public void SyncStatus(string text)
@@ -208,19 +165,7 @@ public sealed class EditorUnitEditView
         if (IsTextEntryActive)
             return;
 
-        TickPointerHold(pointer, elapsedSeconds);
-        TryBeginPointerHold(pointer);
-
-        if (TrySwitchColumn(commands))
-            return;
-
-        if (_focusZone == FocusZone.Menu)
-        {
-            HandleMenuInput(commands, elapsedSeconds);
-            return;
-        }
-
-        HandleSettingsInput(commands, elapsedSeconds);
+        _form.HandleInput(commands, elapsedSeconds, pointer);
     }
 
     public void Clear()
@@ -228,8 +173,8 @@ public sealed class EditorUnitEditView
         _choiceOverlay.Close(notifyClosed: false);
         CloseDetailOverlay(applyChanges: false);
         GumService.Default.Root.Children.Clear();
+        _form.Clear();
         _rootPanel = null;
-        _settingsScroll = null;
         _settingsHost = null;
         _statusLabel = null;
         _idBox = null;
@@ -237,16 +182,6 @@ public sealed class EditorUnitEditView
         _spriteBaseBox = null;
         _spriteMaskBox = null;
         _newTagBox = null;
-        _settingsEntries.Clear();
-        _menuEntries.Clear();
-        _stepperRows.Clear();
-        _stepperButtons.Clear();
-        _navigateRepeat.Reset();
-        _focusZone = FocusZone.Settings;
-        _settingsFocusIndex = 0;
-        _menuFocusIndex = 0;
-        _confirmRepeatTimer = 0f;
-        ClearPointerHold();
     }
 
     private void RebuildFromDocument()
@@ -257,14 +192,14 @@ public sealed class EditorUnitEditView
 
     private void RebuildSettingsColumn()
     {
+        if (_settingsHost is not null)
+            _form.RebuildSettings(AddSettingsRows);
+    }
+
+    private void AddSettingsRows()
+    {
         if (_settingsHost is null)
             return;
-
-        var previousFocus = _settingsFocusIndex;
-        _settingsEntries.Clear();
-        _stepperRows.Clear();
-        _stepperButtons.Clear();
-        _settingsHost.Visual.Children.Clear();
 
         AddSectionLabel("Identity");
         EditorTwoColumnFormShell.AddTextField(_settingsHost, "Unit Id (Units/*.json)", _document.Id, out _idBox);
@@ -328,13 +263,6 @@ public sealed class EditorUnitEditView
         }
 
         AddSettingsButton("Add special coefficient", AddDefaultSpecial);
-
-        if (_settingsEntries.Count > 0)
-        {
-            _settingsFocusIndex = Math.Clamp(previousFocus, 0, _settingsEntries.Count - 1);
-            GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-            EnsureSettingsRowVisible();
-        }
     }
 
     private Label AddStatLabel(string text)
@@ -345,83 +273,15 @@ public sealed class EditorUnitEditView
         return label;
     }
 
-    private void AddStatStepper(Action onDecrease, Action onIncrease)
-    {
-        AddStepperRow(_settingsHost!, onDecrease, onIncrease, out var decrease, out var increase);
-        _stepperRows.Add((decrease, increase));
-    }
+    private void AddStatStepper(Action onDecrease, Action onIncrease) => _form.AddStepper(onDecrease, onIncrease);
+
+    private void AddSettingsButton(string text, Action onClick) => _form.AddSettingsButton(text, onClick);
 
     private void AddSectionLabel(string text)
     {
         var label = new Label { Text = "— " + text + " —" };
         GumUiLayout.FillParentWidth(label);
         _settingsHost!.AddChild(label);
-    }
-
-    private void HandleSettingsInput(IGameCommandSource commands, float elapsedSeconds)
-    {
-        if (_settingsEntries.Count == 0)
-            return;
-
-        if (IsStepperFocused()
-            && HeldCommandRepeat.TryTick(commands, GameCommand.Confirm, elapsedSeconds, ref _confirmRepeatTimer))
-        {
-            _settingsEntries[_settingsFocusIndex].Activate();
-            return;
-        }
-
-        if (!IsStepperFocused())
-            _confirmRepeatTimer = 0f;
-
-        if (IsStepperFocused())
-        {
-            var horizontal = _navigateRepeat.TryGetHorizontalDelta(commands, elapsedSeconds);
-            if (horizontal != 0 && TryMoveWithinStepperRow(horizontal))
-            {
-                EnsureSettingsRowVisible();
-                return;
-            }
-
-            var vertical = _navigateRepeat.TryGetDelta(commands, elapsedSeconds);
-            if (vertical != 0)
-            {
-                TryMoveStepperRowVertically(vertical);
-                EnsureSettingsRowVisible();
-                return;
-            }
-
-            if (commands.WasPressed(GameCommand.Confirm))
-            {
-                _settingsEntries[_settingsFocusIndex].Activate();
-                return;
-            }
-
-            GumFocusableButtonList.MaintainFocus(_settingsEntries, ref _settingsFocusIndex);
-            return;
-        }
-
-        var result = GumFocusableButtonList.HandleVerticalInput(
-            commands,
-            _settingsEntries,
-            ref _settingsFocusIndex,
-            _navigateRepeat,
-            elapsedSeconds);
-
-        if (result == GumFocusListResult.Navigated)
-            EnsureSettingsRowVisible();
-    }
-
-    private void HandleMenuInput(IGameCommandSource commands, float elapsedSeconds)
-    {
-        if (_menuEntries.Count == 0)
-            return;
-
-        GumFocusableButtonList.HandleVerticalInput(
-            commands,
-            _menuEntries,
-            ref _menuFocusIndex,
-            _navigateRepeat,
-            elapsedSeconds);
     }
 
     private void HandleDetailInput(IGameCommandSource commands, float elapsedSeconds)
@@ -443,7 +303,7 @@ public sealed class EditorUnitEditView
 
         if (IsDetailStepperFocused())
         {
-            var horizontal = _navigateRepeat.TryGetHorizontalDelta(commands, elapsedSeconds);
+            var horizontal = _form.NavigateRepeat.TryGetHorizontalDelta(commands, elapsedSeconds);
             if (horizontal != 0)
             {
                 TryMoveDetailStepper(horizontal);
@@ -455,67 +315,8 @@ public sealed class EditorUnitEditView
             commands,
             _detailEntries,
             ref _detailFocusIndex,
-            _navigateRepeat,
+            _form.NavigateRepeat,
             elapsedSeconds);
-    }
-
-    private bool TrySwitchColumn(IGameCommandSource commands) =>
-        EditorTwoColumnFormShell.TrySwitchTwoZones(
-            commands,
-            allowDpadColumnSwitch: false,
-            currentZone: (int)_focusZone,
-            settingsZone: (int)FocusZone.Settings,
-            menuZone: (int)FocusZone.Menu,
-            setZone: zone => SetFocusZone((FocusZone)zone, resetIndex: false));
-
-    private void SetFocusZone(FocusZone zone, bool resetIndex)
-    {
-        _focusZone = zone;
-        if (zone == FocusZone.Settings)
-        {
-            if (resetIndex || _settingsEntries.Count == 0)
-                _settingsFocusIndex = 0;
-            else
-                _settingsFocusIndex = Math.Clamp(_settingsFocusIndex, 0, _settingsEntries.Count - 1);
-
-            GumFocusableButtonList.ClearFocus(_menuEntries);
-            if (_settingsEntries.Count > 0)
-            {
-                GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-                EnsureSettingsRowVisible();
-            }
-        }
-        else if (zone == FocusZone.Menu)
-        {
-            if (resetIndex || _menuEntries.Count == 0)
-                _menuFocusIndex = 0;
-            else
-                _menuFocusIndex = Math.Clamp(_menuFocusIndex, 0, _menuEntries.Count - 1);
-
-            GumFocusableButtonList.ClearFocus(_settingsEntries);
-            if (_menuEntries.Count > 0)
-                GumFocusableButtonList.ApplyFocus(_menuEntries, ref _menuFocusIndex);
-        }
-    }
-
-    private void EnsureSettingsRowVisible()
-    {
-        if (_settingsEntries.Count == 0
-            || _settingsScroll is null
-            || _settingsHost is null)
-        {
-            return;
-        }
-
-        EditorFormScrollFocus.AfterNavigate(
-            _settingsScroll,
-            _settingsHost,
-            _settingsEntries,
-            listFocusStartIndex: 0,
-            listFocusCount: _settingsEntries.Count,
-            _settingsFocusIndex,
-            StackSpacing,
-            MinScrollViewport);
     }
 
     private void CommitNewTag()
@@ -553,7 +354,7 @@ public sealed class EditorUnitEditView
                     RebuildFromDocument();
                 }),
             ],
-            onClosed: () => SetFocusZone(FocusZone.Settings, resetIndex: false));
+            onClosed: () => _form.FocusSettings());
     }
 
     private void OpenAbilityChoice(int index)
@@ -575,7 +376,7 @@ public sealed class EditorUnitEditView
                 ("Move Up", () => MoveAbility(index, -1)),
                 ("Move Down", () => MoveAbility(index, +1)),
             ],
-            onClosed: () => SetFocusZone(FocusZone.Settings, resetIndex: false));
+            onClosed: () => _form.FocusSettings());
     }
 
     private void OpenSpecialChoice(int index)
@@ -597,7 +398,7 @@ public sealed class EditorUnitEditView
                 ("Move Up", () => MoveSpecial(index, -1)),
                 ("Move Down", () => MoveSpecial(index, +1)),
             ],
-            onClosed: () => SetFocusZone(FocusZone.Settings, resetIndex: false));
+            onClosed: () => _form.FocusSettings());
     }
 
     private void MoveAbility(int index, int delta)
@@ -628,7 +429,7 @@ public sealed class EditorUnitEditView
             return;
 
         var actions = new List<(string Label, Action Activate)>();
-        foreach (var movementClass in MovementClasses)
+        foreach (var movementClass in MovementClassIds.All)
         {
             var captured = movementClass;
             actions.Add((MovementCaption(captured), () =>
@@ -643,7 +444,7 @@ public sealed class EditorUnitEditView
             _rootPanel,
             "Movement class",
             actions,
-            onClosed: () => SetFocusZone(FocusZone.Settings, resetIndex: false));
+            onClosed: () => _form.FocusSettings());
     }
 
     private void OpenAddAbilityChoice()
@@ -652,7 +453,7 @@ public sealed class EditorUnitEditView
             return;
 
         var actions = new List<(string Label, Action Activate)>();
-        foreach (var abilityType in AbilityTypes)
+        foreach (var abilityType in UnitAbilityTypes.All)
         {
             var captured = abilityType;
             actions.Add((captured, () =>
@@ -667,7 +468,7 @@ public sealed class EditorUnitEditView
             _rootPanel,
             "Add ability",
             actions,
-            onClosed: () => SetFocusZone(FocusZone.Settings, resetIndex: false));
+            onClosed: () => _form.FocusSettings());
     }
 
     private void OpenAbilityTypeChoice(EditableUnitAbility ability)
@@ -676,7 +477,7 @@ public sealed class EditorUnitEditView
             return;
 
         var actions = new List<(string Label, Action Activate)>();
-        foreach (var abilityType in AbilityTypes)
+        foreach (var abilityType in UnitAbilityTypes.All)
         {
             var captured = abilityType;
             actions.Add((captured, () =>
@@ -692,12 +493,7 @@ public sealed class EditorUnitEditView
             _rootPanel,
             "Ability type",
             actions,
-            onClosed: () =>
-            {
-                _focusZone = FocusZone.Detail;
-                if (_detailEntries.Count > 0)
-                    GumFocusableButtonList.ApplyFocus(_detailEntries, ref _detailFocusIndex);
-            });
+            onClosed: RestoreDetailFocus);
     }
 
     private void OpenSpecialWhenChoice(EditableUnitSpecialCoefficient coefficient)
@@ -713,12 +509,7 @@ public sealed class EditorUnitEditView
                 ("Target has tag", () => ApplySpecialWhenTargetHasTag(coefficient)),
                 ("Manhattan range", () => ApplySpecialWhenManhattanRange(coefficient)),
             ],
-            onClosed: () =>
-            {
-                _focusZone = FocusZone.Detail;
-                if (_detailEntries.Count > 0)
-                    GumFocusableButtonList.ApplyFocus(_detailEntries, ref _detailFocusIndex);
-            });
+            onClosed: RestoreDetailFocus);
     }
 
     private void ApplySpecialWhenDefault(EditableUnitSpecialCoefficient coefficient)
@@ -776,7 +567,6 @@ public sealed class EditorUnitEditView
         _detailKind = DetailKind.Ability;
         _detailEditIndex = index;
         _detailEntries.Clear();
-        _focusZone = FocusZone.Detail;
 
         _detailOverlay = new Panel();
         _detailOverlay.Dock(Dock.Fill);
@@ -840,7 +630,6 @@ public sealed class EditorUnitEditView
         _detailKind = DetailKind.Special;
         _detailEditIndex = index;
         _detailEntries.Clear();
-        _focusZone = FocusZone.Detail;
 
         _detailOverlay = new Panel();
         _detailOverlay.Dock(Dock.Fill);
@@ -984,7 +773,13 @@ public sealed class EditorUnitEditView
         _detailWhenLabel = null;
         _detailManhattanRangeLabel = null;
         _detailDamageMultiplierLabel = null;
-        SetFocusZone(FocusZone.Settings, resetIndex: false);
+        _form.FocusSettings();
+    }
+
+    private void RestoreDetailFocus()
+    {
+        if (_detailEntries.Count > 0)
+            GumFocusableButtonList.ApplyFocus(_detailEntries, ref _detailFocusIndex);
     }
 
     private void AddDetailButton(Panel stack, string text, Action onClick)
@@ -1239,252 +1034,5 @@ public sealed class EditorUnitEditView
         if (coefficient.ManhattanRange is int range)
             return "When: manhattanRange (" + range + ")";
         return "When: ?";
-    }
-
-
-    private void AddSettingsButton(string text, Action onClick)
-    {
-        if (_settingsHost is null)
-            return;
-        var button = new Button { Text = text };
-        GumUiLayout.FillParentWidth(button);
-        _settingsHost.AddChild(button);
-        _settingsEntries.Add((button, onClick));
-        button.Click += (_, _) =>
-        {
-            for (var i = 0; i < _settingsEntries.Count; i++)
-            {
-                if (!ReferenceEquals(_settingsEntries[i].Button, button))
-                    continue;
-                _settingsFocusIndex = i;
-                break;
-            }
-
-            SetFocusZone(FocusZone.Settings, resetIndex: false);
-            onClick();
-        };
-    }
-
-
-    private void AddStepperRow(
-        Panel parent,
-        Action onDecrease,
-        Action onIncrease,
-        out Button decreaseButton,
-        out Button increaseButton)
-    {
-        var row = new Panel();
-        GumUiLayout.FillParentWidth(row);
-        row.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        row.Visual.ChildrenLayout = ChildrenLayout.LeftToRightStack;
-        row.Visual.StackSpacing = 8f;
-        parent.AddChild(row);
-
-        decreaseButton = CreateStepperButton(row, "-", onDecrease);
-        increaseButton = CreateStepperButton(row, "+", onIncrease);
-    }
-
-    private Button CreateStepperButton(Panel row, string text, Action onActivate)
-    {
-        var button = new Button { Text = text };
-        GumUiLayout.SetAbsoluteWidth(button, 72f);
-        row.AddChild(button);
-        _settingsEntries.Add((button, onActivate));
-        _stepperButtons.Add(button);
-        button.Click += (_, _) =>
-        {
-            for (var i = 0; i < _settingsEntries.Count; i++)
-            {
-                if (!ReferenceEquals(_settingsEntries[i].Button, button))
-                    continue;
-                _settingsFocusIndex = i;
-                break;
-            }
-
-            SetFocusZone(FocusZone.Settings, resetIndex: false);
-        };
-        return button;
-    }
-
-    private bool IsStepperFocused() =>
-        _focusZone == FocusZone.Settings
-        && _settingsFocusIndex >= 0
-        && _settingsFocusIndex < _settingsEntries.Count
-        && _stepperButtons.Contains(_settingsEntries[_settingsFocusIndex].Button);
-
-    private bool TryMoveWithinStepperRow(int horizontalDelta)
-    {
-        if (!TryGetStepperPlacement(out var rowIndex, out var onIncrease))
-            return false;
-
-        var targetIncrease = horizontalDelta > 0;
-        if (targetIncrease == onIncrease)
-            return true;
-
-        return FocusStepper(rowIndex, targetIncrease);
-    }
-
-    private void TryMoveStepperRowVertically(int verticalDelta)
-    {
-        if (!TryGetStepperPlacement(out var rowIndex, out var onIncrease))
-            return;
-
-        var currentIndex = _settingsFocusIndex;
-        if (verticalDelta < 0)
-        {
-            var previousIndex = currentIndex - 1;
-            if (previousIndex < 0)
-                return;
-
-            if (rowIndex > 0)
-            {
-                var previousRowIncrease = _stepperRows[rowIndex - 1].Increase;
-                if (ReferenceEquals(_settingsEntries[previousIndex].Button, previousRowIncrease))
-                {
-                    FocusStepper(rowIndex - 1, onIncrease);
-                    return;
-                }
-            }
-
-            _settingsFocusIndex = previousIndex;
-            GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-            return;
-        }
-
-        var nextIndex = currentIndex + 1;
-        if (nextIndex >= _settingsEntries.Count)
-            return;
-
-        if (rowIndex + 1 < _stepperRows.Count)
-        {
-            var nextRowDecrease = _stepperRows[rowIndex + 1].Decrease;
-            if (ReferenceEquals(_settingsEntries[nextIndex].Button, nextRowDecrease))
-            {
-                FocusStepper(rowIndex + 1, onIncrease);
-                return;
-            }
-        }
-
-        _settingsFocusIndex = nextIndex;
-        GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-    }
-
-    private int IndexOfSettingsButton(Button button)
-    {
-        for (var i = 0; i < _settingsEntries.Count; i++)
-        {
-            if (ReferenceEquals(_settingsEntries[i].Button, button))
-                return i;
-        }
-
-        return -1;
-    }
-
-    private bool TryGetStepperPlacement(out int rowIndex, out bool onIncrease)
-    {
-        rowIndex = -1;
-        onIncrease = false;
-        if (_settingsFocusIndex < 0 || _settingsFocusIndex >= _settingsEntries.Count)
-            return false;
-
-        var button = _settingsEntries[_settingsFocusIndex].Button;
-        for (var i = 0; i < _stepperRows.Count; i++)
-        {
-            if (ReferenceEquals(button, _stepperRows[i].Decrease))
-            {
-                rowIndex = i;
-                return true;
-            }
-
-            if (ReferenceEquals(button, _stepperRows[i].Increase))
-            {
-                rowIndex = i;
-                onIncrease = true;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private bool FocusStepper(int rowIndex, bool onIncrease)
-    {
-        if (rowIndex < 0 || rowIndex >= _stepperRows.Count)
-            return false;
-
-        var target = onIncrease ? _stepperRows[rowIndex].Increase : _stepperRows[rowIndex].Decrease;
-        var index = IndexOfSettingsButton(target);
-        if (index < 0)
-            return false;
-
-        _settingsFocusIndex = index;
-        GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-        return true;
-    }
-
-    private void TryBeginPointerHold(IPointerSource pointer)
-    {
-        if (!pointer.WasPrimaryPressed)
-            return;
-
-        if (!TryFindStepperUnderPointer(out var focusIndex))
-            return;
-
-        _settingsFocusIndex = focusIndex;
-        SetFocusZone(FocusZone.Settings, resetIndex: false);
-        _settingsEntries[focusIndex].Activate();
-        _pointerHoldFocusIndex = focusIndex;
-        _pointerRepeatTimer = HeldCommandRepeat.DefaultInitialDelaySeconds;
-    }
-
-    private void TickPointerHold(IPointerSource pointer, float elapsedSeconds)
-    {
-        if (_pointerHoldFocusIndex < 0)
-            return;
-
-        if (!pointer.IsPrimaryDown)
-        {
-            ClearPointerHold();
-            return;
-        }
-
-        _pointerRepeatTimer -= elapsedSeconds;
-        if (_pointerRepeatTimer > 0f)
-            return;
-
-        _pointerRepeatTimer = HeldCommandRepeat.DefaultIntervalSeconds;
-        _settingsFocusIndex = _pointerHoldFocusIndex;
-        GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-        _settingsEntries[_pointerHoldFocusIndex].Activate();
-    }
-
-    private void ClearPointerHold()
-    {
-        _pointerHoldFocusIndex = -1;
-        _pointerRepeatTimer = 0f;
-    }
-
-    private bool TryFindStepperUnderPointer(out int focusIndex)
-    {
-        focusIndex = -1;
-        var over = GumService.Default.Cursor.FrameworkElementOver;
-        if (over is null)
-            return false;
-
-        foreach (var stepper in _stepperButtons)
-        {
-            if (!ReferenceEquals(over, stepper) && !ReferenceEquals(over, stepper.Visual))
-                continue;
-
-            for (var i = 0; i < _settingsEntries.Count; i++)
-            {
-                if (!ReferenceEquals(_settingsEntries[i].Button, stepper))
-                    continue;
-                focusIndex = i;
-                return true;
-            }
-        }
-
-        return false;
     }
 }

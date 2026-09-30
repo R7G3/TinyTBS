@@ -2,11 +2,13 @@ using Gum;
 using Gum.Forms.Controls;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Game.Campaigns;
+using TinyTBS.Game.Presentation.Match.Board;
 using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Match;
-using TinyTBS.Game.Ai;
+using TinyTBS.Game.Match.Session;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.ViewModels;
 
@@ -20,11 +22,11 @@ public sealed class GameplayMatchController
     private readonly GameplayHudSync _hudSync;
     private readonly GameplayHudComposer _hudComposer;
     private readonly BotTurnDriver _botDriver = new();
+    private readonly BoardInputController _boardInput = new();
 
     private GameplaySession? _session;
     private GridCell? _shopCastleCell;
     private GridCell? _cellActionChooserCell;
-    private bool _pendingPauseMenuFocus;
     private Action? _returnToMenu;
     private Action? _leaveMatch;
     private Action? _loadMatch;
@@ -33,7 +35,7 @@ public sealed class GameplayMatchController
     private readonly MatchEnemyThreatHold _enemyThreatHold = new();
     private float _lastBotFollowCursorX = float.NaN;
     private float _lastBotFollowCursorY = float.NaN;
-    private CampaignProgressService? _campaignService;
+    private readonly MatchCampaignResultResolver _campaignResult;
 
     public GameplayMatchController(
         GameMain game,
@@ -45,7 +47,8 @@ public sealed class GameplayMatchController
         _graphicsDevice = graphicsDevice;
         _hudComposer = hudComposer;
         _hudSync = new GameplayHudSync(hud, hudComposer);
-        _campaignService = new CampaignProgressService(game.UserDataPaths, game.Files);
+        _campaignResult = new MatchCampaignResultResolver(
+            new CampaignProgressService(game.UserDataPaths, game.Files));
     }
 
     public void LoadContent(
@@ -66,32 +69,30 @@ public sealed class GameplayMatchController
         _retryChapter = onRetryChapter;
         _session = session;
 
-        _hudSync.Hud.LevelTitle = _session.LevelBrief.Title;
-        _hudSync.SetGoalsFromLevel(_session.LevelBrief);
+        _hudSync.Hud.LevelTitle = _session.Runtime.LevelBrief.Title;
+        _hudSync.SetGoalsFromLevel(_session.Runtime.LevelBrief);
 
         _hudComposer.Build(
             _hudSync.Hud,
             onEndTurn: () =>
             {
-                if (_session?.IsCurrentPlayerBot() == true)
+                if (_session?.Runtime.IsCurrentPlayerBot() == true)
                     return;
                 if (_session?.Scene.IsMoveAnimating == true
                     || _session?.Scene.IsCursorAnimating == true)
                     return;
-                _session?.EndTurn();
-                GameplayHudOverlayState.CloseAllExceptPause(_hudSync.Hud);
-                ClosePause();
-                _hudComposer.ClearUiFocus();
+                _session?.Runtime.EndTurn();
+                CloseAllOverlays();
             },
             onOpenPause: OpenPause,
-            onClosePause: ClosePause,
-            onOpenMinimap: OpenMinimap,
-            onOpenGoals: OpenGoals,
+            onClosePause: CloseAllOverlays,
+            onOpenMinimap: () => OpenOverlay(MatchOverlay.Minimap),
+            onOpenGoals: () => OpenOverlay(MatchOverlay.Goals),
             onSuspendToMenu: SuspendToMenu,
             onLeaveMatch: LeaveMatch,
             onSaveMatch: SaveCurrentMatch,
             onLoadMatch: OpenLoadFromPause,
-            onCloseShop: CloseShop,
+            onCloseShop: CloseTopOverlay,
             onBuyOffer: BuyShopOffer,
             onCellActionMove: OnCellActionMove,
             onCellActionBuy: OnCellActionBuy,
@@ -117,16 +118,18 @@ public sealed class GameplayMatchController
 
         try
         {
-            var document = MatchSaveDocumentFactory.FromSession(
-                _session,
+            var document = MatchSaveDocumentFactory.FromRuntime(
+                _session.Runtime,
+                _session.Cursor.Cell,
                 _game.Files,
                 _game.UserDataPaths);
             var path = new MatchSaveWriter(_game.UserDataPaths).Write(document);
             _hudSync.Hud.HintText = "Saved: " + Path.GetFileName(path);
-            ClosePause();
+            CloseAllOverlays();
         }
         catch (Exception exception)
         {
+            GameLog.Error("Saving the match failed.", exception);
             _hudSync.Hud.HintText = "Save failed: " + exception.Message;
         }
     }
@@ -145,18 +148,14 @@ public sealed class GameplayMatchController
         var scene = _session.Scene;
         scene.TickMoveAnimation(gameTime);
 
-        var botTurn = _session.IsCurrentPlayerBot() && !_session.State.IsMatchOver;
-        if (botTurn
-            && !scene.IsMoveAnimating
-            && !GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud)
-            && !_hudSync.Hud.IsMatchResultVisible)
+        var botTurn = _session.Runtime.IsCurrentPlayerBot() && !_session.State.IsMatchOver;
+        var overlaysBlockCamera = Overlays.IsAnyOpen;
+        if (botTurn && !scene.IsMoveAnimating && !overlaysBlockCamera)
         {
             // Driver itself waits while the cursor is sliding to the aim cell.
-            _botDriver.TryStep(_session, _session.PlayerSeats, gameTime);
+            _botDriver.TryStep(_session, gameTime);
         }
 
-        var overlaysBlockCamera = GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud)
-            || _hudSync.Hud.IsMatchResultVisible;
         var boardInputEnabled = !overlaysBlockCamera
             && !botTurn
             && !scene.IsMoveAnimating
@@ -165,20 +164,20 @@ public sealed class GameplayMatchController
         var cameraControlsEnabled = !overlaysBlockCamera;
 
         // Zoom / pan before layout prepare so hit-tests and draws use the updated camera.
-        MatchCommandApplicator.ApplyZoom(
+        _boardInput.ApplyZoom(
             scene.Layout,
             _game.Commands,
             _game.Pointer,
             gameTime,
             cameraControlsEnabled);
-        MatchCommandApplicator.ApplyCameraPan(
-            _session.State,
+        _boardInput.ApplyCameraPan(
+            _session.Cursor,
             scene.Layout,
             _game.Commands,
             _game.Pointer,
             gameTime,
             cameraControlsEnabled,
-            clampMatchCursor: boardInputEnabled);
+            clampCursor: boardInputEnabled);
 
         scene.PrepareFrame(_graphicsDevice.Viewport.Width, _graphicsDevice.Viewport.Height);
 
@@ -192,17 +191,10 @@ public sealed class GameplayMatchController
 
         HandleOverlayCommands();
 
-        if (GameplayHudOverlayState.IsDismissibleInfoOverlayVisible(_hudSync.Hud)
-            && _game.Pointer.WasAnyButtonPressed)
+        if (Overlays.IsInfoOverlayOnTop && _game.Pointer.WasAnyButtonPressed)
         {
-            DismissInfoOverlay();
+            CloseTopOverlay();
             GumService.Default.Update(gameTime);
-            if (_pendingPauseMenuFocus)
-            {
-                _pendingPauseMenuFocus = false;
-                _hudComposer.ClearUiFocus();
-            }
-
             if (_session is null)
                 return;
 
@@ -211,25 +203,11 @@ public sealed class GameplayMatchController
             return;
         }
 
-        var uiHeldConfirm = GameplayHudOverlayState.CapturesGamepadConfirm(_hudSync.Hud);
+        var uiHeldConfirm = Overlays.IsAnyOpen;
         var elapsedSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
         GumService.Default.Update(gameTime);
-
-        if (_hudSync.Hud.IsMatchResultVisible)
-            _hudComposer.HandleMatchResultGamepadNavigation(_game.Commands, elapsedSeconds);
-        else if (_hudSync.Hud.IsShopVisible)
-            _hudComposer.HandleShopGamepadNavigation(_game.Commands, elapsedSeconds);
-        else if (_hudSync.Hud.IsPauseVisible)
-            _hudComposer.HandlePauseGamepadNavigation(_game.Commands, elapsedSeconds);
-        else if (_hudSync.Hud.IsCellActionChooserVisible)
-            _hudComposer.HandleCellActionChooserGamepadNavigation(_game.Commands, elapsedSeconds);
-
-        if (_pendingPauseMenuFocus)
-        {
-            _pendingPauseMenuFocus = false;
-            _hudComposer.ClearUiFocus();
-        }
+        HandleOverlayGamepadNavigation(elapsedSeconds);
 
         if (_session is null)
             return;
@@ -238,20 +216,19 @@ public sealed class GameplayMatchController
         var allowBoardConfirm = !uiHeldConfirm && !openedCastleChooser;
 
         _enemyThreatHold.Tick(
-            _session.State,
+            _session,
+            _boardInput,
             _game.Commands,
             _game.Pointer,
-            scene.Layout,
-            (float)gameTime.ElapsedGameTime.TotalSeconds,
+            elapsedSeconds,
             boardInputEnabled && !uiHeldConfirm && !openedCastleChooser,
             out var deferredThreatConfirm);
 
         var allowConfirm = allowBoardConfirm && !_enemyThreatHold.SuppressBoardConfirm;
 
-        MatchCommandApplicator.Apply(
+        _boardInput.ApplyBoardCommands(
             _session,
             _game.Commands,
-            scene.Layout,
             gameTime,
             boardInputEnabled && !uiHeldConfirm,
             allowConfirm: allowConfirm);
@@ -262,23 +239,18 @@ public sealed class GameplayMatchController
         if (boardInputEnabled && !uiHeldConfirm && !IsPointerOverInteractiveHud())
         {
             var pointer = _game.Pointer;
-            var layout = scene.Layout;
-            MatchCommandApplicator.ApplyPointer(
-                _session,
-                pointer,
-                layout,
-                allowConfirm: allowConfirm);
+            _boardInput.ApplyPointer(_session, pointer, allowConfirm: allowConfirm);
 
             // Chooser opens on primary press; ApplyPointer would arm a click — drop it.
             if (openedCastleChooser)
-                MatchCommandApplicator.CancelPointerGesture();
+                _boardInput.CancelPointerGesture();
 
-            if (MatchCommandApplicator.TryApplySecondaryPointer(_session.State, pointer, layout))
-                OpenTileDetail();
+            if (_boardInput.TryApplySecondaryPointer(_session.Cursor, pointer, scene.Layout))
+                OpenOverlay(MatchOverlay.TileDetail);
         }
         else if (openedCastleChooser)
         {
-            MatchCommandApplicator.CancelPointerGesture();
+            _boardInput.CancelPointerGesture();
         }
 
         if (_session is null)
@@ -400,7 +372,14 @@ public sealed class GameplayMatchController
         if (_session is null)
             return;
 
-        _hudSync.SyncFromSession(_session, _cellActionChooserCell, _campaignService);
+        _campaignResult.Update(_session.Runtime);
+        _hudSync.SyncFromSession(_session, _cellActionChooserCell, _campaignResult.Result);
+        if (_session.Runtime.ScriptHost.FailureMessage is { } scriptFailure)
+        {
+            _hudSync.Hud.HintText = "Map script disabled: " + scriptFailure;
+            return;
+        }
+
         _hudSync.Hud.HintText = _enemyThreatHold.PreviewUnitId is not null
             ? "Enemy threat · blue move · red attack · green capture · yellow repair · purple raise · release to close"
             : "WASD move · Enter/click select · Hold Enter/LMB on enemy = threat · Wheel zoom · RMB/I detail · E end · Esc pause";
@@ -452,203 +431,149 @@ public sealed class GameplayMatchController
     private static IReadOnlyList<(int X, int Y)>? ToCellTuples(IReadOnlyList<GridCell> cells) =>
         cells.Count == 0 ? null : cells.Select(cell => (cell.X, cell.Y)).ToArray();
 
-    private void DismissInfoOverlay()
-    {
-        if (_hudSync.Hud.IsTileDetailVisible)
-        {
-            CloseTileDetail();
-            return;
-        }
-
-        if (_hudSync.Hud.IsGoalsVisible)
-        {
-            CloseGoals();
-            return;
-        }
-
-        if (_hudSync.Hud.IsMinimapVisible)
-            CloseMinimap();
-    }
-
     private static bool IsPointerOverInteractiveHud() =>
         GumService.Default.Cursor.FrameworkElementOver is Button;
+
+    private MatchOverlayStack Overlays => _hudSync.Hud.Overlays;
+
+    private void HandleOverlayGamepadNavigation(float elapsedSeconds)
+    {
+        var commands = _game.Commands;
+        switch (Overlays.Top)
+        {
+            case MatchOverlay.MatchResult:
+                _hudComposer.HandleMatchResultGamepadNavigation(commands, elapsedSeconds);
+                break;
+            case MatchOverlay.Shop:
+                _hudComposer.HandleShopGamepadNavigation(commands, elapsedSeconds);
+                break;
+            case MatchOverlay.Pause:
+                _hudComposer.HandlePauseGamepadNavigation(commands, elapsedSeconds);
+                break;
+            case MatchOverlay.CellActionChooser:
+                _hudComposer.HandleCellActionChooserGamepadNavigation(commands, elapsedSeconds);
+                break;
+        }
+    }
 
     private void HandleOverlayCommands()
     {
         var commands = _game.Commands;
-        var hud = _hudSync.Hud;
+        var top = Overlays.Top;
 
         if (commands.WasPressed(GameCommand.Pause))
         {
-            if (_hudSync.Hud.IsMatchResultVisible)
+            if (top == MatchOverlay.MatchResult)
                 return;
 
-            if (hud.IsShopVisible
-                || hud.IsGoalsVisible
-                || hud.IsMinimapVisible
-                || hud.IsTileDetailVisible
-                || hud.IsCellActionChooserVisible)
+            if (top is not (MatchOverlay.None or MatchOverlay.Pause))
             {
-                TryGoBackFromOverlay();
+                CloseTopOverlay();
                 return;
             }
 
-            // Esc / Start: first press clears unit selection; second opens pause.
+            // Esc / Start: first press clears unit selection; second toggles pause.
             if (_session is not null && _session.State.ClearSelection())
                 return;
 
-            if (hud.IsPauseVisible)
-                ClosePause();
+            if (top == MatchOverlay.Pause)
+                CloseTopOverlay();
             else
                 OpenPause();
             return;
         }
 
-        if (commands.WasPressed(GameCommand.Confirm))
+        if (commands.WasPressed(GameCommand.Confirm) && Overlays.IsInfoOverlayOnTop)
         {
-            if (hud.IsMinimapVisible)
-            {
-                CloseMinimap(deferFocusClearUntilAfterGum: true);
-                return;
-            }
-
-            if (hud.IsGoalsVisible)
-            {
-                CloseGoals(deferFocusClearUntilAfterGum: true);
-                return;
-            }
-
-            if (hud.IsTileDetailVisible)
-            {
-                CloseTileDetail(deferFocusClearUntilAfterGum: true);
-                return;
-            }
-        }
-
-        var wantsBack = commands.WasPressed(GameCommand.Cancel)
-            || commands.WasPressed(GameCommand.Back)
-            || commands.WasPressed(GameCommand.Info);
-
-        if (hud.IsCellActionChooserVisible && _game.Pointer.WasSecondaryPressed)
-        {
-            CloseCellActionChooser();
+            CloseTopOverlay();
             return;
         }
 
-        if (wantsBack && TryGoBackFromOverlay())
+        if (top == MatchOverlay.CellActionChooser && _game.Pointer.WasSecondaryPressed)
+        {
+            CloseTopOverlay();
             return;
+        }
+
+        if (top != MatchOverlay.None)
+        {
+            if (commands.WasPressed(GameCommand.Cancel)
+                || commands.WasPressed(GameCommand.Back)
+                || commands.WasPressed(GameCommand.Info))
+            {
+                CloseTopOverlay();
+            }
+
+            return;
+        }
 
         // Info (I / east): deselect (undo move if any) if a unit is selected; otherwise open tile detail.
-        if (commands.WasPressed(GameCommand.Info)
-            && !GameplayHudOverlayState.BlocksBoardInput(hud))
+        if (commands.WasPressed(GameCommand.Info))
         {
             if (_session is not null && _session.State.ClearSelection())
                 return;
 
-            OpenTileDetail();
+            OpenOverlay(MatchOverlay.TileDetail);
         }
 
         // Backspace / cancel: deselect and undo a post-move if the unit had moved.
-        if (commands.WasPressed(GameCommand.Cancel)
-            && !GameplayHudOverlayState.BlocksBoardInput(hud))
-        {
+        if (commands.WasPressed(GameCommand.Cancel))
             _session?.State.ClearSelection();
-        }
     }
 
-    private bool TryGoBackFromOverlay()
+    private void OpenOverlay(MatchOverlay overlay)
     {
-        var hud = _hudSync.Hud;
-
-        if (hud.IsMatchResultVisible)
-            return true;
-
-        if (hud.IsCellActionChooserVisible)
-        {
-            CloseCellActionChooser();
-            return true;
-        }
-
-        if (hud.IsShopVisible)
-        {
-            CloseShop();
-            return true;
-        }
-
-        if (hud.IsGoalsVisible)
-        {
-            CloseGoals();
-            return true;
-        }
-
-        if (hud.IsMinimapVisible)
-        {
-            CloseMinimap();
-            return true;
-        }
-
-        if (hud.IsTileDetailVisible)
-        {
-            CloseTileDetail();
-            return true;
-        }
-
-        if (hud.IsPauseVisible)
-        {
-            ClosePause();
-            return true;
-        }
-
-        return false;
-    }
-
-    private void CloseMinimap(bool deferFocusClearUntilAfterGum = false)
-    {
-        _hudSync.Hud.IsMinimapVisible = false;
+        Overlays.Open(overlay);
+        DropStaleOverlayContext();
         _hudComposer.ClearUiFocus();
-        if (deferFocusClearUntilAfterGum)
-            _pendingPauseMenuFocus = false;
     }
 
-    private void CloseGoals(bool deferFocusClearUntilAfterGum = false)
+    private void CloseTopOverlay()
     {
-        _hudSync.Hud.IsGoalsVisible = false;
+        if (!Overlays.CloseTop())
+            return;
+
+        DropStaleOverlayContext();
         _hudComposer.ClearUiFocus();
-        if (deferFocusClearUntilAfterGum)
-            _pendingPauseMenuFocus = false;
     }
 
-    private void CloseTileDetail(bool deferFocusClearUntilAfterGum = false)
+    private void CloseAllOverlays()
     {
-        _hudSync.Hud.IsTileDetailVisible = false;
+        Overlays.CloseAll();
+        DropStaleOverlayContext();
         _hudComposer.ClearUiFocus();
-        if (deferFocusClearUntilAfterGum)
-            _pendingPauseMenuFocus = false;
     }
 
-    private void OpenTileDetail()
+    /// <summary>The chooser cell and shop castle only mean something while their overlay is on top.</summary>
+    private void DropStaleOverlayContext()
     {
-        GameplayHudOverlayState.PrepareForTileDetail(_hudSync.Hud);
-        _cellActionChooserCell = null;
-        _hudComposer.ClearUiFocus();
+        if (Overlays.Top != MatchOverlay.CellActionChooser)
+            _cellActionChooserCell = null;
+
+        if (Overlays.Top != MatchOverlay.Shop)
+        {
+            _shopCastleCell = null;
+            _hudSync.Hud.ShopStatusText = string.Empty;
+        }
     }
 
     private bool TryConsumeCastleUnitActionChooserOpen()
     {
-        if (_session is null || GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud))
+        if (_session is null || Overlays.IsAnyOpen)
             return false;
 
         var match = _session.State;
         var commands = _game.Commands;
         var pointer = _game.Pointer;
         var layout = _session.Scene.Layout;
+        var cursorCell = _session.Cursor.Cell;
 
         GridCell? targetCell = null;
 
         if (commands.WasPressed(GameCommand.Confirm)
-            && match.NeedsCastleUnitActionChooser(match.Cursor))
+            && match.NeedsCastleUnitActionChooser(cursorCell))
         {
-            targetCell = match.Cursor;
+            targetCell = cursorCell;
         }
         else if (pointer.WasPrimaryPressed
             && !IsPointerOverInteractiveHud()
@@ -671,16 +596,9 @@ public sealed class GameplayMatchController
         if (_session is null)
             return;
 
-        _session.State.HandlePointer(cell);
+        _session.Cursor.MoveTo(cell);
+        OpenOverlay(MatchOverlay.CellActionChooser);
         _cellActionChooserCell = cell;
-        GameplayHudOverlayState.PrepareForCellActionChooser(_hudSync.Hud);
-    }
-
-    private void CloseCellActionChooser()
-    {
-        _hudSync.Hud.IsCellActionChooserVisible = false;
-        _cellActionChooserCell = null;
-        _hudComposer.ClearUiFocus();
     }
 
     private void OnCellActionMove()
@@ -688,25 +606,20 @@ public sealed class GameplayMatchController
         if (_session is null || _cellActionChooserCell is not { } cell)
             return;
 
-        _session.State.HandlePointer(cell);
-        CloseCellActionChooser();
+        _session.Cursor.MoveTo(cell);
+        CloseTopOverlay();
         _session.Confirm();
     }
 
     private void OnCellActionBuy()
     {
-        if (_cellActionChooserCell is not { } cell)
-            return;
-
-        CloseCellActionChooser();
-        OpenShopAt(cell);
+        if (_cellActionChooserCell is { } cell)
+            OpenShopAt(cell);
     }
 
     private void TryOpenShopFromAction()
     {
-        if (_session is null || GameplayHudOverlayState.BlocksBoardInput(_hudSync.Hud))
-            return;
-        if (_hudSync.Hud.IsCellActionChooserVisible)
+        if (_session is null || Overlays.IsAnyOpen)
             return;
 
         var confirmPressed = _game.Commands.WasPressed(GameCommand.Confirm);
@@ -719,23 +632,23 @@ public sealed class GameplayMatchController
         if (pointerPressed && IsPointerOverInteractiveHud())
             return;
 
+        var cursorCell = _session.Cursor.Cell;
         if (_session.State.SelectedUnitId is not null)
             return;
-        if (_session.State.LastAction?.Kind == MatchPlayerActionKind.MoveUnit)
+        if (_session.State.LastAction?.Kind == MatchActionKind.MoveUnit)
             return;
-        if (!_session.State.IsOwnCastleAt(_session.State.Cursor))
+        if (!_session.State.IsOwnCastleAt(cursorCell))
             return;
-        if (_session.State.NeedsCastleUnitActionChooser(_session.State.Cursor))
+        if (_session.State.NeedsCastleUnitActionChooser(cursorCell))
             return;
 
-        OpenShopAt(_session.State.Cursor);
+        OpenShopAt(cursorCell);
     }
 
     private void OpenShopAt(GridCell castleCell)
     {
+        OpenOverlay(MatchOverlay.Shop);
         _shopCastleCell = castleCell;
-        GameplayHudOverlayState.PrepareForShop(_hudSync.Hud);
-        _cellActionChooserCell = null;
     }
 
     private void BuyShopOffer(int offerIndex)
@@ -743,41 +656,11 @@ public sealed class GameplayMatchController
         if (_session is null || _shopCastleCell is not { } castleCell)
             return;
 
-        if (_session.TryBuyShopOffer(offerIndex, castleCell))
-            CloseShop();
+        if (_session.Runtime.TryBuyShopOffer(offerIndex, castleCell))
+            CloseTopOverlay();
         else
             _hudSync.Hud.ShopStatusText = "Cannot recruit here (gold or cell occupied).";
     }
 
-    private void OpenPause()
-    {
-        GameplayHudOverlayState.PrepareForPause(_hudSync.Hud);
-        CloseCellActionChooser();
-    }
-
-    private void ClosePause()
-    {
-        GameplayHudOverlayState.ClosePauseAndInfoOverlays(_hudSync.Hud);
-        _hudComposer.ClearUiFocus();
-    }
-
-    private void OpenMinimap()
-    {
-        GameplayHudOverlayState.PrepareForMinimap(_hudSync.Hud);
-        _hudComposer.ClearUiFocus();
-    }
-
-    private void OpenGoals()
-    {
-        GameplayHudOverlayState.PrepareForGoals(_hudSync.Hud);
-        _hudComposer.ClearUiFocus();
-    }
-
-    private void CloseShop()
-    {
-        _hudSync.Hud.IsShopVisible = false;
-        _shopCastleCell = null;
-        _hudSync.Hud.ShopStatusText = string.Empty;
-        _hudComposer.ClearUiFocus();
-    }
+    private void OpenPause() => OpenOverlay(MatchOverlay.Pause);
 }

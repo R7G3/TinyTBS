@@ -41,7 +41,7 @@ public sealed class MatchContentCatalog
     public IReadOnlyList<ContentId> ListUnitTypeIdsForEditor()
     {
         return UnitsModule.UnitsById.Values
-            .OrderBy(definition => MatchUnitAbilities.HasAbility(definition, "uniquePerPlayer") ? 0 : 1)
+            .OrderBy(definition => MatchUnitAbilities.HasAbility(definition, UnitAbilityTypes.UniquePerPlayer) ? 0 : 1)
             .ThenBy(definition => definition.Cost)
             .ThenBy(definition => definition.ContentId.Full, StringComparer.Ordinal)
             .Select(definition => definition.ContentId)
@@ -53,6 +53,21 @@ public sealed class MatchContentCatalog
 
     public bool TryGetBuilding(ContentId contentId, out BuildingDefinition definition) =>
         BuildingsModule.BuildingsById.TryGetValue(contentId, out definition!);
+
+    /// <summary>The recruit offer for <paramref name="unitTypeId"/>; each unit type appears at most once.</summary>
+    public bool TryGetShopOffer(ContentId unitTypeId, out MatchShopOffer offer)
+    {
+        foreach (var candidate in ShopOffers)
+        {
+            if (candidate.UnitTypeId != unitTypeId)
+                continue;
+            offer = candidate;
+            return true;
+        }
+
+        offer = null!;
+        return false;
+    }
 
     public string DisplayName(ContentId contentId)
     {

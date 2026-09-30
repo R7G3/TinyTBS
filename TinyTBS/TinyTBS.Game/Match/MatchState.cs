@@ -7,11 +7,13 @@ using TinyTBS.Game.Units.Models;
 namespace TinyTBS.Game.Match;
 
 /// <summary>
-/// Match rules facade: activation, movement, and orchestration of combat / economy / overlays.
-/// Details live in <see cref="MatchCombat"/>, <see cref="MatchEconomy"/>, <see cref="MatchUnitActionQueries"/>.
+/// Match rules state: terrain, units, buildings, economy, turn order and victory.
+/// Commands arrive as <see cref="MatchAction"/>s (<see cref="TryApply"/>) or as clicks (<see cref="ConfirmAt"/>);
+/// legality lives in <see cref="MatchActionRules"/>. Holds no cursor, camera or other presentation state.
 /// </summary>
 public sealed class MatchState
 {
+    /// <summary>Immutable after <see cref="FromMap"/>; clones share it.</summary>
     private readonly TerrainKind[,] _terrain;
     private readonly List<MatchBuilding> _buildings = [];
     private readonly List<MatchUnit> _units = [];
@@ -23,14 +25,14 @@ public sealed class MatchState
     private readonly MatchContentCatalog _catalog;
     private int _nextUnitId;
     private int _playerCount = MatchDefaults.PlayerCount;
-    private string _victoryType = "standard";
-    private string _defeatType = "standard";
+    private string _victoryType = MatchConditionTypes.Standard;
+    private string _defeatType = MatchConditionTypes.Standard;
 
-    private MatchState(int width, int height, MatchContentCatalog catalog, int unitCap)
+    private MatchState(TerrainKind[,] terrain, MatchContentCatalog catalog, int unitCap)
     {
-        Width = width;
-        Height = height;
-        _terrain = new TerrainKind[width, height];
+        _terrain = terrain;
+        Width = terrain.GetLength(0);
+        Height = terrain.GetLength(1);
         _catalog = catalog;
         UnitCap = Math.Max(1, unitCap);
     }
@@ -42,8 +44,8 @@ public sealed class MatchState
         int playerCount = MatchDefaults.PlayerCount,
         int startingGold = 0,
         int unitCap = 25,
-        string victoryType = "standard",
-        string defeatType = "standard")
+        string victoryType = MatchConditionTypes.Standard,
+        string defeatType = MatchConditionTypes.Standard)
     {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(contentCatalog);
@@ -52,14 +54,18 @@ public sealed class MatchState
 
         replaces ??= ContentIdReplaceTable.Empty;
 
-        var match = new MatchState(map.Width, map.Height, contentCatalog, unitCap)
+        var terrain = new TerrainKind[map.Width, map.Height];
+        for (var y = 0; y < map.Height; y++)
         {
-            Cursor = new GridCell(
-                Math.Clamp(map.Width / 2, 0, Math.Max(0, map.Width - 1)),
-                Math.Clamp(map.Height / 2, 0, Math.Max(0, map.Height - 1))),
+            for (var x = 0; x < map.Width; x++)
+                terrain[x, y] = MapSurfaceIds.ParseTerrain(map.Surface[x, y]);
+        }
+
+        var match = new MatchState(terrain, contentCatalog, unitCap)
+        {
             _playerCount = playerCount,
-            _victoryType = string.IsNullOrWhiteSpace(victoryType) ? "standard" : victoryType.Trim(),
-            _defeatType = string.IsNullOrWhiteSpace(defeatType) ? "standard" : defeatType.Trim(),
+            _victoryType = MatchConditionTypes.Normalize(victoryType),
+            _defeatType = MatchConditionTypes.Normalize(defeatType),
         };
 
         for (var playerIndex = 0; playerIndex < playerCount; playerIndex++)
@@ -67,12 +73,6 @@ public sealed class MatchState
             match._moneyByPlayer[playerIndex] = startingGold;
             match._turnStartsByPlayer[playerIndex] = 0;
             match._kingRehireCountByPlayer[playerIndex] = 0;
-        }
-
-        for (var y = 0; y < map.Height; y++)
-        {
-            for (var x = 0; x < map.Width; x++)
-                match._terrain[x, y] = MapSurfaceIds.ParseTerrain(map.Surface[x, y]);
         }
 
         foreach (var building in map.Buildings)
@@ -137,10 +137,9 @@ public sealed class MatchState
 
     public int UnitCap { get; }
 
-    public MatchContentCatalog ContentCatalog => _catalog;
+    public int PlayerCount => _playerCount;
 
-    /// <summary>Internal alias for helpers in the Match assembly.</summary>
-    internal MatchContentCatalog Catalog => _catalog;
+    public MatchContentCatalog ContentCatalog => _catalog;
 
     internal List<MatchUnit> UnitList => _units;
 
@@ -164,9 +163,11 @@ public sealed class MatchState
 
     public int TurnNumber { get; private set; } = 1;
 
+    /// <summary>
+    /// Unit in its activation: selected, possibly already moved (a move stays undoable via
+    /// <see cref="ClearSelection"/> until the unit acts or waits).
+    /// </summary>
     public int? SelectedUnitId { get; internal set; }
-
-    public GridCell Cursor { get; private set; }
 
     public MatchPlayerAction? LastAction { get; internal set; }
 
@@ -178,12 +179,107 @@ public sealed class MatchState
 
     public bool IsPlayerEliminated(int playerIndex) => _eliminatedPlayers.Contains(playerIndex);
 
-    /// <summary>Next unit id that would be assigned by <see cref="SpawnUnit"/>.</summary>
-    public int PeekNextUnitId() => _nextUnitId;
+    /// <summary>Deep copy for bot search; shares the immutable terrain and content catalog.</summary>
+    public MatchState Clone()
+    {
+        var clone = new MatchState(_terrain, _catalog, UnitCap)
+        {
+            _playerCount = _playerCount,
+            _victoryType = _victoryType,
+            _defeatType = _defeatType,
+            _nextUnitId = _nextUnitId,
+            CurrentPlayer = CurrentPlayer,
+            TurnNumber = TurnNumber,
+            SelectedUnitId = SelectedUnitId,
+            LastAction = LastAction,
+            WinnerPlayerIndex = WinnerPlayerIndex,
+            VictoryReason = VictoryReason,
+        };
+
+        foreach (var pair in _moneyByPlayer)
+            clone._moneyByPlayer[pair.Key] = pair.Value;
+        foreach (var pair in _turnStartsByPlayer)
+            clone._turnStartsByPlayer[pair.Key] = pair.Value;
+        foreach (var pair in _kingRehireCountByPlayer)
+            clone._kingRehireCountByPlayer[pair.Key] = pair.Value;
+        foreach (var playerIndex in _eliminatedPlayers)
+            clone._eliminatedPlayers.Add(playerIndex);
+
+        foreach (var building in _buildings)
+            clone._buildings.Add(building.Clone());
+        foreach (var unit in _units)
+            clone._units.Add(unit.Clone());
+        foreach (var stone in _gravestones)
+            clone._gravestones.Add(stone.Clone());
+
+        return clone;
+    }
+
+    /// <summary>Dynamic match state for a save file (terrain and catalog come from the map and composition).</summary>
+    public MatchRuntimeSnapshot ToSnapshot(GridCell cursor)
+    {
+        var money = new List<int>(_playerCount);
+        var turnStarts = new List<int>(_playerCount);
+        var kingRehires = new List<int>(_playerCount);
+        var eliminated = new List<int>();
+        for (var playerIndex = 0; playerIndex < _playerCount; playerIndex++)
+        {
+            money.Add(_moneyByPlayer.GetValueOrDefault(playerIndex));
+            turnStarts.Add(_turnStartsByPlayer.GetValueOrDefault(playerIndex));
+            kingRehires.Add(_kingRehireCountByPlayer.GetValueOrDefault(playerIndex));
+            if (IsPlayerEliminated(playerIndex))
+                eliminated.Add(playerIndex);
+        }
+
+        return new MatchRuntimeSnapshot
+        {
+            PlayerCount = _playerCount,
+            CurrentPlayer = CurrentPlayer,
+            TurnNumber = TurnNumber,
+            NextUnitId = _nextUnitId,
+            UnitCap = UnitCap,
+            MoneyByPlayer = money,
+            TurnStartsByPlayer = turnStarts,
+            KingRehireCountByPlayer = kingRehires,
+            EliminatedPlayers = eliminated,
+            Cursor = ToSaveCell(cursor),
+            SelectedUnitId = SelectedUnitId,
+            WinnerPlayerIndex = WinnerPlayerIndex,
+            VictoryReason = VictoryReason,
+            Units = _units.Select(unit => new MatchSaveUnitSnapshot
+            {
+                Id = unit.Id,
+                TypeId = unit.TypeId.Full,
+                Cell = ToSaveCell(unit.Cell),
+                PlayerIndex = unit.PlayerIndex,
+                MaxHealth = unit.MaxHealth,
+                HitPoints = unit.HitPoints,
+                IsActive = unit.IsActive,
+                HasMovedThisActivation = unit.HasMovedThisActivation,
+                CellBeforeMove = ToSaveCell(unit.CellBeforeMove),
+                Experience = unit.Experience,
+            }).ToList(),
+            Buildings = _buildings.Select(building => new MatchSaveBuildingSnapshot
+            {
+                TypeId = building.TypeId.Full,
+                Cell = ToSaveCell(building.Cell),
+                OwnerPlayerIndex = building.OwnerPlayerIndex,
+                IsRuined = building.IsRuined,
+                AllowsRecruit = building.AllowsRecruit,
+                RepairedThisOwnerTurn = building.RepairedThisOwnerTurn,
+            }).ToList(),
+            Gravestones = _gravestones.Select(stone => new MatchSaveGravestoneSnapshot
+            {
+                Cell = ToSaveCell(stone.Cell),
+                SourcePlayerIndex = stone.SourcePlayerIndex,
+                ExpiresWhenTurnStartsReaches = stone.ExpiresWhenTurnStartsReaches,
+            }).ToList(),
+        };
+    }
 
     /// <summary>
     /// Replaces dynamic match state from a save snapshot (terrain / catalog stay from <see cref="FromMap"/>).
-    /// Does not run turn-start economy.
+    /// Does not run turn-start economy. Counterpart of <see cref="ToSnapshot"/>; keep both in sync.
     /// </summary>
     public void HydrateFromSnapshot(MatchRuntimeSnapshot snapshot)
     {
@@ -201,9 +297,6 @@ public sealed class MatchState
         _nextUnitId = Math.Max(0, snapshot.NextUnitId);
         CurrentPlayer = Math.Clamp(snapshot.CurrentPlayer, 0, snapshot.PlayerCount - 1);
         TurnNumber = Math.Max(1, snapshot.TurnNumber);
-        Cursor = new GridCell(
-            Math.Clamp(snapshot.Cursor.X, 0, Width - 1),
-            Math.Clamp(snapshot.Cursor.Y, 0, Height - 1));
         SelectedUnitId = snapshot.SelectedUnitId;
         WinnerPlayerIndex = snapshot.WinnerPlayerIndex;
         VictoryReason = snapshot.VictoryReason;
@@ -260,24 +353,19 @@ public sealed class MatchState
             }
 
             var maxHealth = Math.Max(1, unit.MaxHealth);
-            var hitPoints = Math.Clamp(unit.HitPoints, 1, maxHealth);
-            var restored = new MatchUnit(
+            _units.Add(new MatchUnit(
                 unit.Id,
                 typeId,
                 new GridCell(unit.Cell.X, unit.Cell.Y),
                 unit.PlayerIndex,
                 maxHealth,
-                hitPoints)
+                Math.Clamp(unit.HitPoints, 1, maxHealth))
             {
                 IsActive = unit.IsActive,
                 HasMovedThisActivation = unit.HasMovedThisActivation,
                 CellBeforeMove = new GridCell(unit.CellBeforeMove.X, unit.CellBeforeMove.Y),
                 Experience = Math.Clamp(unit.Experience, 0, MatchUnit.MaxExperience),
-            };
-            restored.HitPoints = Math.Clamp(unit.HitPoints, 0, maxHealth);
-            if (restored.HitPoints <= 0)
-                restored.HitPoints = 1;
-            _units.Add(restored);
+            });
         }
 
         if (SelectedUnitId is int selectedId && !_units.Any(unit => unit.Id == selectedId))
@@ -296,85 +384,6 @@ public sealed class MatchState
             _nextUnitId = Math.Max(_nextUnitId, unit.Id + 1);
     }
 
-    /// <summary>
-    /// Deep copy for AI search. Shares the content catalog (immutable for match lifetime).
-    /// Does not re-run turn-start economy.
-    /// </summary>
-    public MatchState CloneForAi()
-    {
-        var clone = new MatchState(Width, Height, _catalog, UnitCap)
-        {
-            _playerCount = _playerCount,
-            _victoryType = _victoryType,
-            _defeatType = _defeatType,
-            _nextUnitId = _nextUnitId,
-            CurrentPlayer = CurrentPlayer,
-            TurnNumber = TurnNumber,
-            SelectedUnitId = SelectedUnitId,
-            Cursor = Cursor,
-            WinnerPlayerIndex = WinnerPlayerIndex,
-            VictoryReason = VictoryReason,
-        };
-
-        for (var y = 0; y < Height; y++)
-        {
-            for (var x = 0; x < Width; x++)
-                clone._terrain[x, y] = _terrain[x, y];
-        }
-
-        foreach (var pair in _moneyByPlayer)
-            clone._moneyByPlayer[pair.Key] = pair.Value;
-        foreach (var pair in _turnStartsByPlayer)
-            clone._turnStartsByPlayer[pair.Key] = pair.Value;
-        foreach (var pair in _kingRehireCountByPlayer)
-            clone._kingRehireCountByPlayer[pair.Key] = pair.Value;
-        foreach (var playerIndex in _eliminatedPlayers)
-            clone._eliminatedPlayers.Add(playerIndex);
-
-        foreach (var building in _buildings)
-        {
-            clone._buildings.Add(new MatchBuilding(
-                building.TypeId,
-                building.Cell,
-                building.OwnerPlayerIndex,
-                building.IsRuined,
-                building.AllowsRecruit)
-            {
-                RepairedThisOwnerTurn = building.RepairedThisOwnerTurn,
-            });
-        }
-
-        foreach (var unit in _units)
-        {
-            var copy = new MatchUnit(
-                unit.Id,
-                unit.TypeId,
-                unit.Cell,
-                unit.PlayerIndex,
-                unit.MaxHealth,
-                Math.Max(1, unit.HitPoints))
-            {
-                IsActive = unit.IsActive,
-                HasMovedThisActivation = unit.HasMovedThisActivation,
-                CellBeforeMove = unit.CellBeforeMove,
-                Experience = unit.Experience,
-            };
-            // Preserve exact HP including edge cases already validated on live units.
-            copy.HitPoints = unit.HitPoints;
-            clone._units.Add(copy);
-        }
-
-        foreach (var stone in _gravestones)
-        {
-            clone._gravestones.Add(new MatchGravestone(
-                stone.Cell,
-                stone.SourcePlayerIndex,
-                stone.ExpiresWhenTurnStartsReaches));
-        }
-
-        return clone;
-    }
-
     public TerrainKind GetTerrain(GridCell cell) => _terrain[cell.X, cell.Y];
 
     public TerrainKind GetTerrain(int x, int y) => _terrain[x, y];
@@ -382,8 +391,30 @@ public sealed class MatchState
     public bool IsInBounds(GridCell cell) =>
         cell.X >= 0 && cell.Y >= 0 && cell.X < Width && cell.Y < Height;
 
-    public bool IsOccupiedByUnitPublic(GridCell cell, int? exceptUnitId = null) =>
-        IsOccupiedByUnit(cell, exceptUnitId);
+    public bool IsOccupiedByUnit(GridCell cell, int? exceptUnitId = null)
+    {
+        foreach (var unit in _units)
+        {
+            if (exceptUnitId == unit.Id)
+                continue;
+
+            if (unit.Cell == cell)
+                return true;
+        }
+
+        return false;
+    }
+
+    public bool HasGravestoneAt(GridCell cell)
+    {
+        foreach (var stone in _gravestones)
+        {
+            if (stone.Cell == cell)
+                return true;
+        }
+
+        return false;
+    }
 
     public int GetMoney(int playerIndex)
     {
@@ -430,8 +461,8 @@ public sealed class MatchState
         if (WinnerPlayerIndex is not null)
             return;
 
-        var useStandardDefeat = IsStandardCondition(_defeatType);
-        var useStandardVictory = IsStandardCondition(_victoryType);
+        var useStandardDefeat = MatchConditionTypes.IsStandard(_defeatType);
+        var useStandardVictory = MatchConditionTypes.IsStandard(_victoryType);
         if (!useStandardDefeat && !useStandardVictory)
             return;
 
@@ -457,17 +488,365 @@ public sealed class MatchState
         }
     }
 
-    private static bool IsStandardCondition(string type) =>
-        string.Equals(type, "standard", StringComparison.OrdinalIgnoreCase);
-
-    private bool IsPlayerStandardDefeated(int playerIndex)
+    /// <summary>
+    /// A Confirm (click / A) on <paramref name="cell"/>: resolves it with <see cref="MatchActionResolver"/> and applies
+    /// the result. Clears <see cref="LastAction"/> even when the click does nothing.
+    /// </summary>
+    public bool ConfirmAt(GridCell cell)
     {
-        if (PlayerHasUniqueUnit(playerIndex))
+        if (IsMatchOver || IsPlayerEliminated(CurrentPlayer))
             return false;
-        if (PlayerHasDefeatCountingBuilding(playerIndex))
+
+        LastAction = null;
+        if (SelectedUnitId is int selectedId && !(TryGetUnit(selectedId, out var selected) && selected.IsActive))
+        {
+            SelectedUnitId = null;
             return false;
+        }
+
+        var action = MatchActionResolver.ResolveConfirm(this, cell);
+        if (action is null)
+            return false;
+
+        ApplyValidated(action);
         return true;
     }
+
+    /// <summary>Applies <paramref name="action"/> when <see cref="MatchActionRules.IsValid"/> allows it.</summary>
+    public bool TryApply(MatchAction action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        if (!MatchActionRules.IsValid(this, action))
+            return false;
+
+        ApplyValidated(action);
+        return true;
+    }
+
+    /// <summary>Cancels the current activation, undoing a move made in it. Returns false when nothing was selected.</summary>
+    public bool ClearSelection()
+    {
+        if (SelectedUnitId is null)
+            return false;
+
+        if (TryGetUnit(SelectedUnitId.Value, out var unit) && unit.HasMovedThisActivation)
+            UndoMove(unit);
+
+        SelectedUnitId = null;
+        LastAction = null;
+        return true;
+    }
+
+    public bool TryGetUnit(int unitId, out MatchUnit unit)
+    {
+        foreach (var candidate in _units)
+        {
+            if (candidate.Id != unitId)
+                continue;
+
+            unit = candidate;
+            return true;
+        }
+
+        unit = null!;
+        return false;
+    }
+
+    public bool TryGetUnitAt(GridCell cell, out MatchUnit unit)
+    {
+        foreach (var candidate in _units)
+        {
+            if (candidate.Cell != cell)
+                continue;
+
+            unit = candidate;
+            return true;
+        }
+
+        unit = null!;
+        return false;
+    }
+
+    public bool TryGetBuildingAt(GridCell cell, out MatchBuilding building)
+    {
+        foreach (var candidate in _buildings)
+        {
+            if (candidate.Cell != cell)
+                continue;
+
+            building = candidate;
+            return true;
+        }
+
+        building = null!;
+        return false;
+    }
+
+    public bool IsOwnCastleAt(GridCell cell) =>
+        TryGetBuildingAt(cell, out var building)
+        && building.AllowsRecruit
+        && !building.IsRuined
+        && building.OwnerPlayerIndex == CurrentPlayer;
+
+    /// <summary>An own castle occupied by an own active unit asks the player: move the unit or buy.</summary>
+    public bool NeedsCastleUnitActionChooser(GridCell cell) =>
+        SelectedUnitId is null
+        && IsOwnCastleAt(cell)
+        && TryGetUnitAt(cell, out var unit)
+        && unit.PlayerIndex == CurrentPlayer
+        && unit.IsActive;
+
+    public int ResolveRecruitCost(ContentId unitTypeId, int baseCost) =>
+        MatchEconomy.ResolveRecruitCost(this, unitTypeId, baseCost);
+
+    /// <summary>
+    /// Action overlay for the selected active unit (move / attack / capture / repair / raise).
+    /// After a move this turn, move cells are empty and actions are from the current cell only.
+    /// </summary>
+    public bool TryGetSelectedUnitActionOverlay(out MatchUnitActionOverlay overlay)
+    {
+        overlay = null!;
+        if (SelectedUnitId is not int unitId
+            || !TryGetUnit(unitId, out var unit)
+            || !unit.IsActive
+            || !_catalog.TryGetUnit(unit.TypeId, out var definition))
+        {
+            return false;
+        }
+
+        overlay = MatchUnitActionQueries.Build(this, unit, definition, respectActivationMove: true);
+        return true;
+    }
+
+    /// <summary>
+    /// Next-turn threat overlay for any living unit (informational; does not select or act).
+    /// </summary>
+    public bool TryGetUnitThreatPreview(int unitId, out MatchUnitActionOverlay overlay)
+    {
+        overlay = null!;
+        if (!TryGetUnit(unitId, out var unit))
+            return false;
+        if (!_catalog.TryGetUnit(unit.TypeId, out var definition))
+            return false;
+
+        overlay = MatchUnitActionQueries.Build(this, unit, definition, respectActivationMove: false);
+        return true;
+    }
+
+    /// <summary>
+    /// Whether the current player already has a living unit of a <c>uniquePerPlayer</c> type
+    /// (e.g. king) — shop should hide that offer.
+    /// </summary>
+    public bool IsUniqueUnitOwnedByCurrentPlayer(ContentId unitTypeId)
+    {
+        if (!_catalog.TryGetUnit(unitTypeId, out var definition))
+            return false;
+        if (!MatchUnitAbilities.HasAbility(definition, UnitAbilityTypes.UniquePerPlayer))
+            return false;
+
+        return _units.Any(unit => unit.PlayerIndex == CurrentPlayer && unit.TypeId == unitTypeId);
+    }
+
+    /// <summary>
+    /// Best (max) attackAura value covering <paramref name="cell"/> for <paramref name="playerIndex"/>.
+    /// </summary>
+    public int GetAttackAuraBonus(GridCell cell, int playerIndex) =>
+        MatchCombat.ResolveAttackAuraBonus(this, cell, playerIndex);
+
+    internal void FinishUnitActivation(MatchUnit unit, MatchActionKind kind)
+    {
+        unit.IsActive = false;
+        SelectedUnitId = null;
+        LastAction ??= new MatchPlayerAction
+        {
+            Kind = kind,
+            PlayerIndex = CurrentPlayer,
+            UnitId = unit.Id,
+            Source = unit.Cell,
+            Target = unit.Cell,
+        };
+    }
+
+    internal MatchUnit SpawnUnit(
+        ContentId typeId,
+        GridCell cell,
+        int playerIndex,
+        int maxHealth,
+        int hitPoints)
+    {
+        var unit = new MatchUnit(_nextUnitId++, typeId, cell, playerIndex, maxHealth, hitPoints);
+        _units.Add(unit);
+        return unit;
+    }
+
+    private void ApplyValidated(MatchAction action)
+    {
+        switch (action.Kind)
+        {
+            case MatchActionKind.EndTurn:
+                ApplyEndTurn();
+                return;
+            case MatchActionKind.RecruitUnit:
+                MatchEconomy.ApplyRecruit(this, action.UnitTypeId, action.Target);
+                return;
+            case MatchActionKind.SelectUnit:
+                LastAction = null;
+                ApplySelect(action.UnitId);
+                return;
+        }
+
+        LastAction = null;
+        TryGetUnit(action.UnitId, out var unit);
+        _catalog.TryGetUnit(unit.TypeId, out var definition);
+
+        switch (action.Kind)
+        {
+            case MatchActionKind.MoveUnit:
+                ApplyMove(unit, definition, action.Target);
+                break;
+            case MatchActionKind.AttackUnit:
+                TryGetUnitAt(action.Target, out var defender);
+                MatchCombat.ApplyAttack(this, unit, definition, defender);
+                break;
+            case MatchActionKind.DestroyBuilding:
+                TryGetBuildingAt(action.Target, out var target);
+                MatchCombat.ApplyDestroyBuilding(this, unit, target);
+                break;
+            case MatchActionKind.RaiseSkeleton:
+                ApplyRaiseSkeleton(unit, action.Target);
+                break;
+            case MatchActionKind.CaptureBuilding:
+                ApplyCapture(unit);
+                break;
+            case MatchActionKind.RepairBuilding:
+                ApplyRepair(unit);
+                break;
+            case MatchActionKind.WaitUnit:
+                FinishUnitActivation(unit, MatchActionKind.WaitUnit);
+                break;
+        }
+    }
+
+    private void ApplySelect(int unitId)
+    {
+        TryGetUnit(unitId, out var unit);
+        SelectedUnitId = unit.Id;
+        LastAction = new MatchPlayerAction
+        {
+            Kind = MatchActionKind.SelectUnit,
+            PlayerIndex = CurrentPlayer,
+            UnitId = unit.Id,
+            Source = unit.Cell,
+            Target = unit.Cell,
+        };
+    }
+
+    private void ApplyMove(MatchUnit unit, UnitDefinition definition, GridCell destination)
+    {
+        var source = unit.Cell;
+        unit.CellBeforeMove = source;
+        unit.Cell = destination;
+        unit.HasMovedThisActivation = true;
+        LastAction = new MatchPlayerAction
+        {
+            Kind = MatchActionKind.MoveUnit,
+            PlayerIndex = CurrentPlayer,
+            UnitId = unit.Id,
+            Source = source,
+            Target = destination,
+        };
+
+        if (MatchUnitAbilities.HasAbility(definition, UnitAbilityTypes.MoveOrAttackExclusive))
+            FinishUnitActivation(unit, MatchActionKind.MoveUnit);
+        else
+            SelectedUnitId = unit.Id;
+    }
+
+    private void ApplyRaiseSkeleton(MatchUnit unit, GridCell stoneCell)
+    {
+        var skeletonTypeId = MatchActionRules.RaisedUnitTypeId(unit);
+        _catalog.TryGetUnit(skeletonTypeId, out var skeletonDefinition);
+
+        _gravestones.RemoveAt(_gravestones.FindIndex(stone => stone.Cell == stoneCell));
+        var spawned = SpawnUnit(
+            skeletonTypeId,
+            stoneCell,
+            CurrentPlayer,
+            skeletonDefinition.MaxHealth,
+            skeletonDefinition.MaxHealth);
+        spawned.IsActive = false;
+
+        LastAction = new MatchPlayerAction
+        {
+            Kind = MatchActionKind.RaiseSkeleton,
+            PlayerIndex = CurrentPlayer,
+            UnitId = unit.Id,
+            Source = unit.Cell,
+            Target = stoneCell,
+        };
+        FinishUnitActivation(unit, MatchActionKind.RaiseSkeleton);
+    }
+
+    private void ApplyCapture(MatchUnit unit)
+    {
+        TryGetBuildingAt(unit.Cell, out var building);
+        building.OwnerPlayerIndex = CurrentPlayer;
+        LastAction = new MatchPlayerAction
+        {
+            Kind = MatchActionKind.CaptureBuilding,
+            PlayerIndex = CurrentPlayer,
+            UnitId = unit.Id,
+            Source = unit.Cell,
+            Target = unit.Cell,
+        };
+        FinishUnitActivation(unit, MatchActionKind.CaptureBuilding);
+    }
+
+    private void ApplyRepair(MatchUnit unit)
+    {
+        TryGetBuildingAt(unit.Cell, out var building);
+        building.IsRuined = false;
+        building.OwnerPlayerIndex = null;
+        building.RepairedThisOwnerTurn = true;
+        LastAction = new MatchPlayerAction
+        {
+            Kind = MatchActionKind.RepairBuilding,
+            PlayerIndex = CurrentPlayer,
+            UnitId = unit.Id,
+            Source = unit.Cell,
+            Target = unit.Cell,
+        };
+        FinishUnitActivation(unit, MatchActionKind.RepairBuilding);
+    }
+
+    private void ApplyEndTurn()
+    {
+        LastAction = null;
+        SelectedUnitId = null;
+        foreach (var unit in _units)
+        {
+            if (unit.PlayerIndex == CurrentPlayer)
+                unit.IsActive = false;
+        }
+
+        AdvancePastEliminatedPlayers();
+    }
+
+    private void UndoMove(MatchUnit unit)
+    {
+        if (!unit.HasMovedThisActivation)
+            return;
+
+        if (!IsOccupiedByUnit(unit.CellBeforeMove, exceptUnitId: unit.Id))
+            unit.Cell = unit.CellBeforeMove;
+
+        unit.HasMovedThisActivation = false;
+    }
+
+    private void BeginCurrentPlayerTurn() => MatchEconomy.BeginCurrentPlayerTurn(this);
+
+    private bool IsPlayerStandardDefeated(int playerIndex) =>
+        !PlayerHasUniqueUnit(playerIndex) && !PlayerHasDefeatCountingBuilding(playerIndex);
 
     private bool PlayerHasUniqueUnit(int playerIndex)
     {
@@ -477,7 +856,7 @@ public sealed class MatchState
                 continue;
             if (!_catalog.TryGetUnit(unit.TypeId, out var definition))
                 continue;
-            if (MatchUnitAbilities.HasAbility(definition, "uniquePerPlayer"))
+            if (MatchUnitAbilities.HasAbility(definition, UnitAbilityTypes.UniquePerPlayer))
                 return true;
         }
 
@@ -543,7 +922,7 @@ public sealed class MatchState
         {
             if (IsPlayerEliminated(playerIndex))
                 continue;
-            SetVictory(playerIndex, "standard");
+            SetVictory(playerIndex, MatchConditionTypes.Standard);
             return;
         }
     }
@@ -566,526 +945,11 @@ public sealed class MatchState
             BeginCurrentPlayerTurn();
     }
 
-    public string StatusText
-    {
-        get
-        {
-            if (WinnerPlayerIndex is int winner)
-            {
-                var reason = string.IsNullOrWhiteSpace(VictoryReason) ? "victory" : VictoryReason;
-                return PlayerDisplayNames.Number(winner) + " wins (" + reason + ")";
-            }
-
-            var gold = GetMoney(CurrentPlayer);
-            var army = CountUnitsForPlayer(CurrentPlayer);
-            var player = PlayerDisplayNames.Number(CurrentPlayer);
-            if (SelectedUnitId is int unitId && TryGetUnit(unitId, out var unit))
-            {
-                var active = unit.IsActive ? "ready" : "done";
-                return player + $" · {gold}g · {army}/{UnitCap} · T{TurnNumber} — {unit.TypeId.LocalId} L{unit.Level} ({active})";
-            }
-
-            return player + $" · {gold}g · {army}/{UnitCap} · T{TurnNumber} — {GetTerrain(Cursor)} @ {Cursor}";
-        }
-    }
-
-    public void MoveCursor(int deltaX, int deltaY)
-    {
-        var x = Math.Clamp(Cursor.X + deltaX, 0, Width - 1);
-        var y = Math.Clamp(Cursor.Y + deltaY, 0, Height - 1);
-        Cursor = new GridCell(x, y);
-    }
-
-    public void HandleConfirm()
-    {
-        if (IsMatchOver || IsPlayerEliminated(CurrentPlayer))
-            return;
-
-        LastAction = null;
-
-        if (SelectedUnitId is null)
-        {
-            TrySelectUnitAt(Cursor);
-            return;
-        }
-
-        if (!TryGetUnit(SelectedUnitId.Value, out var unit) || !unit.IsActive)
-        {
-            SelectedUnitId = null;
-            return;
-        }
-
-        if (!_catalog.TryGetUnit(unit.TypeId, out var unitDefinition))
-            return;
-
-        // Confirm on own cell: capture / repair / wait.
-        if (Cursor == unit.Cell)
-        {
-            if (TryCaptureOrRepairAtUnitCell(unit, unitDefinition))
-                return;
-
-            FinishUnitActivation(unit, MatchPlayerActionKind.WaitUnit);
-            return;
-        }
-
-        // Confirm on enemy in attack range.
-        if (TryGetUnitAt(Cursor, out var target)
-            && target.PlayerIndex != CurrentPlayer
-            && TryAttack(unit, unitDefinition, target))
-        {
-            return;
-        }
-
-        // Confirm on destroyable building in attack range (e.g. catapult → village).
-        if (TryDestroyBuildingAtCursor(unit, unitDefinition))
-            return;
-
-        // Confirm on adjacent gravestone: raise skeleton (witch).
-        if (TryRaiseSkeletonAtCursor(unit, unitDefinition))
-            return;
-
-        // Confirm on empty reachable cell: one move per activation (full Speed budget once).
-        if (!unit.HasMovedThisActivation
-            && !IsOccupiedByUnit(Cursor, exceptUnitId: unit.Id)
-            && MatchPathfinder.CanReach(this, unit, Cursor, unitDefinition.MovementClass, unitDefinition.Speed, unit.Id))
-        {
-            TryMoveSelectedUnitTo(unit, unitDefinition, Cursor);
-            return;
-        }
-
-        // Confirm on another own active unit: reselect.
-        if (TryGetOwnUnitAt(Cursor, out var other) && other.IsActive)
-        {
-            SelectedUnitId = other.Id;
-            LastAction = new MatchPlayerAction
-            {
-                Kind = MatchPlayerActionKind.SelectUnit,
-                PlayerIndex = CurrentPlayer,
-                UnitId = other.Id,
-                Source = other.Cell,
-                Target = other.Cell,
-            };
-        }
-    }
-
-    public bool ClearSelection()
-    {
-        if (SelectedUnitId is null)
-            return false;
-
-        if (TryGetUnit(SelectedUnitId.Value, out var unit) && unit.HasMovedThisActivation)
-            UndoMove(unit);
-
-        SelectedUnitId = null;
-        LastAction = null;
-        return true;
-    }
-
-    /// <summary>
-    /// Ends the selected active unit's activation without attack/capture (face north / Y).
-    /// </summary>
-    public bool TryWaitSelectedUnit()
-    {
-        if (IsMatchOver || IsPlayerEliminated(CurrentPlayer))
-            return false;
-        if (SelectedUnitId is not int unitId || !TryGetUnit(unitId, out var unit) || !unit.IsActive)
-            return false;
-
-        FinishUnitActivation(unit, MatchPlayerActionKind.WaitUnit);
-        return true;
-    }
-
-    public void HandlePointer(GridCell cell) => Cursor = cell;
-
-    public void EndTurn()
-    {
-        if (IsMatchOver)
-            return;
-
-        LastAction = null;
-        SelectedUnitId = null;
-        foreach (var unit in _units)
-        {
-            if (unit.PlayerIndex == CurrentPlayer)
-                unit.IsActive = false;
-        }
-
-        AdvancePastEliminatedPlayers();
-    }
-
-    public bool TryGetUnitAt(GridCell cell, out MatchUnit unit)
-    {
-        foreach (var candidate in _units)
-        {
-            if (candidate.Cell != cell)
-                continue;
-
-            unit = candidate;
-            return true;
-        }
-
-        unit = null!;
-        return false;
-    }
-
-    public bool TryGetBuildingAt(GridCell cell, out MatchBuilding building)
-    {
-        foreach (var candidate in _buildings)
-        {
-            if (candidate.Cell != cell)
-                continue;
-
-            building = candidate;
-            return true;
-        }
-
-        building = null!;
-        return false;
-    }
-
-    public bool IsOwnCastleAt(GridCell cell) =>
-        TryGetBuildingAt(cell, out var building)
-        && building.AllowsRecruit
-        && !building.IsRuined
-        && building.OwnerPlayerIndex == CurrentPlayer;
-
-    public bool NeedsCastleUnitActionChooser(GridCell cell) =>
-        SelectedUnitId is null
-        && IsOwnCastleAt(cell)
-        && TryGetOwnUnitAt(cell, out var unit)
-        && unit.IsActive;
-
-    public bool TryGetOwnUnitAt(GridCell cell, out MatchUnit unit)
-    {
-        if (!TryGetUnitAt(cell, out unit))
-            return false;
-
-        if (unit.PlayerIndex != CurrentPlayer)
-        {
-            unit = null!;
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>Recruit onto an owned recruit building cell if gold, cap, and uniqueness allow.</summary>
-    public bool TryRecruitAtCastle(ContentId unitTypeId, int baseCost, int maxHealth, GridCell castleCell) =>
-        MatchEconomy.TryRecruitAtCastle(this, unitTypeId, baseCost, maxHealth, castleCell);
-
-    public int ResolveRecruitCost(ContentId unitTypeId, int baseCost) =>
-        MatchEconomy.ResolveRecruitCost(this, unitTypeId, baseCost);
-
-    private void BeginCurrentPlayerTurn() => MatchEconomy.BeginCurrentPlayerTurn(this);
-
-    /// <summary>
-    /// Reachable cells for the selected active unit that has not moved yet; empty otherwise.
-    /// </summary>
-    public IReadOnlyList<GridCell> GetSelectedUnitMoveRange()
-    {
-        if (!TryGetSelectedUnitActionOverlay(out var overlay))
-            return [];
-        return overlay.MoveCells;
-    }
-
-    /// <summary>
-    /// Enemy unit cells and destroyable buildings the selected unit can act on.
-    /// </summary>
-    public IReadOnlyList<GridCell> GetSelectedUnitAttackTargets()
-    {
-        if (!TryGetSelectedUnitActionOverlay(out var overlay))
-            return [];
-        return overlay.AttackCells;
-    }
-
-    /// <summary>
-    /// Adjacent gravestone cells the selected raiseSkeleton unit can raise from.
-    /// </summary>
-    public IReadOnlyList<GridCell> GetSelectedUnitRaiseTargets()
-    {
-        if (!TryGetSelectedUnitActionOverlay(out var overlay))
-            return [];
-        return overlay.RaiseCells;
-    }
-
-    /// <summary>
-    /// Action overlay for the selected active unit (move / attack / capture / repair / raise).
-    /// After a move this turn, move cells are empty and actions are from the current cell only.
-    /// </summary>
-    public bool TryGetSelectedUnitActionOverlay(out MatchUnitActionOverlay overlay)
-    {
-        overlay = null!;
-        if (!TryGetSelectedActiveUnit(out var unit, out var definition))
-            return false;
-
-        overlay = MatchUnitActionQueries.Build(this, unit, definition, respectActivationMove: true);
-        return true;
-    }
-
-    /// <summary>
-    /// Next-turn threat overlay for any living unit (informational; does not select or act).
-    /// </summary>
-    public bool TryGetUnitThreatPreview(int unitId, out MatchUnitActionOverlay overlay)
-    {
-        overlay = null!;
-        if (!TryGetUnit(unitId, out var unit))
-            return false;
-        if (!_catalog.TryGetUnit(unit.TypeId, out var definition))
-            return false;
-
-        overlay = MatchUnitActionQueries.Build(this, unit, definition, respectActivationMove: false);
-        return true;
-    }
-
-    private bool TryGetSelectedActiveUnit(out MatchUnit unit, out UnitDefinition definition)
-    {
-        definition = null!;
-        unit = null!;
-        if (SelectedUnitId is not int unitId || !TryGetUnit(unitId, out unit) || !unit.IsActive)
-            return false;
-        if (!_catalog.TryGetUnit(unit.TypeId, out definition))
-            return false;
-        return true;
-    }
-
-    /// <summary>
-    /// Whether the current player already has a living unit of a <c>uniquePerPlayer</c> type
-    /// (e.g. king) — shop should hide that offer.
-    /// </summary>
-    public bool IsUniqueUnitOwnedByCurrentPlayer(ContentId unitTypeId)
-    {
-        if (!_catalog.TryGetUnit(unitTypeId, out var definition))
-            return false;
-        if (!MatchUnitAbilities.HasAbility(definition, "uniquePerPlayer"))
-            return false;
-
-        return _units.Any(unit => unit.PlayerIndex == CurrentPlayer && unit.TypeId == unitTypeId);
-    }
-
-    private bool TryMoveSelectedUnitTo(MatchUnit unit, UnitDefinition definition, GridCell destination)
-    {
-        if (unit.HasMovedThisActivation)
-            return false;
-
-        var source = unit.Cell;
-        unit.CellBeforeMove = source;
-        unit.Cell = destination;
-        unit.HasMovedThisActivation = true;
-        LastAction = new MatchPlayerAction
-        {
-            Kind = MatchPlayerActionKind.MoveUnit,
-            PlayerIndex = CurrentPlayer,
-            UnitId = unit.Id,
-            Source = source,
-            Target = destination,
-        };
-
-        if (MatchUnitAbilities.HasAbility(definition, "moveOrAttackExclusive"))
-        {
-            FinishUnitActivation(unit, MatchPlayerActionKind.MoveUnit);
-            return true;
-        }
-
-        SelectedUnitId = unit.Id;
-        return true;
-    }
-
-    private bool TryAttack(MatchUnit attacker, UnitDefinition attackerDefinition, MatchUnit defender) =>
-        MatchCombat.TryAttack(this, attacker, attackerDefinition, defender);
-
-    private bool TryDestroyBuildingAtCursor(MatchUnit unit, UnitDefinition unitDefinition) =>
-        MatchCombat.TryDestroyBuildingAtCursor(this, unit, unitDefinition);
-
-    private bool TryRaiseSkeletonAtCursor(MatchUnit unit, UnitDefinition unitDefinition)
-    {
-        if (!MatchUnitAbilities.HasAbility(unitDefinition, "raiseSkeleton"))
-            return false;
-        if (unit.Cell.ManhattanDistanceTo(Cursor) != 1)
-            return false;
-        if (IsOccupiedByUnit(Cursor))
-            return false;
-        if (CountUnitsForPlayer(CurrentPlayer) >= UnitCap)
-            return false;
-
-        var stoneIndex = _gravestones.FindIndex(stone => stone.Cell == Cursor);
-        if (stoneIndex < 0)
-            return false;
-
-        var skeletonTypeId = new ContentId(unit.TypeId.Namespace, "skeleton");
-        if (!_catalog.TryGetUnit(skeletonTypeId, out var skeletonDefinition))
-            return false;
-
-        _gravestones.RemoveAt(stoneIndex);
-        var spawned = SpawnUnit(
-            skeletonTypeId,
-            Cursor,
-            CurrentPlayer,
-            skeletonDefinition.MaxHealth,
-            skeletonDefinition.MaxHealth);
-        spawned.IsActive = false;
-
-        LastAction = new MatchPlayerAction
-        {
-            Kind = MatchPlayerActionKind.RaiseSkeleton,
-            PlayerIndex = CurrentPlayer,
-            UnitId = unit.Id,
-            Source = unit.Cell,
-            Target = Cursor,
-        };
-        FinishUnitActivation(unit, MatchPlayerActionKind.RaiseSkeleton);
-        return true;
-    }
-
-    /// <summary>
-    /// Best (max) attackAura value covering <paramref name="cell"/> for <paramref name="playerIndex"/>.
-    /// </summary>
-    public int GetAttackAuraBonus(GridCell cell, int playerIndex) =>
-        MatchCombat.ResolveAttackAuraBonus(this, cell, playerIndex);
-
-    private bool TryCaptureOrRepairAtUnitCell(MatchUnit unit, UnitDefinition unitDefinition)
-    {
-        if (!TryGetBuildingAt(unit.Cell, out var building))
-            return false;
-        if (!_catalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
-            return false;
-
-        if (building.IsRuined
-            && buildingDefinition.Repairable
-            && MatchUnitAbilities.CanRepair(unitDefinition, buildingDefinition))
-        {
-            building.IsRuined = false;
-            building.OwnerPlayerIndex = null;
-            building.RepairedThisOwnerTurn = true;
-            LastAction = new MatchPlayerAction
-            {
-                Kind = MatchPlayerActionKind.RepairBuilding,
-                PlayerIndex = CurrentPlayer,
-                UnitId = unit.Id,
-                Source = unit.Cell,
-                Target = unit.Cell,
-            };
-            FinishUnitActivation(unit, MatchPlayerActionKind.RepairBuilding);
-            return true;
-        }
-
-        if (!building.IsRuined
-            && !building.RepairedThisOwnerTurn
-            && MatchUnitAbilities.IsCapturable(building, buildingDefinition)
-            && building.OwnerPlayerIndex != CurrentPlayer
-            && MatchUnitAbilities.CanCapture(unitDefinition, buildingDefinition))
-        {
-            building.OwnerPlayerIndex = CurrentPlayer;
-            LastAction = new MatchPlayerAction
-            {
-                Kind = MatchPlayerActionKind.CaptureBuilding,
-                PlayerIndex = CurrentPlayer,
-                UnitId = unit.Id,
-                Source = unit.Cell,
-                Target = unit.Cell,
-            };
-            FinishUnitActivation(unit, MatchPlayerActionKind.CaptureBuilding);
-            return true;
-        }
-
-        return false;
-    }
-
-    private void UndoMove(MatchUnit unit)
-    {
-        if (!unit.HasMovedThisActivation)
-            return;
-
-        if (!IsOccupiedByUnit(unit.CellBeforeMove, exceptUnitId: unit.Id))
-            unit.Cell = unit.CellBeforeMove;
-
-        unit.HasMovedThisActivation = false;
-    }
-
-    internal void FinishUnitActivation(MatchUnit unit, MatchPlayerActionKind kind)
-    {
-        unit.IsActive = false;
-        SelectedUnitId = null;
-        if (LastAction is null)
-        {
-            LastAction = new MatchPlayerAction
-            {
-                Kind = kind,
-                PlayerIndex = CurrentPlayer,
-                UnitId = unit.Id,
-                Source = unit.Cell,
-                Target = unit.Cell,
-            };
-        }
-    }
-
     private void EnsureKnownPlayer(int playerIndex)
     {
         if (!_moneyByPlayer.ContainsKey(playerIndex))
             throw new ArgumentOutOfRangeException(nameof(playerIndex), playerIndex, "Unknown player.");
     }
 
-    internal MatchUnit SpawnUnit(
-        ContentId typeId,
-        GridCell cell,
-        int playerIndex,
-        int maxHealth,
-        int hitPoints)
-    {
-        var unit = new MatchUnit(_nextUnitId++, typeId, cell, playerIndex, maxHealth, hitPoints);
-        _units.Add(unit);
-        return unit;
-    }
-
-    private bool TryGetUnit(int unitId, out MatchUnit unit)
-    {
-        foreach (var candidate in _units)
-        {
-            if (candidate.Id != unitId)
-                continue;
-
-            unit = candidate;
-            return true;
-        }
-
-        unit = null!;
-        return false;
-    }
-
-    private void TrySelectUnitAt(GridCell cell)
-    {
-        foreach (var unit in _units)
-        {
-            if (unit.Cell != cell)
-                continue;
-
-            if (unit.PlayerIndex != CurrentPlayer || !unit.IsActive)
-                return;
-
-            SelectedUnitId = unit.Id;
-            LastAction = new MatchPlayerAction
-            {
-                Kind = MatchPlayerActionKind.SelectUnit,
-                PlayerIndex = CurrentPlayer,
-                UnitId = unit.Id,
-                Source = cell,
-                Target = cell,
-            };
-            return;
-        }
-    }
-
-    private bool IsOccupiedByUnit(GridCell cell, int? exceptUnitId = null)
-    {
-        foreach (var unit in _units)
-        {
-            if (exceptUnitId == unit.Id)
-                continue;
-
-            if (unit.Cell == cell)
-                return true;
-        }
-
-        return false;
-    }
+    private static MatchSaveCell ToSaveCell(GridCell cell) => new() { X = cell.X, Y = cell.Y };
 }
-

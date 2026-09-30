@@ -1,15 +1,19 @@
+using System.Reflection;
+
 namespace TinyTBS.Game.Presentation.About;
 
-/// <summary>Direct NuGet PackageReferences used across the TinyTBS solution.</summary>
+/// <summary>
+/// NuGet packages used across the TinyTBS solution, embedded at build time from
+/// <c>Directory.Packages.props</c> (see the <c>AddSolutionLibraryMetadata</c> target in TinyTBS.Game.csproj).
+/// </summary>
 public static class AboutSolutionLibraries
 {
-    public static IReadOnlyList<string> Lines { get; } =
-    [
-        "Gum.MonoGame 2026.9.2.1",
-        "Microsoft.CodeAnalysis.CSharp 5.9.0",
-        "MonoGame.Extended 6.1.1",
-        "MonoGame.Framework.DesktopGL 3.8.5.1",
-        "MonoGame.Framework.Content.Pipeline 3.8.5.1",
-        "NativeFileDialogNET 2.0.2",
-    ];
+    private const string MetadataKey = "TinyTBS.SolutionLibrary";
+
+    public static IReadOnlyList<string> Lines { get; } = typeof(AboutSolutionLibraries).Assembly
+        .GetCustomAttributes<AssemblyMetadataAttribute>()
+        .Where(attribute => attribute.Key == MetadataKey && !string.IsNullOrWhiteSpace(attribute.Value))
+        .Select(attribute => attribute.Value!)
+        .OrderBy(line => line, StringComparer.OrdinalIgnoreCase)
+        .ToArray();
 }

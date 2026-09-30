@@ -4,6 +4,7 @@ using TinyTBS.Game.Match;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.Saves.Models;
 using TinyTBS.Engine.IO;
+using TinyTBS.Game.Match.Session;
 
 namespace TinyTBS.Game.Campaigns;
 
@@ -58,7 +59,7 @@ public static class CampaignRunRestorer
         return run;
     }
 
-    public static NewGameStartRequest CreateChapterStartRequest(CampaignProgressDocument progress)
+    public static MatchStartRequest CreateChapterStartRequest(CampaignProgressDocument progress)
     {
         ArgumentNullException.ThrowIfNull(progress);
         if (progress.ContentSetup is null)
@@ -68,7 +69,7 @@ public static class CampaignRunRestorer
         var seats = MatchSaveSeatCodec.FromSaveList(progress.PlayerSeats);
         var run = CampaignRunState.FromProgress(progress, composition, seats);
 
-        return new NewGameStartRequest
+        return new MatchStartRequest
         {
             ScenarioModuleId = progress.ScenarioModuleId,
             LevelId = progress.CurrentLevelId,

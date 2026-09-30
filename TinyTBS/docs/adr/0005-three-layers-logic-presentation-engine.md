@@ -31,7 +31,7 @@
 ## Последствия
 
 - Обновить [ARCHITECTURE.md](../ARCHITECTURE.md) и roadmap (`layer-split`).
-- Screens разнесены: `Presentation/` (Gum), `Rendering/` (fit/highlight/layout), `MatchCommandApplicator`.
+- Screens разнесены: `Presentation/` (Gum), `Rendering/` (fit/highlight/layout), `BoardInputController` (раньше `MatchCommandApplicator`).
 - Матч разделён: `MatchState` (логика) + `MatchScene` (склейка ECS/draw); pointer — `IPointerSource` / `PointerInputService`.
 - Пиксельный размер тайла — в `MatchBoardLayout` (движок), не в `MatchDefaults`.
 - Размещение по проектам после ADR 0007: логика/UI в `TinyTBS.Game`, layout/draw/IO в `TinyTBS.Engine`.

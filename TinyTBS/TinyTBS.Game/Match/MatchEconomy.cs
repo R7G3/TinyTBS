@@ -1,5 +1,6 @@
 using TinyTBS.Game.Buildings.Models;
 using TinyTBS.Game.Maps.Models;
+using TinyTBS.Game.Units.Models;
 
 namespace TinyTBS.Game.Match;
 
@@ -39,12 +40,10 @@ public static class MatchEconomy
         {
             if (building.OwnerPlayerIndex != playerIndex)
                 continue;
-            if (!match.Catalog.TryGetBuilding(building.TypeId, out var definition))
+            if (!match.ContentCatalog.TryGetBuilding(building.TypeId, out var definition))
                 continue;
 
-            var income = building.IsRuined
-                ? definition.Ruined?.Income ?? 0
-                : definition.Income;
+            var income = ResolveIncome(definition, building.IsRuined);
             if (income > 0)
                 total += income;
         }
@@ -52,64 +51,38 @@ public static class MatchEconomy
         return total;
     }
 
-    public static bool TryRecruitAtCastle(
-        MatchState match,
-        ContentId unitTypeId,
-        int baseCost,
-        int maxHealth,
-        GridCell castleCell)
-    {
-        if (match.IsMatchOver || match.IsPlayerEliminated(match.CurrentPlayer))
-            return false;
-        if (!match.IsOwnCastleAt(castleCell))
-            return false;
-        if (match.IsOccupiedByUnitPublic(castleCell))
-            return false;
-        if (match.CountUnitsForPlayer(match.CurrentPlayer) >= match.UnitCap)
-            return false;
-        if (maxHealth <= 0)
-            return false;
-        if (!match.Catalog.TryGetUnit(unitTypeId, out var definition))
-            return false;
-
-        if (MatchUnitAbilities.HasAbility(definition, "uniquePerPlayer")
-            && match.UnitList.Any(unit =>
-                unit.PlayerIndex == match.CurrentPlayer && unit.TypeId == unitTypeId))
-        {
-            return false;
-        }
-
-        var cost = ResolveRecruitCost(match, unitTypeId, baseCost);
-        if (match.GetMoney(match.CurrentPlayer) < cost)
-            return false;
-
-        match.AddMoney(match.CurrentPlayer, -cost);
-        var spawned = match.SpawnUnit(unitTypeId, castleCell, match.CurrentPlayer, maxHealth, maxHealth);
-        spawned.IsActive = true;
-        match.LastAction = new MatchPlayerAction
-        {
-            Kind = MatchPlayerActionKind.RecruitUnit,
-            PlayerIndex = match.CurrentPlayer,
-            UnitId = spawned.Id,
-            Source = castleCell,
-            Target = castleCell,
-        };
-        match.SelectedUnitId = spawned.Id;
-        return true;
-    }
-
     public static int ResolveRecruitCost(MatchState match, ContentId unitTypeId, int baseCost)
     {
-        if (!match.Catalog.TryGetUnit(unitTypeId, out var definition))
+        if (!match.ContentCatalog.TryGetUnit(unitTypeId, out var definition))
             return baseCost;
 
-        if (MatchUnitAbilities.TryGetAbility(definition, "rehireCostIncrement", out var rehire)
+        if (MatchUnitAbilities.TryGetAbility(definition, UnitAbilityTypes.RehireCostIncrement, out var rehire)
             && rehire.Amount is int increment)
         {
             return baseCost + match.KingRehireCounts[match.CurrentPlayer] * increment;
         }
 
         return baseCost;
+    }
+
+    /// <summary>Applies a recruit already validated by <see cref="MatchActionRules.CanRecruit"/>.</summary>
+    internal static void ApplyRecruit(MatchState match, ContentId unitTypeId, GridCell castleCell)
+    {
+        match.ContentCatalog.TryGetShopOffer(unitTypeId, out var offer);
+        match.ContentCatalog.TryGetUnit(unitTypeId, out var definition);
+
+        match.AddMoney(match.CurrentPlayer, -ResolveRecruitCost(match, unitTypeId, offer.Cost));
+        var spawned = match.SpawnUnit(unitTypeId, castleCell, match.CurrentPlayer, definition.MaxHealth, definition.MaxHealth);
+        spawned.IsActive = true;
+        match.LastAction = new MatchPlayerAction
+        {
+            Kind = MatchActionKind.RecruitUnit,
+            PlayerIndex = match.CurrentPlayer,
+            UnitId = spawned.Id,
+            Source = castleCell,
+            Target = castleCell,
+        };
+        match.SelectedUnitId = spawned.Id;
     }
 
     private static void ExpireGravestonesForCurrentPlayer(MatchState match)
@@ -126,12 +99,10 @@ public static class MatchEconomy
         {
             if (building.OwnerPlayerIndex != playerIndex)
                 continue;
-            if (!match.Catalog.TryGetBuilding(building.TypeId, out var definition))
+            if (!match.ContentCatalog.TryGetBuilding(building.TypeId, out var definition))
                 continue;
 
-            var income = building.IsRuined
-                ? definition.Ruined?.Income ?? 0
-                : definition.Income;
+            var income = ResolveIncome(definition, building.IsRuined);
             if (income > 0)
                 match.AddMoney(playerIndex, income);
 
@@ -145,6 +116,9 @@ public static class MatchEconomy
             occupant.HitPoints = Math.Min(occupant.MaxHealth, occupant.HitPoints + healAmount);
         }
     }
+
+    private static int ResolveIncome(BuildingDefinition definition, bool isRuined) =>
+        isRuined ? definition.Ruined?.Income ?? 0 : definition.Income;
 
     private static int ResolveHealAmount(BuildingDefinition definition, bool isRuined)
     {

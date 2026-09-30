@@ -65,19 +65,12 @@ public sealed class EditorUnitEditScreen : EditorFormScreen
         try
         {
             _view.ApplyTextFields();
-            var id = SanitizeId(_document.Id);
-            _document.Id = id;
-            ContentModuleManifestParser.ValidateModuleId(id);
-
-            var unitsDir = TinyGame.Files.Combine(_session.ModuleRootPath, "Units");
-            var targetPath = TinyGame.Files.Combine(unitsDir, id + ".json");
+            var id = EditorIds.SanitizeOrDefault(_document.Id, "unit");
             var renamed = !_isNew
                 && !string.Equals(id, _document.OriginalId, StringComparison.Ordinal);
-            if ((_isNew || renamed) && File.Exists(targetPath))
-            {
-                id = AllocateUniqueUnitId(unitsDir, id);
-                _document.Id = id;
-            }
+            if (_isNew || renamed)
+                id = Workspace.AllocateUnitId(_session, id);
+            _document.Id = id;
 
             _writer.Write(_session.ModuleRootPath, _document);
             _view.SyncIdentityFromDocument();
@@ -87,33 +80,6 @@ public sealed class EditorUnitEditScreen : EditorFormScreen
         {
             _view.SyncStatus("Save failed: " + exception.Message);
         }
-    }
-
-    private static string SanitizeId(string raw)
-    {
-        var trimmed = string.IsNullOrWhiteSpace(raw) ? "unit" : raw.Trim();
-        try
-        {
-            ContentModuleManifestParser.ValidateModuleId(trimmed);
-            return trimmed;
-        }
-        catch (TinymodInstallException)
-        {
-            return "unit";
-        }
-    }
-
-    private string AllocateUniqueUnitId(string unitsDir, string stem)
-    {
-        for (var suffix = 2; suffix < 10_000; suffix++)
-        {
-            var candidate = stem + "_" + suffix;
-            var path = TinyGame.Files.Combine(unitsDir, candidate + ".json");
-            if (!File.Exists(path))
-                return candidate;
-        }
-
-        throw new EditorException("Could not allocate a unique unit id.");
     }
 
     private void GoToHub() =>

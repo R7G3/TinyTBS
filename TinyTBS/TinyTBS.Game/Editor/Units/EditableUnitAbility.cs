@@ -1,9 +1,11 @@
+using TinyTBS.Game.Units.Models;
+
 namespace TinyTBS.Game.Editor.Units;
 
 /// <summary>Mutable ability entry for the unit master.</summary>
 public sealed class EditableUnitAbility
 {
-    public string Type { get; set; } = "captureBuilding";
+    public string Type { get; set; } = UnitAbilityTypes.CaptureBuilding;
 
     public int? Amount { get; set; }
 

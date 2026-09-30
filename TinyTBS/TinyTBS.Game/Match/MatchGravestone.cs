@@ -25,4 +25,6 @@ public sealed class MatchGravestone
     /// <c>_turnStartsByPlayer[Source]</c> reaches this value (deathTurnStarts + 2).
     /// </summary>
     public int ExpiresWhenTurnStartsReaches { get; }
+
+    public MatchGravestone Clone() => new(Cell, SourcePlayerIndex, ExpiresWhenTurnStartsReaches);
 }

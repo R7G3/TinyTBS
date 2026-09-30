@@ -66,7 +66,7 @@
 
 Модель: [CONTENT_MODULE_FORMAT.md](../CONTENT_MODULE_FORMAT.md).
 
-Политика скриптов: Уровень 1 + валидация текста по Уровню 2 — [SCRIPTING.md](../SCRIPTING.md).
+Политика скриптов: Уровень 1 (только `TinyTBS.Scripting.Api` + буфер команд) и Уровень 2 (семантика Roslyn, бюджет шагов, таймаут) — [SCRIPTING.md](../SCRIPTING.md).
 
 ### Редактор
 

@@ -1,42 +1,24 @@
 using Gum;
-using Gum.DataTypes;
 using Gum.Forms.Controls;
-using Gum.Managers;
-using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Editor.Bundles;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Modules.Models;
-using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Editor.Presentation;
 
 /// <summary>Edit *.bundle.json: modules + defaults (left) + Save/Back (right).</summary>
 public sealed class EditorBundleEditView
 {
-    private enum FocusZone
-    {
-        Settings = 0,
-        Menu = 1,
-    }
-
-    private const float StackSpacing = 6f;
-    private const float MinScrollViewport = 120f;
+    private readonly EditorTwoColumnFormController _form = new(allowDpadColumnSwitch: true);
 
     private Panel? _rootPanel;
-    private ScrollViewer? _settingsScroll;
     private Panel? _settingsHost;
     private Label? _statusLabel;
     private TextBox? _idBox;
     private TextBox? _titleBox;
-    private readonly List<(Button Button, Action Activate)> _settingsEntries = [];
-    private readonly List<(Button Button, Action Activate)> _menuEntries = [];
-    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private readonly EditorChoiceOverlay _choiceOverlay = new();
 
-    private FocusZone _focusZone = FocusZone.Settings;
-    private int _settingsFocusIndex;
-    private int _menuFocusIndex;
     private EditableBundleDocument _document = new();
     private IReadOnlyList<ContentModuleInfo> _availableModules = [];
     private bool _isNew;
@@ -66,31 +48,24 @@ public sealed class EditorBundleEditView
             maxShellWidthPixels: 780f);
         _rootPanel = built.RootPanel;
         _settingsHost = built.SettingsHost;
-        _settingsScroll = built.SettingsScroll;
+        _form.Attach(built);
 
         _statusLabel = new Label { Text = string.Empty };
         GumUiLayout.FillParentWidth(_statusLabel);
         built.MenuHost.AddChild(_statusLabel);
 
-        EditorTwoColumnFormShell.AddMenuButton(
+        _form.AddMenuButton(
             built.MenuHost,
-            _menuEntries,
             "Save bundle",
             () =>
             {
                 ApplyTextFields();
                 onSave();
-            },
-            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
-        EditorTwoColumnFormShell.AddMenuButton(
-            built.MenuHost,
-            _menuEntries,
-            "Back",
-            onBack,
-            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
+            });
+        _form.AddMenuButton(built.MenuHost, "Back", onBack);
 
         RebuildSettingsColumn();
-        SetFocusZone(FocusZone.Settings, resetIndex: true);
+        _form.FocusSettings(resetIndex: true);
     }
 
     public void SyncStatus(string text)
@@ -127,51 +102,19 @@ public sealed class EditorBundleEditView
         if (IsTextEntryActive)
             return;
 
-        if (TrySwitchColumn(commands))
-            return;
-
-        if (_focusZone == FocusZone.Menu)
-        {
-            if (_menuEntries.Count == 0)
-                return;
-            GumFocusableButtonList.HandleVerticalInput(
-                commands,
-                _menuEntries,
-                ref _menuFocusIndex,
-                _navigateRepeat,
-                elapsedSeconds);
-            return;
-        }
-
-        if (_settingsEntries.Count == 0)
-            return;
-
-        var result = GumFocusableButtonList.HandleVerticalInput(
-            commands,
-            _settingsEntries,
-            ref _settingsFocusIndex,
-            _navigateRepeat,
-            elapsedSeconds);
-        if (result == GumFocusListResult.Navigated)
-            EnsureSettingsRowVisible();
+        _form.HandleInput(commands, elapsedSeconds);
     }
 
     public void Clear()
     {
         _choiceOverlay.Close(notifyClosed: false);
         GumService.Default.Root.Children.Clear();
+        _form.Clear();
         _rootPanel = null;
-        _settingsScroll = null;
         _settingsHost = null;
         _statusLabel = null;
         _idBox = null;
         _titleBox = null;
-        _settingsEntries.Clear();
-        _menuEntries.Clear();
-        _navigateRepeat.Reset();
-        _focusZone = FocusZone.Settings;
-        _settingsFocusIndex = 0;
-        _menuFocusIndex = 0;
         _availableModules = [];
     }
 
@@ -182,8 +125,13 @@ public sealed class EditorBundleEditView
 
         ApplyTextFields();
         SyncDefaultsWithListedModules();
-        _settingsHost.Visual.Children.Clear();
-        _settingsEntries.Clear();
+        _form.RebuildSettings(AddSettingsRows);
+    }
+
+    private void AddSettingsRows()
+    {
+        if (_settingsHost is null)
+            return;
 
         EditorTwoColumnFormShell.AddTextField(_settingsHost, "Id (file stem)", _document.Id, out _idBox);
         if (!_isNew && _idBox is not null)
@@ -201,33 +149,33 @@ public sealed class EditorBundleEditView
                 + " ("
                 + captured.Type.ToString().ToLowerInvariant()
                 + ")";
-            AddSettingsButton(label, () => ToggleModule(captured));
+            _form.AddSettingsButton(label, () => ToggleModule(captured));
         }
 
         if (_availableModules.Count == 0)
             AddSectionLabel("(No modules in library — install or create modules first.)");
 
         AddSectionLabel("Defaults (New Game start set from Modules above)");
-        AddSettingsButton(
+        _form.AddSettingsButton(
             "Scenario: " + DisplayOrNone(_document.ScenarioModuleId),
             () => OpenSingleDefaultChoice(
                 "Choose scenario default",
                 ContentModuleType.Scenario,
                 () => _document.ScenarioModuleId,
                 selected => _document.ScenarioModuleId = selected));
-        AddSettingsButton(
+        _form.AddSettingsButton(
             "Units: " + DisplayList(_document.UnitsModuleIds),
             () => OpenMultiDefaultChoice(
                 "Toggle units default",
                 ContentModuleType.Units,
                 _document.UnitsModuleIds));
-        AddSettingsButton(
+        _form.AddSettingsButton(
             "Buildings: " + DisplayList(_document.BuildingsModuleIds),
             () => OpenMultiDefaultChoice(
                 "Toggle buildings default",
                 ContentModuleType.Buildings,
                 _document.BuildingsModuleIds));
-        AddSettingsButton(
+        _form.AddSettingsButton(
             "Theme: " + DisplayOrNone(_document.ThemeModuleId),
             () => OpenSingleDefaultChoice(
                 "Choose theme default",
@@ -348,7 +296,7 @@ public sealed class EditorBundleEditView
             _rootPanel,
             title,
             actions,
-            onClosed: () => SetFocusZone(FocusZone.Settings, resetIndex: false));
+            onClosed: () => _form.FocusSettings());
     }
 
     private void OpenMultiDefaultChoice(
@@ -388,7 +336,7 @@ public sealed class EditorBundleEditView
             _rootPanel,
             title,
             actions,
-            onClosed: () => SetFocusZone(FocusZone.Settings, resetIndex: false));
+            onClosed: () => _form.FocusSettings());
     }
 
     private IReadOnlyList<string> ListedModulesOfType(ContentModuleType type) =>
@@ -417,81 +365,4 @@ public sealed class EditorBundleEditView
         _settingsHost.AddChild(label);
     }
 
-    private bool TrySwitchColumn(IGameCommandSource commands) =>
-        EditorTwoColumnFormShell.TrySwitchTwoZones(
-            commands,
-            allowDpadColumnSwitch: true,
-            currentZone: (int)_focusZone,
-            settingsZone: (int)FocusZone.Settings,
-            menuZone: (int)FocusZone.Menu,
-            setZone: zone => SetFocusZone((FocusZone)zone, resetIndex: false));
-
-    private void SetFocusZone(FocusZone zone, bool resetIndex)
-    {
-        _focusZone = zone;
-        if (zone == FocusZone.Settings)
-        {
-            if (resetIndex || _settingsEntries.Count == 0)
-                _settingsFocusIndex = 0;
-            else
-                _settingsFocusIndex = Math.Clamp(_settingsFocusIndex, 0, _settingsEntries.Count - 1);
-
-            GumFocusableButtonList.ClearFocus(_menuEntries);
-            if (_settingsEntries.Count > 0)
-            {
-                GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-                EnsureSettingsRowVisible();
-            }
-        }
-        else
-        {
-            if (resetIndex || _menuEntries.Count == 0)
-                _menuFocusIndex = 0;
-            else
-                _menuFocusIndex = Math.Clamp(_menuFocusIndex, 0, _menuEntries.Count - 1);
-
-            GumFocusableButtonList.ClearFocus(_settingsEntries);
-            if (_menuEntries.Count > 0)
-                GumFocusableButtonList.ApplyFocus(_menuEntries, ref _menuFocusIndex);
-        }
-    }
-
-    private void EnsureSettingsRowVisible()
-    {
-        if (_settingsEntries.Count == 0 || _settingsScroll is null || _settingsHost is null)
-            return;
-
-        EditorFormScrollFocus.AfterNavigate(
-            _settingsScroll,
-            _settingsHost,
-            _settingsEntries,
-            listFocusStartIndex: 0,
-            listFocusCount: _settingsEntries.Count,
-            _settingsFocusIndex,
-            StackSpacing,
-            MinScrollViewport);
-    }
-
-    private void AddSettingsButton(string text, Action onClick)
-    {
-        if (_settingsHost is null)
-            return;
-        var button = new Button { Text = text };
-        GumUiLayout.FillParentWidth(button);
-        _settingsHost.AddChild(button);
-        _settingsEntries.Add((button, onClick));
-        button.Click += (_, _) =>
-        {
-            for (var i = 0; i < _settingsEntries.Count; i++)
-            {
-                if (!ReferenceEquals(_settingsEntries[i].Button, button))
-                    continue;
-                _settingsFocusIndex = i;
-                break;
-            }
-
-            SetFocusZone(FocusZone.Settings, resetIndex: false);
-            onClick();
-        };
-    }
 }

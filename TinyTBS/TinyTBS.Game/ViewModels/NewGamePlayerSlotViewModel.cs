@@ -1,5 +1,5 @@
 using TinyTBS.Game.Ai;
-using TinyTBS.Game.Match;
+using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.ViewModels;
 

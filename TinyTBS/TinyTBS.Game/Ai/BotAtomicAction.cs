@@ -1,27 +1,30 @@
-using TinyTBS.Game.Maps.Models;
 using TinyTBS.Game.Match;
 
 namespace TinyTBS.Game.Ai;
 
 /// <summary>
-/// Одно атомарное решение бота = один узел в дереве α-β.
-/// Не «весь ход игрока», а одна операция: выбрать юнита, Confirm на клетку, Wait, Recruit, EndTurn.
+/// One bot decision = one node of the α-β tree: not a whole player turn but a single input
+/// (select a unit, confirm on a cell, wait, recruit, end turn) together with the rules action it resolves to.
 /// </summary>
 public sealed class BotAtomicAction
 {
     public required BotAtomicActionKind Kind { get; init; }
 
-    public int UnitId { get; init; }
-
-    public GridCell Cell { get; init; }
-
-    public ContentId UnitTypeId { get; init; }
-
-    public int RecruitCost { get; init; }
+    /// <summary>What the input does under the current rules; applied with <see cref="MatchState.TryApply"/>.</summary>
+    public required MatchAction Action { get; init; }
 
     /// <summary>
-    /// Порядок при равной оценке: меньше = предпочтительнее.
-    /// LegalActionGenerator выдаёт стабильные значения (ходы раньше Wait и т.д.).
+    /// Order among equally scored actions: lower is preferred.
+    /// <see cref="LegalActionGenerator"/> assigns stable values (moves before Wait, and so on).
     /// </summary>
     public int TieBreak { get; init; }
+
+    /// <summary>Cell the bot's visible cursor travels to before acting; null for End turn.</summary>
+    public GridCell? AimCell => Kind == BotAtomicActionKind.EndTurn ? null : Action.Target;
+
+    /// <summary>
+    /// "Noisy" actions change HP, army or gold noticeably; after one, quiescence search looks a couple
+    /// of plies deeper instead of evaluating mid-fight.
+    /// </summary>
+    public bool IsNoisyForQuiescence => Kind is BotAtomicActionKind.ConfirmAt or BotAtomicActionKind.Recruit;
 }

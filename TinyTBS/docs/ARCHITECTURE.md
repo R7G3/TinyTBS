@@ -96,7 +96,7 @@ Bundled pipeline: исходники в **TinyTBS.Content** → builder пише
 | UI | Gum.MonoGame 2026.9.2.1 + тонкий UI-state (ручная синхронизация; не MVVM-архитектура) |
 | Контент | C# Content Builder (`TinyTbsContentBuilder`, RegexRule), .xnb → Desktop; pipeline 3.8.5.1 |
 | Карты / уровни | Каталог `Maps/{id}/`, `Levels/{id}/` в scenario; JSON + `script.cs` (ZIP `.map.zip` — legacy/экспорт) |
-| Скрипты | Roslyn `Microsoft.CodeAnalysis.CSharp` 5.9.0 → `IMapScriptHooks`; `IScriptEngine` для других языков позже |
+| Скрипты | Roslyn 5.9.0 → `TinyTBS.Scripting.Api` + песочница Engine; `IScriptEngine` для других языков позже |
 | Файловые диалоги | NativeFileDialogNET 2.0.2 (+ Linux portal в Desktop) |
 | Локализация | resx |
 
@@ -153,9 +153,9 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 - `TinyTBS.Game.Match`: `GridCell`, `MatchDefaults`, `MatchUnit` / `MatchBuilding`, `MatchState` — **логика** (демо-правила; полный GDD — впереди)
 - `TinyTBS.Game.Maps` / `Levels` / `Units` / `Buildings` / `Themes` / `Modules`: загрузка map/level и модулей; `MatchContentCompositionLoader` + `ContentModuleLocator` → `MatchContentCatalog`; `TinymodInstaller` / `ContentModuleLibrary`; `ContentBundleLocator` / `ContentBundleLibrary`
-- `TinyTBS.Game.Scripting`: `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost`, `MapScriptContext` + валидатор песочницы
+- `TinyTBS.Scripting.Api` — хуки и буфер команд для `script.cs`; `TinyTBS.Engine.Scripting` — Roslyn, семантическая песочница, бюджет шагов; `TinyTBS.Game.Scripting` — `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost` / `CampaignScriptHost`
 - `TinyTBS.Engine.Ecs`: `TilemapDrawSystem`, `TeamMaskedSpriteDrawSystem` (base + tint mask)
-- `MatchScene` / `GameplaySessionFactory` / `MatchSessionLoadPipeline` — в Game: level → map → скрипт → атлас → сцена (этапы для loading screen); `MatchCommandApplicator` — команды/pointer→логика (+ хуки скрипта)
+- `MatchScene` / `GameplaySessionFactory` / `MatchSessionLoadPipeline` — в Game: level → map → скрипт → атлас → сцена (этапы для loading screen); `BoardInputController` + `MatchRuntime.TryApply` — pointer/команды → логика (+ хуки скрипта); бот целится курсором, затем применяет то же `MatchAction`
 - `GameplayScreen` / `MainMenuScreen` / `LoadingScreen` / `ContentLibraryScreen` — тонкая склейка lifecycle; Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
 
 ## Ввод

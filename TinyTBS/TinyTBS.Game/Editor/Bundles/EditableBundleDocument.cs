@@ -33,10 +33,10 @@ public sealed class EditableBundleDocument
         var buildings = availableModules.Where(module => module.Type == ContentModuleType.Buildings).ToArray();
         var themes = availableModules.Where(module => module.Type == ContentModuleType.Theme).ToArray();
 
-        var scenarioId = PickPreferred(scenarios, "vanilla_scenario");
-        var unitsId = PickPreferred(units, "vanilla_units");
-        var buildingsId = PickPreferred(buildings, "vanilla_buildings");
-        var themeId = PickPreferred(themes, "vanilla_theme");
+        var scenarioId = PickPreferred(scenarios, VanillaContentIds.ScenarioModuleId);
+        var unitsId = PickPreferred(units, VanillaContentIds.UnitsModuleId);
+        var buildingsId = PickPreferred(buildings, VanillaContentIds.BuildingsModuleId);
+        var themeId = PickPreferred(themes, VanillaContentIds.ThemeModuleId);
 
         var moduleIds = new List<string>();
         TryAdd(moduleIds, scenarioId);

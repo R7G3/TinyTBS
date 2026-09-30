@@ -78,4 +78,15 @@ public sealed class MatchUnit
     {
         Experience = 0;
     }
+
+    /// <summary>Independent copy with identical state (bot search works on clones).</summary>
+    public MatchUnit Clone() =>
+        new(Id, TypeId, Cell, PlayerIndex, MaxHealth, Math.Max(1, HitPoints))
+        {
+            HitPoints = HitPoints,
+            IsActive = IsActive,
+            HasMovedThisActivation = HasMovedThisActivation,
+            CellBeforeMove = CellBeforeMove,
+            Experience = Experience,
+        };
 }

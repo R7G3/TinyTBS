@@ -5,6 +5,9 @@ public sealed class LoadingViewModel
 {
     public string Title { get; set; } = "Loading";
 
+    /// <summary>Persistent note under the title (for example a module version mismatch); empty hides it.</summary>
+    public string Note { get; set; } = string.Empty;
+
     public string StageLabel { get; set; } = "Preparing…";
 
     /// <summary>0..1 fill amount for the progress bar.</summary>

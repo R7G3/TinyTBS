@@ -5,6 +5,9 @@ namespace TinyTBS.Game.Maps;
 /// <summary>Parses map terrain type strings and building instance state flags.</summary>
 public static class MapSurfaceIds
 {
+    /// <summary>Building instance <c>state</c> value for a destroyed building.</summary>
+    public const string RuinedBuildingState = "ruined";
+
     public static TerrainKind ParseTerrain(string typeId)
     {
         return typeId.Trim().ToLowerInvariant() switch
@@ -20,5 +23,5 @@ public static class MapSurfaceIds
     }
 
     public static bool IsRuinedBuildingState(string? state) =>
-        string.Equals(state, "ruined", StringComparison.OrdinalIgnoreCase);
+        string.Equals(state, RuinedBuildingState, StringComparison.OrdinalIgnoreCase);
 }

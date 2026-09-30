@@ -1,25 +1,23 @@
-using Gum;
 using Microsoft.Xna.Framework;
-using MonoGame.Extended.Screens;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
-using TinyTBS.Game.Input;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
-using TinyTBS.Game.Presentation.Menu;
+using TinyTBS.Game.Screens;
 
 namespace TinyTBS.Game.Editor.Screens;
 
-/// <summary>Id/Title wizard before creating a user units or buildings module.</summary>
-public sealed class EditorNewContentTypeModuleScreen : GameScreen
+/// <summary>Id/Title wizard before creating a user units, buildings or theme module.</summary>
+public sealed class EditorNewContentTypeModuleScreen : MenuScreen
 {
-    private readonly IAssetResolver _assets;
     private readonly EditorWorkspaceSession? _session;
     private readonly ContentModuleType _moduleType;
+    private readonly string _defaultModuleId;
+    private readonly string _defaultTitle;
+    private readonly EditorWorkspaceService _workspace;
     private readonly EditorNewContentTypeModuleView _view = new();
-    private MainMenuBackground? _background;
     private ContentTypeModuleWriter? _moduleWriter;
 
     private bool _pendingGoToHub;
@@ -30,73 +28,47 @@ public sealed class EditorNewContentTypeModuleScreen : GameScreen
         IAssetResolver assets,
         EditorWorkspaceSession? session,
         ContentModuleType moduleType)
-        : base(game)
+        : base(game, assets)
     {
-        _assets = assets;
         _session = session;
-        if (moduleType is not (ContentModuleType.Units or ContentModuleType.Buildings or ContentModuleType.Theme))
-            throw new ArgumentOutOfRangeException(nameof(moduleType), "Unsupported module type for this wizard.");
+        (_defaultModuleId, _defaultTitle) = moduleType switch
+        {
+            ContentModuleType.Units => ("user_units", "User Units"),
+            ContentModuleType.Buildings => ("user_buildings", "User Buildings"),
+            ContentModuleType.Theme => ("user_theme", "User Theme"),
+            _ => throw new ArgumentOutOfRangeException(nameof(moduleType), "Unsupported module type for this wizard."),
+        };
         _moduleType = moduleType;
+        _workspace = new EditorWorkspaceService(game.Files, game.UserDataPaths);
     }
 
-    private GameMain TinyGame => (GameMain)Game;
-
-    public override void LoadContent()
+    protected override void OnLoad()
     {
-        base.LoadContent();
         TinyGame.UserDataPaths.EnsureCreated();
         _moduleWriter = new ContentTypeModuleWriter(TinyGame.Files, TinyGame.UserDataPaths);
-        _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
 
-        var baseId = _moduleType switch
-        {
-            ContentModuleType.Units => "user_units",
-            ContentModuleType.Buildings => "user_buildings",
-            ContentModuleType.Theme => "user_theme",
-            _ => "user_module",
-        };
-        var defaultId = _moduleWriter.AllocateUniqueModuleId(baseId);
-        var defaultTitle = _moduleType switch
-        {
-            ContentModuleType.Units => defaultId == "user_units" ? "User Units" : "User Units (" + defaultId + ")",
-            ContentModuleType.Buildings => defaultId == "user_buildings"
-                ? "User Buildings"
-                : "User Buildings (" + defaultId + ")",
-            ContentModuleType.Theme => defaultId == "user_theme" ? "User Theme" : "User Theme (" + defaultId + ")",
-            _ => defaultId,
-        };
-
+        var defaultId = _workspace.AllocateModuleId(_defaultModuleId);
+        var defaultTitle = defaultId == _defaultModuleId ? _defaultTitle : _defaultTitle + " (" + defaultId + ")";
         _view.Build(_moduleType, defaultId, defaultTitle, RequestCreate, RequestGoToHub);
     }
 
-    public override void UnloadContent()
+    protected override void OnUnload()
     {
         _view.Clear();
-        _background?.Dispose();
-        _background = null;
         _moduleWriter = null;
         _pendingGoToHub = false;
         _pendingCreate = false;
-        base.UnloadContent();
     }
 
-    public override void Update(GameTime gameTime)
+    protected override void OnUpdate(GameTime gameTime, float elapsedSeconds)
     {
-        GumService.Default.Update(gameTime);
-        _view.HandleInput(
-            TinyGame.Commands,
-            (float)gameTime.ElapsedGameTime.TotalSeconds);
+        _view.HandleInput(TinyGame.Commands, elapsedSeconds);
 
         if (_view.IsTextEntryActive)
             return;
 
-        if (TinyGame.Commands.WasPressed(GameCommand.Back)
-            || TinyGame.Commands.WasPressed(GameCommand.Cancel)
-            || TinyGame.Commands.WasPressed(GameCommand.Info)
-            || TinyGame.Commands.WasPressed(GameCommand.Pause))
-        {
+        if (WasLeavePressed())
             RequestGoToHub();
-        }
 
         if (_pendingCreate)
         {
@@ -112,18 +84,6 @@ public sealed class EditorNewContentTypeModuleScreen : GameScreen
         }
     }
 
-    public override void Draw(GameTime gameTime)
-    {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
-        _background?.Draw(
-            TinyGame.SharedSpriteBatch,
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            gameTime);
-
-        GumService.Default.Draw();
-    }
-
     private void RequestGoToHub() => _pendingGoToHub = true;
 
     private void RequestCreate() => _pendingCreate = true;
@@ -134,17 +94,8 @@ public sealed class EditorNewContentTypeModuleScreen : GameScreen
 
         try
         {
-            var baseId = _moduleType switch
-            {
-                ContentModuleType.Units => "user_units",
-                ContentModuleType.Buildings => "user_buildings",
-                ContentModuleType.Theme => "user_theme",
-                _ => "user_module",
-            };
-            var moduleId = SanitizeModuleId(_view.ModuleId, baseId);
+            var moduleId = _workspace.AllocateModuleId(EditorIds.SanitizeOrDefault(_view.ModuleId, _defaultModuleId));
             var title = string.IsNullOrWhiteSpace(_view.ModuleTitle) ? moduleId : _view.ModuleTitle.Trim();
-            if (Directory.Exists(TinyGame.Files.Combine(TinyGame.UserDataPaths.Modules, moduleId)))
-                moduleId = _moduleWriter.AllocateUniqueModuleId(moduleId);
 
             var root = _moduleWriter.CreateNew(
                 _moduleType,
@@ -157,7 +108,7 @@ public sealed class EditorNewContentTypeModuleScreen : GameScreen
                 root,
                 _moduleType,
                 title);
-            ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, _assets, session));
+            ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, session));
         }
         catch (Exception exception) when (exception is EditorException or TinymodInstallException or IOException)
         {
@@ -165,20 +116,6 @@ public sealed class EditorNewContentTypeModuleScreen : GameScreen
         }
     }
 
-    private static string SanitizeModuleId(string raw, string fallback)
-    {
-        var trimmed = string.IsNullOrWhiteSpace(raw) ? fallback : raw.Trim();
-        try
-        {
-            ContentModuleManifestParser.ValidateModuleId(trimmed);
-            return trimmed;
-        }
-        catch (TinymodInstallException)
-        {
-            return fallback;
-        }
-    }
-
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, _assets, _session));
+        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
 }

@@ -86,27 +86,6 @@ public sealed class ScenarioModuleWriter
         }
     }
 
-    /// <summary>Picks <c>user_scenario</c>, <c>user_scenario_2</c>, … not yet used in user Modules.</summary>
-    public string AllocateUniqueModuleId(string baseId = "user_scenario")
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseId);
-        ContentModuleManifestParser.ValidateModuleId(baseId.Trim());
-        var stem = baseId.Trim();
-
-        _userDataPaths.EnsureCreated();
-        if (!Directory.Exists(_files.Combine(_userDataPaths.Modules, stem)))
-            return stem;
-
-        for (var suffix = 2; suffix < 10_000; suffix++)
-        {
-            var candidate = stem + "_" + suffix;
-            if (!Directory.Exists(_files.Combine(_userDataPaths.Modules, candidate)))
-                return candidate;
-        }
-
-        throw new EditorException("Could not allocate a unique module id.");
-    }
-
     private static void TryDeleteDirectory(string path)
     {
         try

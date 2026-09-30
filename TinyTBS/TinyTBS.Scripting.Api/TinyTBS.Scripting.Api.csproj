@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The only assembly map / campaign scripts compile against. Keep it free of game and engine references. -->
+  <PropertyGroup>
+    <RootNamespace>TinyTBS.Scripting.Api</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TinyTBS.Game" />
+  </ItemGroup>
+</Project>

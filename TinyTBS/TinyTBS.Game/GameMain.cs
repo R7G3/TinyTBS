@@ -9,6 +9,7 @@ using TinyTBS.Engine.Input;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.Screens;
+using TinyTBS.Game.Match.Session;
 
 namespace TinyTBS.Game;
 
@@ -16,7 +17,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
 {
     private readonly GraphicsDeviceManager _graphics;
     private readonly ScreenManager _screenManager;
-    private readonly GameCommandService _commands = new();
+    private readonly GameCommandService _commands = new(GumTextInputFocus.IsTextBoxReceivingInput);
     private readonly PointerInputService _pointer = new();
     private readonly IUserDataPaths _userDataPaths;
     private readonly IFileContentProvider _files;

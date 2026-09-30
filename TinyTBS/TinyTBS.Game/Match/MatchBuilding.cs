@@ -34,4 +34,10 @@ public sealed class MatchBuilding
 
     /// <summary>Same-turn repair lock: cannot capture after repairing this activation.</summary>
     public bool RepairedThisOwnerTurn { get; set; }
+
+    public MatchBuilding Clone() =>
+        new(TypeId, Cell, OwnerPlayerIndex, IsRuined, AllowsRecruit)
+        {
+            RepairedThisOwnerTurn = RepairedThisOwnerTurn,
+        };
 }

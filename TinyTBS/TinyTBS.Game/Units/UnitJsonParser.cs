@@ -175,9 +175,7 @@ public static class UnitJsonParser
             DisplayNameKey = string.IsNullOrWhiteSpace(document.DisplayNameKey)
                 ? $"units.{localId}"
                 : document.DisplayNameKey.Trim(),
-            MovementClass = string.IsNullOrWhiteSpace(document.MovementClass)
-                ? "foot"
-                : document.MovementClass.Trim(),
+            MovementClass = MovementClassIds.Parse(document.MovementClass),
             Tags = document.Tags?.Select(tag => tag.Trim()).Where(tag => tag.Length > 0).ToArray() ?? [],
             Recruitable = document.Recruitable ?? true,
             Attack = document.Attack,

@@ -1,10 +1,7 @@
-using Gum;
 using Microsoft.Xna.Framework;
-using MonoGame.Extended.Screens;
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Game.Assets;
-using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Editor.Screens;
-using TinyTBS.Game.Input;
 using TinyTBS.Game.Presentation.Menu;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.ViewModels;
@@ -12,39 +9,30 @@ using TinyTBS.Game.ViewModels;
 namespace TinyTBS.Game.Screens;
 
 /// <summary>
-/// Thin frame glue: wires menu UI-state, Gum presentation, and background draw.
+/// Thin frame glue: wires menu UI-state and Gum presentation over the menu background.
 /// </summary>
-public sealed class MainMenuScreen : GameScreen
+public sealed class MainMenuScreen : MenuScreen
 {
-    private readonly IAssetResolver _assets;
     private readonly MainMenuViewModel _viewModel = new();
     private readonly MainMenuView _view = new();
     private readonly SaveCatalog _saveCatalog;
 
-    private MainMenuBackground? _background;
     private bool _awaitingNewGameAbandonConfirm;
 
     public MainMenuScreen(GameMain game, IAssetResolver assets)
-        : base(game)
+        : base(game, assets)
     {
-        _assets = assets;
-        _saveCatalog = new SaveCatalog(game.UserDataPaths);
+        _saveCatalog = new SaveCatalog(game.Files, game.UserDataPaths);
     }
 
-    private GameMain TinyGame => (GameMain)Game;
-
-    public override void LoadContent()
+    protected override void OnLoad()
     {
-        base.LoadContent();
-
         RefreshContinueAndLoadState();
         _viewModel.CanOpenContent = true;
         _viewModel.CanOpenEditor = true;
         _viewModel.CanOpenSettings = false;
         _viewModel.CanOpenAbout = true;
         _viewModel.CanStartNewGame = true;
-
-        _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
 
         _view.Build(
             _viewModel,
@@ -58,46 +46,24 @@ public sealed class MainMenuScreen : GameScreen
             onExit: () => Game.Exit());
     }
 
-    public override void UnloadContent()
-    {
-        _view.Clear();
-        _background?.Dispose();
-        _background = null;
-        base.UnloadContent();
-    }
+    protected override void OnUnload() => _view.Clear();
 
-    public override void Update(GameTime gameTime)
+    protected override void OnUpdate(GameTime gameTime, float elapsedSeconds)
     {
-        GumService.Default.Update(gameTime);
-        _view.HandleInput(TinyGame.Commands, (float)gameTime.ElapsedGameTime.TotalSeconds);
+        _view.HandleInput(TinyGame.Commands, elapsedSeconds);
 
-        if (TinyGame.Commands.WasPressed(GameCommand.Back)
-            || TinyGame.Commands.WasPressed(GameCommand.Cancel)
-            || TinyGame.Commands.WasPressed(GameCommand.Info))
+        if (!WasLeavePressed(includePause: false))
+            return;
+
+        if (_awaitingNewGameAbandonConfirm)
         {
-            if (_awaitingNewGameAbandonConfirm)
-            {
-                _awaitingNewGameAbandonConfirm = false;
-                _viewModel.StatusHint = string.Empty;
-                _view.SyncStatus(_viewModel);
-                return;
-            }
-
-            Game.Exit();
+            _awaitingNewGameAbandonConfirm = false;
+            _viewModel.StatusHint = string.Empty;
+            _view.SyncStatus(_viewModel);
+            return;
         }
-    }
 
-    public override void Draw(GameTime gameTime)
-    {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
-
-        _background?.Draw(
-            TinyGame.SharedSpriteBatch,
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            gameTime);
-
-        GumService.Default.Draw();
+        Game.Exit();
     }
 
     private void RefreshContinueAndLoadState()
@@ -118,7 +84,7 @@ public sealed class MainMenuScreen : GameScreen
             if (session is null)
                 return;
 
-            ScreenManager.ReplaceScreen(new GameplayScreen(TinyGame, _assets, session));
+            ScreenManager.ReplaceScreen(new GameplayScreen(TinyGame, Assets, session));
             return;
         }
 
@@ -127,23 +93,11 @@ public sealed class MainMenuScreen : GameScreen
             if (!_saveCatalog.TryGetLatest(out var entry))
                 throw new MatchSaveException("No saves found.");
 
-            if (entry.IsCampaign)
-            {
-                var progress = _saveCatalog.CampaignStore.ReadFile(entry.FilePath);
-                var request = CampaignRunRestorer.CreateChapterStartRequest(progress);
-                ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, _assets, request));
-                return;
-            }
-
-            var document = _saveCatalog.MatchLibrary.Load(entry.FilePath);
-            var matchRequest = MatchSaveResume.CreateRequest(
-                document,
-                TinyGame.Files,
-                TinyGame.UserDataPaths);
-            ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, _assets, matchRequest));
+            ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, Assets, _saveCatalog.CreateResumeRequest(entry)));
         }
         catch (Exception exception)
         {
+            GameLog.Error("Continue from the latest save failed.", exception);
             _viewModel.StatusHint = "Continue failed: " + exception.Message;
             _view.SyncStatus(_viewModel);
             RefreshContinueAndLoadState();
@@ -167,22 +121,22 @@ public sealed class MainMenuScreen : GameScreen
 
         _awaitingNewGameAbandonConfirm = false;
         _viewModel.StatusHint = string.Empty;
-        ScreenManager.ReplaceScreen(new NewGameScreen(TinyGame, _assets));
+        ScreenManager.ReplaceScreen(new NewGameScreen(TinyGame, Assets));
     }
 
     private void OpenLoadGame()
     {
         _awaitingNewGameAbandonConfirm = false;
         _viewModel.StatusHint = string.Empty;
-        ScreenManager.ReplaceScreen(new LoadGameScreen(TinyGame, _assets));
+        ScreenManager.ReplaceScreen(new LoadGameScreen(TinyGame, Assets));
     }
 
     private void OpenContent() =>
-        ScreenManager.ReplaceScreen(new ContentLibraryScreen(TinyGame, _assets));
+        ScreenManager.ReplaceScreen(new ContentLibraryScreen(TinyGame, Assets));
 
     private void OpenEditor() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, _assets));
+        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets));
 
     private void OpenAbout() =>
-        ScreenManager.ReplaceScreen(new AboutScreen(TinyGame, _assets));
+        ScreenManager.ReplaceScreen(new AboutScreen(TinyGame, Assets));
 }

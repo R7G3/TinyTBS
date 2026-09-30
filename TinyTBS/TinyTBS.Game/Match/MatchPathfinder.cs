@@ -1,3 +1,5 @@
+using TinyTBS.Game.Units.Models;
+
 namespace TinyTBS.Game.Match;
 
 /// <summary>Reachable cells for a unit given Speed and terrain step costs (BFS).</summary>
@@ -12,7 +14,7 @@ public static class MatchPathfinder
         MatchState match,
         MatchUnit unit,
         GridCell destination,
-        string movementClass,
+        MovementClass movementClass,
         int speed,
         int? exceptUnitId = null)
     {
@@ -35,7 +37,7 @@ public static class MatchPathfinder
     public static IReadOnlyList<GridCell> CollectReachable(
         MatchState match,
         MatchUnit unit,
-        string movementClass,
+        MovementClass movementClass,
         int speed,
         int? exceptUnitId = null)
     {
@@ -71,7 +73,7 @@ public static class MatchPathfinder
         MatchState match,
         GridCell from,
         GridCell to,
-        string movementClass,
+        MovementClass movementClass,
         int speed,
         int? exceptUnitId = null)
     {
@@ -114,7 +116,7 @@ public static class MatchPathfinder
     private static void RunCostSearch(
         MatchState match,
         GridCell start,
-        string movementClass,
+        MovementClass movementClass,
         int speed,
         int? exceptUnitId,
         out Dictionary<GridCell, int> best,
@@ -135,7 +137,7 @@ public static class MatchPathfinder
                 var next = new GridCell(current.X + dx, current.Y + dy);
                 if (!match.IsInBounds(next))
                     continue;
-                if (match.IsOccupiedByUnitPublic(next, exceptUnitId))
+                if (match.IsOccupiedByUnit(next, exceptUnitId))
                     continue;
 
                 var step = MatchTerrainRules.StepCost(match.GetTerrain(next), movementClass);

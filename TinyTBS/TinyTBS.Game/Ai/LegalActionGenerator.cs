@@ -1,12 +1,12 @@
-using TinyTBS.Game.Maps.Models;
 using TinyTBS.Game.Match;
 using TinyTBS.Game.Units.Models;
 
 namespace TinyTBS.Game.Ai;
 
 /// <summary>
-/// Перечисляет легальные атомарные действия текущего игрока.
-/// Это «ветви» дерева поиска: одно действие = один узел.
+/// Lists the current player's atomic decisions — the branches of the search tree. Candidate cells come from
+/// the rules' own predicates and every Confirm is resolved by <see cref="MatchActionResolver"/>, so the bot
+/// can only choose what a human could do with the same click.
 /// </summary>
 public static class LegalActionGenerator
 {
@@ -15,201 +15,97 @@ public static class LegalActionGenerator
         ArgumentNullException.ThrowIfNull(match);
 
         var actions = new List<BotAtomicAction>(64);
-        var tie = 0; // стабильный порядок при равных оценках
+        var tieBreak = 0;
 
         if (match.IsMatchOver || match.IsPlayerEliminated(match.CurrentPlayer))
             return actions;
 
-        // Уже выбран юнит → только его ходы/атаки/Wait (+ EndTurn), без выбора других.
-        if (match.SelectedUnitId is int selectedId)
+        // A selected unit: only its moves / strikes / wait (+ End turn), never switching to another unit.
+        if (match.SelectedUnitId is int selectedId
+            && match.TryGetUnit(selectedId, out var selected)
+            && selected.IsActive
+            && selected.PlayerIndex == match.CurrentPlayer)
         {
-            MatchUnit? selected = null;
-            foreach (var candidate in match.Units)
-            {
-                if (candidate.Id == selectedId)
-                {
-                    selected = candidate;
-                    break;
-                }
-            }
-
-            if (selected is not null
-                && selected.IsActive
-                && selected.PlayerIndex == match.CurrentPlayer)
-            {
-                AppendSelectedUnitActions(match, selected, actions, ref tie);
-                AppendEndTurn(actions, ref tie);
-                return actions;
-            }
+            AppendSelectedUnitActions(match, selected, actions, ref tieBreak);
+            Append(actions, BotAtomicActionKind.EndTurn, MatchAction.EndTurn, ref tieBreak);
+            return actions;
         }
 
-        // Никто не выбран → выбрать активного юнита, купить в замке или закончить ход.
+        // Nothing selected: pick an active unit, buy in a castle, or end the turn.
         foreach (var unit in match.Units)
         {
             if (unit.PlayerIndex != match.CurrentPlayer || !unit.IsActive)
                 continue;
 
-            actions.Add(new BotAtomicAction
-            {
-                Kind = BotAtomicActionKind.SelectUnit,
-                UnitId = unit.Id,
-                Cell = unit.Cell,
-                TieBreak = tie++,
-            });
+            Append(actions, BotAtomicActionKind.SelectUnit, MatchAction.SelectUnit(unit.Id, unit.Cell), ref tieBreak);
         }
 
-        AppendRecruitActions(match, actions, ref tie);
-        AppendEndTurn(actions, ref tie);
+        AppendRecruitActions(match, actions, ref tieBreak);
+        Append(actions, BotAtomicActionKind.EndTurn, MatchAction.EndTurn, ref tieBreak);
         return actions;
-    }
-
-    private static void AppendEndTurn(List<BotAtomicAction> actions, ref int tie)
-    {
-        actions.Add(new BotAtomicAction
-        {
-            Kind = BotAtomicActionKind.EndTurn,
-            TieBreak = tie++,
-        });
     }
 
     private static void AppendSelectedUnitActions(
         MatchState match,
         MatchUnit unit,
         List<BotAtomicAction> actions,
-        ref int tie)
+        ref int tieBreak)
     {
         if (!match.ContentCatalog.TryGetUnit(unit.TypeId, out var definition))
             return;
 
-        // Важно: только действия с ТЕКУЩЕЙ клетки.
-        // UI-оверлей атак включает цели «после возможного хода» — Confirm туда без хода
-        // ничего не делает, и бот начинал «стоять» (оценка как у Wait).
         var overlay = MatchUnitActionQueries.Build(match, unit, definition, respectActivationMove: true);
-
         foreach (var cell in overlay.MoveCells)
-        {
-            actions.Add(new BotAtomicAction
-            {
-                Kind = BotAtomicActionKind.ConfirmAt,
-                UnitId = unit.Id,
-                Cell = cell,
-                TieBreak = tie++,
-            });
-        }
+            AppendConfirm(match, cell, actions, ref tieBreak);
 
-        AppendAttacksFromCurrentCell(match, unit, definition, actions, ref tie);
-        AppendRaiseFromCurrentCell(match, unit, definition, actions, ref tie);
+        // Strikes only from the current cell: the overlay also shows targets after a possible move,
+        // and a Confirm there without moving would do nothing.
+        AppendStrikesFromCurrentCell(match, unit, definition, actions, ref tieBreak);
+        AppendRaisesFromCurrentCell(match, unit, definition, actions, ref tieBreak);
 
-        // Confirm на своей клетке: захват / ремонт, иначе Wait.
-        actions.Add(new BotAtomicAction
-        {
-            Kind = BotAtomicActionKind.ConfirmAt,
-            UnitId = unit.Id,
-            Cell = unit.Cell,
-            TieBreak = tie++,
-        });
-
-        actions.Add(new BotAtomicAction
-        {
-            Kind = BotAtomicActionKind.WaitSelected,
-            UnitId = unit.Id,
-            Cell = unit.Cell,
-            TieBreak = tie++,
-        });
+        // Confirm on the own cell: capture / repair, otherwise wait.
+        AppendConfirm(match, unit.Cell, actions, ref tieBreak);
+        Append(actions, BotAtomicActionKind.WaitSelected, MatchAction.WaitUnit(unit.Id, unit.Cell), ref tieBreak);
     }
 
-    private static void AppendAttacksFromCurrentCell(
+    private static void AppendStrikesFromCurrentCell(
         MatchState match,
         MatchUnit unit,
         UnitDefinition definition,
         List<BotAtomicAction> actions,
-        ref int tie)
+        ref int tieBreak)
     {
-        // Катапульта и т.п.: после хода атаковать нельзя.
-        if (MatchUnitAbilities.HasAbility(definition, "moveOrAttackExclusive")
-            && unit.HasMovedThisActivation)
-        {
+        if (MatchActionRules.IsAttackLockedAfterMove(unit, definition))
             return;
-        }
 
         foreach (var candidate in match.Units)
         {
-            if (candidate.Id == unit.Id || candidate.PlayerIndex == unit.PlayerIndex)
-                continue;
-
-            var range = unit.Cell.ManhattanDistanceTo(candidate.Cell);
-            if (range < definition.AttackRangeMin || range > definition.AttackRangeMax)
-                continue;
-
-            actions.Add(new BotAtomicAction
-            {
-                Kind = BotAtomicActionKind.ConfirmAt,
-                UnitId = unit.Id,
-                Cell = candidate.Cell,
-                TieBreak = tie++,
-            });
+            if (MatchActionRules.IsAttackTargetFrom(match, unit, definition, unit.Cell, candidate))
+                AppendConfirm(match, candidate.Cell, actions, ref tieBreak);
         }
-
-        if (!MatchUnitAbilities.TryGetAbility(definition, "destroyBuilding", out var destroyAbility))
-            return;
 
         foreach (var building in match.Buildings)
         {
-            if (building.IsRuined)
-                continue;
-            if (!match.ContentCatalog.TryGetBuilding(building.TypeId, out var buildingDefinition))
-                continue;
-            if (!buildingDefinition.Destroyable)
-                continue;
-            if (!MatchUnitAbilities.TagsIntersect(destroyAbility.Tags, buildingDefinition.Tags))
-                continue;
-            if (match.IsOccupiedByUnitPublic(building.Cell, exceptUnitId: unit.Id))
-                continue;
-
-            var range = unit.Cell.ManhattanDistanceTo(building.Cell);
-            if (range < definition.AttackRangeMin || range > definition.AttackRangeMax)
-                continue;
-
-            actions.Add(new BotAtomicAction
-            {
-                Kind = BotAtomicActionKind.ConfirmAt,
-                UnitId = unit.Id,
-                Cell = building.Cell,
-                TieBreak = tie++,
-            });
+            if (MatchActionRules.IsDestroyTargetFrom(match, unit, definition, unit.Cell, building))
+                AppendConfirm(match, building.Cell, actions, ref tieBreak);
         }
     }
 
-    private static void AppendRaiseFromCurrentCell(
+    private static void AppendRaisesFromCurrentCell(
         MatchState match,
         MatchUnit unit,
         UnitDefinition definition,
         List<BotAtomicAction> actions,
-        ref int tie)
+        ref int tieBreak)
     {
-        if (!MatchUnitAbilities.HasAbility(definition, "raiseSkeleton"))
-            return;
-        if (match.CountUnitsForPlayer(unit.PlayerIndex) >= match.UnitCap)
-            return;
-
         foreach (var stone in match.Gravestones)
         {
-            if (unit.Cell.ManhattanDistanceTo(stone.Cell) != 1)
-                continue;
-            if (match.IsOccupiedByUnitPublic(stone.Cell, exceptUnitId: unit.Id))
-                continue;
-
-            actions.Add(new BotAtomicAction
-            {
-                Kind = BotAtomicActionKind.ConfirmAt,
-                UnitId = unit.Id,
-                Cell = stone.Cell,
-                TieBreak = tie++,
-            });
+            if (MatchActionRules.IsRaiseTargetFrom(match, unit, definition, unit.Cell, stone.Cell))
+                AppendConfirm(match, stone.Cell, actions, ref tieBreak);
         }
     }
 
-    private static void AppendRecruitActions(MatchState match, List<BotAtomicAction> actions, ref int tie)
+    private static void AppendRecruitActions(MatchState match, List<BotAtomicAction> actions, ref int tieBreak)
     {
         foreach (var building in match.Buildings)
         {
@@ -220,28 +116,32 @@ public static class LegalActionGenerator
                 continue;
             }
 
-            // На клетке замка уже стоит юнит — вербовать нельзя (сначала увести).
-            if (match.IsOccupiedByUnitPublic(building.Cell))
-                continue;
-
             foreach (var offer in match.ContentCatalog.ShopOffers)
             {
-                if (!match.ContentCatalog.TryGetUnit(offer.UnitTypeId, out _))
-                    continue;
-                if (match.GetMoney(match.CurrentPlayer) < offer.Cost)
-                    continue;
-                if (match.IsUniqueUnitOwnedByCurrentPlayer(offer.UnitTypeId))
-                    continue;
-
-                actions.Add(new BotAtomicAction
-                {
-                    Kind = BotAtomicActionKind.Recruit,
-                    Cell = building.Cell,
-                    UnitTypeId = offer.UnitTypeId,
-                    RecruitCost = offer.Cost,
-                    TieBreak = tie++,
-                });
+                var recruit = MatchAction.RecruitUnit(offer.UnitTypeId, building.Cell);
+                if (MatchActionRules.IsValid(match, recruit))
+                    Append(actions, BotAtomicActionKind.Recruit, recruit, ref tieBreak);
             }
         }
+    }
+
+    private static void AppendConfirm(MatchState match, GridCell cell, List<BotAtomicAction> actions, ref int tieBreak)
+    {
+        if (MatchActionResolver.ResolveConfirm(match, cell) is { } action)
+            Append(actions, BotAtomicActionKind.ConfirmAt, action, ref tieBreak);
+    }
+
+    private static void Append(
+        List<BotAtomicAction> actions,
+        BotAtomicActionKind kind,
+        MatchAction action,
+        ref int tieBreak)
+    {
+        actions.Add(new BotAtomicAction
+        {
+            Kind = kind,
+            Action = action,
+            TieBreak = tieBreak++,
+        });
     }
 }

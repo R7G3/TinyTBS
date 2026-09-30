@@ -6,6 +6,7 @@ using TinyTBS.Game.Match;
 using TinyTBS.Game.Presentation.Match;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.ViewModels;
+using TinyTBS.Game.Match.Session;
 
 namespace TinyTBS.Game.Screens;
 
@@ -45,8 +46,8 @@ public sealed class GameplayScreen : GameScreen
             onLeaveMatch: LeaveMatchToMainMenu,
             onSaveMatch: SaveMatch,
             onLoadMatch: SuspendAndOpenLoadGame,
-            onNextChapter: StartNextChapter,
-            onRetryChapter: RetryChapter);
+            onNextChapter: StartCurrentCampaignChapter,
+            onRetryChapter: StartCurrentCampaignChapter);
     }
 
     public override void UnloadContent()
@@ -88,38 +89,20 @@ public sealed class GameplayScreen : GameScreen
         _controller?.SaveCurrentMatch();
     }
 
-    private void StartNextChapter()
+    /// <summary>
+    /// Next chapter and Retry both start <see cref="CampaignRunState.CurrentLevelId"/>:
+    /// a won chapter has already advanced it, a lost one has not.
+    /// </summary>
+    private void StartCurrentCampaignChapter()
     {
-        var run = _session.CampaignRun;
+        var run = _session.Runtime.CampaignRun;
         if (run is null)
             return;
 
         _sessionTransferred = false;
         TinyGame.ClearSuspendedMatch(dispose: true);
 
-        var request = new NewGameStartRequest
-        {
-            ScenarioModuleId = run.ScenarioModuleId,
-            LevelId = run.CurrentLevelId,
-            Composition = run.Composition,
-            PlayerCount = run.PlayerSeats?.Count,
-            UnitCap = run.UnitCap,
-            PlayerSeats = run.PlayerSeats,
-            CampaignRun = run,
-        };
-        ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, Assets, request));
-    }
-
-    private void RetryChapter()
-    {
-        var run = _session.CampaignRun;
-        if (run is null)
-            return;
-
-        _sessionTransferred = false;
-        TinyGame.ClearSuspendedMatch(dispose: true);
-
-        var request = new NewGameStartRequest
+        var request = new MatchStartRequest
         {
             ScenarioModuleId = run.ScenarioModuleId,
             LevelId = run.CurrentLevelId,

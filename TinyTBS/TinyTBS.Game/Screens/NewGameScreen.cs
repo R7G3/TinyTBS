@@ -1,16 +1,15 @@
-using Gum;
 using Microsoft.Xna.Framework;
-using MonoGame.Extended.Screens;
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Match;
+using TinyTBS.Game.Match.Session;
 using TinyTBS.Game.Ai;
 using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Campaigns.Models;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Modules.Models;
 using TinyTBS.Game.Presentation.NewGame;
-using TinyTBS.Game.Saves;
+using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Screens;
@@ -19,7 +18,7 @@ namespace TinyTBS.Game.Screens;
 /// New Game tabbed flow: Mode → Scenario → Level → Composition → Lobby → loading.
 /// Lobby slots: Local / Bot (Easy·Normal) / Remote greyed.
 /// </summary>
-public sealed class NewGameScreen : GameScreen
+public sealed class NewGameScreen : MenuScreen
 {
     private const int GoldStep = 50;
     private const int UnitCapStep = 1;
@@ -28,66 +27,48 @@ public sealed class NewGameScreen : GameScreen
     private const int MinUnitCap = 1;
     private const int MaxUnitCap = 99;
 
-    private readonly IAssetResolver _assets;
     private readonly NewGameViewModel _viewModel = new();
     private readonly NewGameView _view = new();
     private readonly List<MatchPlayerSeat> _playerSeats = [];
-    private readonly Dictionary<string, ScenarioLevelInfo[]> _levelsByScenario = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<ScenarioLevelInfo>> _levelsByScenario = new(StringComparer.Ordinal);
     private readonly Dictionary<string, CampaignDefinition> _campaignByScenario = new(StringComparer.Ordinal);
     private readonly CampaignProgressStore _campaignProgressStore;
 
-    private MainMenuBackground? _background;
-    private ContentModuleLibrary? _moduleLibrary;
-    private ContentModuleLocator? _moduleLocator;
+    private NewGameScenarioCatalog? _scenarioCatalog;
     private ContentBundleLibrary? _bundleLibrary;
     private ContentModuleInfo[] _allScenarios = [];
     private bool _lobbyInitializedForLevel;
     private NewGameFocusAnchor _focusAnchor = NewGameFocusAnchor.Auto;
 
     public NewGameScreen(GameMain game, IAssetResolver assets)
-        : base(game)
+        : base(game, assets)
     {
-        _assets = assets;
         _campaignProgressStore = new CampaignProgressStore(game.UserDataPaths);
     }
 
-    private GameMain TinyGame => (GameMain)Game;
-
-    public override void LoadContent()
+    protected override void OnLoad()
     {
-        base.LoadContent();
-
         TinyGame.UserDataPaths.EnsureCreated();
-        _moduleLibrary = new ContentModuleLibrary(TinyGame.Files, TinyGame.UserDataPaths);
-        _moduleLocator = new ContentModuleLocator(TinyGame.Files, TinyGame.UserDataPaths);
+        _scenarioCatalog = new NewGameScenarioCatalog(TinyGame.Files, TinyGame.UserDataPaths);
         _bundleLibrary = new ContentBundleLibrary(TinyGame.Files, TinyGame.UserDataPaths);
 
         _viewModel.ActiveTab = NewGameTab.Mode;
-        _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
         Refresh("Pick Campaign or Skirmish, then scenario and level.");
     }
 
-    public override void UnloadContent()
+    protected override void OnUnload()
     {
         _view.Clear();
-        _background?.Dispose();
-        _background = null;
-        _moduleLibrary = null;
-        _moduleLocator = null;
+        _scenarioCatalog = null;
         _bundleLibrary = null;
         _levelsByScenario.Clear();
         _campaignByScenario.Clear();
-        base.UnloadContent();
     }
 
-    public override void Update(GameTime gameTime)
+    protected override void OnUpdate(GameTime gameTime, float elapsedSeconds)
     {
-        GumService.Default.Update(gameTime);
         _view.ApplyResponsiveLayout();
-        _view.HandleInput(
-            TinyGame.Commands,
-            (float)gameTime.ElapsedGameTime.TotalSeconds,
-            TinyGame.Pointer);
+        _view.HandleInput(TinyGame.Commands, elapsedSeconds, TinyGame.Pointer);
         _view.HandlePointerScroll(TinyGame.Pointer.ScrollWheelDelta);
 
         if (_viewModel.ShowAddPlayerTypeChooser
@@ -98,32 +79,13 @@ public sealed class NewGameScreen : GameScreen
             return;
         }
 
-        if (TinyGame.Commands.WasPressed(GameCommand.Back)
-            || TinyGame.Commands.WasPressed(GameCommand.Cancel)
-            || TinyGame.Commands.WasPressed(GameCommand.Info)
-            || TinyGame.Commands.WasPressed(GameCommand.Pause))
-        {
+        if (WasLeavePressed())
             GoToMainMenu();
-        }
-    }
-
-    public override void Draw(GameTime gameTime)
-    {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
-
-        _background?.Draw(
-            TinyGame.SharedSpriteBatch,
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            gameTime);
-
-        GumService.Default.Draw();
     }
 
     private void Refresh(string statusText)
     {
-        ArgumentNullException.ThrowIfNull(_moduleLibrary);
-        ArgumentNullException.ThrowIfNull(_moduleLocator);
+        ArgumentNullException.ThrowIfNull(_scenarioCatalog);
         ArgumentNullException.ThrowIfNull(_bundleLibrary);
 
         RebuildScenarioCatalog();
@@ -181,8 +143,7 @@ public sealed class NewGameScreen : GameScreen
         {
             try
             {
-                var scenarioRoot = _moduleLocator.ResolveModuleRoot(_viewModel.SelectedScenarioModuleId);
-                scenarioDefinition = ScenarioModuleLoader.Load(scenarioRoot, TinyGame.Files);
+                scenarioDefinition = _scenarioCatalog.LoadScenario(_viewModel.SelectedScenarioModuleId);
             }
             catch (Exception exception)
             {
@@ -228,36 +189,17 @@ public sealed class NewGameScreen : GameScreen
 
     private void RebuildScenarioCatalog()
     {
-        ArgumentNullException.ThrowIfNull(_moduleLibrary);
-        ArgumentNullException.ThrowIfNull(_moduleLocator);
+        ArgumentNullException.ThrowIfNull(_scenarioCatalog);
 
-        _allScenarios = _moduleLibrary.ListEffectiveModules()
-            .Where(module => module.Type == ContentModuleType.Scenario)
-            .OrderBy(module => module.Title, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
+        var entries = _scenarioCatalog.ListScenarios();
+        _allScenarios = entries.Select(entry => entry.Module).ToArray();
         _levelsByScenario.Clear();
         _campaignByScenario.Clear();
-        foreach (var scenario in _allScenarios)
+        foreach (var entry in entries)
         {
-            try
-            {
-                var scenarioRoot = _moduleLocator.ResolveModuleRoot(scenario.ModuleId);
-                _levelsByScenario[scenario.ModuleId] =
-                    ScenarioLevelCatalog.ListLevels(scenarioRoot, TinyGame.Files).ToArray();
-
-                var definition = ScenarioModuleLoader.Load(scenarioRoot, TinyGame.Files);
-                var campaign = CampaignLoader.TryLoadFromScenario(
-                    scenarioRoot,
-                    definition.CampaignManifestRelativePath,
-                    TinyGame.Files);
-                if (campaign is not null)
-                    _campaignByScenario[scenario.ModuleId] = campaign;
-            }
-            catch
-            {
-                _levelsByScenario[scenario.ModuleId] = [];
-            }
+            _levelsByScenario[entry.Module.ModuleId] = entry.Levels;
+            if (entry.Campaign is not null)
+                _campaignByScenario[entry.Module.ModuleId] = entry.Campaign;
         }
     }
 
@@ -367,7 +309,7 @@ public sealed class NewGameScreen : GameScreen
         if (levels.Count == 0)
             return null;
 
-        return levels.FirstOrDefault(level => level.LevelId == GameplaySessionFactory.ProvingGroundsLevelId)
+        return levels.FirstOrDefault(level => level.LevelId == VanillaContentIds.DefaultSkirmishLevelId)
                    ?.LevelId
                ?? levels[0].LevelId;
     }
@@ -588,17 +530,9 @@ public sealed class NewGameScreen : GameScreen
 
         var bundle = bundles.FirstOrDefault(
             candidate => candidate.BundleId == _viewModel.SelectedCompositionSourceId);
-        if (bundle is null)
-            return MatchContentComposition.FromScenarioDefaults(scenario);
-
-        return new MatchContentComposition
-        {
-            ScenarioModuleId = scenario.ModuleId,
-            UnitsModuleIds = bundle.Defaults.UnitsModuleIds,
-            BuildingsModuleIds = bundle.Defaults.BuildingsModuleIds,
-            ThemeModuleId = bundle.Defaults.ThemeModuleId,
-            Replaces = scenario.Replaces,
-        };
+        return bundle is null
+            ? MatchContentComposition.FromScenarioDefaults(scenario)
+            : MatchContentComposition.FromScenarioWithBundle(scenario, bundle);
     }
 
     private static string FormatModesLabel(IReadOnlyList<string> modes)
@@ -829,15 +763,14 @@ public sealed class NewGameScreen : GameScreen
             return;
         }
 
-        ArgumentNullException.ThrowIfNull(_moduleLocator);
+        ArgumentNullException.ThrowIfNull(_scenarioCatalog);
         ArgumentNullException.ThrowIfNull(_bundleLibrary);
 
         try
         {
             EnsureMinimumPlayerSeats();
 
-            var scenarioRoot = _moduleLocator.ResolveModuleRoot(_viewModel.SelectedScenarioModuleId);
-            var scenario = ScenarioModuleLoader.Load(scenarioRoot, TinyGame.Files);
+            var scenario = _scenarioCatalog.LoadScenario(_viewModel.SelectedScenarioModuleId);
             var bundles = _bundleLibrary.ListEffectiveBundles();
             var composition = ResolveComposition(scenario, bundles)
                 ?? throw new InvalidOperationException("Composition is unavailable.");
@@ -846,13 +779,19 @@ public sealed class NewGameScreen : GameScreen
             if (_viewModel.SelectedMode == NewGamePlayMode.Campaign
                 && _campaignByScenario.TryGetValue(_viewModel.SelectedScenarioModuleId, out var campaign))
             {
-                campaignRun = BeginOrResumeCampaignRun(campaign, composition);
+                campaignRun = new CampaignProgressService(TinyGame.UserDataPaths, TinyGame.Files).BeginOrResumeRun(
+                    campaign,
+                    _viewModel.SelectedScenarioModuleId,
+                    _viewModel.SelectedLevelId,
+                    composition,
+                    _playerSeats,
+                    _viewModel.UnitCap);
             }
 
             ScreenManager.ReplaceScreen(new LoadingScreen(
                 TinyGame,
-                _assets,
-                new NewGameStartRequest
+                Assets,
+                new MatchStartRequest
                 {
                     ScenarioModuleId = _viewModel.SelectedScenarioModuleId,
                     LevelId = _viewModel.SelectedLevelId,
@@ -866,72 +805,11 @@ public sealed class NewGameScreen : GameScreen
         }
         catch (Exception exception)
         {
+            GameLog.Error("Starting a new match failed.", exception);
             _view.SetStatus("Cannot start: " + exception.Message);
         }
     }
 
-    private CampaignRunState BeginOrResumeCampaignRun(
-        CampaignDefinition campaign,
-        MatchContentComposition composition)
-    {
-        var existing = _campaignProgressStore.TryLoadLatestForCampaign(
-            _viewModel.SelectedScenarioModuleId!,
-            campaign.CampaignId);
-
-        CampaignProgressDocument progress;
-        if (existing is null)
-        {
-            progress = CampaignProgressFactory.CreateNew(
-                campaign,
-                _viewModel.SelectedScenarioModuleId!,
-                composition,
-                _playerSeats.Select(MatchSaveSeatCodec.ToSave).ToList(),
-                _viewModel.UnitCap);
-        }
-        else
-        {
-            progress = existing;
-            // Jump cursor to the selected unlocked chapter.
-            progress = new CampaignProgressDocument
-            {
-                SaveVersion = existing.SaveVersion,
-                Kind = CampaignProgressDocument.KindCampaign,
-                WrittenAtUtc = DateTimeOffset.UtcNow,
-                CampaignId = existing.CampaignId,
-                ScenarioModuleId = existing.ScenarioModuleId,
-                CampaignTitle = existing.CampaignTitle ?? campaign.Title,
-                CurrentLevelId = _viewModel.SelectedLevelId!,
-                UnlockedLevelIds = existing.UnlockedLevelIds.ToList(),
-                PendingNextLevelId = existing.PendingNextLevelId,
-                UnitCap = _viewModel.UnitCap,
-                ContentSetup = CampaignProgressFactory.ToContentSetup(composition, null),
-                PlayerSeats = _playerSeats.Select(MatchSaveSeatCodec.ToSave).ToList(),
-                Extensions = new Dictionary<string, string>(existing.Extensions, StringComparer.Ordinal),
-            };
-            if (!progress.UnlockedLevelIds.Contains(progress.CurrentLevelId, StringComparer.Ordinal))
-                progress.UnlockedLevelIds.Add(progress.CurrentLevelId);
-        }
-
-        var path = _campaignProgressStore.Write(progress);
-        var run = CampaignRunState.FromProgress(progress, composition, _playerSeats.ToArray());
-        run.ProgressFilePath = path;
-
-        if (existing is null)
-        {
-            try
-            {
-                var service = new CampaignProgressService(TinyGame.UserDataPaths, TinyGame.Files);
-                service.NotifyCampaignStarted(run, campaign);
-            }
-            catch (Exception)
-            {
-                // Best-effort.
-            }
-        }
-
-        return run;
-    }
-
     private void GoToMainMenu() =>
-        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, _assets));
+        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
 }

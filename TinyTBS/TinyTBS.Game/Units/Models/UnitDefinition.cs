@@ -9,7 +9,7 @@ public sealed class UnitDefinition
 
     public required string DisplayNameKey { get; init; }
 
-    public required string MovementClass { get; init; }
+    public required MovementClass MovementClass { get; init; }
 
     public IReadOnlyList<string> Tags { get; init; } = [];
 

@@ -31,6 +31,12 @@ public sealed class CampaignRunState
 
     public string? ProgressFilePath { get; set; }
 
+    /// <summary>
+    /// Set when a campaign hook fails; later hooks in this run are skipped so one bad script
+    /// cannot keep throwing on every chapter transition.
+    /// </summary>
+    public string? ScriptFailureMessage { get; set; }
+
     public static CampaignRunState FromProgress(
         CampaignProgressDocument progress,
         MatchContentComposition? composition,
