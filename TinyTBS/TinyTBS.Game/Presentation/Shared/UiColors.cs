@@ -43,4 +43,13 @@ public static class UiColors
     public static readonly Color MatchIconSlot = new(40, 44, 56, 255);
 
     public static readonly Color MatchSceneClear = new(18, 20, 28);
+
+    /// <summary>Unit level digits on the board (bottom-left of the cell).</summary>
+    public static readonly Color MatchUnitLevel = new(255, 240, 200);
+
+    /// <summary>Unit hit-point digits on the board (bottom-right of the cell).</summary>
+    public static readonly Color MatchUnitHitPoints = new(230, 250, 255);
+
+    /// <summary>Outline around <see cref="MatchUnitLevel"/> and <see cref="MatchUnitHitPoints"/>.</summary>
+    public static readonly Color MatchUnitLabelOutline = new(20, 22, 28, 220);
 }

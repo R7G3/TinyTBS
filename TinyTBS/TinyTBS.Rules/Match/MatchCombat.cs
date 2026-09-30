@@ -12,12 +12,13 @@ public static class MatchCombat
         MatchState match,
         MatchUnit attacker,
         UnitDefinition attackerDefinition,
-        MatchUnit defender)
+        MatchUnit defender,
+        ref int? selection)
     {
         var defenderDefinition = RequireUnitDefinition(match, defender);
         var range = attacker.Cell.ManhattanDistanceTo(defender.Cell);
         var damage = ComputeDamage(match, attacker, attackerDefinition, defender, defenderDefinition, range);
-        var defenderDied = ApplyDamage(match, defender, defenderDefinition, damage);
+        var defenderDied = ApplyDamage(match, defender, defenderDefinition, damage, ref selection);
         attacker.GainExperience(defenderDied ? 2 : 1);
 
         var attackerDied = false;
@@ -27,7 +28,7 @@ public static class MatchCombat
             && !MatchUnitAbilities.SuppressesCounterattack(attackerDefinition, range))
         {
             var counterDamage = ComputeDamage(match, defender, defenderDefinition, attacker, attackerDefinition, range);
-            attackerDied = ApplyDamage(match, attacker, attackerDefinition, counterDamage);
+            attackerDied = ApplyDamage(match, attacker, attackerDefinition, counterDamage, ref selection);
             if (!attackerDied)
                 defender.GainExperience(counterDamage > 0 ? 1 : 2);
         }
@@ -42,12 +43,16 @@ public static class MatchCombat
         };
 
         if (attackerDied)
-            match.SelectedUnitId = null;
+            selection = null;
         else
-            match.FinishUnitActivation(attacker, MatchActionKind.AttackUnit);
+            match.FinishUnitActivation(attacker, MatchActionKind.AttackUnit, ref selection);
     }
 
-    internal static void ApplyDestroyBuilding(MatchState match, MatchUnit unit, MatchBuilding building)
+    internal static void ApplyDestroyBuilding(
+        MatchState match,
+        MatchUnit unit,
+        MatchBuilding building,
+        ref int? selection)
     {
         building.IsRuined = true;
         match.LastAction = new MatchPlayerAction
@@ -58,7 +63,7 @@ public static class MatchCombat
             Source = unit.Cell,
             Target = building.Cell,
         };
-        match.FinishUnitActivation(unit, MatchActionKind.DestroyBuilding);
+        match.FinishUnitActivation(unit, MatchActionKind.DestroyBuilding, ref selection);
     }
 
     public static int ResolveAttackAuraBonus(MatchState match, GridCell cell, int playerIndex)
@@ -126,7 +131,8 @@ public static class MatchCombat
         MatchState match,
         MatchUnit unit,
         UnitDefinition definition,
-        int damage)
+        int damage,
+        ref int? selection)
     {
         if (damage <= 0)
             return false;
@@ -145,8 +151,8 @@ public static class MatchCombat
         }
 
         match.UnitList.Remove(unit);
-        if (match.SelectedUnitId == unit.Id)
-            match.SelectedUnitId = null;
+        if (selection == unit.Id)
+            selection = null;
 
         if (definition.LeavesGravestone && !match.TryGetBuildingAt(cell, out _) && !match.HasGravestoneAt(cell))
         {

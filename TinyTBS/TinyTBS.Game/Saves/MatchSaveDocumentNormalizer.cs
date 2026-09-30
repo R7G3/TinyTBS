@@ -169,7 +169,6 @@ internal static class MatchSaveDocumentNormalizer
             KingRehireCountByPlayer = kingRehire.ToList(),
             EliminatedPlayers = (match.EliminatedPlayers ?? []).ToList(),
             Cursor = match.Cursor,
-            SelectedUnitId = match.SelectedUnitId,
             WinnerPlayerIndex = match.WinnerPlayerIndex,
             VictoryReason = match.VictoryReason,
             Units = (match.Units ?? [])

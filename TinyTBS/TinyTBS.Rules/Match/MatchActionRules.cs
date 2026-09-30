@@ -9,7 +9,7 @@ namespace TinyTBS.Rules.Match;
 /// </summary>
 public static class MatchActionRules
 {
-    public static bool IsValid(MatchState state, MatchAction action)
+    public static bool IsValid(MatchState state, MatchAction action, int? selectedUnitId)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(action);
@@ -24,12 +24,12 @@ public static class MatchActionRules
         switch (action.Kind)
         {
             case MatchActionKind.SelectUnit:
-                return CanSelect(state, action.UnitId);
+                return CanSelect(state, action.UnitId, selectedUnitId);
             case MatchActionKind.RecruitUnit:
                 return CanRecruit(state, action.UnitTypeId, action.Target);
         }
 
-        if (!TryGetActingUnit(state, action.UnitId, out var unit, out var definition))
+        if (!TryGetActingUnit(state, action.UnitId, selectedUnitId, out var unit, out var definition))
             return false;
 
         return action.Kind switch
@@ -49,11 +49,12 @@ public static class MatchActionRules
     public static bool TryGetActingUnit(
         MatchState state,
         int unitId,
+        int? selectedUnitId,
         out MatchUnit unit,
         out UnitDefinition definition)
     {
         definition = null!;
-        if (state.SelectedUnitId != unitId
+        if (selectedUnitId != unitId
             || !state.TryGetUnit(unitId, out unit)
             || !unit.IsActive
             || unit.PlayerIndex != state.CurrentPlayer)
@@ -65,8 +66,8 @@ public static class MatchActionRules
         return state.ContentCatalog.TryGetUnit(unit.TypeId, out definition);
     }
 
-    public static bool CanSelect(MatchState state, int unitId) =>
-        state.SelectedUnitId != unitId
+    public static bool CanSelect(MatchState state, int unitId, int? selectedUnitId) =>
+        selectedUnitId != unitId
         && state.TryGetUnit(unitId, out var unit)
         && unit.PlayerIndex == state.CurrentPlayer
         && unit.IsActive;

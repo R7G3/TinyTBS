@@ -73,7 +73,7 @@ public sealed class BotTurnDriver
             return true;
         }
 
-        var action = TakeSearchResult(match, playerIndex, seat.BotDifficulty);
+        var action = TakeSearchResult(session, playerIndex, seat.BotDifficulty);
         if (action is null)
             return false;
 
@@ -89,15 +89,16 @@ public sealed class BotTurnDriver
     }
 
     /// <summary>Starts a search on the first call; returns its decision once the background task finishes.</summary>
-    private BotAtomicAction? TakeSearchResult(MatchState match, int playerIndex, BotDifficulty difficulty)
+    private BotAtomicAction? TakeSearchResult(GameplaySession session, int playerIndex, BotDifficulty difficulty)
     {
         if (_searchTask is null || _searchPlayerIndex != playerIndex)
         {
-            var snapshot = match.Clone();
+            var snapshot = session.State.Clone();
+            var selectedUnitId = session.Cursor.SelectedUnitId;
             var profile = BotDifficultyProfile.For(difficulty);
             var search = _search;
             _searchPlayerIndex = playerIndex;
-            _searchTask = Task.Run(() => search.ChooseAction(snapshot, playerIndex, profile));
+            _searchTask = Task.Run(() => search.ChooseAction(snapshot, selectedUnitId, playerIndex, profile));
             return null;
         }
 
@@ -119,12 +120,12 @@ public sealed class BotTurnDriver
         if (action.AimCell is { } cell)
             session.Cursor.MoveTo(cell);
 
-        if (session.Runtime.TryApply(action.Action) || action.Kind == BotAtomicActionKind.EndTurn)
+        if (session.TryApply(action.Action) || action.Kind == BotAtomicActionKind.EndTurn)
             return;
 
         // A rejected decision would be chosen again every frame; end the turn instead of stalling the match.
         GameLog.Warning($"Bot action rejected by the rules ({action.Action}); ending the bot's turn.");
-        session.Runtime.EndTurn();
+        session.EndTurn();
     }
 
     private void Reset(GameplaySession session)

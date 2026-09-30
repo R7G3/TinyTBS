@@ -94,13 +94,13 @@ public sealed class BoardInputController
         }
 
         if (commands.WasPressed(GameCommand.EndTurn))
-            session.Runtime.EndTurn();
+            session.EndTurn();
 
         if (allowConfirm && commands.WasPressed(GameCommand.Confirm))
             session.Confirm();
 
         if (commands.WasPressed(GameCommand.Wait))
-            session.Runtime.TryWaitSelectedUnit();
+            session.TryWaitSelectedUnit();
 
         var elapsedSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
         var cursor = session.Cursor;

@@ -8,13 +8,17 @@ namespace TinyTBS.Rules.Ai;
 /// </summary>
 public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
 {
-    public BotAtomicAction ChooseAction(MatchState state, int botPlayerIndex, BotDifficultyProfile profile)
+    public BotAtomicAction ChooseAction(
+        MatchState state,
+        int? selectedUnitId,
+        int botPlayerIndex,
+        BotDifficultyProfile profile)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(profile);
 
         // Every "button" a human has in this position: select / confirm / wait / recruit / end turn.
-        var rootActions = LegalActionGenerator.Generate(state);
+        var rootActions = LegalActionGenerator.Generate(state, selectedUnitId);
         if (rootActions.Count == 0)
         {
             return new BotAtomicAction
@@ -27,7 +31,7 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
 
         // Do not let the bot idle while real moves exist (fight / move / recruit).
         // Easy may still Wait when only repositioning without combat remains.
-        var candidates = PreferProductive(state, rootActions, profile);
+        var candidates = PreferProductive(state, rootActions, profile, selectedUnitId);
         var nodes = 0;
         BotAtomicAction? bestAction = null;
         var bestScore = int.MinValue;
@@ -46,11 +50,12 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
                 break;
 
             var child = state.Clone();
-            child.TryApply(action.Action);
+            var applied = child.TryApply(action.Action, selectedUnitId);
             nodes++;
 
             var score = Negamax(
                 child,
+                applied.SelectedUnitId,
                 botPlayerIndex,
                 depthLeft: Math.Max(0, profile.MaxDepth - 1),
                 quiescenceLeft: profile.UseQuiescence && action.IsNoisyForQuiescence
@@ -137,13 +142,14 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
     internal static List<BotAtomicAction> PreferProductive(
         MatchState state,
         List<BotAtomicAction> actions,
-        BotDifficultyProfile profile)
+        BotDifficultyProfile profile,
+        int? selectedUnitId)
     {
         var hasFightOrRecruit = false;
         foreach (var action in actions)
         {
             if (action.Kind == BotAtomicActionKind.Recruit
-                || (action.Kind == BotAtomicActionKind.ConfirmAt && IsFightOrCaptureConfirm(state, action)))
+                || (action.Kind == BotAtomicActionKind.ConfirmAt && IsFightOrCaptureConfirm(state, action, selectedUnitId)))
             {
                 hasFightOrRecruit = true;
                 break;
@@ -174,10 +180,10 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
             _ => false,
         };
 
-    private static bool IsFightOrCaptureConfirm(MatchState state, BotAtomicAction action)
+    private static bool IsFightOrCaptureConfirm(MatchState state, BotAtomicAction action, int? selectedUnitId)
     {
         if (action.Kind != BotAtomicActionKind.ConfirmAt
-            || state.SelectedUnitId is not int selectedId
+            || selectedUnitId is not int selectedId
             || !state.TryGetUnit(selectedId, out var selected))
         {
             return false;
@@ -206,6 +212,7 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
     /// </summary>
     private static int Negamax(
         MatchState state,
+        int? selectedUnitId,
         int botPlayerIndex,
         int depthLeft,
         int quiescenceLeft,
@@ -224,13 +231,13 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
         if (depthLeft <= 0 && quiescenceLeft <= 0)
             return PositionEvaluator.Evaluate(state, botPlayerIndex, profile);
 
-        var actions = LegalActionGenerator.Generate(state);
+        var actions = LegalActionGenerator.Generate(state, selectedUnitId);
         if (actions.Count == 0)
             return PositionEvaluator.Evaluate(state, botPlayerIndex, profile);
 
         // In the bot's own branches cut pure idling again, so the tree is not "Wait → Wait → …".
         if (maximizing)
-            actions = PreferProductive(state, actions, profile);
+            actions = PreferProductive(state, actions, profile, selectedUnitId);
 
         if (depthLeft <= 0 && quiescenceLeft > 0)
         {
@@ -259,7 +266,7 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
                 break;
 
             var child = state.Clone();
-            child.TryApply(action.Action);
+            var applied = child.TryApply(action.Action, selectedUnitId);
             nodes++;
 
             // Spend regular depth first; at zero, tick quiescence down. A noisy move within
@@ -271,6 +278,7 @@ public sealed class AtomicAlphaBetaSearch : IBotSearchPolicy
 
             var score = Negamax(
                 child,
+                applied.SelectedUnitId,
                 botPlayerIndex,
                 nextDepth,
                 nextQuiescence,

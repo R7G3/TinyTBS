@@ -35,9 +35,6 @@ public sealed class MatchRuntimeSnapshot
     [JsonPropertyName("cursor")]
     public MatchSaveCell Cursor { get; init; } = null!;
 
-    [JsonPropertyName("selectedUnitId")]
-    public int? SelectedUnitId { get; init; }
-
     [JsonPropertyName("winnerPlayerIndex")]
     public int? WinnerPlayerIndex { get; init; }
 

@@ -1,6 +1,6 @@
-namespace TinyTBS.Game.Match.Session;
+namespace TinyTBS.Game.Match.Loading;
 
-/// <summary>Discrete progress snapshot while building a <see cref="GameplaySession"/>.</summary>
+/// <summary>Discrete progress snapshot while a match load pipeline runs its stages.</summary>
 public readonly record struct MatchLoadProgress(int CompletedStages, int TotalStages, string StageLabel)
 {
     public float Fraction =>

@@ -62,50 +62,61 @@ public sealed class MatchRuntime : IDisposable
     }
 
     /// <summary>A Confirm (click / A) on <paramref name="cell"/>, resolved by the rules.</summary>
-    public bool ConfirmAt(GridCell cell)
+    public MatchApplyResult ConfirmAt(GridCell cell, int? selectedUnitId)
     {
         if (State.IsMatchOver)
-            return false;
+            return new MatchApplyResult(false, null);
 
-        var applied = State.ConfirmAt(cell);
-        AfterPlayerCommand(applied);
-        return applied;
+        var result = State.ConfirmAt(cell, selectedUnitId);
+        return FinishCommand(result);
     }
 
-    public bool TryApply(MatchAction action)
+    public MatchApplyResult TryApply(MatchAction action, int? selectedUnitId)
     {
         ArgumentNullException.ThrowIfNull(action);
         if (action.Kind == MatchActionKind.EndTurn)
-            return EndTurn();
+            return EndTurn(selectedUnitId);
 
-        var applied = State.TryApply(action);
-        AfterPlayerCommand(applied);
-        return applied;
+        var result = State.TryApply(action, selectedUnitId);
+        return FinishCommand(result);
     }
 
-    public bool EndTurn()
+    public MatchApplyResult EndTurn(int? selectedUnitId)
     {
-        if (!State.TryApply(MatchAction.EndTurn))
-            return false;
+        var result = State.TryApply(MatchAction.EndTurn, selectedUnitId);
+        if (!result.Applied)
+            return FinishCommand(result);
 
         if (!State.IsMatchOver)
             ScriptHost.NotifyPlayerTurnStart(State);
         State.EvaluateStandardOutcome();
-        return true;
+        return result with { SelectedUnitId = State.NormalizeSelection(result.SelectedUnitId) };
+    }
+
+    public MatchApplyResult ClearSelection(int? selectedUnitId)
+    {
+        var result = State.ClearSelection(selectedUnitId);
+        return result with { SelectedUnitId = State.NormalizeSelection(result.SelectedUnitId) };
     }
 
     /// <summary>Finish the selected unit without attack/capture (face north / Y).</summary>
-    public bool TryWaitSelectedUnit() =>
-        State.SelectedUnitId is int unitId
-        && State.TryGetUnit(unitId, out var unit)
-        && TryApply(MatchAction.WaitUnit(unitId, unit.Cell));
+    public MatchApplyResult TryWaitSelectedUnit(int? selectedUnitId) =>
+        selectedUnitId is int unitId && State.TryGetUnit(unitId, out var unit)
+            ? TryApply(MatchAction.WaitUnit(unitId, unit.Cell), selectedUnitId)
+            : new MatchApplyResult(false, State.NormalizeSelection(selectedUnitId));
 
-    public bool TryBuyShopOffer(int offerIndex, GridCell castleCell) =>
-        offerIndex >= 0
-        && offerIndex < ContentCatalog.ShopOffers.Count
-        && TryApply(MatchAction.RecruitUnit(ContentCatalog.ShopOffers[offerIndex].UnitTypeId, castleCell));
+    public MatchApplyResult TryBuyShopOffer(int offerIndex, GridCell castleCell, int? selectedUnitId) =>
+        offerIndex >= 0 && offerIndex < ContentCatalog.ShopOffers.Count
+            ? TryApply(MatchAction.RecruitUnit(ContentCatalog.ShopOffers[offerIndex].UnitTypeId, castleCell), selectedUnitId)
+            : new MatchApplyResult(false, State.NormalizeSelection(selectedUnitId));
 
     public void Dispose() => ScriptHost.Dispose();
+
+    private MatchApplyResult FinishCommand(MatchApplyResult result)
+    {
+        AfterPlayerCommand(result.Applied);
+        return result with { SelectedUnitId = State.NormalizeSelection(result.SelectedUnitId) };
+    }
 
     private void AfterPlayerCommand(bool applied)
     {

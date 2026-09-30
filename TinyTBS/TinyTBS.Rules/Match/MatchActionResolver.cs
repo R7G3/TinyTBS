@@ -6,21 +6,21 @@ namespace TinyTBS.Rules.Match;
 /// </summary>
 public static class MatchActionResolver
 {
-    public static MatchAction? ResolveConfirm(MatchState state, GridCell cell)
+    public static MatchAction? ResolveConfirm(MatchState state, GridCell cell, int? selectedUnitId)
     {
         ArgumentNullException.ThrowIfNull(state);
 
         if (state.IsMatchOver || state.IsPlayerEliminated(state.CurrentPlayer))
             return null;
 
-        if (state.SelectedUnitId is not int selectedUnitId)
+        if (selectedUnitId is not int actingUnitId)
         {
-            return state.TryGetUnitAt(cell, out var candidate) && MatchActionRules.CanSelect(state, candidate.Id)
+            return state.TryGetUnitAt(cell, out var candidate) && MatchActionRules.CanSelect(state, candidate.Id, selectedUnitId)
                 ? MatchAction.SelectUnit(candidate.Id, candidate.Cell)
                 : null;
         }
 
-        if (!MatchActionRules.TryGetActingUnit(state, selectedUnitId, out var unit, out var definition))
+        if (!MatchActionRules.TryGetActingUnit(state, actingUnitId, selectedUnitId, out var unit, out var definition))
             return null;
 
         if (cell == unit.Cell)
@@ -41,7 +41,7 @@ public static class MatchActionResolver
         if (MatchActionRules.CanMove(state, unit, definition, cell))
             return MatchAction.MoveUnit(unit.Id, cell);
 
-        return state.TryGetUnitAt(cell, out var other) && MatchActionRules.CanSelect(state, other.Id)
+        return state.TryGetUnitAt(cell, out var other) && MatchActionRules.CanSelect(state, other.Id, selectedUnitId)
             ? MatchAction.SelectUnit(other.Id, other.Cell)
             : null;
     }

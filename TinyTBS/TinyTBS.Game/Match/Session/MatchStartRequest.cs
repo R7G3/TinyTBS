@@ -8,7 +8,7 @@ namespace TinyTBS.Game.Match.Session;
 
 /// <summary>
 /// Everything needed to build a match session: New Game, campaign chapters, Continue and Load.
-/// Null overrides fall back to the level / scenario defaults in <see cref="MatchSessionLoadPipeline"/>.
+/// Null overrides fall back to the level / scenario defaults while the match is loaded.
 /// </summary>
 public sealed class MatchStartRequest
 {

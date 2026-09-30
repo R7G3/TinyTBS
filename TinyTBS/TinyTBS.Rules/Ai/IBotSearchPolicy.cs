@@ -9,7 +9,12 @@ namespace TinyTBS.Rules.Ai;
 public interface IBotSearchPolicy
 {
     /// <param name="state">Current match state; the search works on clones and never mutates it.</param>
+    /// <param name="selectedUnitId">Activation the player is in, if any. Not stored on <paramref name="state"/>.</param>
     /// <param name="botPlayerIndex">The bot's player index; evaluation is always from its side.</param>
     /// <param name="profile">Depth / node limits and evaluation weights for the difficulty.</param>
-    BotAtomicAction ChooseAction(MatchState state, int botPlayerIndex, BotDifficultyProfile profile);
+    BotAtomicAction ChooseAction(
+        MatchState state,
+        int? selectedUnitId,
+        int botPlayerIndex,
+        BotDifficultyProfile profile);
 }

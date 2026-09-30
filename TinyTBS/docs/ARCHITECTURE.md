@@ -155,7 +155,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 - `TinyTBS.Game` лоадеры папок и сессия: `MatchContentCompositionLoader` + `ContentModuleLocator` → `MatchContentCatalog`; `TinymodInstaller` / `ContentModuleLibrary`; `ContentBundleLocator` / `ContentBundleLibrary`; `MatchRuntime` применяет `MatchAction` и зовёт скрипты
 - `TinyTBS.Scripting.Api` — хуки и буфер команд для `script.cs`; `TinyTBS.Engine.Scripting` — Roslyn, семантическая песочница, бюджет шагов; `TinyTBS.Game.Scripting` — `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost` / `CampaignScriptHost`
 - `TinyTBS.Engine.Ecs`: `TilemapDrawSystem`, `TeamMaskedSpriteDrawSystem` (base + tint mask)
-- `MatchScene` / `GameplaySessionFactory` / `MatchSessionLoadPipeline` — в Game: level → map → скрипт → атлас → сцена (этапы для loading screen); `BoardInputController` + `MatchRuntime.TryApply` — pointer/команды → логика (+ хуки скрипта); бот целится курсором, затем применяет то же `MatchAction`
+- `MatchSessionLoadPipeline` — в `Match/Loading`: level → map → скрипт (`MatchRuntime`) → атлас → сцена, результат — `GameplaySession`. Курсор и выбор юнита живут на `MatchCursor`; правила получают выбор аргументом и не хранят его. `BoardInputController` и бот применяют тот же `MatchAction`
 - `GameplayScreen` / `MainMenuScreen` / `LoadingScreen` / `ContentLibraryScreen` — тонкая склейка lifecycle; переходы — `ScreenNavigator`, сервисы — `AppServices` (`SaveResumeService`, `CampaignFlowService`, `NewGameSetupService`). Мастер новой игры — `NewGameDraft` (экран только ввод и вкладки). Хаб редактора — `EditorHubService` (экран только ввод и переходы). Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
 
 ## Ввод

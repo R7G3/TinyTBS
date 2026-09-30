@@ -66,7 +66,7 @@ public static class MatchEconomy
     }
 
     /// <summary>Applies a recruit already validated by <see cref="MatchActionRules.CanRecruit"/>.</summary>
-    internal static void ApplyRecruit(MatchState match, ContentId unitTypeId, GridCell castleCell)
+    internal static int ApplyRecruit(MatchState match, ContentId unitTypeId, GridCell castleCell)
     {
         match.ContentCatalog.TryGetShopOffer(unitTypeId, out var offer);
         match.ContentCatalog.TryGetUnit(unitTypeId, out var definition);
@@ -82,7 +82,7 @@ public static class MatchEconomy
             Source = castleCell,
             Target = castleCell,
         };
-        match.SelectedUnitId = spawned.Id;
+        return spawned.Id;
     }
 
     private static void ExpireGravestonesForCurrentPlayer(MatchState match)

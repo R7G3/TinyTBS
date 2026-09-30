@@ -81,7 +81,7 @@ public sealed class GameplayMatchController
                 if (_session?.Scene.IsMoveAnimating == true
                     || _session?.Scene.IsCursorAnimating == true)
                     return;
-                _session?.Runtime.EndTurn();
+                _session?.EndTurn();
                 CloseAllOverlays();
             },
             onOpenPause: OpenPause,
@@ -299,7 +299,7 @@ public sealed class GameplayMatchController
                             out captureTargetCells,
                             out repairTargetCells);
                     }
-                    else if (match.TryGetSelectedUnitActionOverlay(out overlay))
+                    else if (match.TryGetSelectedUnitActionOverlay(_session.Cursor.SelectedUnitId, out overlay))
                     {
                         ApplyOverlayCells(
                             overlay,
@@ -317,7 +317,7 @@ public sealed class GameplayMatchController
                         layout,
                         cursorCellX,
                         cursorCellY,
-                        hasSelection: match.SelectedUnitId is not null,
+                        hasSelection: _session.Cursor.SelectedUnitId is not null,
                         moveRangeCells,
                         attackTargetCells,
                         raiseTargetCells,
@@ -330,11 +330,12 @@ public sealed class GameplayMatchController
                         SamplerState.PointClamp,
                         DepthStencilState.None,
                         RasterizerState.CullNone);
-                    _session.UnitLevelLabels.Draw(
+                    UnitCellLabels.Draw(
+                        _session.CellLabels,
                         spriteBatch,
                         layout,
                         match,
-                        resolveVisualTopLeft: unit => scene.GetUnitVisualTopLeft(unit));
+                        unit => scene.GetUnitVisualTopLeft(unit));
                     spriteBatch.End();
                 });
         }
@@ -471,7 +472,7 @@ public sealed class GameplayMatchController
             }
 
             // Esc / Start: first press clears unit selection; second toggles pause.
-            if (_session is not null && _session.State.ClearSelection())
+            if (_session is not null && _session.ClearSelection())
                 return;
 
             if (top == MatchOverlay.Pause)
@@ -508,7 +509,7 @@ public sealed class GameplayMatchController
         // Info (I / east): deselect (undo move if any) if a unit is selected; otherwise open tile detail.
         if (commands.WasPressed(GameCommand.Info))
         {
-            if (_session is not null && _session.State.ClearSelection())
+            if (_session is not null && _session.ClearSelection())
                 return;
 
             OpenOverlay(MatchOverlay.TileDetail);
@@ -516,7 +517,7 @@ public sealed class GameplayMatchController
 
         // Backspace / cancel: deselect and undo a post-move if the unit had moved.
         if (commands.WasPressed(GameCommand.Cancel))
-            _session?.State.ClearSelection();
+            _session?.ClearSelection();
     }
 
     private void OpenOverlay(MatchOverlay overlay)
@@ -569,7 +570,7 @@ public sealed class GameplayMatchController
         GridCell? targetCell = null;
 
         if (commands.WasPressed(GameCommand.Confirm)
-            && match.NeedsCastleUnitActionChooser(cursorCell))
+            && match.NeedsCastleUnitActionChooser(cursorCell, _session.Cursor.SelectedUnitId))
         {
             targetCell = cursorCell;
         }
@@ -578,7 +579,7 @@ public sealed class GameplayMatchController
             && layout.TryScreenToCell(pointer.Position, out var cellX, out var cellY))
         {
             var cell = new GridCell(cellX, cellY);
-            if (match.NeedsCastleUnitActionChooser(cell))
+            if (match.NeedsCastleUnitActionChooser(cell, _session.Cursor.SelectedUnitId))
                 targetCell = cell;
         }
 
@@ -631,13 +632,13 @@ public sealed class GameplayMatchController
             return;
 
         var cursorCell = _session.Cursor.Cell;
-        if (_session.State.SelectedUnitId is not null)
+        if (_session.Cursor.SelectedUnitId is not null)
             return;
         if (_session.State.LastAction?.Kind == MatchActionKind.MoveUnit)
             return;
         if (!_session.State.IsOwnCastleAt(cursorCell))
             return;
-        if (_session.State.NeedsCastleUnitActionChooser(cursorCell))
+        if (_session.State.NeedsCastleUnitActionChooser(cursorCell, _session.Cursor.SelectedUnitId))
             return;
 
         OpenShopAt(cursorCell);
@@ -654,7 +655,7 @@ public sealed class GameplayMatchController
         if (_session is null || _shopCastleCell is not { } castleCell)
             return;
 
-        if (_session.Runtime.TryBuyShopOffer(offerIndex, castleCell))
+        if (_session.TryBuyShopOffer(offerIndex, castleCell))
             CloseTopOverlay();
         else
             _hudSync.Hud.ShopStatusText = "Cannot recruit here (gold or cell occupied).";

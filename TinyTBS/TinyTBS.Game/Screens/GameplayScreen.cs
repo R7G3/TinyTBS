@@ -2,7 +2,6 @@ using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
 using TinyTBS.Game.Presentation.Match;
 using TinyTBS.Game.ViewModels;
-using TinyTBS.Game.Match.Session;
 
 namespace TinyTBS.Game.Screens;
 

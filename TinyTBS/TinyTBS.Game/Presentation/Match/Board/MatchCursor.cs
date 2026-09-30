@@ -19,6 +19,9 @@ public sealed class MatchCursor
 
     public GridCell Cell { get; private set; }
 
+    /// <summary>Unit in its activation. The rules receive this on each command and do not store it.</summary>
+    public int? SelectedUnitId { get; set; }
+
     /// <summary>Cursor for a fresh match: the centre of the board.</summary>
     public static MatchCursor AtBoardCentre(int width, int height) =>
         new(width, height, new GridCell(width / 2, height / 2));

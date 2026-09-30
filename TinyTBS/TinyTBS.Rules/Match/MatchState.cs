@@ -9,7 +9,8 @@ namespace TinyTBS.Rules.Match;
 /// <summary>
 /// Match rules state: terrain, units, buildings, economy, turn order and victory.
 /// Commands arrive as <see cref="MatchAction"/>s (<see cref="TryApply"/>) or as clicks (<see cref="ConfirmAt"/>);
-/// legality lives in <see cref="MatchActionRules"/>. Holds no cursor, camera or other presentation state.
+/// legality lives in <see cref="MatchActionRules"/>. Holds no cursor, unit selection or other presentation state.
+/// Callers pass the current selection in and keep the one returned by <see cref="MatchApplyResult"/>.
 /// </summary>
 public sealed class MatchState
 {
@@ -163,13 +164,32 @@ public sealed class MatchState
 
     public int TurnNumber { get; private set; } = 1;
 
-    /// <summary>
-    /// Unit in its activation: selected, possibly already moved (a move stays undoable via
-    /// <see cref="ClearSelection"/> until the unit acts or waits).
-    /// </summary>
-    public int? SelectedUnitId { get; internal set; }
-
     public MatchPlayerAction? LastAction { get; internal set; }
+
+    /// <summary>
+    /// Drops a selection the rules no longer accept: match over, or the unit is gone / inactive.
+    /// A unit that already moved this activation is still selected — that flag lives on the unit.
+    /// </summary>
+    public int? NormalizeSelection(int? selectedUnitId)
+    {
+        if (IsMatchOver || selectedUnitId is not int unitId)
+            return null;
+        if (!TryGetUnit(unitId, out var unit) || !unit.IsActive || unit.PlayerIndex != CurrentPlayer)
+            return null;
+        return unitId;
+    }
+
+    /// <summary>Current player's unit that has already moved and still needs to act or undo.</summary>
+    public int? PendingActivationUnitId()
+    {
+        foreach (var unit in _units)
+        {
+            if (unit.PlayerIndex == CurrentPlayer && unit.IsActive && unit.HasMovedThisActivation)
+                return unit.Id;
+        }
+
+        return null;
+    }
 
     public int? WinnerPlayerIndex { get; private set; }
 
@@ -190,7 +210,6 @@ public sealed class MatchState
             _nextUnitId = _nextUnitId,
             CurrentPlayer = CurrentPlayer,
             TurnNumber = TurnNumber,
-            SelectedUnitId = SelectedUnitId,
             LastAction = LastAction,
             WinnerPlayerIndex = WinnerPlayerIndex,
             VictoryReason = VictoryReason,
@@ -243,7 +262,6 @@ public sealed class MatchState
             KingRehireCountByPlayer = kingRehires,
             EliminatedPlayers = eliminated,
             Cursor = MatchSnapshotMapper.ToCell(cursor),
-            SelectedUnitId = SelectedUnitId,
             WinnerPlayerIndex = WinnerPlayerIndex,
             VictoryReason = VictoryReason,
             Units = _units.Select(MatchSnapshotMapper.ToSnapshot).ToList(),
@@ -272,7 +290,6 @@ public sealed class MatchState
         _nextUnitId = Math.Max(0, snapshot.NextUnitId);
         CurrentPlayer = Math.Clamp(snapshot.CurrentPlayer, 0, snapshot.PlayerCount - 1);
         TurnNumber = Math.Max(1, snapshot.TurnNumber);
-        SelectedUnitId = snapshot.SelectedUnitId;
         WinnerPlayerIndex = snapshot.WinnerPlayerIndex;
         VictoryReason = snapshot.VictoryReason;
         LastAction = null;
@@ -321,9 +338,6 @@ public sealed class MatchState
 
             _units.Add(restored);
         }
-
-        if (SelectedUnitId is int selectedId && !_units.Any(unit => unit.Id == selectedId))
-            SelectedUnitId = null;
 
         foreach (var stone in snapshot.Gravestones)
             _gravestones.Add(MatchSnapshotMapper.FromSnapshot(stone));
@@ -397,7 +411,6 @@ public sealed class MatchState
 
         WinnerPlayerIndex = playerIndex;
         VictoryReason = string.IsNullOrWhiteSpace(reason) ? "victory" : reason.Trim();
-        SelectedUnitId = null;
         LastAction = null;
     }
 
@@ -441,49 +454,43 @@ public sealed class MatchState
     /// A Confirm (click / A) on <paramref name="cell"/>: resolves it with <see cref="MatchActionResolver"/> and applies
     /// the result. Clears <see cref="LastAction"/> even when the click does nothing.
     /// </summary>
-    public bool ConfirmAt(GridCell cell)
+    public MatchApplyResult ConfirmAt(GridCell cell, int? selectedUnitId)
     {
         if (IsMatchOver || IsPlayerEliminated(CurrentPlayer))
-            return false;
+            return new MatchApplyResult(false, NormalizeSelection(selectedUnitId));
 
         LastAction = null;
-        if (SelectedUnitId is int selectedId && !(TryGetUnit(selectedId, out var selected) && selected.IsActive))
-        {
-            SelectedUnitId = null;
-            return false;
-        }
+        if (selectedUnitId is int selectedId && !(TryGetUnit(selectedId, out var selected) && selected.IsActive))
+            return new MatchApplyResult(false, null);
 
-        var action = MatchActionResolver.ResolveConfirm(this, cell);
+        var action = MatchActionResolver.ResolveConfirm(this, cell, selectedUnitId);
         if (action is null)
-            return false;
+            return new MatchApplyResult(false, NormalizeSelection(selectedUnitId));
 
-        ApplyValidated(action);
-        return true;
+        return ApplyValidated(action, selectedUnitId);
     }
 
     /// <summary>Applies <paramref name="action"/> when <see cref="MatchActionRules.IsValid"/> allows it.</summary>
-    public bool TryApply(MatchAction action)
+    public MatchApplyResult TryApply(MatchAction action, int? selectedUnitId)
     {
         ArgumentNullException.ThrowIfNull(action);
-        if (!MatchActionRules.IsValid(this, action))
-            return false;
+        if (!MatchActionRules.IsValid(this, action, selectedUnitId))
+            return new MatchApplyResult(false, NormalizeSelection(selectedUnitId));
 
-        ApplyValidated(action);
-        return true;
+        return ApplyValidated(action, selectedUnitId);
     }
 
-    /// <summary>Cancels the current activation, undoing a move made in it. Returns false when nothing was selected.</summary>
-    public bool ClearSelection()
+    /// <summary>Cancels the current activation, undoing a move made in it. Applied is false when nothing was selected.</summary>
+    public MatchApplyResult ClearSelection(int? selectedUnitId)
     {
-        if (SelectedUnitId is null)
-            return false;
+        if (selectedUnitId is null)
+            return new MatchApplyResult(false, null);
 
-        if (TryGetUnit(SelectedUnitId.Value, out var unit) && unit.HasMovedThisActivation)
+        if (TryGetUnit(selectedUnitId.Value, out var unit) && unit.HasMovedThisActivation)
             UndoMove(unit);
 
-        SelectedUnitId = null;
         LastAction = null;
-        return true;
+        return new MatchApplyResult(true, null);
     }
 
     public bool TryGetUnit(int unitId, out MatchUnit unit)
@@ -538,8 +545,8 @@ public sealed class MatchState
         && building.OwnerPlayerIndex == CurrentPlayer;
 
     /// <summary>An own castle occupied by an own active unit asks the player: move the unit or buy.</summary>
-    public bool NeedsCastleUnitActionChooser(GridCell cell) =>
-        SelectedUnitId is null
+    public bool NeedsCastleUnitActionChooser(GridCell cell, int? selectedUnitId) =>
+        selectedUnitId is null
         && IsOwnCastleAt(cell)
         && TryGetUnitAt(cell, out var unit)
         && unit.PlayerIndex == CurrentPlayer
@@ -552,10 +559,10 @@ public sealed class MatchState
     /// Action overlay for the selected active unit (move / attack / capture / repair / raise).
     /// After a move this turn, move cells are empty and actions are from the current cell only.
     /// </summary>
-    public bool TryGetSelectedUnitActionOverlay(out MatchUnitActionOverlay overlay)
+    public bool TryGetSelectedUnitActionOverlay(int? selectedUnitId, out MatchUnitActionOverlay overlay)
     {
         overlay = null!;
-        if (SelectedUnitId is not int unitId
+        if (selectedUnitId is not int unitId
             || !TryGetUnit(unitId, out var unit)
             || !unit.IsActive
             || !_catalog.TryGetUnit(unit.TypeId, out var definition))
@@ -602,10 +609,10 @@ public sealed class MatchState
     public int GetAttackAuraBonus(GridCell cell, int playerIndex) =>
         MatchCombat.ResolveAttackAuraBonus(this, cell, playerIndex);
 
-    internal void FinishUnitActivation(MatchUnit unit, MatchActionKind kind)
+    internal void FinishUnitActivation(MatchUnit unit, MatchActionKind kind, ref int? selection)
     {
         unit.IsActive = false;
-        SelectedUnitId = null;
+        selection = null;
         LastAction ??= new MatchPlayerAction
         {
             Kind = kind,
@@ -628,20 +635,21 @@ public sealed class MatchState
         return unit;
     }
 
-    private void ApplyValidated(MatchAction action)
+    private MatchApplyResult ApplyValidated(MatchAction action, int? selectedUnitId)
     {
+        var selection = selectedUnitId;
         switch (action.Kind)
         {
             case MatchActionKind.EndTurn:
-                ApplyEndTurn();
-                return;
+                ApplyEndTurn(ref selection);
+                return Applied(selection);
             case MatchActionKind.RecruitUnit:
-                MatchEconomy.ApplyRecruit(this, action.UnitTypeId, action.Target);
-                return;
+                selection = MatchEconomy.ApplyRecruit(this, action.UnitTypeId, action.Target);
+                return Applied(selection);
             case MatchActionKind.SelectUnit:
                 LastAction = null;
-                ApplySelect(action.UnitId);
-                return;
+                ApplySelect(action.UnitId, ref selection);
+                return Applied(selection);
         }
 
         LastAction = null;
@@ -651,35 +659,40 @@ public sealed class MatchState
         switch (action.Kind)
         {
             case MatchActionKind.MoveUnit:
-                ApplyMove(unit, definition, action.Target);
+                ApplyMove(unit, definition, action.Target, ref selection);
                 break;
             case MatchActionKind.AttackUnit:
                 TryGetUnitAt(action.Target, out var defender);
-                MatchCombat.ApplyAttack(this, unit, definition, defender);
+                MatchCombat.ApplyAttack(this, unit, definition, defender, ref selection);
                 break;
             case MatchActionKind.DestroyBuilding:
                 TryGetBuildingAt(action.Target, out var target);
-                MatchCombat.ApplyDestroyBuilding(this, unit, target);
+                MatchCombat.ApplyDestroyBuilding(this, unit, target, ref selection);
                 break;
             case MatchActionKind.RaiseSkeleton:
-                ApplyRaiseSkeleton(unit, action.Target);
+                ApplyRaiseSkeleton(unit, action.Target, ref selection);
                 break;
             case MatchActionKind.CaptureBuilding:
-                ApplyCapture(unit);
+                ApplyCapture(unit, ref selection);
                 break;
             case MatchActionKind.RepairBuilding:
-                ApplyRepair(unit);
+                ApplyRepair(unit, ref selection);
                 break;
             case MatchActionKind.WaitUnit:
-                FinishUnitActivation(unit, MatchActionKind.WaitUnit);
+                FinishUnitActivation(unit, MatchActionKind.WaitUnit, ref selection);
                 break;
         }
+
+        return Applied(selection);
     }
 
-    private void ApplySelect(int unitId)
+    private MatchApplyResult Applied(int? selection) =>
+        new(true, NormalizeSelection(selection));
+
+    private void ApplySelect(int unitId, ref int? selection)
     {
         TryGetUnit(unitId, out var unit);
-        SelectedUnitId = unit.Id;
+        selection = unit.Id;
         LastAction = new MatchPlayerAction
         {
             Kind = MatchActionKind.SelectUnit,
@@ -690,7 +703,7 @@ public sealed class MatchState
         };
     }
 
-    private void ApplyMove(MatchUnit unit, UnitDefinition definition, GridCell destination)
+    private void ApplyMove(MatchUnit unit, UnitDefinition definition, GridCell destination, ref int? selection)
     {
         var source = unit.Cell;
         unit.CellBeforeMove = source;
@@ -706,12 +719,12 @@ public sealed class MatchState
         };
 
         if (MatchUnitAbilities.HasAbility(definition, UnitAbilityTypes.MoveOrAttackExclusive))
-            FinishUnitActivation(unit, MatchActionKind.MoveUnit);
+            FinishUnitActivation(unit, MatchActionKind.MoveUnit, ref selection);
         else
-            SelectedUnitId = unit.Id;
+            selection = unit.Id;
     }
 
-    private void ApplyRaiseSkeleton(MatchUnit unit, GridCell stoneCell)
+    private void ApplyRaiseSkeleton(MatchUnit unit, GridCell stoneCell, ref int? selection)
     {
         var skeletonTypeId = MatchActionRules.RaisedUnitTypeId(unit);
         _catalog.TryGetUnit(skeletonTypeId, out var skeletonDefinition);
@@ -733,10 +746,10 @@ public sealed class MatchState
             Source = unit.Cell,
             Target = stoneCell,
         };
-        FinishUnitActivation(unit, MatchActionKind.RaiseSkeleton);
+        FinishUnitActivation(unit, MatchActionKind.RaiseSkeleton, ref selection);
     }
 
-    private void ApplyCapture(MatchUnit unit)
+    private void ApplyCapture(MatchUnit unit, ref int? selection)
     {
         TryGetBuildingAt(unit.Cell, out var building);
         building.OwnerPlayerIndex = CurrentPlayer;
@@ -748,10 +761,10 @@ public sealed class MatchState
             Source = unit.Cell,
             Target = unit.Cell,
         };
-        FinishUnitActivation(unit, MatchActionKind.CaptureBuilding);
+        FinishUnitActivation(unit, MatchActionKind.CaptureBuilding, ref selection);
     }
 
-    private void ApplyRepair(MatchUnit unit)
+    private void ApplyRepair(MatchUnit unit, ref int? selection)
     {
         TryGetBuildingAt(unit.Cell, out var building);
         building.IsRuined = false;
@@ -765,13 +778,13 @@ public sealed class MatchState
             Source = unit.Cell,
             Target = unit.Cell,
         };
-        FinishUnitActivation(unit, MatchActionKind.RepairBuilding);
+        FinishUnitActivation(unit, MatchActionKind.RepairBuilding, ref selection);
     }
 
-    private void ApplyEndTurn()
+    private void ApplyEndTurn(ref int? selection)
     {
         LastAction = null;
-        SelectedUnitId = null;
+        selection = null;
         foreach (var unit in _units)
         {
             if (unit.PlayerIndex == CurrentPlayer)
@@ -838,8 +851,6 @@ public sealed class MatchState
             var unit = _units[index];
             if (unit.PlayerIndex != playerIndex)
                 continue;
-            if (SelectedUnitId == unit.Id)
-                SelectedUnitId = null;
             _units.RemoveAt(index);
         }
 
@@ -879,7 +890,6 @@ public sealed class MatchState
     private void AdvancePastEliminatedPlayers()
     {
         LastAction = null;
-        SelectedUnitId = null;
         var guard = 0;
         do
         {

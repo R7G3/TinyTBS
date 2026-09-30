@@ -6,6 +6,7 @@ using TinyTBS.Game.Assets;
 using TinyTBS.Game.Levels;
 using TinyTBS.Rules.Levels.Models;
 using TinyTBS.Rules.Ai;
+using TinyTBS.Game.Match.Session;
 using TinyTBS.Game.Modules;
 using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Game.Presentation.Match;
@@ -13,11 +14,12 @@ using TinyTBS.Game.Presentation.Match.Board;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.Scripting;
 
-namespace TinyTBS.Game.Match.Session;
+namespace TinyTBS.Game.Match.Loading;
 
 /// <summary>
-/// Builds a match session in discrete stages. Call <see cref="AnnounceNextStage"/>,
-/// redraw, then <see cref="RunAnnouncedStage"/> so the UI can show the label before heavy work.
+/// Loads a match in discrete stages: content, level, rules, script, then textures and scene.
+/// Call <see cref="AnnounceNextStage"/>, redraw, then <see cref="RunAnnouncedStage"/> so the loading
+/// screen can show the label before the heavy work. The result is a <see cref="GameplaySession"/>.
 /// </summary>
 public sealed class MatchSessionLoadPipeline
 {
@@ -40,7 +42,7 @@ public sealed class MatchSessionLoadPipeline
     private MatchScene? _scene;
     private CursorHighlightRenderer? _cursorHighlight;
     private MinimapRenderer? _minimap;
-    private UnitLevelLabelRenderer? _unitLevelLabels;
+    private CellLabelRenderer? _cellLabels;
     private int _nextStageIndex;
     private bool _stageAnnounced;
 
@@ -189,6 +191,7 @@ public sealed class MatchSessionLoadPipeline
 
         _state.HydrateFromSnapshot(snapshot);
         _cursor.MoveTo(new GridCell(snapshot.Cursor.X, snapshot.Cursor.Y));
+        _cursor.SelectedUnitId = _state.PendingActivationUnitId();
     }
 
     private void CompileMapScript()
@@ -236,7 +239,7 @@ public sealed class MatchSessionLoadPipeline
         _scene = new MatchScene(_state, _cursor, _graphicsDevice, _spriteBatch, _textures);
         _cursorHighlight = new CursorHighlightRenderer(_graphicsDevice);
         _minimap = new MinimapRenderer(_graphicsDevice);
-        _unitLevelLabels = new UnitLevelLabelRenderer(_content.Load<SpriteFont>("Fonts/MatchCell"));
+        _cellLabels = new CellLabelRenderer(_content.Load<SpriteFont>("Fonts/MatchCell"));
     }
 
     private GameplaySession AssembleSession()
@@ -247,7 +250,7 @@ public sealed class MatchSessionLoadPipeline
         ArgumentNullException.ThrowIfNull(_cursorHighlight);
         ArgumentNullException.ThrowIfNull(_textures);
         ArgumentNullException.ThrowIfNull(_minimap);
-        ArgumentNullException.ThrowIfNull(_unitLevelLabels);
+        ArgumentNullException.ThrowIfNull(_cellLabels);
 
         return new GameplaySession(
             _runtime,
@@ -256,7 +259,7 @@ public sealed class MatchSessionLoadPipeline
             _cursorHighlight,
             _textures,
             _minimap,
-            _unitLevelLabels);
+            _cellLabels);
     }
 
     private MatchLevelBrief CreateLevelBrief(LevelDefinition level) =>

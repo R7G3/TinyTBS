@@ -10,7 +10,7 @@ namespace TinyTBS.Rules.Ai;
 /// </summary>
 public static class LegalActionGenerator
 {
-    public static List<BotAtomicAction> Generate(MatchState match)
+    public static List<BotAtomicAction> Generate(MatchState match, int? selectedUnitId)
     {
         ArgumentNullException.ThrowIfNull(match);
 
@@ -21,12 +21,12 @@ public static class LegalActionGenerator
             return actions;
 
         // A selected unit: only its moves / strikes / wait (+ End turn), never switching to another unit.
-        if (match.SelectedUnitId is int selectedId
+        if (selectedUnitId is int selectedId
             && match.TryGetUnit(selectedId, out var selected)
             && selected.IsActive
             && selected.PlayerIndex == match.CurrentPlayer)
         {
-            AppendSelectedUnitActions(match, selected, actions, ref tieBreak);
+            AppendSelectedUnitActions(match, selected, selectedUnitId, actions, ref tieBreak);
             Append(actions, BotAtomicActionKind.EndTurn, MatchAction.EndTurn, ref tieBreak);
             return actions;
         }
@@ -48,6 +48,7 @@ public static class LegalActionGenerator
     private static void AppendSelectedUnitActions(
         MatchState match,
         MatchUnit unit,
+        int? selectedUnitId,
         List<BotAtomicAction> actions,
         ref int tieBreak)
     {
@@ -56,15 +57,15 @@ public static class LegalActionGenerator
 
         var overlay = MatchUnitActionQueries.Build(match, unit, definition, respectActivationMove: true);
         foreach (var cell in overlay.MoveCells)
-            AppendConfirm(match, cell, actions, ref tieBreak);
+            AppendConfirm(match, cell, selectedUnitId, actions, ref tieBreak);
 
         // Strikes only from the current cell: the overlay also shows targets after a possible move,
         // and a Confirm there without moving would do nothing.
-        AppendStrikesFromCurrentCell(match, unit, definition, actions, ref tieBreak);
-        AppendRaisesFromCurrentCell(match, unit, definition, actions, ref tieBreak);
+        AppendStrikesFromCurrentCell(match, unit, definition, selectedUnitId, actions, ref tieBreak);
+        AppendRaisesFromCurrentCell(match, unit, definition, selectedUnitId, actions, ref tieBreak);
 
         // Confirm on the own cell: capture / repair, otherwise wait.
-        AppendConfirm(match, unit.Cell, actions, ref tieBreak);
+        AppendConfirm(match, unit.Cell, selectedUnitId, actions, ref tieBreak);
         Append(actions, BotAtomicActionKind.WaitSelected, MatchAction.WaitUnit(unit.Id, unit.Cell), ref tieBreak);
     }
 
@@ -72,6 +73,7 @@ public static class LegalActionGenerator
         MatchState match,
         MatchUnit unit,
         UnitDefinition definition,
+        int? selectedUnitId,
         List<BotAtomicAction> actions,
         ref int tieBreak)
     {
@@ -81,13 +83,13 @@ public static class LegalActionGenerator
         foreach (var candidate in match.Units)
         {
             if (MatchActionRules.IsAttackTargetFrom(match, unit, definition, unit.Cell, candidate))
-                AppendConfirm(match, candidate.Cell, actions, ref tieBreak);
+                AppendConfirm(match, candidate.Cell, selectedUnitId, actions, ref tieBreak);
         }
 
         foreach (var building in match.Buildings)
         {
             if (MatchActionRules.IsDestroyTargetFrom(match, unit, definition, unit.Cell, building))
-                AppendConfirm(match, building.Cell, actions, ref tieBreak);
+                AppendConfirm(match, building.Cell, selectedUnitId, actions, ref tieBreak);
         }
     }
 
@@ -95,13 +97,14 @@ public static class LegalActionGenerator
         MatchState match,
         MatchUnit unit,
         UnitDefinition definition,
+        int? selectedUnitId,
         List<BotAtomicAction> actions,
         ref int tieBreak)
     {
         foreach (var stone in match.Gravestones)
         {
             if (MatchActionRules.IsRaiseTargetFrom(match, unit, definition, unit.Cell, stone.Cell))
-                AppendConfirm(match, stone.Cell, actions, ref tieBreak);
+                AppendConfirm(match, stone.Cell, selectedUnitId, actions, ref tieBreak);
         }
     }
 
@@ -119,15 +122,20 @@ public static class LegalActionGenerator
             foreach (var offer in match.ContentCatalog.ShopOffers)
             {
                 var recruit = MatchAction.RecruitUnit(offer.UnitTypeId, building.Cell);
-                if (MatchActionRules.IsValid(match, recruit))
+                if (MatchActionRules.IsValid(match, recruit, selectedUnitId: null))
                     Append(actions, BotAtomicActionKind.Recruit, recruit, ref tieBreak);
             }
         }
     }
 
-    private static void AppendConfirm(MatchState match, GridCell cell, List<BotAtomicAction> actions, ref int tieBreak)
+    private static void AppendConfirm(
+        MatchState match,
+        GridCell cell,
+        int? selectedUnitId,
+        List<BotAtomicAction> actions,
+        ref int tieBreak)
     {
-        if (MatchActionResolver.ResolveConfirm(match, cell) is { } action)
+        if (MatchActionResolver.ResolveConfirm(match, cell, selectedUnitId) is { } action)
             Append(actions, BotAtomicActionKind.ConfirmAt, action, ref tieBreak);
     }
 
