@@ -39,13 +39,13 @@ public sealed class EditorHubScreen : MenuScreen
     /// </summary>
     private bool _suppressInputUntilIdle;
 
-    public EditorHubScreen(GameMain game, IAssetResolver assets)
-        : this(game, assets, session: null)
+    public EditorHubScreen(GameMain game)
+        : this(game, session: null)
     {
     }
 
-    public EditorHubScreen(GameMain game, IAssetResolver assets, EditorWorkspaceSession? session)
-        : base(game, assets)
+    public EditorHubScreen(GameMain game, EditorWorkspaceSession? session)
+        : base(game)
     {
         _session = session;
     }
@@ -217,17 +217,17 @@ public sealed class EditorHubScreen : MenuScreen
     }
 
     private void OpenNewScenarioWizard() =>
-        ScreenManager.ReplaceScreen(new EditorNewScenarioScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorNewScenario(_session);
 
     private void OpenNewContentTypeWizard(ContentModuleType type) =>
-        ScreenManager.ReplaceScreen(new EditorNewContentTypeModuleScreen(TinyGame, Assets, _session, type));
+        Navigator.ToEditorNewContentType(_session, type);
 
     private void OpenThemeEditor()
     {
         if (_session is null || _session.Type != ContentModuleType.Theme)
             return;
 
-        ScreenManager.ReplaceScreen(new EditorThemeEditScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorTheme(_session);
     }
 
     private void OpenNewBundle()
@@ -238,8 +238,7 @@ public sealed class EditorHubScreen : MenuScreen
         var modules = _moduleLibrary.ListEffectiveModules();
         var bundleId = _bundleWriter.AllocateUniqueBundleId("user_bundle");
         var document = EditableBundleDocument.CreateDefault(bundleId, modules);
-        ScreenManager.ReplaceScreen(
-            new EditorBundleEditScreen(TinyGame, Assets, _session, document, isNew: true));
+        Navigator.ToEditorBundle(_session, document, isNew: true);
     }
 
     private void OpenExistingBundle(string bundleId)
@@ -250,8 +249,7 @@ public sealed class EditorHubScreen : MenuScreen
                 TinyGame.UserDataPaths.Bundles,
                 bundleId + ContentBundleFiles.BundleJsonExtension);
             var document = EditableBundleDocument.Load(path, TinyGame.Files);
-            ScreenManager.ReplaceScreen(
-                new EditorBundleEditScreen(TinyGame, Assets, _session, document, isNew: false));
+            Navigator.ToEditorBundle(_session, document, isNew: false);
         }
         catch (Exception exception)
         {
@@ -300,8 +298,7 @@ public sealed class EditorHubScreen : MenuScreen
                     TinyGame.UserDataPaths.Bundles,
                     targetId + ContentBundleFiles.BundleJsonExtension),
                 TinyGame.Files);
-            ScreenManager.ReplaceScreen(
-                new EditorBundleEditScreen(TinyGame, Assets, _session, document, isNew: false));
+            Navigator.ToEditorBundle(_session, document, isNew: false);
         }
         catch (Exception exception) when (exception is EditorException or ContentBundleException or IOException)
         {
@@ -331,7 +328,7 @@ public sealed class EditorHubScreen : MenuScreen
         if (_session is null || _session.Type != ContentModuleType.Scenario)
             return;
 
-        ScreenManager.ReplaceScreen(new EditorNewMapScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorNewMap(_session);
     }
 
     private void OpenNewLevelWizard()
@@ -343,8 +340,7 @@ public sealed class EditorHubScreen : MenuScreen
         var mapId = maps.Count > 0 ? maps[0] : "map";
         var levelId = Workspace.AllocateLevelId(_session, mapId);
         var document = EditableLevelDocument.CreateDefault(levelId, title: levelId, mapId: mapId);
-        ScreenManager.ReplaceScreen(
-            new EditorLevelEditScreen(TinyGame, Assets, _session, document, isNew: true));
+        Navigator.ToEditorLevel(_session, document, isNew: true);
     }
 
     private void OpenCampaignEditor()
@@ -352,7 +348,7 @@ public sealed class EditorHubScreen : MenuScreen
         if (_session is null || _session.Type != ContentModuleType.Scenario)
             return;
 
-        ScreenManager.ReplaceScreen(new EditorCampaignEditScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorCampaign(_session);
     }
 
     private void OpenNewUnit()
@@ -361,8 +357,7 @@ public sealed class EditorHubScreen : MenuScreen
             return;
 
         var document = EditableUnitDocument.CreateDefault(Workspace.AllocateUnitId(_session, "unit"));
-        ScreenManager.ReplaceScreen(
-            new EditorUnitEditScreen(TinyGame, Assets, _session, document, isNew: true));
+        Navigator.ToEditorUnit(_session, document, isNew: true);
     }
 
     private void OpenNewBuilding()
@@ -371,8 +366,7 @@ public sealed class EditorHubScreen : MenuScreen
             return;
 
         var document = EditableBuildingDocument.CreateDefault(Workspace.AllocateBuildingId(_session, "building"));
-        ScreenManager.ReplaceScreen(
-            new EditorBuildingEditScreen(TinyGame, Assets, _session, document, isNew: true));
+        Navigator.ToEditorBuilding(_session, document, isNew: true);
     }
 
     private void OpenExistingMap(string mapId)
@@ -384,8 +378,7 @@ public sealed class EditorHubScreen : MenuScreen
         {
             var definition = MapFolderLoader.Load(Workspace.MapFolder(_session, mapId), TinyGame.Files);
             var document = EditableMapDocument.FromDefinition(definition);
-            ScreenManager.ReplaceScreen(
-                new EditorMapPaintScreen(TinyGame, Assets, _session, document, isNewMap: false));
+            Navigator.ToEditorMapPaint(_session, document, isNewMap: false);
         }
         catch (Exception exception)
         {
@@ -417,8 +410,7 @@ public sealed class EditorHubScreen : MenuScreen
         try
         {
             var document = EditableLevelDocument.Load(Workspace.LevelFolder(_session, levelId), TinyGame.Files);
-            ScreenManager.ReplaceScreen(
-                new EditorLevelEditScreen(TinyGame, Assets, _session, document, isNew: false));
+            Navigator.ToEditorLevel(_session, document, isNew: false);
         }
         catch (Exception exception)
         {
@@ -450,8 +442,7 @@ public sealed class EditorHubScreen : MenuScreen
         try
         {
             var document = EditableUnitDocument.Load(Workspace.UnitFile(_session, unitId), TinyGame.Files);
-            ScreenManager.ReplaceScreen(
-                new EditorUnitEditScreen(TinyGame, Assets, _session, document, isNew: false));
+            Navigator.ToEditorUnit(_session, document, isNew: false);
         }
         catch (Exception exception)
         {
@@ -483,8 +474,7 @@ public sealed class EditorHubScreen : MenuScreen
         try
         {
             var document = EditableBuildingDocument.Load(Workspace.BuildingFile(_session, buildingId), TinyGame.Files);
-            ScreenManager.ReplaceScreen(
-                new EditorBuildingEditScreen(TinyGame, Assets, _session, document, isNew: false));
+            Navigator.ToEditorBuilding(_session, document, isNew: false);
         }
         catch (Exception exception)
         {
@@ -549,5 +539,5 @@ public sealed class EditorHubScreen : MenuScreen
     }
 
     private void GoToMainMenu() =>
-        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
+        Navigator.ToMainMenu();
 }

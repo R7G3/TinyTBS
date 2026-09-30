@@ -20,11 +20,10 @@ public sealed class EditorLevelEditScreen : EditorFormScreen
 
     public EditorLevelEditScreen(
         GameMain game,
-        IAssetResolver assets,
         EditorWorkspaceSession session,
         EditableLevelDocument document,
         bool isNew)
-        : base(game, assets)
+        : base(game)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));
         _document = document ?? throw new ArgumentNullException(nameof(document));
@@ -84,5 +83,5 @@ public sealed class EditorLevelEditScreen : EditorFormScreen
     }
 
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorHub(_session);
 }

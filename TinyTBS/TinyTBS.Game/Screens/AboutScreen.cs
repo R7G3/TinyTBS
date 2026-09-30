@@ -9,8 +9,8 @@ public sealed class AboutScreen : MenuScreen
 {
     private readonly AboutView _view = new();
 
-    public AboutScreen(GameMain game, IAssetResolver assets)
-        : base(game, assets)
+    public AboutScreen(GameMain game)
+        : base(game)
     {
     }
 
@@ -38,5 +38,5 @@ public sealed class AboutScreen : MenuScreen
     }
 
     private void GoToMainMenu() =>
-        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
+        Navigator.ToMainMenu();
 }

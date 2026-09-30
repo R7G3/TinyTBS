@@ -18,8 +18,8 @@ public sealed class EditorNewMapScreen : MenuScreen
     private readonly EditorWorkspaceService _workspace;
     private readonly EditorNewMapView _view = new();
 
-    public EditorNewMapScreen(GameMain game, IAssetResolver assets, EditorWorkspaceSession session)
-        : base(game, assets)
+    public EditorNewMapScreen(GameMain game, EditorWorkspaceSession session)
+        : base(game)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));
         _workspace = new EditorWorkspaceService(game.Files, game.UserDataPaths);
@@ -60,10 +60,9 @@ public sealed class EditorNewMapScreen : MenuScreen
             terrainType: "grass");
         document.IsDirty = true;
 
-        ScreenManager.ReplaceScreen(
-            new EditorMapPaintScreen(TinyGame, Assets, _session, document, isNewMap: true));
+        Navigator.ToEditorMapPaint(_session, document, isNewMap: true);
     }
 
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorHub(_session);
 }

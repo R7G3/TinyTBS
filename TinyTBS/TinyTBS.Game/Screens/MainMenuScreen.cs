@@ -1,7 +1,5 @@
 using Microsoft.Xna.Framework;
 using TinyTBS.Engine.Diagnostics;
-using TinyTBS.Game.Assets;
-using TinyTBS.Game.Editor.Screens;
 using TinyTBS.Game.Presentation.Menu;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.ViewModels;
@@ -15,14 +13,11 @@ public sealed class MainMenuScreen : MenuScreen
 {
     private readonly MainMenuViewModel _viewModel = new();
     private readonly MainMenuView _view = new();
-    private readonly SaveCatalog _saveCatalog;
-
     private bool _awaitingNewGameAbandonConfirm;
 
-    public MainMenuScreen(GameMain game, IAssetResolver assets)
-        : base(game, assets)
+    public MainMenuScreen(GameMain game)
+        : base(game)
     {
-        _saveCatalog = new SaveCatalog(game.Files, game.UserDataPaths);
     }
 
     protected override void OnLoad()
@@ -68,7 +63,7 @@ public sealed class MainMenuScreen : MenuScreen
 
     private void RefreshContinueAndLoadState()
     {
-        var hasDiskSave = _saveCatalog.TryGetLatest(out _);
+        var hasDiskSave = App.Saves.TryGetLatest(out _);
         _viewModel.CanContinue = TinyGame.HasSuspendedMatch || hasDiskSave;
         _viewModel.CanLoadGame = hasDiskSave;
     }
@@ -84,16 +79,16 @@ public sealed class MainMenuScreen : MenuScreen
             if (session is null)
                 return;
 
-            ScreenManager.ReplaceScreen(new GameplayScreen(TinyGame, Assets, session));
+            Navigator.ShowMatch(session);
             return;
         }
 
         try
         {
-            if (!_saveCatalog.TryGetLatest(out var entry))
+            if (!App.Saves.TryGetLatest(out var entry))
                 throw new MatchSaveException("No saves found.");
 
-            ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, Assets, _saveCatalog.CreateResumeRequest(entry)));
+            Navigator.StartMatch(App.Saves.CreateResumeRequest(entry));
         }
         catch (Exception exception)
         {
@@ -121,22 +116,22 @@ public sealed class MainMenuScreen : MenuScreen
 
         _awaitingNewGameAbandonConfirm = false;
         _viewModel.StatusHint = string.Empty;
-        ScreenManager.ReplaceScreen(new NewGameScreen(TinyGame, Assets));
+        Navigator.ToNewGame();
     }
 
     private void OpenLoadGame()
     {
         _awaitingNewGameAbandonConfirm = false;
         _viewModel.StatusHint = string.Empty;
-        ScreenManager.ReplaceScreen(new LoadGameScreen(TinyGame, Assets));
+        Navigator.ToLoadGame();
     }
 
     private void OpenContent() =>
-        ScreenManager.ReplaceScreen(new ContentLibraryScreen(TinyGame, Assets));
+        Navigator.ToContentLibrary();
 
     private void OpenEditor() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets));
+        Navigator.ToEditorHub();
 
     private void OpenAbout() =>
-        ScreenManager.ReplaceScreen(new AboutScreen(TinyGame, Assets));
+        Navigator.ToAbout();
 }

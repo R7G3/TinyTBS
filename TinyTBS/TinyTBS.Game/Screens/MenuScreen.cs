@@ -17,15 +17,21 @@ public abstract class MenuScreen : GameScreen
 {
     private MainMenuBackground? _background;
 
-    protected MenuScreen(GameMain game, IAssetResolver assets)
+    protected MenuScreen(GameMain game)
         : base(game)
     {
-        Assets = assets ?? throw new ArgumentNullException(nameof(assets));
+        TinyGame = game ?? throw new ArgumentNullException(nameof(game));
+        App = game.App;
+        Navigator = game.Navigator;
     }
 
-    protected GameMain TinyGame => (GameMain)Game;
+    protected GameMain TinyGame { get; }
 
-    protected IAssetResolver Assets { get; }
+    protected AppServices App { get; }
+
+    protected ScreenNavigator Navigator { get; }
+
+    protected IAssetResolver Assets => App.Assets;
 
     public sealed override void LoadContent()
     {

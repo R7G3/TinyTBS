@@ -5,6 +5,7 @@ using TinyTBS.Game.Input;
 using TinyTBS.Game.Match.Session;
 using TinyTBS.Rules.Ai;
 using TinyTBS.Game.Campaigns;
+using TinyTBS.Game.Flow;
 using TinyTBS.Game.Campaigns.Models;
 using TinyTBS.Game.Modules;
 using TinyTBS.Rules.Modules.Models;
@@ -32,26 +33,19 @@ public sealed class NewGameScreen : MenuScreen
     private readonly List<MatchPlayerSeat> _playerSeats = [];
     private readonly Dictionary<string, IReadOnlyList<ScenarioLevelInfo>> _levelsByScenario = new(StringComparer.Ordinal);
     private readonly Dictionary<string, CampaignDefinition> _campaignByScenario = new(StringComparer.Ordinal);
-    private readonly CampaignProgressStore _campaignProgressStore;
 
-    private NewGameScenarioCatalog? _scenarioCatalog;
-    private ContentBundleLibrary? _bundleLibrary;
     private ContentModuleInfo[] _allScenarios = [];
     private bool _lobbyInitializedForLevel;
     private NewGameFocusAnchor _focusAnchor = NewGameFocusAnchor.Auto;
 
-    public NewGameScreen(GameMain game, IAssetResolver assets)
-        : base(game, assets)
+    public NewGameScreen(GameMain game)
+        : base(game)
     {
-        _campaignProgressStore = new CampaignProgressStore(game.Files, game.UserDataPaths);
     }
 
     protected override void OnLoad()
     {
         TinyGame.UserDataPaths.EnsureCreated();
-        _scenarioCatalog = new NewGameScenarioCatalog(TinyGame.Files, TinyGame.UserDataPaths);
-        _bundleLibrary = new ContentBundleLibrary(TinyGame.Files, TinyGame.UserDataPaths);
-
         _viewModel.ActiveTab = NewGameTab.Mode;
         Refresh("Pick Campaign or Skirmish, then scenario and level.");
     }
@@ -59,8 +53,6 @@ public sealed class NewGameScreen : MenuScreen
     protected override void OnUnload()
     {
         _view.Clear();
-        _scenarioCatalog = null;
-        _bundleLibrary = null;
         _levelsByScenario.Clear();
         _campaignByScenario.Clear();
     }
@@ -85,9 +77,6 @@ public sealed class NewGameScreen : MenuScreen
 
     private void Refresh(string statusText)
     {
-        ArgumentNullException.ThrowIfNull(_scenarioCatalog);
-        ArgumentNullException.ThrowIfNull(_bundleLibrary);
-
         RebuildScenarioCatalog();
         PruneSelectionAgainstMode();
 
@@ -143,7 +132,7 @@ public sealed class NewGameScreen : MenuScreen
         {
             try
             {
-                scenarioDefinition = _scenarioCatalog.LoadScenario(_viewModel.SelectedScenarioModuleId);
+                scenarioDefinition = App.NewGame.LoadScenario(_viewModel.SelectedScenarioModuleId);
             }
             catch (Exception exception)
             {
@@ -151,7 +140,7 @@ public sealed class NewGameScreen : MenuScreen
             }
         }
 
-        var bundles = _bundleLibrary.ListEffectiveBundles();
+        var bundles = App.NewGame.ListBundles();
         EnsureCompositionSource(bundles);
         _viewModel.CompositionOptions = BuildCompositionOptions(bundles);
         var compositionSummary = BuildCompositionSummary(scenarioDefinition, bundles);
@@ -189,9 +178,7 @@ public sealed class NewGameScreen : MenuScreen
 
     private void RebuildScenarioCatalog()
     {
-        ArgumentNullException.ThrowIfNull(_scenarioCatalog);
-
-        var entries = _scenarioCatalog.ListScenarios();
+        var entries = App.NewGame.ListScenarios();
         _allScenarios = entries.Select(entry => entry.Module).ToArray();
         _levelsByScenario.Clear();
         _campaignByScenario.Clear();
@@ -298,10 +285,7 @@ public sealed class NewGameScreen : MenuScreen
             return null;
         }
 
-        var progress = _campaignProgressStore.TryLoadLatestForCampaign(
-            _viewModel.SelectedScenarioModuleId,
-            campaign.CampaignId);
-        return CampaignProgressFactory.BuildUnlockedSet(progress, campaign);
+        return App.Campaigns.UnlockedChapterIds(_viewModel.SelectedScenarioModuleId, campaign);
     }
 
     private static string? PreferDefaultLevelId(IReadOnlyList<ScenarioLevelInfo> levels)
@@ -323,11 +307,8 @@ public sealed class NewGameScreen : MenuScreen
             return PreferDefaultLevelId(levels);
         }
 
-        var progress = _campaignProgressStore.TryLoadLatestForCampaign(
-            _viewModel.SelectedScenarioModuleId,
-            campaign.CampaignId);
-        var preferred = CampaignProgressFactory.PreferPlayableLevelId(campaign, progress);
-        var unlocked = CampaignProgressFactory.BuildUnlockedSet(progress, campaign);
+        var preferred = App.Campaigns.PreferPlayableLevelId(_viewModel.SelectedScenarioModuleId, campaign);
+        var unlocked = App.Campaigns.UnlockedChapterIds(_viewModel.SelectedScenarioModuleId, campaign);
 
         if (levels.Any(level => level.LevelId == preferred && unlocked.Contains(preferred)))
             return preferred;
@@ -525,14 +506,10 @@ public sealed class NewGameScreen : MenuScreen
         if (scenario is null)
             return null;
 
-        if (_viewModel.SelectedCompositionSourceId == NewGameCompositionSources.ScenarioDefaults)
-            return MatchContentComposition.FromScenarioDefaults(scenario);
-
-        var bundle = bundles.FirstOrDefault(
-            candidate => candidate.BundleId == _viewModel.SelectedCompositionSourceId);
-        return bundle is null
-            ? MatchContentComposition.FromScenarioDefaults(scenario)
-            : MatchContentComposition.FromScenarioWithBundle(scenario, bundle);
+        return NewGameSetupService.ResolveComposition(
+            scenario,
+            _viewModel.SelectedCompositionSourceId,
+            bundles);
     }
 
     private static string FormatModesLabel(IReadOnlyList<string> modes)
@@ -763,15 +740,12 @@ public sealed class NewGameScreen : MenuScreen
             return;
         }
 
-        ArgumentNullException.ThrowIfNull(_scenarioCatalog);
-        ArgumentNullException.ThrowIfNull(_bundleLibrary);
-
         try
         {
             EnsureMinimumPlayerSeats();
 
-            var scenario = _scenarioCatalog.LoadScenario(_viewModel.SelectedScenarioModuleId);
-            var bundles = _bundleLibrary.ListEffectiveBundles();
+            var scenario = App.NewGame.LoadScenario(_viewModel.SelectedScenarioModuleId);
+            var bundles = App.NewGame.ListBundles();
             var composition = ResolveComposition(scenario, bundles)
                 ?? throw new InvalidOperationException("Composition is unavailable.");
 
@@ -779,7 +753,7 @@ public sealed class NewGameScreen : MenuScreen
             if (_viewModel.SelectedMode == NewGamePlayMode.Campaign
                 && _campaignByScenario.TryGetValue(_viewModel.SelectedScenarioModuleId, out var campaign))
             {
-                campaignRun = new CampaignProgressService(TinyGame.UserDataPaths, TinyGame.Files).BeginOrResumeRun(
+                campaignRun = App.Campaigns.BeginOrResumeRun(
                     campaign,
                     _viewModel.SelectedScenarioModuleId,
                     _viewModel.SelectedLevelId,
@@ -788,20 +762,17 @@ public sealed class NewGameScreen : MenuScreen
                     _viewModel.UnitCap);
             }
 
-            ScreenManager.ReplaceScreen(new LoadingScreen(
-                TinyGame,
-                Assets,
-                new MatchStartRequest
-                {
-                    ScenarioModuleId = _viewModel.SelectedScenarioModuleId,
-                    LevelId = _viewModel.SelectedLevelId,
-                    Composition = composition,
-                    PlayerCount = _playerSeats.Count,
-                    StartingGold = _viewModel.StartingGold,
-                    UnitCap = _viewModel.UnitCap,
-                    PlayerSeats = _playerSeats.ToArray(),
-                    CampaignRun = campaignRun,
-                }));
+            Navigator.StartMatch(new MatchStartRequest
+            {
+                ScenarioModuleId = _viewModel.SelectedScenarioModuleId,
+                LevelId = _viewModel.SelectedLevelId,
+                Composition = composition,
+                PlayerCount = _playerSeats.Count,
+                StartingGold = _viewModel.StartingGold,
+                UnitCap = _viewModel.UnitCap,
+                PlayerSeats = _playerSeats.ToArray(),
+                CampaignRun = campaignRun,
+            });
         }
         catch (Exception exception)
         {
@@ -811,5 +782,5 @@ public sealed class NewGameScreen : MenuScreen
     }
 
     private void GoToMainMenu() =>
-        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
+        Navigator.ToMainMenu();
 }

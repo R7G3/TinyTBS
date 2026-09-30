@@ -1,7 +1,5 @@
 using Microsoft.Xna.Framework;
 using TinyTBS.Engine.Diagnostics;
-using TinyTBS.Game.Assets;
-using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Match.Session;
 using TinyTBS.Game.Presentation.Loading;
 using TinyTBS.Game.ViewModels;
@@ -34,8 +32,8 @@ public sealed class LoadingScreen : MenuScreen
     private Task? _backgroundStageTask;
     private long _lastUiPumpTimestamp;
 
-    public LoadingScreen(GameMain game, IAssetResolver assets, MatchStartRequest request)
-        : base(game, assets)
+    public LoadingScreen(GameMain game, MatchStartRequest request)
+        : base(game)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.LevelId);
@@ -196,23 +194,18 @@ public sealed class LoadingScreen : MenuScreen
 
             try
             {
-                var service = new CampaignProgressService(TinyGame.UserDataPaths, TinyGame.Files);
-                var campaign = service.TryLoadDefinition(campaignRun.ScenarioModuleId);
-                if (campaign is not null)
-                    service.NotifyChapterStarted(campaignRun, campaign);
-                else
-                    service.Persist(campaignRun);
+                App.Campaigns.NotifyMatchOpened(campaignRun);
             }
             catch (Exception exception)
             {
                 // Chapter start hooks are best-effort; the match still opens.
-                GameLog.Warning("Campaign chapter start hooks failed.", exception);
+                App.Campaigns.LogMatchOpenFailure(exception);
             }
         }
 
         _phase = LoadPhase.Done;
         TinyGame.ClearSuspendedMatch(dispose: true);
-        ScreenManager.ReplaceScreen(new GameplayScreen(TinyGame, Assets, session));
+        Navigator.ShowMatch(session);
     }
 
     private void ApplyProgress(MatchLoadProgress progress)

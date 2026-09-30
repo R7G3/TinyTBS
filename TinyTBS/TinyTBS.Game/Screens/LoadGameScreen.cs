@@ -12,16 +12,13 @@ public sealed class LoadGameScreen : MenuScreen
 {
     private readonly LoadGameViewModel _viewModel = new();
     private readonly LoadGameView _view = new();
-    private readonly SaveCatalog _saveCatalog;
-
     private IReadOnlyList<SaveCatalogEntry> _entries = [];
     private LoadGameSaveRowViewModel? _pendingLoadRow;
     private bool _awaitingLoadAbandonConfirm;
 
-    public LoadGameScreen(GameMain game, IAssetResolver assets)
-        : base(game, assets)
+    public LoadGameScreen(GameMain game)
+        : base(game)
     {
-        _saveCatalog = new SaveCatalog(game.Files, game.UserDataPaths);
     }
 
     protected override void OnLoad() =>
@@ -51,7 +48,7 @@ public sealed class LoadGameScreen : MenuScreen
 
     private void RefreshList(string statusText)
     {
-        _entries = _saveCatalog.ListNewestFirst();
+        _entries = App.Saves.ListNewestFirst();
         _viewModel.StatusText = statusText;
         _viewModel.Saves = _entries
             .Select(entry => new LoadGameSaveRowViewModel
@@ -99,9 +96,9 @@ public sealed class LoadGameScreen : MenuScreen
 
         try
         {
-            var request = _saveCatalog.CreateResumeRequest(FindEntry(row));
+            var request = App.Saves.CreateResumeRequest(FindEntry(row));
             _view.CloseDetail();
-            ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, Assets, request));
+            Navigator.StartMatch(request);
         }
         catch (Exception exception)
         {
@@ -117,7 +114,7 @@ public sealed class LoadGameScreen : MenuScreen
 
         try
         {
-            _saveCatalog.Delete(FindEntry(row));
+            App.Saves.Delete(FindEntry(row));
             _view.CloseDetail();
             RefreshList($"Deleted '{row.Title}'.");
         }
@@ -140,5 +137,5 @@ public sealed class LoadGameScreen : MenuScreen
     }
 
     private void GoToMainMenu() =>
-        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
+        Navigator.ToMainMenu();
 }

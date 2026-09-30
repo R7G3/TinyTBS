@@ -19,8 +19,8 @@ public sealed class EditorThemeEditScreen : EditorFormScreen
     private readonly EditorThemeEditView _view = new();
     private ThemeDocumentWriter? _writer;
 
-    public EditorThemeEditScreen(GameMain game, IAssetResolver assets, EditorWorkspaceSession session)
-        : base(game, assets)
+    public EditorThemeEditScreen(GameMain game, EditorWorkspaceSession session)
+        : base(game)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));
         if (_session.Type != ContentModuleType.Theme)
@@ -72,5 +72,5 @@ public sealed class EditorThemeEditScreen : EditorFormScreen
     }
 
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorHub(_session);
 }

@@ -23,8 +23,8 @@ public sealed class ContentLibraryScreen : MenuScreen
     private ContentBundleLibrary? _bundleLibrary;
     private TinymodInstaller? _installer;
 
-    public ContentLibraryScreen(GameMain game, IAssetResolver assets)
-        : base(game, assets)
+    public ContentLibraryScreen(GameMain game)
+        : base(game)
     {
     }
 
@@ -193,7 +193,7 @@ public sealed class ContentLibraryScreen : MenuScreen
     }
 
     private void GoToMainMenu() =>
-        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
+        Navigator.ToMainMenu();
 
     private static ContentModuleRowViewModel ToModuleRow(ContentModuleInfo module) =>
         new()

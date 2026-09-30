@@ -25,10 +25,9 @@ public sealed class EditorNewContentTypeModuleScreen : MenuScreen
 
     public EditorNewContentTypeModuleScreen(
         GameMain game,
-        IAssetResolver assets,
         EditorWorkspaceSession? session,
         ContentModuleType moduleType)
-        : base(game, assets)
+        : base(game)
     {
         _session = session;
         (_defaultModuleId, _defaultTitle) = moduleType switch
@@ -108,7 +107,7 @@ public sealed class EditorNewContentTypeModuleScreen : MenuScreen
                 root,
                 _moduleType,
                 title);
-            ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, session));
+            Navigator.ToEditorHub(session);
         }
         catch (Exception exception) when (exception is EditorException or TinymodInstallException or IOException)
         {
@@ -117,5 +116,5 @@ public sealed class EditorNewContentTypeModuleScreen : MenuScreen
     }
 
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorHub(_session);
 }

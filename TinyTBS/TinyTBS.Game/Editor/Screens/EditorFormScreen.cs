@@ -12,8 +12,8 @@ namespace TinyTBS.Game.Editor.Screens;
 /// </summary>
 public abstract class EditorFormScreen : MenuScreen
 {
-    protected EditorFormScreen(GameMain game, IAssetResolver assets)
-        : base(game, assets)
+    protected EditorFormScreen(GameMain game)
+        : base(game)
     {
         Workspace = new EditorWorkspaceService(game.Files, game.UserDataPaths);
     }

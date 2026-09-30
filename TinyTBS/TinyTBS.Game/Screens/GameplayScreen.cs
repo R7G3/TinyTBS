@@ -1,10 +1,6 @@
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
-using TinyTBS.Game.Assets;
-using TinyTBS.Game.Campaigns;
-using TinyTBS.Rules.Match;
 using TinyTBS.Game.Presentation.Match;
-using TinyTBS.Game.Saves;
 using TinyTBS.Game.ViewModels;
 using TinyTBS.Game.Match.Session;
 
@@ -19,17 +15,19 @@ public sealed class GameplayScreen : GameScreen
     private GameplayMatchController? _controller;
     private bool _sessionTransferred;
 
-    public GameplayScreen(GameMain game, IAssetResolver assets, GameplaySession session)
+    public GameplayScreen(GameMain game, GameplaySession session)
         : base(game)
     {
+        ArgumentNullException.ThrowIfNull(game);
         ArgumentNullException.ThrowIfNull(session);
-        Assets = assets;
+        TinyGame = game;
+        Navigator = game.Navigator;
         _session = session;
     }
 
-    private IAssetResolver Assets { get; }
+    private GameMain TinyGame { get; }
 
-    private GameMain TinyGame => (GameMain)Game;
+    private ScreenNavigator Navigator { get; }
 
     public override void LoadContent()
     {
@@ -67,21 +65,21 @@ public sealed class GameplayScreen : GameScreen
     {
         _sessionTransferred = true;
         TinyGame.SuspendMatch(_session);
-        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
+        Navigator.ToMainMenu();
     }
 
     private void LeaveMatchToMainMenu()
     {
         _sessionTransferred = false;
         TinyGame.ClearSuspendedMatch(dispose: true);
-        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, Assets));
+        Navigator.ToMainMenu();
     }
 
     private void SuspendAndOpenLoadGame()
     {
         _sessionTransferred = true;
         TinyGame.SuspendMatch(_session);
-        ScreenManager.ReplaceScreen(new LoadGameScreen(TinyGame, Assets));
+        Navigator.ToLoadGame();
     }
 
     private void SaveMatch()
@@ -102,16 +100,6 @@ public sealed class GameplayScreen : GameScreen
         _sessionTransferred = false;
         TinyGame.ClearSuspendedMatch(dispose: true);
 
-        var request = new MatchStartRequest
-        {
-            ScenarioModuleId = run.ScenarioModuleId,
-            LevelId = run.CurrentLevelId,
-            Composition = run.Composition,
-            PlayerCount = run.PlayerSeats?.Count,
-            UnitCap = run.UnitCap,
-            PlayerSeats = run.PlayerSeats,
-            CampaignRun = run,
-        };
-        ScreenManager.ReplaceScreen(new LoadingScreen(TinyGame, Assets, request));
+        Navigator.StartMatch(TinyGame.App.Campaigns.CreateChapterRequest(run));
     }
 }

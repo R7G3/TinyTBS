@@ -16,8 +16,8 @@ public sealed class EditorCampaignEditScreen : EditorFormScreen
     private readonly EditorCampaignEditView _view = new();
     private CampaignDocumentWriter? _writer;
 
-    public EditorCampaignEditScreen(GameMain game, IAssetResolver assets, EditorWorkspaceSession session)
-        : base(game, assets)
+    public EditorCampaignEditScreen(GameMain game, EditorWorkspaceSession session)
+        : base(game)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));
     }
@@ -90,5 +90,5 @@ public sealed class EditorCampaignEditScreen : EditorFormScreen
         EditorIds.SanitizeOrDefault(raw.Trim().Replace(' ', '_'), "campaign");
 
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorHub(_session);
 }

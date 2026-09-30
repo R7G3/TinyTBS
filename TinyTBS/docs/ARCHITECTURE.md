@@ -156,7 +156,7 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 - `TinyTBS.Scripting.Api` — хуки и буфер команд для `script.cs`; `TinyTBS.Engine.Scripting` — Roslyn, семантическая песочница, бюджет шагов; `TinyTBS.Game.Scripting` — `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost` / `CampaignScriptHost`
 - `TinyTBS.Engine.Ecs`: `TilemapDrawSystem`, `TeamMaskedSpriteDrawSystem` (base + tint mask)
 - `MatchScene` / `GameplaySessionFactory` / `MatchSessionLoadPipeline` — в Game: level → map → скрипт → атлас → сцена (этапы для loading screen); `BoardInputController` + `MatchRuntime.TryApply` — pointer/команды → логика (+ хуки скрипта); бот целится курсором, затем применяет то же `MatchAction`
-- `GameplayScreen` / `MainMenuScreen` / `LoadingScreen` / `ContentLibraryScreen` — тонкая склейка lifecycle; Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
+- `GameplayScreen` / `MainMenuScreen` / `LoadingScreen` / `ContentLibraryScreen` — тонкая склейка lifecycle; переходы — `ScreenNavigator`, сервисы — `AppServices` (`SaveResumeService`, `CampaignFlowService`, `NewGameSetupService`). Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
 
 ## Ввод
 

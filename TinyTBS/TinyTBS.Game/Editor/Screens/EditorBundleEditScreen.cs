@@ -23,11 +23,10 @@ public sealed class EditorBundleEditScreen : EditorFormScreen
 
     public EditorBundleEditScreen(
         GameMain game,
-        IAssetResolver assets,
         EditorWorkspaceSession? session,
         EditableBundleDocument document,
         bool isNew)
-        : base(game, assets)
+        : base(game)
     {
         _session = session;
         _document = document ?? throw new ArgumentNullException(nameof(document));
@@ -109,5 +108,5 @@ public sealed class EditorBundleEditScreen : EditorFormScreen
     }
 
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorHub(_session);
 }

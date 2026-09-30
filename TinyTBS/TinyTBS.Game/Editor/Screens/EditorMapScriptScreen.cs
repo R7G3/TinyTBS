@@ -22,11 +22,10 @@ public sealed class EditorMapScriptScreen : MenuScreen
 
     public EditorMapScriptScreen(
         GameMain game,
-        IAssetResolver assets,
         EditorWorkspaceSession session,
         string mapId,
         bool returnToPaint)
-        : base(game, assets)
+        : base(game)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));
         _mapId = string.IsNullOrWhiteSpace(mapId) ? "map" : mapId.Trim();
@@ -84,8 +83,7 @@ public sealed class EditorMapScriptScreen : MenuScreen
                 var mapRoot = TinyGame.Files.Combine(_session.ModuleRootPath, "Maps", _mapId);
                 var definition = MapFolderLoader.Load(mapRoot, TinyGame.Files);
                 var document = EditableMapDocument.FromDefinition(definition);
-                ScreenManager.ReplaceScreen(
-                    new EditorMapPaintScreen(TinyGame, Assets, _session, document, isNewMap: false));
+                Navigator.ToEditorMapPaint(_session, document, isNewMap: false);
                 return;
             }
             catch (Exception exception)
@@ -94,6 +92,6 @@ public sealed class EditorMapScriptScreen : MenuScreen
             }
         }
 
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorHub(_session);
     }
 }
