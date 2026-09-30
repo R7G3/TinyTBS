@@ -1,7 +1,7 @@
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Maps.Models;
+using TinyTBS.Rules.Maps.Models;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Units.Models;
+using TinyTBS.Rules.Units.Models;
 
 namespace TinyTBS.Game.Units;
 

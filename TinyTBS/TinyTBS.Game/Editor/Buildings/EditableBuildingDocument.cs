@@ -1,6 +1,6 @@
 using System.Text.Json;
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Buildings.Models;
+using TinyTBS.Rules.Buildings.Models;
 
 namespace TinyTBS.Game.Editor.Buildings;
 

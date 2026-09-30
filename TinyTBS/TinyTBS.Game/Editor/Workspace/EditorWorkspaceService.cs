@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Workspace;
 

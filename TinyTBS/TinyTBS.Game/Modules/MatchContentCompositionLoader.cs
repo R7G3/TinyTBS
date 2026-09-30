@@ -1,13 +1,13 @@
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Buildings;
-using TinyTBS.Game.Buildings.Models;
-using TinyTBS.Game.Maps.Models;
-using TinyTBS.Game.Match;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Buildings.Models;
+using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Match;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Game.Themes;
-using TinyTBS.Game.Themes.Models;
+using TinyTBS.Rules.Themes.Models;
 using TinyTBS.Game.Units;
-using TinyTBS.Game.Units.Models;
+using TinyTBS.Rules.Units.Models;
 
 namespace TinyTBS.Game.Modules;
 

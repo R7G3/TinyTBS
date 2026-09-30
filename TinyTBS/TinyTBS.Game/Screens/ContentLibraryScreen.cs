@@ -4,7 +4,7 @@ using TinyTBS.Engine.IO;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Game.Presentation.Content;
 using TinyTBS.Game.ViewModels;
 

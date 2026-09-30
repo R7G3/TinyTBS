@@ -1,7 +1,7 @@
 using TinyTBS.Game.Editor.Undo;
 using TinyTBS.Game.Maps;
-using TinyTBS.Game.Maps.Models;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Match;
 
 namespace TinyTBS.Game.Editor.Map;
 

@@ -2,7 +2,7 @@ using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Campaigns;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Presentation.Match;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.ViewModels;

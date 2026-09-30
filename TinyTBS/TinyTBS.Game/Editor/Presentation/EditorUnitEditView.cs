@@ -9,7 +9,7 @@ using TinyTBS.Game.Editor.Units;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Presentation.Content;
 using TinyTBS.Game.Presentation.Shared;
-using TinyTBS.Game.Units.Models;
+using TinyTBS.Rules.Units.Models;
 
 namespace TinyTBS.Game.Editor.Presentation;
 

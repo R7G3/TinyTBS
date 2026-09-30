@@ -1,6 +1,6 @@
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Bundles;
 

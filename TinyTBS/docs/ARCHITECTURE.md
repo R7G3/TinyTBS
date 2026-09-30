@@ -20,7 +20,7 @@
 - **Gum** поверх **MGE Screen** на всех экранах (меню и геймплей).
 - **ECS** — MonoGame.Extended.
 - Код разделён на три слоя: **логика**, **представление**, **движок**. См. [ADR 0005](adr/0005-three-layers-logic-presentation-engine.md).
-- Проекты: **Game** (игра + UI) и **Engine** (кадр / I/O). См. [ADR 0007](adr/0007-game-and-engine-projects.md).
+- Проекты: **Rules** (правила и модели без MonoGame), **Game** (UI и сессия), **Engine** (кадр / I/O). См. [ADR 0007](adr/0007-game-and-engine-projects.md), [ADR 0008](adr/0008-rules-project.md).
 - Геймдизайн (канон): [GAME_DESIGN.md](GAME_DESIGN.md).
 
 ## Слои (Logic / Presentation / Engine)
@@ -151,8 +151,8 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 ## ECS (MGE)
 
-- `TinyTBS.Game.Match`: `GridCell`, `MatchDefaults`, `MatchUnit` / `MatchBuilding`, `MatchState` — **логика** (демо-правила; полный GDD — впереди)
-- `TinyTBS.Game.Maps` / `Levels` / `Units` / `Buildings` / `Themes` / `Modules`: загрузка map/level и модулей; `MatchContentCompositionLoader` + `ContentModuleLocator` → `MatchContentCatalog`; `TinymodInstaller` / `ContentModuleLibrary`; `ContentBundleLocator` / `ContentBundleLibrary`
+- `TinyTBS.Rules`: `MatchState`, действия, бой, путь, экономика, бот, модели и парсеры `Stream` карт / юнитов / строений / уровней / тем / модулей, снимки сейва. Без MonoGame и без `IFileSystem`. См. [ADR 0008](adr/0008-rules-project.md)
+- `TinyTBS.Game` лоадеры папок и сессия: `MatchContentCompositionLoader` + `ContentModuleLocator` → `MatchContentCatalog`; `TinymodInstaller` / `ContentModuleLibrary`; `ContentBundleLocator` / `ContentBundleLibrary`; `MatchRuntime` применяет `MatchAction` и зовёт скрипты
 - `TinyTBS.Scripting.Api` — хуки и буфер команд для `script.cs`; `TinyTBS.Engine.Scripting` — Roslyn, семантическая песочница, бюджет шагов; `TinyTBS.Game.Scripting` — `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost` / `CampaignScriptHost`
 - `TinyTBS.Engine.Ecs`: `TilemapDrawSystem`, `TeamMaskedSpriteDrawSystem` (base + tint mask)
 - `MatchScene` / `GameplaySessionFactory` / `MatchSessionLoadPipeline` — в Game: level → map → скрипт → атлас → сцена (этапы для loading screen); `BoardInputController` + `MatchRuntime.TryApply` — pointer/команды → логика (+ хуки скрипта); бот целится курсором, затем применяет то же `MatchAction`

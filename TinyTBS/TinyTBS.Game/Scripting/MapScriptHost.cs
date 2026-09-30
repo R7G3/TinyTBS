@@ -1,7 +1,7 @@
 using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
 using TinyTBS.Engine.Scripting;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Scripting.Api;
 
 namespace TinyTBS.Game.Scripting;

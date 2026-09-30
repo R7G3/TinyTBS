@@ -1,6 +1,6 @@
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Buildings.Models;
-using TinyTBS.Game.Maps.Models;
+using TinyTBS.Rules.Buildings.Models;
+using TinyTBS.Rules.Maps.Models;
 using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Buildings;

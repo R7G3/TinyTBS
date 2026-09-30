@@ -7,7 +7,7 @@ using TinyTBS.Game.Editor.Themes;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Engine.Input;
 
 namespace TinyTBS.Game.Editor.Screens;

@@ -3,9 +3,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Themes;
-using TinyTBS.Game.Maps.Models;
+using TinyTBS.Rules.Maps.Models;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Themes.Models;
+using TinyTBS.Rules.Themes.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 

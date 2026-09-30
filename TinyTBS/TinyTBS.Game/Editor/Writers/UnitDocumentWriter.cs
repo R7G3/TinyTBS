@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Units;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Units.Models;
+using TinyTBS.Rules.Units.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 

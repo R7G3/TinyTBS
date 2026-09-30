@@ -1,6 +1,6 @@
 using System.IO.Compression;
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Modules;
 

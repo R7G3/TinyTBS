@@ -1,5 +1,5 @@
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Saves.Models;
+using TinyTBS.Rules.Saves.Models;
 
 namespace TinyTBS.Game.Saves;
 

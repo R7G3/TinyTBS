@@ -1,5 +1,5 @@
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Maps.Models;
+using TinyTBS.Rules.Maps.Models;
 
 namespace TinyTBS.Game.Maps;
 

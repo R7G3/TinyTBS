@@ -1,6 +1,6 @@
 using System.Text;
-using TinyTBS.Game.Buildings.Models;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Buildings.Models;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Presentation.Match;

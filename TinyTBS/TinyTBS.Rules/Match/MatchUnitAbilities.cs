@@ -1,0 +1,67 @@
+using TinyTBS.Rules.Buildings.Models;
+using TinyTBS.Rules.Units.Models;
+
+namespace TinyTBS.Rules.Match;
+
+/// <summary>Shared ability / tag checks for units and buildings.</summary>
+public static class MatchUnitAbilities
+{
+    public static bool HasAbility(UnitDefinition definition, string type) =>
+        definition.Abilities.Any(ability =>
+            string.Equals(ability.Type, type, StringComparison.OrdinalIgnoreCase));
+
+    public static bool TryGetAbility(
+        UnitDefinition definition,
+        string type,
+        out UnitAbilityDefinition ability)
+    {
+        foreach (var candidate in definition.Abilities)
+        {
+            if (!string.Equals(candidate.Type, type, StringComparison.OrdinalIgnoreCase))
+                continue;
+            ability = candidate;
+            return true;
+        }
+
+        ability = null!;
+        return false;
+    }
+
+    public static bool TagsIntersect(IReadOnlyList<string> left, IReadOnlyList<string> right)
+    {
+        foreach (var leftTag in left)
+        {
+            foreach (var rightTag in right)
+            {
+                if (string.Equals(leftTag, rightTag, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static bool IsCapturable(MatchBuilding building, BuildingDefinition definition)
+    {
+        if (building.IsRuined)
+            return definition.Ruined?.Capturable ?? false;
+        return definition.Capturable;
+    }
+
+    public static bool CanCapture(UnitDefinition unit, BuildingDefinition building) =>
+        HasTaggedAbility(unit, UnitAbilityTypes.CaptureBuilding, building);
+
+    public static bool CanRepair(UnitDefinition unit, BuildingDefinition building) =>
+        HasTaggedAbility(unit, UnitAbilityTypes.RepairBuilding, building);
+
+    public static bool SuppressesCounterattack(UnitDefinition attacker, int range) =>
+        attacker.Abilities.Any(ability =>
+            string.Equals(ability.Type, UnitAbilityTypes.NoCounterattackWhenRangeAtLeast, StringComparison.OrdinalIgnoreCase)
+            && ability.MinRange is int min
+            && range >= min);
+
+    private static bool HasTaggedAbility(UnitDefinition unit, string abilityType, BuildingDefinition building) =>
+        unit.Abilities.Any(ability =>
+            string.Equals(ability.Type, abilityType, StringComparison.OrdinalIgnoreCase)
+            && TagsIntersect(ability.Tags, building.Tags));
+}

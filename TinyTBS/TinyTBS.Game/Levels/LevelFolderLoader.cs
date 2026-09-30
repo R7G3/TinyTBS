@@ -1,5 +1,5 @@
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Levels.Models;
+using TinyTBS.Rules.Levels.Models;
 using TinyTBS.Game.Maps;
 
 namespace TinyTBS.Game.Levels;

@@ -1,11 +1,11 @@
 using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Maps.Models;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Match.Session;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Modules.Models;
-using TinyTBS.Game.Saves.Models;
+using TinyTBS.Rules.Modules.Models;
+using TinyTBS.Rules.Saves.Models;
 
 namespace TinyTBS.Game.Saves;
 

@@ -7,7 +7,7 @@ using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Presentation.Match.Board;
 using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Match.Session;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.ViewModels;

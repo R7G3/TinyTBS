@@ -1,6 +1,6 @@
 using TinyTBS.Game.Campaigns.Models;
-using TinyTBS.Game.Modules.Models;
-using TinyTBS.Game.Saves.Models;
+using TinyTBS.Rules.Modules.Models;
+using TinyTBS.Rules.Saves.Models;
 
 namespace TinyTBS.Game.Campaigns;
 

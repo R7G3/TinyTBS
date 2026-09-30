@@ -1,8 +1,8 @@
 using System.Text.Json;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Levels;
-using TinyTBS.Game.Levels.Models;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Levels.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Modules;
 

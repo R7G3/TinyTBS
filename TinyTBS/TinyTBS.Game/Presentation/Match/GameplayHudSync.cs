@@ -1,4 +1,4 @@
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Match.Session;
 using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.ViewModels;

@@ -1,5 +1,5 @@
-using TinyTBS.Game.Maps.Models;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Editor.Map;

@@ -1,4 +1,4 @@
-using TinyTBS.Game.Ai;
+using TinyTBS.Rules.Ai;
 
 namespace TinyTBS.Game.Presentation.Shared;
 

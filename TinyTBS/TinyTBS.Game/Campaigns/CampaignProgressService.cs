@@ -1,9 +1,9 @@
 using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Ai;
+using TinyTBS.Rules.Ai;
 using TinyTBS.Game.Campaigns.Models;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.Scripting;
 using TinyTBS.Scripting.Api;

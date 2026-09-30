@@ -5,7 +5,7 @@ using MonoGame.Extended.ECS;
 using TinyTBS.Engine.Ecs.Components;
 using TinyTBS.Engine.Ecs.Systems;
 using TinyTBS.Engine.Rendering;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Presentation.Shared;
 using EcsWorld = MonoGame.Extended.ECS.World;
 

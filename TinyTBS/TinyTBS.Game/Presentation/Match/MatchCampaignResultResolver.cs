@@ -1,5 +1,5 @@
 using TinyTBS.Engine.Diagnostics;
-using TinyTBS.Game.Ai;
+using TinyTBS.Rules.Ai;
 using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Match.Session;
 

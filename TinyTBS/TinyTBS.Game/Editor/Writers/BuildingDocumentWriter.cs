@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Buildings.Models;
+using TinyTBS.Rules.Buildings.Models;
 using TinyTBS.Game.Editor.Buildings;
 using TinyTBS.Game.Modules;
 

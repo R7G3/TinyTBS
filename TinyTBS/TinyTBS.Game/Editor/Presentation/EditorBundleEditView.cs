@@ -3,7 +3,7 @@ using Gum.Forms.Controls;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Editor.Bundles;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Presentation;
 

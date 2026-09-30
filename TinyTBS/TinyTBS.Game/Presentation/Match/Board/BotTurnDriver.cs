@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using TinyTBS.Engine.Diagnostics;
-using TinyTBS.Game.Ai;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Ai;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Match.Session;
 
 namespace TinyTBS.Game.Presentation.Match.Board;

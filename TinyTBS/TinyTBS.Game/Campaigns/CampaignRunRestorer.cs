@@ -1,8 +1,8 @@
-using TinyTBS.Game.Ai;
+using TinyTBS.Rules.Ai;
 using TinyTBS.Game.Campaigns.Models;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Saves;
-using TinyTBS.Game.Saves.Models;
+using TinyTBS.Rules.Saves.Models;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Match.Session;
 

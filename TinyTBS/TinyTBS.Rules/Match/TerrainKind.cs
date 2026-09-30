@@ -1,0 +1,11 @@
+namespace TinyTBS.Rules.Match;
+
+public enum TerrainKind
+{
+    Grass,
+    Water,
+    Road,
+    Mountain,
+    Bridge,
+    Forest,
+}

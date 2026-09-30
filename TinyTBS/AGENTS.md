@@ -2,7 +2,7 @@
 
 ## Область работы
 
-- **Рабочий каталог / корень solution:** `TinyTBS/` (MonoGame: Engine, Content, Game, Desktop) — этот каталог.
+- **Рабочий каталог / корень solution:** `TinyTBS/` (MonoGame: Rules, Engine, Content, Game, Desktop) — этот каталог.
 - **Не трогать:** `../Tiny TBS Unity/` — отдельный Unity-проект в том же git-репозитории.
 
 Перед изменениями убедиться, что пути относятся к MonoGame-solution, а не к Unity.
@@ -25,12 +25,13 @@
 
 ## Архитектура (кратко)
 
-- **TinyTBS.Game** — правила, модели, экраны / деревья Gum, матч, оркестрация map/mod → домен
+- **TinyTBS.Rules** — правила матча, бот, модели контента и парсеры `Stream` (без MonoGame и без файловой системы). См. [ADR 0008](docs/adr/0008-rules-project.md)
+- **TinyTBS.Game** — экраны / деревья Gum, сессия матча, лоадеры папок и модулей (`IFileSystem`)
 - **TinyTBS.Engine** — ввод (pointer), рендер/layout, draw ECS, GumLayout (bootstrap + UI layout helpers), низкий I/O
 - **TinyTBS.Content** — bundled ресурсы, resx, Content Builder
-- **TinyTBS.Desktop** — точка входа (`Desktop → Game → Engine`); `Content/` рядом с проектом — **сгенерированные .xnb** (gitignore)
+- **TinyTBS.Desktop** — точка входа (`Desktop → Game → Rules`, `Game → Engine`); `Content/` рядом с проектом — **сгенерированные .xnb** (gitignore)
 
-Подробнее: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [ADR 0007](docs/adr/0007-game-and-engine-projects.md).
+Подробнее: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [ADR 0007](docs/adr/0007-game-and-engine-projects.md), [ADR 0008](docs/adr/0008-rules-project.md).
 
 ## Стиль кода (обязательно)
 

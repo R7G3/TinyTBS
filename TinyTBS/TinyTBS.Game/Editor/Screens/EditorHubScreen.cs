@@ -13,7 +13,7 @@ using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Maps;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Game.Screens;
 
 namespace TinyTBS.Game.Editor.Screens;

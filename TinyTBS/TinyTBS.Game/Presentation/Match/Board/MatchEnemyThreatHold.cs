@@ -1,6 +1,6 @@
 using TinyTBS.Engine.Input;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Match.Session;
 
 namespace TinyTBS.Game.Presentation.Match.Board;

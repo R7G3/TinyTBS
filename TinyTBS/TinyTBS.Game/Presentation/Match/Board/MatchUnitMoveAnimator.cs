@@ -1,5 +1,5 @@
 using Microsoft.Xna.Framework;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 
 namespace TinyTBS.Game.Presentation.Match.Board;
 

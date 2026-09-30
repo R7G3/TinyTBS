@@ -1,4 +1,4 @@
-using TinyTBS.Game.Units.Models;
+using TinyTBS.Rules.Units.Models;
 
 namespace TinyTBS.Game.Editor.Units;
 

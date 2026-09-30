@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Match rules, content models and Stream parsers. No MonoGame, Gum or file-system APIs. -->
+  <PropertyGroup>
+    <RootNamespace>TinyTBS.Rules</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TinyTBS.Game" />
+  </ItemGroup>
+</Project>

@@ -1,6 +1,6 @@
-using TinyTBS.Game.Ai;
+using TinyTBS.Rules.Ai;
 using TinyTBS.Game.Campaigns;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Game.Scripting;
 
 namespace TinyTBS.Game.Match.Session;

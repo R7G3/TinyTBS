@@ -1,5 +1,5 @@
 using TinyTBS.Game.Maps;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Scripting.Api;
 
 namespace TinyTBS.Game.Scripting;

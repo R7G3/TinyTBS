@@ -6,7 +6,7 @@ using TinyTBS.Game.Input;
 using TinyTBS.Engine.IO;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Engine.Input;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.Screens;
 using TinyTBS.Game.Match.Session;

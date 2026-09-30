@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using TinyTBS.Game.Saves.Models;
+using TinyTBS.Rules.Saves.Models;
 
 namespace TinyTBS.Game.Campaigns.Models;
 

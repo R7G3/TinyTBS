@@ -2,8 +2,8 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Assets;
-using TinyTBS.Game.Maps.Models;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Match;
 
 namespace TinyTBS.Game.Presentation.Match;
 

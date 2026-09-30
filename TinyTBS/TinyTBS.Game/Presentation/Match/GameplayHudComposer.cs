@@ -3,7 +3,7 @@ using Gum.Forms.Controls;
 using Gum.GueDeriving;
 using Gum.Wireframe;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Presentation.Match.Hud;
 using TinyTBS.Game.Presentation.Match.Overlays;
 using TinyTBS.Game.Presentation.Match.World;
