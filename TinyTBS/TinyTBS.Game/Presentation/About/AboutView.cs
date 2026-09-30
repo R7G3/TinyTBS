@@ -104,11 +104,11 @@ public sealed class AboutView
 
         AddBodyLine(_scrollHost, "Author: Vadim (R7G3) Trofimov");
         AddBodyLine(_scrollHost, "Site:");
-        AddLinkButton(_scrollHost, SiteUrl, () => onOpenUrl(SiteUrl));
+        AddLinkButton(_scrollHost, "Project page", () => onOpenUrl(SiteUrl));
         AddBodyLine(_scrollHost, "Welcome:");
-        AddLinkButton(_scrollHost, WelcomeDocsUrl, () => onOpenUrl(WelcomeDocsUrl));
+        AddLinkButton(_scrollHost, "Welcome page and help", () => onOpenUrl(WelcomeDocsUrl));
         AddBodyLine(_scrollHost, "Based on:");
-        AddLinkButton(_scrollHost, MonoGameUrl, () => onOpenUrl(MonoGameUrl));
+        AddLinkButton(_scrollHost, "MonoGame", () => onOpenUrl(MonoGameUrl));
         AddBodyLine(_scrollHost, "Used libs:");
         foreach (var libraryLine in AboutSolutionLibraries.Lines)
             AddBodyLine(_scrollHost, "  • " + libraryLine);
@@ -265,9 +265,9 @@ public sealed class AboutView
         GumFocusableButtonList.ApplyFocus(_focusableEntries, ref _focusIndex);
     }
 
-    private void AddLinkButton(Panel parent, string url, Action onClick)
+    private void AddLinkButton(Panel parent, string caption, Action onClick)
     {
-        var button = new Button { Text = url };
+        var button = new Button { Text = caption };
         GumUiLayout.FillParentWidth(button);
         button.Click += (_, _) =>
         {
