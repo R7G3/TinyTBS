@@ -6,13 +6,6 @@ namespace TinyTBS.Rules.Modules;
 /// <summary>Parses shared <c>module.json</c> fields for any module type.</summary>
 public static class ContentModuleManifestParser
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true,
-    };
-
     public static ContentModuleInfo Parse(Stream jsonStream, string moduleRootPath, ContentModuleSource source)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRootPath);
@@ -21,7 +14,7 @@ public static class ContentModuleManifestParser
         ContentModuleManifestDto contentModuleManifest;
         try
         {
-            contentModuleManifest = JsonSerializer.Deserialize<ContentModuleManifestDto>(jsonStream, JsonOptions)
+            contentModuleManifest = JsonSerializer.Deserialize<ContentModuleManifestDto>(jsonStream, ContentJson.Read)
                 ?? throw new TinymodInstallException("module.json deserialized to null.");
         }
         catch (JsonException jsonException)

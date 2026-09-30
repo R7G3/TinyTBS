@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Modules;
+using TinyTBS.Rules;
 
 namespace TinyTBS.Game.Editor.Writers;
 
@@ -41,7 +42,9 @@ public static class ScenarioModuleCampaignLinker
 
         contentObject["campaign"] = CampaignLoader.DefaultManifestRelativePath;
 
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        files.WriteAllText(moduleJsonPath, rootObject.ToJsonString(options) + Environment.NewLine, Encoding.UTF8);
+        files.WriteAllText(
+            moduleJsonPath,
+            rootObject.ToJsonString(ContentJson.Write) + Environment.NewLine,
+            Encoding.UTF8);
     }
 }

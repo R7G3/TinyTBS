@@ -1,8 +1,5 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Levels;
-using TinyTBS.Rules.Levels.Models;
 
 namespace TinyTBS.Game.Editor.Levels;
 
@@ -71,50 +68,22 @@ public sealed class EditableLevelDocument
             throw new LevelLoadException($"Missing {LevelFolderLoader.LevelJsonFileName} in {levelDirectory}");
 
         using var stream = files.OpenRead(path);
-        LevelJsonDto? document;
-        try
-        {
-            document = JsonSerializer.Deserialize<LevelJsonDto>(stream, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true,
-            });
-        }
-        catch (JsonException exception)
-        {
-            throw new LevelLoadException("Failed to parse level.json.", exception);
-        }
-
-        if (document is null)
-            throw new LevelLoadException("level.json deserialized to null.");
-
-        var id = string.IsNullOrWhiteSpace(document.Id) ? "level" : document.Id.Trim();
-        var mapRef = document.Map?.Ref?.Trim() ?? "Maps/map";
-        var players = document.Players;
+        var document = LevelJsonParser.Read(stream);
         return new EditableLevelDocument
         {
-            Id = id,
-            Title = string.IsNullOrWhiteSpace(document.Title) ? id : document.Title.Trim(),
-            Description = string.IsNullOrWhiteSpace(document.Description) ? null : document.Description.Trim(),
-            Modes = document.Modes is { Count: > 0 }
-                ? document.Modes.Where(mode => !string.IsNullOrWhiteSpace(mode)).Select(mode => mode.Trim()).ToList()
-                : ["skirmish"],
-            MapRef = mapRef.Replace('\\', '/'),
-            PlayersMin = players?.Min ?? 2,
-            PlayersMax = players?.Max ?? Math.Max(2, players?.Min ?? 2),
-            DefaultSlots = players?.DefaultSlots ?? players?.Max ?? 2,
-            DefaultStartingGold = document.DefaultStartingGold ?? 500,
-            DefaultUnitCap = document.DefaultUnitCap ?? 25,
-            TeamDefeatMode = string.IsNullOrWhiteSpace(document.TeamDefeatMode)
-                ? "allMembers"
-                : document.TeamDefeatMode.Trim(),
-            VictoryType = string.IsNullOrWhiteSpace(document.Victory?.Type)
-                ? "standard"
-                : document.Victory!.Type!.Trim(),
-            DefeatType = string.IsNullOrWhiteSpace(document.Defeat?.Type)
-                ? "standard"
-                : document.Defeat!.Type!.Trim(),
+            Id = document.Id,
+            Title = document.Title,
+            Description = document.Description,
+            Modes = document.Modes.ToList(),
+            MapRef = document.MapRef.Replace('\\', '/'),
+            PlayersMin = document.Players.Min,
+            PlayersMax = document.Players.Max,
+            DefaultSlots = document.Players.DefaultSlots,
+            DefaultStartingGold = document.DefaultStartingGold,
+            DefaultUnitCap = document.DefaultUnitCap,
+            TeamDefeatMode = document.TeamDefeatMode,
+            VictoryType = document.Victory.Type,
+            DefeatType = document.Defeat.Type,
             IsDirty = false,
         };
     }

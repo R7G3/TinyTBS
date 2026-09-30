@@ -7,19 +7,12 @@ namespace TinyTBS.Rules.Units;
 /// <summary>Parses unit JSON and units <c>module.json</c>.</summary>
 public static class UnitJsonParser
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true,
-    };
-
     public static UnitDefinition ParseUnit(Stream jsonStream, string contentNamespace, string moduleRootPath)
     {
         UnitDefinitionDto document;
         try
         {
-            document = JsonSerializer.Deserialize<UnitDefinitionDto>(jsonStream, JsonOptions)
+            document = JsonSerializer.Deserialize<UnitDefinitionDto>(jsonStream, ContentJson.Read)
                 ?? throw new UnitLoadException("Unit JSON deserialized to null.");
         }
         catch (JsonException jsonException)
@@ -36,7 +29,7 @@ public static class UnitJsonParser
         UnitModuleJsonDto document;
         try
         {
-            document = JsonSerializer.Deserialize<UnitModuleJsonDto>(jsonStream, JsonOptions)
+            document = JsonSerializer.Deserialize<UnitModuleJsonDto>(jsonStream, ContentJson.Read)
                 ?? throw new UnitLoadException("module.json deserialized to null.");
         }
         catch (JsonException jsonException)

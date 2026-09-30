@@ -8,13 +8,6 @@ public static class MapJsonParser
 {
     private const string DefaultTerrainType = "grass";
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true,
-    };
-
     public static MapDefinition Parse(
         Stream jsonStream,
         string? sourceDirectory = null,
@@ -23,7 +16,7 @@ public static class MapJsonParser
         MapJsonDto mapDocument;
         try
         {
-            mapDocument = JsonSerializer.Deserialize<MapJsonDto>(jsonStream, JsonOptions)
+            mapDocument = JsonSerializer.Deserialize<MapJsonDto>(jsonStream, ContentJson.Read)
                 ?? throw new MapLoadException("map.json deserialized to null.");
         }
         catch (JsonException jsonException)

@@ -1,5 +1,6 @@
-using System.Text.Json;
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
+using TinyTBS.Game.Modules;
 using TinyTBS.Rules.Buildings.Models;
 
 namespace TinyTBS.Game.Editor.Buildings;
@@ -81,90 +82,91 @@ public sealed class EditableBuildingDocument
         if (!files.Exists(buildingJsonPath))
             throw new EditorException("Missing building file: " + buildingJsonPath);
 
+        var moduleRoot = EditorModuleRoot.Find(files, buildingJsonPath);
+        var contentNamespace = ReadContentNamespace(files, moduleRoot);
         using var stream = files.OpenRead(buildingJsonPath);
-        BuildingDefinitionDto? definitionDto;
+        BuildingDefinition definition;
         try
         {
-            definitionDto = JsonSerializer.Deserialize<BuildingDefinitionDto>(stream, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true,
-            });
+            definition = BuildingJsonParser.ParseBuilding(stream, contentNamespace, moduleRoot);
         }
-        catch (JsonException exception)
+        catch (BuildingLoadException exception)
         {
-            throw new EditorException("Failed to parse building JSON.", exception);
+            throw new EditorException(exception.Message, exception);
         }
 
-        if (definitionDto is null)
-            throw new EditorException("Building JSON deserialized to null.");
-
-        var id = string.IsNullOrWhiteSpace(definitionDto.Id) ? "building" : definitionDto.Id.Trim();
-        EditableBuildingHeal? heal = null;
-        if (definitionDto.Heal is not null)
-        {
-            heal = new EditableBuildingHeal
-            {
-                Amount = definitionDto.Heal.Amount,
-                Scope = string.IsNullOrWhiteSpace(definitionDto.Heal.Scope) ? "allied" : definitionDto.Heal.Scope.Trim(),
-            };
-        }
-
-        EditableBuildingRuined? ruined = null;
-        var hasRuined = definitionDto.Ruined is not null;
-        if (definitionDto.Ruined is not null)
-        {
-            ruined = new EditableBuildingRuined
-            {
-                Income = definitionDto.Ruined.Income,
-                DefenceBonus = definitionDto.Ruined.DefenceBonus,
-                Capturable = definitionDto.Ruined.Capturable,
-                Heal = definitionDto.Ruined.Heal is null
-                    ? null
-                    : new EditableBuildingHeal
-                    {
-                        Amount = definitionDto.Ruined.Heal.Amount,
-                        Scope = string.IsNullOrWhiteSpace(definitionDto.Ruined.Heal.Scope)
-                            ? "none"
-                            : definitionDto.Ruined.Heal.Scope.Trim(),
-                    },
-            };
-        }
-
+        var id = definition.ContentId.LocalId;
         return new EditableBuildingDocument
         {
             OriginalId = id,
             Id = id,
-            DisplayNameKey = string.IsNullOrWhiteSpace(definitionDto.DisplayNameKey)
-                ? "buildings." + id
-                : definitionDto.DisplayNameKey.Trim(),
-            Tags = definitionDto.Tags?.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList() ?? [],
-            SpriteBase = string.IsNullOrWhiteSpace(definitionDto.Sprites?.Base)
-                ? "Resources/Images/buildings/" + id + "_base.png"
-                : definitionDto.Sprites!.Base!.Trim().Replace('\\', '/'),
-            SpriteMask = string.IsNullOrWhiteSpace(definitionDto.Sprites?.Mask)
-                ? "Resources/Images/buildings/" + id + "_mask.png"
-                : definitionDto.Sprites!.Mask!.Trim().Replace('\\', '/'),
-            SpriteRuinedBase = string.IsNullOrWhiteSpace(definitionDto.Sprites?.RuinedBase)
+            DisplayNameKey = definition.DisplayNameKey,
+            Tags = definition.Tags.ToList(),
+            SpriteBase = definition.Sprites.BasePath.Replace('\\', '/'),
+            SpriteMask = definition.Sprites.MaskPath.Replace('\\', '/'),
+            SpriteRuinedBase = NormalizePath(definition.Sprites.RuinedBasePath),
+            SpriteRuinedMask = NormalizePath(definition.Sprites.RuinedMaskPath),
+            Income = definition.Income,
+            DefenceBonus = definition.DefenceBonus,
+            AllowsRecruit = definition.AllowsRecruit,
+            RecruitFromTags = definition.RecruitFromTags.ToList(),
+            Heal = definition.Heal is null
                 ? null
-                : definitionDto.Sprites!.RuinedBase!.Trim().Replace('\\', '/'),
-            SpriteRuinedMask = string.IsNullOrWhiteSpace(definitionDto.Sprites?.RuinedMask)
+                : new EditableBuildingHeal
+                {
+                    Amount = definition.Heal.Amount,
+                    Scope = definition.Heal.Scope,
+                },
+            Capturable = definition.Capturable,
+            Destroyable = definition.Destroyable,
+            Repairable = definition.Repairable,
+            HasRuined = definition.Ruined is not null,
+            Ruined = definition.Ruined is null
                 ? null
-                : definitionDto.Sprites!.RuinedMask!.Trim().Replace('\\', '/'),
-            Income = definitionDto.Income,
-            DefenceBonus = definitionDto.DefenceBonus,
-            AllowsRecruit = definitionDto.AllowsRecruit,
-            RecruitFromTags = definitionDto.RecruitFromTags?
-                .Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList() ?? [],
-            Heal = heal,
-            Capturable = definitionDto.Capturable,
-            Destroyable = definitionDto.Destroyable,
-            Repairable = definitionDto.Repairable,
-            HasRuined = hasRuined,
-            Ruined = ruined,
-            CountsTowardPlayerDefeat = definitionDto.CountsTowardPlayerDefeat,
+                : new EditableBuildingRuined
+                {
+                    Income = definition.Ruined.Income,
+                    DefenceBonus = definition.Ruined.DefenceBonus,
+                    Capturable = definition.Ruined.Capturable,
+                    Heal = definition.Ruined.Heal is null
+                        ? null
+                        : new EditableBuildingHeal
+                        {
+                            Amount = definition.Ruined.Heal.Amount,
+                            Scope = definition.Ruined.Heal.Scope,
+                        },
+                },
+            CountsTowardPlayerDefeat = definition.CountsTowardPlayerDefeat,
             IsDirty = false,
         };
     }
+
+    private static string ReadContentNamespace(IFileSystem files, string moduleRoot)
+    {
+        var manifestPath = files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
+        if (!files.Exists(manifestPath))
+            return "local";
+
+        using var stream = files.OpenRead(manifestPath);
+        try
+        {
+            return BuildingJsonParser.ParseModuleManifest(stream).ContentNamespace;
+        }
+        catch (BuildingLoadException exception)
+        {
+            GameLog.Warning(
+                $"Buildings module manifest '{manifestPath}' could not be read; using the folder name as the namespace.",
+                exception);
+            return FolderName(moduleRoot);
+        }
+    }
+
+    private static string FolderName(string moduleRoot)
+    {
+        var name = Path.GetFileName(moduleRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        return string.IsNullOrWhiteSpace(name) ? "local" : name;
+    }
+
+    private static string? NormalizePath(string? path) =>
+        string.IsNullOrWhiteSpace(path) ? null : path.Replace('\\', '/');
 }

@@ -7,13 +7,6 @@ namespace TinyTBS.Rules.Themes;
 /// <summary>Parses theme <c>module.json</c>.</summary>
 public static class ThemeJsonParser
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true,
-    };
-
     public static (
         string ModuleId,
         string ContentNamespace,
@@ -27,7 +20,7 @@ public static class ThemeJsonParser
         ThemeModuleJsonDto document;
         try
         {
-            document = JsonSerializer.Deserialize<ThemeModuleJsonDto>(jsonStream, JsonOptions)
+            document = JsonSerializer.Deserialize<ThemeModuleJsonDto>(jsonStream, ContentJson.Read)
                 ?? throw new ThemeLoadException("module.json deserialized to null.");
         }
         catch (JsonException jsonException)

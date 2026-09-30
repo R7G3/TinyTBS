@@ -1,9 +1,10 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Units;
 using TinyTBS.Game.Modules;
+using TinyTBS.Rules;
 using TinyTBS.Rules.Units.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
@@ -11,12 +12,6 @@ namespace TinyTBS.Game.Editor.Writers;
 /// <summary>Writes <c>Units/{id}.json</c> and syncs <c>recruit.addsToPool</c> in module.json.</summary>
 public sealed class UnitDocumentWriter
 {
-    private static readonly JsonSerializerOptions WriteOptions = new()
-    {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     private readonly IFileSystem _files;
 
     public UnitDocumentWriter(IFileSystem files)
@@ -85,7 +80,7 @@ public sealed class UnitDocumentWriter
         };
 
         var path = _files.Combine(unitsDir, id + ".json");
-        _files.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(path, JsonSerializer.Serialize(payload, ContentJson.Write) + Environment.NewLine, Encoding.UTF8);
 
         var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId.Trim();
         if (!string.Equals(originalId, id, StringComparison.Ordinal))
@@ -110,16 +105,15 @@ public sealed class UnitDocumentWriter
         try
         {
             using var stream = _files.OpenRead(moduleJsonPath);
-            var manifest = JsonSerializer.Deserialize<UnitModuleJsonDto>(stream, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-            });
-            var relative = manifest?.Content?.UnitsDir;
-            if (!string.IsNullOrWhiteSpace(relative))
-                return _files.Combine(moduleRoot, relative.Trim().Replace('/', Path.DirectorySeparatorChar));
+            var unitsDir = UnitJsonParser.ParseModuleManifest(stream).UnitsDir;
+            if (!string.IsNullOrWhiteSpace(unitsDir))
+                return _files.Combine(moduleRoot, unitsDir.Trim().Replace('/', Path.DirectorySeparatorChar));
         }
-        catch (JsonException)
+        catch (UnitLoadException exception)
         {
+            GameLog.Warning(
+                $"Units module manifest '{moduleJsonPath}' could not be read; using the default Units folder.",
+                exception);
         }
 
         return _files.Combine(moduleRoot, "Units");
@@ -134,17 +128,13 @@ public sealed class UnitDocumentWriter
         try
         {
             using var stream = _files.OpenRead(moduleJsonPath);
-            var manifest = JsonSerializer.Deserialize<UnitModuleJsonDto>(stream, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-            });
-            if (!string.IsNullOrWhiteSpace(manifest?.Namespace))
-                return manifest.Namespace.Trim();
-            if (!string.IsNullOrWhiteSpace(manifest?.Id))
-                return manifest.Id.Trim();
+            return UnitJsonParser.ParseModuleManifest(stream).ContentNamespace;
         }
-        catch (JsonException)
+        catch (UnitLoadException exception)
         {
+            GameLog.Warning(
+                $"Units module manifest '{moduleJsonPath}' could not be read; using the folder name as the namespace.",
+                exception);
         }
 
         return Path.GetFileName(moduleRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
@@ -205,7 +195,7 @@ public sealed class UnitDocumentWriter
         recruitObject["addsToPool"] = pool;
         _files.WriteAllText(
             moduleJsonPath,
-            rootObject.ToJsonString(WriteOptions) + Environment.NewLine,
+            rootObject.ToJsonString(ContentJson.Write) + Environment.NewLine,
             Encoding.UTF8);
     }
 }

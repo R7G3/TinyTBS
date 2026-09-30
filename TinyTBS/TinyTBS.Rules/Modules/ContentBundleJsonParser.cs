@@ -6,13 +6,6 @@ namespace TinyTBS.Rules.Modules;
 /// <summary>Parses <c>*.bundle.json</c> presets.</summary>
 public static class ContentBundleJsonParser
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true,
-    };
-
     public static ContentBundleDefinition Parse(
         Stream jsonStream,
         string bundleFilePath,
@@ -24,7 +17,7 @@ public static class ContentBundleJsonParser
         ContentBundleJsonDto document;
         try
         {
-            document = JsonSerializer.Deserialize<ContentBundleJsonDto>(jsonStream, JsonOptions)
+            document = JsonSerializer.Deserialize<ContentBundleJsonDto>(jsonStream, ContentJson.Read)
                 ?? throw new ContentBundleException("bundle.json deserialized to null.");
         }
         catch (JsonException jsonException)

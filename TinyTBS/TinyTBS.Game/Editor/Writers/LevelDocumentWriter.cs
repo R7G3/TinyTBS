@@ -1,23 +1,16 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Levels;
 using TinyTBS.Game.Levels;
+using TinyTBS.Rules;
 using TinyTBS.Rules.Levels.Models;
-using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Editor.Writers;
 
 /// <summary>Writes <c>Levels/{id}/level.json</c> under a scenario module.</summary>
 public sealed class LevelDocumentWriter
 {
-    private static readonly JsonSerializerOptions WriteOptions = new()
-    {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     private readonly IFileSystem _files;
 
     public LevelDocumentWriter(IFileSystem files)
@@ -68,7 +61,7 @@ public sealed class LevelDocumentWriter
         };
 
         var path = _files.Combine(levelRoot, LevelFolderLoader.LevelJsonFileName);
-        _files.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(path, JsonSerializer.Serialize(payload, ContentJson.Write) + Environment.NewLine, Encoding.UTF8);
         document.IsDirty = false;
         return levelRoot;
     }

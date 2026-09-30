@@ -7,13 +7,6 @@ namespace TinyTBS.Rules.Modules;
 /// <summary>Parses scenario <c>module.json</c>.</summary>
 public static class ScenarioJsonParser
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true,
-    };
-
     public static ScenarioModuleDefinition ParseModuleManifest(Stream jsonStream, string moduleRootPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRootPath);
@@ -21,7 +14,7 @@ public static class ScenarioJsonParser
         ScenarioModuleJsonDto document;
         try
         {
-            document = JsonSerializer.Deserialize<ScenarioModuleJsonDto>(jsonStream, JsonOptions)
+            document = JsonSerializer.Deserialize<ScenarioModuleJsonDto>(jsonStream, ContentJson.Read)
                 ?? throw new MatchContentCompositionException("module.json deserialized to null.");
         }
         catch (JsonException jsonException)

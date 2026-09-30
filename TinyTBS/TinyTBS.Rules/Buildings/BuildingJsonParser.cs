@@ -7,13 +7,6 @@ namespace TinyTBS.Rules.Buildings;
 /// <summary>Parses building JSON and buildings <c>module.json</c>.</summary>
 public static class BuildingJsonParser
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true,
-    };
-
     public static BuildingDefinition ParseBuilding(
         Stream jsonStream,
         string contentNamespace,
@@ -22,7 +15,7 @@ public static class BuildingJsonParser
         BuildingDefinitionDto document;
         try
         {
-            document = JsonSerializer.Deserialize<BuildingDefinitionDto>(jsonStream, JsonOptions)
+            document = JsonSerializer.Deserialize<BuildingDefinitionDto>(jsonStream, ContentJson.Read)
                 ?? throw new BuildingLoadException("Building JSON deserialized to null.");
         }
         catch (JsonException jsonException)
@@ -39,7 +32,7 @@ public static class BuildingJsonParser
         BuildingModuleJsonDto document;
         try
         {
-            document = JsonSerializer.Deserialize<BuildingModuleJsonDto>(jsonStream, JsonOptions)
+            document = JsonSerializer.Deserialize<BuildingModuleJsonDto>(jsonStream, ContentJson.Read)
                 ?? throw new BuildingLoadException("module.json deserialized to null.");
         }
         catch (JsonException jsonException)

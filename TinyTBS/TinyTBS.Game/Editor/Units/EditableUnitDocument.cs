@@ -1,5 +1,6 @@
-using System.Text.Json;
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
+using TinyTBS.Game.Modules;
 using TinyTBS.Rules.Units.Models;
 
 namespace TinyTBS.Game.Editor.Units;
@@ -83,70 +84,88 @@ public sealed class EditableUnitDocument
         if (!files.Exists(unitJsonPath))
             throw new EditorException("Missing unit file: " + unitJsonPath);
 
+        var moduleRoot = EditorModuleRoot.Find(files, unitJsonPath);
+        var contentNamespace = ReadContentNamespace(files, moduleRoot);
         using var stream = files.OpenRead(unitJsonPath);
-        UnitDefinitionDto? definitionDto;
+        UnitDefinition definition;
         try
         {
-            definitionDto = JsonSerializer.Deserialize<UnitDefinitionDto>(stream, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true,
-            });
+            definition = UnitJsonParser.ParseUnit(stream, contentNamespace, moduleRoot);
         }
-        catch (JsonException exception)
+        catch (UnitLoadException exception)
         {
-            throw new EditorException("Failed to parse unit JSON.", exception);
+            throw new EditorException(exception.Message, exception);
         }
 
-        if (definitionDto is null)
-            throw new EditorException("Unit JSON deserialized to null.");
-
-        var id = string.IsNullOrWhiteSpace(definitionDto.Id) ? "unit" : definitionDto.Id.Trim();
+        var id = definition.ContentId.LocalId;
         return new EditableUnitDocument
         {
             OriginalId = id,
             Id = id,
-            DisplayNameKey = string.IsNullOrWhiteSpace(definitionDto.DisplayNameKey) ? "units." + id : definitionDto.DisplayNameKey.Trim(),
-            MovementClass = string.IsNullOrWhiteSpace(definitionDto.MovementClass)
-                ? MovementClassIds.Foot
-                : definitionDto.MovementClass.Trim(),
-            Tags = definitionDto.Tags?.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList() ?? [],
-            Recruitable = definitionDto.Recruitable ?? true,
-            Attack = definitionDto.Attack,
-            Defence = definitionDto.Defence,
-            MaxHealth = Math.Max(1, definitionDto.MaxHealth),
-            AttackRangeMin = Math.Max(0, definitionDto.AttackRangeMin),
-            AttackRangeMax = Math.Max(definitionDto.AttackRangeMin, definitionDto.AttackRangeMax),
-            Speed = Math.Max(0, definitionDto.Speed),
-            Cost = Math.Max(0, definitionDto.Cost),
-            Abilities = (definitionDto.Abilities ?? [])
+            DisplayNameKey = definition.DisplayNameKey,
+            MovementClass = MovementClassIds.ToId(definition.MovementClass),
+            Tags = definition.Tags.ToList(),
+            Recruitable = definition.Recruitable,
+            Attack = definition.Attack,
+            Defence = definition.Defence,
+            MaxHealth = definition.MaxHealth,
+            AttackRangeMin = definition.AttackRangeMin,
+            AttackRangeMax = definition.AttackRangeMax,
+            Speed = definition.Speed,
+            Cost = definition.Cost,
+            Abilities = definition.Abilities
                 .Select(ability => new EditableUnitAbility
                 {
-                    Type = string.IsNullOrWhiteSpace(ability.Type) ? UnitAbilityTypes.CaptureBuilding : ability.Type.Trim(),
+                    Type = ability.Type,
                     Amount = ability.Amount,
                     MinRange = ability.MinRange,
                     Value = ability.Value,
                     Radius = ability.Radius,
-                    Tags = ability.Tags?.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList()
-                        ?? [],
+                    Tags = ability.Tags.ToList(),
                 })
                 .ToList(),
-            SpecialCoefficients = (definitionDto.SpecialCoefficients ?? [])
+            SpecialCoefficients = definition.SpecialCoefficients
                 .Select(coefficient => new EditableUnitSpecialCoefficient
                 {
-                    WhenDefault = coefficient.When?.Default == true,
-                    TargetHasTag = string.IsNullOrWhiteSpace(coefficient.When?.TargetHasTag)
-                        ? null
-                        : coefficient.When!.TargetHasTag!.Trim(),
-                    ManhattanRange = coefficient.When?.ManhattanRange,
+                    WhenDefault = coefficient.When.IsDefault,
+                    TargetHasTag = coefficient.When.TargetHasTag,
+                    ManhattanRange = coefficient.When.ManhattanRange,
                     Multiply = coefficient.Multiply,
                 })
                 .ToList(),
-            LeavesGravestone = definitionDto.LeavesGravestone ?? true,
-            SpriteBase = string.IsNullOrWhiteSpace(definitionDto.Sprites?.Base) ? null : definitionDto.Sprites!.Base!.Trim().Replace('\\', '/'),
-            SpriteMask = string.IsNullOrWhiteSpace(definitionDto.Sprites?.Mask) ? null : definitionDto.Sprites!.Mask!.Trim().Replace('\\', '/'),
+            LeavesGravestone = definition.LeavesGravestone,
+            SpriteBase = NormalizePath(definition.Sprites?.BasePath),
+            SpriteMask = NormalizePath(definition.Sprites?.MaskPath),
             IsDirty = false,
         };
     }
+
+    private static string ReadContentNamespace(IFileSystem files, string moduleRoot)
+    {
+        var manifestPath = files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
+        if (!files.Exists(manifestPath))
+            return "local";
+
+        using var stream = files.OpenRead(manifestPath);
+        try
+        {
+            return UnitJsonParser.ParseModuleManifest(stream).ContentNamespace;
+        }
+        catch (UnitLoadException exception)
+        {
+            GameLog.Warning(
+                $"Units module manifest '{manifestPath}' could not be read; using the folder name as the namespace.",
+                exception);
+            return FolderName(moduleRoot);
+        }
+    }
+
+    private static string FolderName(string moduleRoot)
+    {
+        var name = Path.GetFileName(moduleRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        return string.IsNullOrWhiteSpace(name) ? "local" : name;
+    }
+
+    private static string? NormalizePath(string? path) =>
+        string.IsNullOrWhiteSpace(path) ? null : path.Replace('\\', '/');
 }

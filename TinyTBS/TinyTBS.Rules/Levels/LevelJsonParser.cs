@@ -14,24 +14,14 @@ public static class LevelJsonParser
     private const string DefaultTeamDefeatMode = "allMembers";
     private const string DefaultConditionType = "standard";
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    public static LevelFileDefinition Read(Stream jsonStream)
     {
-        PropertyNameCaseInsensitive = true,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true,
-    };
+        ArgumentNullException.ThrowIfNull(jsonStream);
 
-    public static LevelDefinition Parse(
-        Stream jsonStream,
-        MapDefinition map,
-        string mapRef,
-        string? sourceDirectory = null,
-        string? scenarioModuleRoot = null)
-    {
         LevelJsonDto levelDocument;
         try
         {
-            levelDocument = JsonSerializer.Deserialize<LevelJsonDto>(jsonStream, JsonOptions)
+            levelDocument = JsonSerializer.Deserialize<LevelJsonDto>(jsonStream, ContentJson.Read)
                 ?? throw new LevelLoadException("level.json deserialized to null.");
         }
         catch (JsonException jsonException)
@@ -39,44 +29,6 @@ public static class LevelJsonParser
             throw new LevelLoadException("Failed to parse level.json.", jsonException);
         }
 
-        return FromDocument(levelDocument, map, mapRef, sourceDirectory, scenarioModuleRoot);
-    }
-
-    public static LevelDefinition Parse(
-        string json,
-        MapDefinition map,
-        string mapRef,
-        string? sourceDirectory = null,
-        string? scenarioModuleRoot = null)
-    {
-        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
-        return Parse(stream, map, mapRef, sourceDirectory, scenarioModuleRoot);
-    }
-
-    /// <summary>Reads and validates <c>map.ref</c> from level.json without loading the map.</summary>
-    public static string ReadMapRef(Stream jsonStream)
-    {
-        LevelJsonDto levelDocument;
-        try
-        {
-            levelDocument = JsonSerializer.Deserialize<LevelJsonDto>(jsonStream, JsonOptions)
-                ?? throw new LevelLoadException("level.json deserialized to null.");
-        }
-        catch (JsonException jsonException)
-        {
-            throw new LevelLoadException("Failed to parse level.json.", jsonException);
-        }
-
-        return RequireMapRef(levelDocument);
-    }
-
-    private static LevelDefinition FromDocument(
-        LevelJsonDto levelDocument,
-        MapDefinition map,
-        string mapRef,
-        string? sourceDirectory,
-        string? scenarioModuleRoot)
-    {
         if (levelDocument.FormatVersion < 1)
             throw new LevelLoadException($"Unsupported formatVersion '{levelDocument.FormatVersion}'.");
 
@@ -84,10 +36,7 @@ public static class LevelJsonParser
             throw new LevelLoadException("level.json requires non-empty 'id'.");
 
         var levelId = levelDocument.Id.Trim();
-        var modes = ParseModes(levelDocument.Modes);
-        var players = ParsePlayers(levelDocument.Players);
-
-        return new LevelDefinition
+        return new LevelFileDefinition
         {
             FormatVersion = levelDocument.FormatVersion,
             Id = levelId,
@@ -95,10 +44,9 @@ public static class LevelJsonParser
             Description = string.IsNullOrWhiteSpace(levelDocument.Description)
                 ? null
                 : levelDocument.Description.Trim(),
-            Modes = modes,
-            MapRef = mapRef,
-            Map = map,
-            Players = players,
+            Modes = ParseModes(levelDocument.Modes),
+            MapRef = RequireMapRef(levelDocument),
+            Players = ParsePlayers(levelDocument.Players),
             DefaultStartingGold = levelDocument.DefaultStartingGold ?? DefaultStartingGold,
             DefaultUnitCap = levelDocument.DefaultUnitCap ?? DefaultUnitCap,
             TeamDefeatMode = string.IsNullOrWhiteSpace(levelDocument.TeamDefeatMode)
@@ -107,10 +55,44 @@ public static class LevelJsonParser
             Victory = ParseCondition(levelDocument.Victory),
             Defeat = ParseCondition(levelDocument.Defeat),
             Dialogs = ParseDialogs(levelDocument.Dialogs),
+        };
+    }
+
+    public static LevelDefinition Parse(
+        Stream jsonStream,
+        MapDefinition map,
+        string mapRef,
+        string? sourceDirectory = null,
+        string? scenarioModuleRoot = null)
+    {
+        ArgumentNullException.ThrowIfNull(jsonStream);
+        ArgumentNullException.ThrowIfNull(map);
+        ArgumentException.ThrowIfNullOrWhiteSpace(mapRef);
+
+        var file = Read(jsonStream);
+        return new LevelDefinition
+        {
+            FormatVersion = file.FormatVersion,
+            Id = file.Id,
+            Title = file.Title,
+            Description = file.Description,
+            Modes = file.Modes,
+            MapRef = mapRef,
+            Map = map,
+            Players = file.Players,
+            DefaultStartingGold = file.DefaultStartingGold,
+            DefaultUnitCap = file.DefaultUnitCap,
+            TeamDefeatMode = file.TeamDefeatMode,
+            Victory = file.Victory,
+            Defeat = file.Defeat,
+            Dialogs = file.Dialogs,
             SourceDirectory = sourceDirectory,
             ScenarioModuleRoot = scenarioModuleRoot,
         };
     }
+
+    /// <summary>Reads and validates <c>map.ref</c> from level.json without loading the map.</summary>
+    public static string ReadMapRef(Stream jsonStream) => Read(jsonStream).MapRef;
 
     internal static string RequireMapRef(LevelJsonDto levelDocument)
     {

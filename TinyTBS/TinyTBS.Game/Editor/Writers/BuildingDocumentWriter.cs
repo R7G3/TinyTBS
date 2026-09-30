@@ -1,7 +1,8 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
+using TinyTBS.Rules;
 using TinyTBS.Rules.Buildings.Models;
 using TinyTBS.Game.Editor.Buildings;
 using TinyTBS.Game.Modules;
@@ -11,12 +12,6 @@ namespace TinyTBS.Game.Editor.Writers;
 /// <summary>Writes <c>Buildings/{id}.json</c> under a buildings module.</summary>
 public sealed class BuildingDocumentWriter
 {
-    private static readonly JsonSerializerOptions WriteOptions = new()
-    {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
-
     private readonly IFileSystem _files;
 
     public BuildingDocumentWriter(IFileSystem files)
@@ -96,7 +91,7 @@ public sealed class BuildingDocumentWriter
         };
 
         var path = _files.Combine(buildingsDir, id + ".json");
-        _files.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(path, JsonSerializer.Serialize(payload, ContentJson.Write) + Environment.NewLine, Encoding.UTF8);
 
         var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId.Trim();
         if (!string.Equals(originalId, id, StringComparison.Ordinal))
@@ -120,16 +115,15 @@ public sealed class BuildingDocumentWriter
         try
         {
             using var stream = _files.OpenRead(moduleJsonPath);
-            var manifest = JsonSerializer.Deserialize<BuildingModuleJsonDto>(stream, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-            });
-            var relative = manifest?.Content?.BuildingsDir;
-            if (!string.IsNullOrWhiteSpace(relative))
-                return _files.Combine(moduleRoot, relative.Trim().Replace('/', Path.DirectorySeparatorChar));
+            var buildingsDir = BuildingJsonParser.ParseModuleManifest(stream).BuildingsDir;
+            if (!string.IsNullOrWhiteSpace(buildingsDir))
+                return _files.Combine(moduleRoot, buildingsDir.Trim().Replace('/', Path.DirectorySeparatorChar));
         }
-        catch (JsonException)
+        catch (BuildingLoadException exception)
         {
+            GameLog.Warning(
+                $"Buildings module manifest '{moduleJsonPath}' could not be read; using the default Buildings folder.",
+                exception);
         }
 
         return _files.Combine(moduleRoot, "Buildings");
