@@ -35,12 +35,10 @@ public sealed class EditorCampaignEditView
     public string CampaignId =>
         _idBox is null
             ? _initialCampaignId
-            : string.IsNullOrWhiteSpace(_idBox.Text) ? "campaign" : _idBox.Text.Trim();
+            : string.IsNullOrWhiteSpace(_idBox.Text) ? "campaign" : _idBox.Text;
 
     public string CampaignTitle =>
-        _titleBox is null
-            ? _initialTitle
-            : string.IsNullOrWhiteSpace(_titleBox.Text) ? CampaignId : _titleBox.Text.Trim();
+        string.IsNullOrWhiteSpace(_titleBox?.Text) ? CampaignId : _titleBox.Text;
 
     public IReadOnlyList<string> Chapters => _chapters;
 
@@ -55,10 +53,10 @@ public sealed class EditorCampaignEditView
         Clear();
         _onSave = onSave ?? throw new ArgumentNullException(nameof(onSave));
         _onBack = onBack ?? throw new ArgumentNullException(nameof(onBack));
-        _initialCampaignId = string.IsNullOrWhiteSpace(campaignId) ? "campaign" : campaignId.Trim();
-        _initialTitle = string.IsNullOrWhiteSpace(title) ? _initialCampaignId : title.Trim();
+        _initialCampaignId = string.IsNullOrWhiteSpace(campaignId) ? "campaign" : campaignId;
+        _initialTitle = string.IsNullOrWhiteSpace(title) ? _initialCampaignId : title;
         _chapters.Clear();
-        _chapters.AddRange(chapters.Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id.Trim()));
+        _chapters.AddRange(chapters.Where(id => !string.IsNullOrWhiteSpace(id)));
         _availableLevels = availableLevels ?? [];
 
         var built = EditorTwoColumnFormShell.Build(

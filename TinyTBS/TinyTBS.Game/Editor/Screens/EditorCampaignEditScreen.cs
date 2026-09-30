@@ -1,11 +1,9 @@
 using TinyTBS.Engine.Input;
-using TinyTBS.Game.Assets;
 using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Editor.Screens;
 
@@ -87,7 +85,7 @@ public sealed class EditorCampaignEditScreen : EditorFormScreen
     }
 
     private static string SanitizeId(string raw) =>
-        EditorIds.SanitizeOrDefault(raw.Trim().Replace(' ', '_'), "campaign");
+        EditorIds.SanitizeOrDefault(raw.Replace(' ', '_'), "campaign");
 
     private void GoToHub() =>
         Navigator.ToEditorHub(_session);

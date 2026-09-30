@@ -410,7 +410,7 @@ public sealed class MatchState
             return;
 
         WinnerPlayerIndex = playerIndex;
-        VictoryReason = string.IsNullOrWhiteSpace(reason) ? "victory" : reason.Trim();
+        VictoryReason = string.IsNullOrWhiteSpace(reason) ? "victory" : reason;
         LastAction = null;
     }
 

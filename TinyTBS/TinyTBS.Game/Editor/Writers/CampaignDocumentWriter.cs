@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Campaigns.Models;
-using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Editor.Writers;
 
@@ -35,14 +34,13 @@ public sealed class CampaignDocumentWriter
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentNullException.ThrowIfNull(levelIds);
 
-        ContentModuleManifestParser.ValidateModuleId(campaignId.Trim());
+        ContentModuleManifestParser.ValidateModuleId(campaignId);
 
         var campaignRoot = _files.Combine(scenarioModuleRoot, "Campaign");
         _files.CreateDirectory(campaignRoot);
 
-        var chapters = levelIds
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Select(id => id.Trim())
+        var savedTitle = SavedUserText.Or(title, campaignId);
+        var chapters = SavedUserText.List(levelIds)
             .Distinct(StringComparer.Ordinal)
             .Select(id => new CampaignLevelJsonDto
             {
@@ -54,8 +52,8 @@ public sealed class CampaignDocumentWriter
         var payload = new CampaignJsonDto
         {
             FormatVersion = 1,
-            Id = campaignId.Trim(),
-            Title = title.Trim(),
+            Id = campaignId,
+            Title = savedTitle,
             Levels = chapters,
         };
 

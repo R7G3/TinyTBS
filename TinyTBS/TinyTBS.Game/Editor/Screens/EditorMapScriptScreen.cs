@@ -1,7 +1,6 @@
 using System.Text;
 using Microsoft.Xna.Framework;
 using TinyTBS.Engine.Diagnostics;
-using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Map;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
@@ -28,7 +27,7 @@ public sealed class EditorMapScriptScreen : MenuScreen
         : base(game)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));
-        _mapId = string.IsNullOrWhiteSpace(mapId) ? "map" : mapId.Trim();
+        _mapId = string.IsNullOrWhiteSpace(mapId) ? "map" : mapId;
         _returnToPaint = returnToPaint;
     }
 

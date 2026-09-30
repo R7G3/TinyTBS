@@ -24,6 +24,16 @@ public sealed class LevelDocumentWriter
         ArgumentNullException.ThrowIfNull(document);
 
         ContentModuleManifestParser.ValidateModuleId(document.Id);
+        document.Title = SavedUserText.Or(document.Title, document.Id);
+        document.Description = SavedUserText.Optional(document.Description);
+        document.MapRef = SavedUserText.Or(document.MapRef, "Maps/map").Replace('\\', '/');
+        document.TeamDefeatMode = SavedUserText.Or(document.TeamDefeatMode, TeamDefeatModeIds.AllMembers);
+        document.VictoryType = SavedUserText.Or(document.VictoryType, MatchConditionTypes.Standard);
+        document.DefeatType = SavedUserText.Or(document.DefeatType, MatchConditionTypes.Standard);
+        var modes = SavedUserText.List(document.Modes);
+        document.Modes = modes.Count > 0 ? modes : [LevelModeIds.Skirmish];
+        ContentModuleManifestParser.ValidateModuleId(document.MapIdFromRef());
+
         var levelRoot = _files.Combine(scenarioModuleRoot, "Levels", document.Id);
         _files.CreateDirectory(levelRoot);
 
@@ -34,11 +44,11 @@ public sealed class LevelDocumentWriter
         var payload = new LevelJsonDto
         {
             FormatVersion = 1,
-            Id = document.Id.Trim(),
-            Title = string.IsNullOrWhiteSpace(document.Title) ? document.Id : document.Title.Trim(),
-            Description = string.IsNullOrWhiteSpace(document.Description) ? null : document.Description.Trim(),
-            Modes = document.Modes.Count > 0 ? document.Modes.ToList() : [LevelModeIds.Skirmish],
-            Map = new LevelMapRefDto { Ref = document.MapRef.Replace('\\', '/') },
+            Id = document.Id,
+            Title = document.Title,
+            Description = document.Description,
+            Modes = document.Modes.ToList(),
+            Map = new LevelMapRefDto { Ref = document.MapRef },
             Players = new LevelPlayersDto
             {
                 Min = playersMin,
@@ -47,20 +57,14 @@ public sealed class LevelDocumentWriter
             },
             DefaultStartingGold = Math.Max(0, document.DefaultStartingGold),
             DefaultUnitCap = Math.Max(1, document.DefaultUnitCap),
-            TeamDefeatMode = string.IsNullOrWhiteSpace(document.TeamDefeatMode)
-                ? TeamDefeatModeIds.AllMembers
-                : document.TeamDefeatMode.Trim(),
+            TeamDefeatMode = document.TeamDefeatMode,
             Victory = new LevelConditionDto
             {
-                Type = string.IsNullOrWhiteSpace(document.VictoryType)
-                    ? MatchConditionTypes.Standard
-                    : document.VictoryType.Trim(),
+                Type = document.VictoryType,
             },
             Defeat = new LevelConditionDto
             {
-                Type = string.IsNullOrWhiteSpace(document.DefeatType)
-                    ? MatchConditionTypes.Standard
-                    : document.DefeatType.Trim(),
+                Type = document.DefeatType,
             },
         };
 

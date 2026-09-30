@@ -25,7 +25,7 @@ public static class LevelMapRefResolver
         ArgumentException.ThrowIfNullOrWhiteSpace(mapRef);
         ArgumentNullException.ThrowIfNull(files);
 
-        var trimmedRef = mapRef.Trim().TrimStart(LogicalPathSeparators);
+        var trimmedRef = mapRef.TrimStart(LogicalPathSeparators);
         if (trimmedRef.Length == 0)
             throw new LevelLoadException("map.ref is empty.");
 

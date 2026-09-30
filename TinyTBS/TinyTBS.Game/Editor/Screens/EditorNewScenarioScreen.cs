@@ -1,11 +1,9 @@
 using Microsoft.Xna.Framework;
-using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
-using TinyTBS.Game.Modules;
-using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Game.Screens;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Screens;
 
@@ -90,11 +88,11 @@ public sealed class EditorNewScenarioScreen : MenuScreen
         try
         {
             var moduleId = _workspace.AllocateModuleId(EditorIds.SanitizeOrDefault(_view.ModuleId, DefaultModuleId));
-            var title = string.IsNullOrWhiteSpace(_view.ModuleTitle) ? moduleId : _view.ModuleTitle.Trim();
+            var title = _view.ModuleTitle;
 
             var root = _scenarioWriter.CreateNew(
                 moduleId,
-                title,
+                ref title,
                 description: "Created in TinyTBS Editor.");
 
             var session = new EditorWorkspaceSession(

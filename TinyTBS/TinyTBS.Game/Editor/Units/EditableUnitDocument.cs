@@ -48,7 +48,7 @@ public sealed class EditableUnitDocument
 
     public static EditableUnitDocument CreateDefault(string unitId)
     {
-        var id = string.IsNullOrWhiteSpace(unitId) ? "unit" : unitId.Trim();
+        var id = string.IsNullOrWhiteSpace(unitId) ? "unit" : unitId;
         return new EditableUnitDocument
         {
             OriginalId = id,

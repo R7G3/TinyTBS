@@ -100,27 +100,27 @@ public sealed class EditorBuildingEditView
     public void ApplyTextFields()
     {
         if (_idBox is not null && !string.IsNullOrWhiteSpace(_idBox.Text))
-            _document.Id = _idBox.Text.Trim();
+            _document.Id = _idBox.Text;
         if (_displayNameBox is not null)
             _document.DisplayNameKey = string.IsNullOrWhiteSpace(_displayNameBox.Text)
                 ? "buildings." + _document.Id
-                : _displayNameBox.Text.Trim();
+                : _displayNameBox.Text;
         if (_spriteBaseBox is not null && !string.IsNullOrWhiteSpace(_spriteBaseBox.Text))
-            _document.SpriteBase = _spriteBaseBox.Text.Trim();
+            _document.SpriteBase = _spriteBaseBox.Text;
         if (_spriteMaskBox is not null && !string.IsNullOrWhiteSpace(_spriteMaskBox.Text))
-            _document.SpriteMask = _spriteMaskBox.Text.Trim();
+            _document.SpriteMask = _spriteMaskBox.Text;
         if (_spriteRuinedBaseBox is not null)
             _document.SpriteRuinedBase = string.IsNullOrWhiteSpace(_spriteRuinedBaseBox.Text)
                 ? null
-                : _spriteRuinedBaseBox.Text.Trim();
+                : _spriteRuinedBaseBox.Text;
         if (_spriteRuinedMaskBox is not null)
             _document.SpriteRuinedMask = string.IsNullOrWhiteSpace(_spriteRuinedMaskBox.Text)
                 ? null
-                : _spriteRuinedMaskBox.Text.Trim();
+                : _spriteRuinedMaskBox.Text;
         if (_newTagBox is not null && !string.IsNullOrWhiteSpace(_newTagBox.Text))
-            TryAddTag(_document.Tags, _newTagBox.Text.Trim());
+            TryAddTag(_document.Tags, _newTagBox.Text);
         if (_newRecruitTagBox is not null && !string.IsNullOrWhiteSpace(_newRecruitTagBox.Text))
-            TryAddTag(_document.RecruitFromTags, _newRecruitTagBox.Text.Trim());
+            TryAddTag(_document.RecruitFromTags, _newRecruitTagBox.Text);
         _document.IsDirty = true;
     }
 
@@ -286,10 +286,9 @@ public sealed class EditorBuildingEditView
     {
         if (string.IsNullOrWhiteSpace(tag))
             return;
-        var trimmed = tag.Trim();
-        if (tags.Contains(trimmed, StringComparer.OrdinalIgnoreCase))
+        if (tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
             return;
-        tags.Add(trimmed);
+        tags.Add(tag);
     }
 
     private void OpenTagChoice(List<string> tags, string tag, bool isRecruit)

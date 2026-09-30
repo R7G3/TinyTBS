@@ -51,18 +51,19 @@ public static class BuildingJsonParser
             throw new BuildingLoadException(
                 $"Expected module type '{ContentModuleTypeIds.Buildings}', got '{document.Type}'.");
 
+        var moduleId = document.Id;
         var contentNamespace = string.IsNullOrWhiteSpace(document.Namespace)
-            ? document.Id.Trim()
-            : document.Namespace.Trim();
+            ? moduleId
+            : document.Namespace;
 
         var buildingsDir = document.Content?.BuildingsDir;
         if (string.IsNullOrWhiteSpace(buildingsDir))
             buildingsDir = "Buildings/";
 
-        var title = string.IsNullOrWhiteSpace(document.Title) ? document.Id.Trim() : document.Title.Trim();
-        var version = string.IsNullOrWhiteSpace(document.Version) ? "0.0.0" : document.Version.Trim();
+        var title = string.IsNullOrWhiteSpace(document.Title) ? moduleId : document.Title;
+        var version = string.IsNullOrWhiteSpace(document.Version) ? "0.0.0" : document.Version;
 
-        return (document.Id.Trim(), contentNamespace, title, version, buildingsDir.Trim());
+        return (moduleId, contentNamespace, title, version, buildingsDir);
     }
 
     private static BuildingDefinition FromBuildingDocument(
@@ -78,7 +79,7 @@ public static class BuildingJsonParser
 
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRootPath);
 
-        var localId = document.Id.Trim();
+        var localId = document.Id;
         var contentId = new ContentId(contentNamespace, localId);
 
         if (document.Sprites is null
@@ -96,7 +97,7 @@ public static class BuildingJsonParser
                 Amount = document.Heal.Amount,
                 Scope = string.IsNullOrWhiteSpace(document.Heal.Scope)
                     ? BuildingHealScopeIds.None
-                    : document.Heal.Scope.Trim(),
+                    : document.Heal.Scope,
             };
         }
 
@@ -111,7 +112,7 @@ public static class BuildingJsonParser
                     Amount = document.Ruined.Heal.Amount,
                     Scope = string.IsNullOrWhiteSpace(document.Ruined.Heal.Scope)
                         ? BuildingHealScopeIds.None
-                        : document.Ruined.Heal.Scope.Trim(),
+                        : document.Ruined.Heal.Scope,
                 };
             }
 
@@ -129,25 +130,24 @@ public static class BuildingJsonParser
             ContentId = contentId,
             DisplayNameKey = string.IsNullOrWhiteSpace(document.DisplayNameKey)
                 ? $"buildings.{localId}"
-                : document.DisplayNameKey.Trim(),
-            Tags = document.Tags?.Select(tag => tag.Trim()).Where(tag => tag.Length > 0).ToArray() ?? [],
+                : document.DisplayNameKey,
+            Tags = document.Tags?.Where(tag => !string.IsNullOrWhiteSpace(tag)).ToArray() ?? [],
             Sprites = new BuildingSpritesDefinition
             {
-                BasePath = document.Sprites.Base.Trim(),
-                MaskPath = document.Sprites.Mask.Trim(),
+                BasePath = document.Sprites.Base,
+                MaskPath = document.Sprites.Mask,
                 RuinedBasePath = string.IsNullOrWhiteSpace(document.Sprites.RuinedBase)
                     ? null
-                    : document.Sprites.RuinedBase.Trim(),
+                    : document.Sprites.RuinedBase,
                 RuinedMaskPath = string.IsNullOrWhiteSpace(document.Sprites.RuinedMask)
                     ? null
-                    : document.Sprites.RuinedMask.Trim(),
+                    : document.Sprites.RuinedMask,
             },
             Income = document.Income,
             DefenceBonus = document.DefenceBonus,
             AllowsRecruit = document.AllowsRecruit,
             RecruitFromTags = document.RecruitFromTags?
-                    .Select(tag => tag.Trim())
-                    .Where(tag => tag.Length > 0)
+                    .Where(tag => !string.IsNullOrWhiteSpace(tag))
                     .ToArray()
                 ?? [],
             Heal = heal,

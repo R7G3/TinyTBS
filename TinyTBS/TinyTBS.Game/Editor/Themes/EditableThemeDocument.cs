@@ -1,6 +1,5 @@
 using System.Text.Json;
 using TinyTBS.Engine.IO;
-using TinyTBS.Rules.Maps.Models;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Themes;
 using TinyTBS.Rules.Themes.Models;
@@ -71,7 +70,7 @@ public sealed class EditableThemeDocument
             if (jsonDocument.RootElement.TryGetProperty("description", out var descriptionElement)
                 && descriptionElement.ValueKind == JsonValueKind.String)
             {
-                var text = descriptionElement.GetString()?.Trim();
+                var text = descriptionElement.GetString();
                 return string.IsNullOrWhiteSpace(text) ? null : text;
             }
         }

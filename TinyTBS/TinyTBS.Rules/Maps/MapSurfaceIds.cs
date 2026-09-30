@@ -35,7 +35,7 @@ public static class MapSurfaceIds
 
     public static TerrainKind ParseTerrain(string typeId)
     {
-        return typeId.Trim().ToLowerInvariant() switch
+        return typeId.ToLowerInvariant() switch
         {
             Grass => TerrainKind.Grass,
             Water => TerrainKind.Water,

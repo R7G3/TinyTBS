@@ -26,7 +26,7 @@ public static class CampaignProgressFactory
             Kind = CampaignProgressDocument.KindCampaign,
             WrittenAtUtc = DateTimeOffset.UtcNow,
             CampaignId = campaign.CampaignId,
-            ScenarioModuleId = scenarioModuleId.Trim(),
+            ScenarioModuleId = scenarioModuleId,
             CampaignTitle = campaign.Title,
             CurrentLevelId = firstLevelId,
             UnlockedLevelIds = [firstLevelId],

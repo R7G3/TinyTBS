@@ -30,16 +30,17 @@ public sealed class ScenarioModuleWriter
     /// </summary>
     public string CreateNew(
         string moduleId,
-        string title,
+        ref string title,
         string? contentNamespace = null,
         string? description = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
 
-        ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
-        var id = moduleId.Trim();
-        var moduleNamespace = string.IsNullOrWhiteSpace(contentNamespace) ? id : contentNamespace.Trim();
+        ContentModuleManifestParser.ValidateModuleId(moduleId);
+        var id = moduleId;
+        title = SavedUserText.Or(title, id);
+        var savedDescription = SavedUserText.Optional(description);
+        var moduleNamespace = string.IsNullOrWhiteSpace(contentNamespace) ? id : contentNamespace;
 
         _userDataPaths.EnsureCreated();
         var moduleRoot = _files.Combine(_userDataPaths.Modules, id);
@@ -58,8 +59,8 @@ public sealed class ScenarioModuleWriter
                 Id = id,
                 Type = ContentModuleTypeIds.Scenario,
                 Namespace = moduleNamespace,
-                Title = title.Trim(),
-                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                Title = title,
+                Description = savedDescription,
                 Version = "1.0.0",
                 Defaults = new ScenarioDefaultsDto
                 {

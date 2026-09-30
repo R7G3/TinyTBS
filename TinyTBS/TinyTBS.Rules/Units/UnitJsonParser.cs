@@ -47,9 +47,10 @@ public static class UnitJsonParser
         if (!string.Equals(document.Type, ContentModuleTypeIds.Units, StringComparison.OrdinalIgnoreCase))
             throw new UnitLoadException($"Expected module type '{ContentModuleTypeIds.Units}', got '{document.Type}'.");
 
+        var moduleId = document.Id;
         var contentNamespace = string.IsNullOrWhiteSpace(document.Namespace)
-            ? document.Id.Trim()
-            : document.Namespace.Trim();
+            ? moduleId
+            : document.Namespace;
 
         var unitsDir = document.Content?.UnitsDir;
         if (string.IsNullOrWhiteSpace(unitsDir))
@@ -66,10 +67,10 @@ public static class UnitJsonParser
             }
         }
 
-        var title = string.IsNullOrWhiteSpace(document.Title) ? document.Id.Trim() : document.Title.Trim();
-        var version = string.IsNullOrWhiteSpace(document.Version) ? "0.0.0" : document.Version.Trim();
+        var title = string.IsNullOrWhiteSpace(document.Title) ? moduleId : document.Title;
+        var version = string.IsNullOrWhiteSpace(document.Version) ? "0.0.0" : document.Version;
 
-        return (document.Id.Trim(), contentNamespace, title, version, unitsDir.Trim(), recruitPool);
+        return (moduleId, contentNamespace, title, version, unitsDir, recruitPool);
     }
 
     private static UnitDefinition FromUnitDocument(
@@ -85,7 +86,7 @@ public static class UnitJsonParser
 
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRootPath);
 
-        var localId = document.Id.Trim();
+        var localId = document.Id;
         var contentId = new ContentId(contentNamespace, localId);
 
         if (document.MaxHealth <= 0)
@@ -105,8 +106,8 @@ public static class UnitJsonParser
 
             sprites = new UnitSpritesDefinition
             {
-                BasePath = document.Sprites.Base.Trim(),
-                MaskPath = document.Sprites.Mask.Trim(),
+                BasePath = document.Sprites.Base,
+                MaskPath = document.Sprites.Mask,
             };
         }
 
@@ -120,12 +121,12 @@ public static class UnitJsonParser
 
                 abilities.Add(new UnitAbilityDefinition
                 {
-                    Type = abilityEntry.Type.Trim(),
+                    Type = abilityEntry.Type,
                     Amount = abilityEntry.Amount,
                     MinRange = abilityEntry.MinRange,
                     Value = abilityEntry.Value,
                     Radius = abilityEntry.Radius,
-                    Tags = abilityEntry.Tags?.Select(tag => tag.Trim()).Where(tag => tag.Length > 0).ToArray()
+                    Tags = abilityEntry.Tags?.Where(tag => !string.IsNullOrWhiteSpace(tag)).ToArray()
                         ?? [],
                 });
             }
@@ -146,7 +147,7 @@ public static class UnitJsonParser
                         IsDefault = entry.When.Default == true,
                         TargetHasTag = string.IsNullOrWhiteSpace(entry.When.TargetHasTag)
                             ? null
-                            : entry.When.TargetHasTag.Trim(),
+                            : entry.When.TargetHasTag,
                         ManhattanRange = entry.When.ManhattanRange,
                     },
                     Multiply = entry.Multiply,
@@ -168,9 +169,9 @@ public static class UnitJsonParser
             ContentId = contentId,
             DisplayNameKey = string.IsNullOrWhiteSpace(document.DisplayNameKey)
                 ? $"units.{localId}"
-                : document.DisplayNameKey.Trim(),
+                : document.DisplayNameKey,
             MovementClass = MovementClassIds.Parse(document.MovementClass),
-            Tags = document.Tags?.Select(tag => tag.Trim()).Where(tag => tag.Length > 0).ToArray() ?? [],
+            Tags = document.Tags?.Where(tag => !string.IsNullOrWhiteSpace(tag)).ToArray() ?? [],
             Recruitable = document.Recruitable ?? true,
             Attack = document.Attack,
             Defence = document.Defence,

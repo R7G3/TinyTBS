@@ -7,7 +7,6 @@ using TinyTBS.Engine.GumLayout;
 using TinyTBS.Engine.Input;
 using TinyTBS.Game.Editor.Units;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Presentation.Content;
 using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Rules.Units.Models;
 
@@ -121,17 +120,17 @@ public sealed class EditorUnitEditView
     public void ApplyTextFields()
     {
         if (_idBox is not null && !string.IsNullOrWhiteSpace(_idBox.Text))
-            _document.Id = _idBox.Text.Trim();
+            _document.Id = _idBox.Text;
         if (_displayNameBox is not null)
             _document.DisplayNameKey = string.IsNullOrWhiteSpace(_displayNameBox.Text)
                 ? "units." + _document.Id
-                : _displayNameBox.Text.Trim();
+                : _displayNameBox.Text;
         if (_spriteBaseBox is not null)
-            _document.SpriteBase = string.IsNullOrWhiteSpace(_spriteBaseBox.Text) ? null : _spriteBaseBox.Text.Trim();
+            _document.SpriteBase = string.IsNullOrWhiteSpace(_spriteBaseBox.Text) ? null : _spriteBaseBox.Text;
         if (_spriteMaskBox is not null)
-            _document.SpriteMask = string.IsNullOrWhiteSpace(_spriteMaskBox.Text) ? null : _spriteMaskBox.Text.Trim();
+            _document.SpriteMask = string.IsNullOrWhiteSpace(_spriteMaskBox.Text) ? null : _spriteMaskBox.Text;
         if (_newTagBox is not null && !string.IsNullOrWhiteSpace(_newTagBox.Text))
-            TryAddTag(_newTagBox.Text.Trim());
+            TryAddTag(_newTagBox.Text);
         _document.IsDirty = true;
     }
 
@@ -329,10 +328,9 @@ public sealed class EditorUnitEditView
     {
         if (string.IsNullOrWhiteSpace(tag))
             return;
-        var trimmed = tag.Trim();
-        if (_document.Tags.Contains(trimmed, StringComparer.OrdinalIgnoreCase))
+        if (_document.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
             return;
-        _document.Tags.Add(trimmed);
+        _document.Tags.Add(tag);
         _document.IsDirty = true;
         if (_tagsSummaryLabel is not null)
             _tagsSummaryLabel.Text = TagsCaption();
@@ -745,7 +743,7 @@ public sealed class EditorUnitEditView
                 if (_detailSpecialTagBox is not null && !coefficient.WhenDefault && coefficient.ManhattanRange is null)
                     coefficient.TargetHasTag = string.IsNullOrWhiteSpace(_detailSpecialTagBox.Text)
                         ? null
-                        : _detailSpecialTagBox.Text.Trim();
+                        : _detailSpecialTagBox.Text;
             }
 
             _document.IsDirty = true;

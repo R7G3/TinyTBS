@@ -19,8 +19,8 @@ public static class ModuleDirectoryCopier
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(userDataPaths);
 
-        ContentModuleManifestParser.ValidateModuleId(targetModuleId.Trim());
-        var moduleId = targetModuleId.Trim();
+        ContentModuleManifestParser.ValidateModuleId(targetModuleId);
+        var moduleId = targetModuleId;
 
         if (!files.DirectoryExists(sourceModuleRoot))
             throw new EditorException($"Source module folder not found: {sourceModuleRoot}");

@@ -35,7 +35,7 @@ public static class MatchInfoFormatter
             builder.Append(unit.PlayerIndex + 1);
         }
 
-        return builder.ToString().TrimEnd();
+        return builder.ToString();
     }
 
     public static string FormatTerrainDetail(MatchState match, GridCell cell)

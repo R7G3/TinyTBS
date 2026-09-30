@@ -86,9 +86,9 @@ public sealed class EditorBundleEditView
     public void ApplyTextFields()
     {
         if (_idBox is not null && !string.IsNullOrWhiteSpace(_idBox.Text))
-            _document.Id = _idBox.Text.Trim();
+            _document.Id = _idBox.Text;
         if (_titleBox is not null && !string.IsNullOrWhiteSpace(_titleBox.Text))
-            _document.Title = _titleBox.Text.Trim();
+            _document.Title = _titleBox.Text;
         _document.IsDirty = true;
     }
 
@@ -210,7 +210,6 @@ public sealed class EditorBundleEditView
     {
         var listed = _document.ModuleIds
             .Where(moduleId => !string.IsNullOrWhiteSpace(moduleId))
-            .Select(moduleId => moduleId.Trim())
             .ToHashSet(StringComparer.Ordinal);
 
         if (!listed.Contains(_document.ScenarioModuleId))

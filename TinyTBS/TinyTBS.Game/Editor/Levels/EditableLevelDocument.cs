@@ -37,12 +37,12 @@ public sealed class EditableLevelDocument
 
     public static EditableLevelDocument CreateDefault(string levelId, string title, string mapId)
     {
-        var id = string.IsNullOrWhiteSpace(levelId) ? "level" : levelId.Trim();
-        var map = string.IsNullOrWhiteSpace(mapId) ? "map" : mapId.Trim();
+        var id = string.IsNullOrWhiteSpace(levelId) ? "level" : levelId;
+        var map = string.IsNullOrWhiteSpace(mapId) ? "map" : mapId;
         return new EditableLevelDocument
         {
             Id = id,
-            Title = string.IsNullOrWhiteSpace(title) ? id : title.Trim(),
+            Title = string.IsNullOrWhiteSpace(title) ? id : title,
             Description = "Created in TinyTBS Editor.",
             Modes = [LevelModeIds.Skirmish],
             MapRef = "Maps/" + map,
@@ -90,7 +90,7 @@ public sealed class EditableLevelDocument
 
     public string MapIdFromRef()
     {
-        var mapRef = MapRef.Replace('\\', '/').Trim();
+        var mapRef = MapRef.Replace('\\', '/');
         const string prefix = "Maps/";
         if (mapRef.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             return mapRef[prefix.Length..].Trim('/');
@@ -99,7 +99,7 @@ public sealed class EditableLevelDocument
 
     public void SetMapId(string mapId)
     {
-        var id = string.IsNullOrWhiteSpace(mapId) ? "map" : mapId.Trim();
+        var id = string.IsNullOrWhiteSpace(mapId) ? "map" : mapId;
         MapRef = "Maps/" + id;
         IsDirty = true;
     }
@@ -109,7 +109,7 @@ public sealed class EditableLevelDocument
 
     public void SetMode(string mode, bool enabled)
     {
-        var normalized = mode.Trim();
+        var normalized = mode;
         Modes.RemoveAll(entry => string.Equals(entry, normalized, StringComparison.OrdinalIgnoreCase));
         if (enabled)
             Modes.Add(normalized);

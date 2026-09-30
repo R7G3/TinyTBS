@@ -48,7 +48,7 @@ public sealed class EditorNewMapScreen : MenuScreen
     private void StartPaint()
     {
         var mapId = _workspace.AllocateMapId(_session, EditorIds.SanitizeOrDefault(_view.MapId, DefaultMapId));
-        var mapTitle = string.IsNullOrWhiteSpace(_view.MapTitle) ? mapId : _view.MapTitle.Trim();
+        var mapTitle = string.IsNullOrWhiteSpace(_view.MapTitle) ? mapId : _view.MapTitle;
 
         var document = EditableMapDocument.CreateFilled(
             mapId,

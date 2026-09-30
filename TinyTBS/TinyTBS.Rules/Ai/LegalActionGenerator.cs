@@ -7,6 +7,11 @@ namespace TinyTBS.Rules.Ai;
 /// Lists the current player's atomic decisions — the branches of the search tree. Candidate cells come from
 /// the rules' own predicates and every Confirm is resolved by <see cref="MatchActionResolver"/>, so the bot
 /// can only choose what a human could do with the same click.
+/// ---
+/// Перечисляет атомарные решения текущего игрока — ветви дерева поиска.
+/// Кандидатные ячейки определяются предикатами самих правил, а каждое действие подтверждения (Confirm)
+/// обрабатывается компонентом <see cref="MatchActionResolver"/>;
+/// таким образом, бот может выбрать лишь то действие, которое совершил бы человек при аналогичном клике.
 /// </summary>
 public static class LegalActionGenerator
 {
@@ -21,6 +26,8 @@ public static class LegalActionGenerator
             return actions;
 
         // A selected unit: only its moves / strikes / wait (+ End turn), never switching to another unit.
+        // Выбранный отряд: только его перемещения / атаки / ожидание(и завершение хода);
+        // переключение на другой отряд не производится.
         if (selectedUnitId is int selectedId
             && match.TryGetUnit(selectedId, out var selected)
             && selected.IsActive
@@ -32,6 +39,7 @@ public static class LegalActionGenerator
         }
 
         // Nothing selected: pick an active unit, buy in a castle, or end the turn.
+        // Ничего не выбрано: выберите активный отряд, купите новый в замке или завершите ход.
         foreach (var unit in match.Units)
         {
             if (unit.PlayerIndex != match.CurrentPlayer || !unit.IsActive)
@@ -61,10 +69,14 @@ public static class LegalActionGenerator
 
         // Strikes only from the current cell: the overlay also shows targets after a possible move,
         // and a Confirm there without moving would do nothing.
+        // Удары только из текущей ячейки: наложение также показывает цели,
+        // доступные после возможного перемещения, однако подтверждение действия
+        // без фактического перемещения ни к чему не приведет.
         AppendStrikesFromCurrentCell(match, unit, definition, selectedUnitId, actions, ref tieBreak);
         AppendRaisesFromCurrentCell(match, unit, definition, selectedUnitId, actions, ref tieBreak);
 
         // Confirm on the own cell: capture / repair, otherwise wait.
+        // Подтвердите на своей ячейке: захват / ремонт; в противном случае — ожидайте.
         AppendConfirm(match, unit.Cell, selectedUnitId, actions, ref tieBreak);
         Append(actions, BotAtomicActionKind.WaitSelected, MatchAction.WaitUnit(unit.Id, unit.Cell), ref tieBreak);
     }

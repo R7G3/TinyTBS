@@ -36,10 +36,9 @@ public sealed class EditorNewMapView
     public int Height => _height;
 
     public string MapId =>
-        string.IsNullOrWhiteSpace(_idBox?.Text) ? "map" : _idBox!.Text.Trim();
+        string.IsNullOrWhiteSpace(_idBox?.Text) ? "map" : _idBox!.Text;
 
-    public string MapTitle =>
-        string.IsNullOrWhiteSpace(_titleBox?.Text) ? MapId : _titleBox!.Text.Trim();
+    public string MapTitle => _titleBox?.Text ?? string.Empty;
 
     /// <summary>True while a TextBox owns keyboard focus (Backspace must edit text, not Cancel).</summary>
     public bool IsTextEntryActive => EditorGumTextEntry.IsAnyFocused(_idBox, _titleBox);

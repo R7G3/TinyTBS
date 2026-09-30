@@ -1,5 +1,3 @@
-using TinyTBS.Game.Modules;
-
 namespace TinyTBS.Game.Editor.Workspace;
 
 /// <summary>
@@ -10,14 +8,17 @@ public static class EditorIds
 {
     private const int MaxSuffix = 10_000;
 
-    /// <summary>Trimmed <paramref name="raw"/> when it is a valid content id; otherwise <paramref name="fallback"/>.</summary>
+    /// <summary>
+    /// <paramref name="raw"/> trimmed once when it is a valid content id; otherwise <paramref name="fallback"/>.
+    /// This is the only whitespace trim for a typed id.
+    /// </summary>
     public static string SanitizeOrDefault(string? raw, string fallback)
     {
-        var trimmed = string.IsNullOrWhiteSpace(raw) ? fallback : raw.Trim();
+        var candidate = SavedUserText.Or(raw, fallback);
         try
         {
-            ContentModuleManifestParser.ValidateModuleId(trimmed);
-            return trimmed;
+            ContentModuleManifestParser.ValidateModuleId(candidate);
+            return candidate;
         }
         catch (TinymodInstallException)
         {

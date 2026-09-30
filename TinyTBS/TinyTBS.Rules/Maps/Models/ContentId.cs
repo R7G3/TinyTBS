@@ -15,8 +15,8 @@ public readonly record struct ContentId(string Namespace, string LocalId)
         if (slashIndex <= 0 || slashIndex >= value.Length - 1)
             return false;
 
-        var contentNamespace = value[..slashIndex].Trim();
-        var localId = value[(slashIndex + 1)..].Trim();
+        var contentNamespace = value[..slashIndex];
+        var localId = value[(slashIndex + 1)..];
         if (contentNamespace.Length == 0 || localId.Length == 0)
             return false;
 

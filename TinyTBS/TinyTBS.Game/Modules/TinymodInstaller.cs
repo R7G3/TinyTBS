@@ -120,9 +120,9 @@ public sealed class TinymodInstaller
     public bool Uninstall(string moduleId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
-        ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
+        ContentModuleManifestParser.ValidateModuleId(moduleId);
 
-        var id = moduleId.Trim();
+        var id = moduleId;
         var moduleRoot = _files.Combine(_userDataPaths.Modules, id);
         if (!_files.DirectoryExists(moduleRoot))
             return false;
@@ -154,7 +154,7 @@ public sealed class TinymodInstaller
     public void TryDeleteDownloadArchive(string moduleId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
-        var id = moduleId.Trim();
+        var id = moduleId;
         var zipPath = _files.Combine(
             _userDataPaths.Downloads,
             id + ContentModuleFiles.TinymodZipExtension);

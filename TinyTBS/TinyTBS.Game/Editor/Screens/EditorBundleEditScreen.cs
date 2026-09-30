@@ -1,13 +1,10 @@
-using Gum;
 using TinyTBS.Engine.Input;
-using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Bundles;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Modules;
-using MonoGame.Extended.Screens;
 
 namespace TinyTBS.Game.Editor.Screens;
 
@@ -95,16 +92,16 @@ public sealed class EditorBundleEditScreen : EditorFormScreen
 
     private static string SanitizeId(string raw)
     {
-        var trimmed = string.IsNullOrWhiteSpace(raw) ? "user_bundle" : raw.Trim();
-        if (trimmed.Contains("..", StringComparison.Ordinal)
-            || trimmed.Contains('/', StringComparison.Ordinal)
-            || trimmed.Contains('\\', StringComparison.Ordinal)
-            || trimmed.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        var candidate = SavedUserText.Or(raw, "user_bundle");
+        if (candidate.Contains("..", StringComparison.Ordinal)
+            || candidate.Contains('/', StringComparison.Ordinal)
+            || candidate.Contains('\\', StringComparison.Ordinal)
+            || candidate.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
         {
             return "user_bundle";
         }
 
-        return trimmed;
+        return candidate;
     }
 
     private void GoToHub() =>

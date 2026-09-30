@@ -21,21 +21,20 @@ public sealed class ContentModuleLocator
     public string ResolveModuleRoot(string moduleId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
-        var trimmedId = moduleId.Trim();
 
-        var userRoot = _files.Combine(_userDataPaths.Modules, trimmedId);
+        var userRoot = _files.Combine(_userDataPaths.Modules, moduleId);
         if (_files.DirectoryExists(userRoot) && HasModuleJson(userRoot))
             return userRoot;
 
         var bundledRoot = _files.Combine(
             _userDataPaths.InstallRoot,
             BundledVanillaModulesRelativePath,
-            trimmedId);
+            moduleId);
         if (_files.DirectoryExists(bundledRoot) && HasModuleJson(bundledRoot))
             return bundledRoot;
 
         throw new MatchContentCompositionException(
-            $"Module '{trimmedId}' not found in '{_userDataPaths.Modules}' or bundled Vanilla/Modules.");
+            $"Module '{moduleId}' not found in '{_userDataPaths.Modules}' or bundled Vanilla/Modules.");
     }
 
     private bool HasModuleJson(string moduleRoot) =>

@@ -37,18 +37,18 @@ public static class ContentModuleManifestParser
                 $"Unsupported module type '{contentModuleManifest.Type}'. Expected scenario, units, buildings, or theme.");
         }
 
-        var moduleId = contentModuleManifest.Id.Trim();
+        var moduleId = contentModuleManifest.Id;
         ValidateModuleId(moduleId);
 
         var contentNamespace = string.IsNullOrWhiteSpace(contentModuleManifest.Namespace)
             ? moduleId
-            : contentModuleManifest.Namespace.Trim();
+            : contentModuleManifest.Namespace;
 
-        var title = string.IsNullOrWhiteSpace(contentModuleManifest.Title) ? moduleId : contentModuleManifest.Title.Trim();
-        var version = string.IsNullOrWhiteSpace(contentModuleManifest.Version) ? "0.0.0" : contentModuleManifest.Version.Trim();
+        var title = string.IsNullOrWhiteSpace(contentModuleManifest.Title) ? moduleId : contentModuleManifest.Title;
+        var version = string.IsNullOrWhiteSpace(contentModuleManifest.Version) ? "0.0.0" : contentModuleManifest.Version;
         var description = string.IsNullOrWhiteSpace(contentModuleManifest.Description)
             ? null
-            : contentModuleManifest.Description.Trim();
+            : contentModuleManifest.Description;
 
         return new ContentModuleInfo
         {

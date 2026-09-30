@@ -38,9 +38,10 @@ public static class ThemeJsonParser
         if (!string.Equals(document.Type, ContentModuleTypeIds.Theme, StringComparison.OrdinalIgnoreCase))
             throw new ThemeLoadException($"Expected module type '{ContentModuleTypeIds.Theme}', got '{document.Type}'.");
 
+        var moduleId = document.Id;
         var contentNamespace = string.IsNullOrWhiteSpace(document.Namespace)
-            ? document.Id.Trim()
-            : document.Namespace.Trim();
+            ? moduleId
+            : document.Namespace;
 
         var terrainDirectory = document.Content?.TerrainDir;
         if (string.IsNullOrWhiteSpace(terrainDirectory))
@@ -73,8 +74,8 @@ public static class ThemeJsonParser
                         contentId,
                         new ThemeSpriteRemap
                         {
-                            BasePath = remapDto.Base.Trim(),
-                            MaskPath = remapDto.Mask.Trim(),
+                            BasePath = remapDto.Base,
+                            MaskPath = remapDto.Mask,
                         }))
                 {
                     throw new ThemeLoadException($"Duplicate remap for '{contentId.Full}'.");
@@ -82,16 +83,16 @@ public static class ThemeJsonParser
             }
         }
 
-        var title = string.IsNullOrWhiteSpace(document.Title) ? document.Id.Trim() : document.Title.Trim();
-        var version = string.IsNullOrWhiteSpace(document.Version) ? "0.0.0" : document.Version.Trim();
+        var title = string.IsNullOrWhiteSpace(document.Title) ? moduleId : document.Title;
+        var version = string.IsNullOrWhiteSpace(document.Version) ? "0.0.0" : document.Version;
 
         return (
-            document.Id.Trim(),
+            moduleId,
             contentNamespace,
             title,
             version,
-            terrainDirectory.Trim(),
-            gravestoneRelativePath.Trim(),
+            terrainDirectory,
+            gravestoneRelativePath,
             remaps);
     }
 }

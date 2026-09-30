@@ -82,9 +82,9 @@ public sealed class EditorLevelEditView
     public void ApplyTextFields()
     {
         if (_idBox is not null && !string.IsNullOrWhiteSpace(_idBox.Text))
-            _document.Id = _idBox.Text.Trim();
+            _document.Id = _idBox.Text;
         if (_titleBox is not null)
-            _document.Title = string.IsNullOrWhiteSpace(_titleBox.Text) ? _document.Id : _titleBox.Text.Trim();
+            _document.Title = string.IsNullOrWhiteSpace(_titleBox.Text) ? _document.Id : _titleBox.Text;
         _document.IsDirty = true;
     }
 

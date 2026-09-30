@@ -5,7 +5,6 @@ using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Map;
 using TinyTBS.Game.Maps;
 using TinyTBS.Rules.Maps.Models;
-using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Editor.Writers;
 
@@ -31,6 +30,7 @@ public sealed class MapDocumentWriter
         ArgumentNullException.ThrowIfNull(document);
 
         ContentModuleManifestParser.ValidateModuleId(document.Id);
+        document.Title = SavedUserText.Or(document.Title, document.Id);
         var mapRoot = _files.Combine(scenarioModuleRoot, "Maps", document.Id);
         _files.CreateDirectory(mapRoot);
 

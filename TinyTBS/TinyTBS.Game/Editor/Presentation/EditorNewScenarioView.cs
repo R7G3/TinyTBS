@@ -15,10 +15,10 @@ public sealed class EditorNewScenarioView
     private TextBox? _titleBox;
 
     public string ModuleId =>
-        string.IsNullOrWhiteSpace(_idBox?.Text) ? "user_scenario" : _idBox!.Text.Trim();
+        string.IsNullOrWhiteSpace(_idBox?.Text) ? "user_scenario" : _idBox!.Text;
 
     public string ModuleTitle =>
-        string.IsNullOrWhiteSpace(_titleBox?.Text) ? ModuleId : _titleBox!.Text.Trim();
+        string.IsNullOrWhiteSpace(_titleBox?.Text) ? ModuleId : _titleBox!.Text;
 
     /// <summary>True while a TextBox owns keyboard focus (Backspace must edit text, not Cancel).</summary>
     public bool IsTextEntryActive => EditorGumTextEntry.IsAnyFocused(_idBox, _titleBox);

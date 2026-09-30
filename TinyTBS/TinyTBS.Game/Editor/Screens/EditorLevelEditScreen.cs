@@ -1,11 +1,9 @@
 using TinyTBS.Engine.Input;
-using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Levels;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Editor.Screens;
 
@@ -72,7 +70,6 @@ public sealed class EditorLevelEditScreen : EditorFormScreen
                 id = Workspace.AllocateLevelId(_session, id);
             _document.Id = id;
 
-            ContentModuleManifestParser.ValidateModuleId(_document.MapIdFromRef());
             _writer.Write(_session.ModuleRootPath, _document);
             _view.SyncStatus("Saved Levels/" + _document.Id);
         }

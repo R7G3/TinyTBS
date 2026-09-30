@@ -47,11 +47,10 @@ public static class ScenarioLevelCatalog
                 if (document is null || string.IsNullOrWhiteSpace(document.Id))
                     continue;
 
-                var levelId = document.Id.Trim();
-                var title = string.IsNullOrWhiteSpace(document.Title) ? levelId : document.Title.Trim();
+                var levelId = document.Id;
+                var title = string.IsNullOrWhiteSpace(document.Title) ? levelId : document.Title;
                 var modes = (document.Modes ?? [])
                     .Where(mode => !string.IsNullOrWhiteSpace(mode))
-                    .Select(mode => mode.Trim())
                     .ToArray();
 
                 var playersMin = document.Players?.Min > 0 ? document.Players.Min : FallbackPlayersMin;

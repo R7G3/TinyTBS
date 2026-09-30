@@ -1,11 +1,10 @@
 using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
-using TinyTBS.Rules.Ai;
 using TinyTBS.Game.Campaigns.Models;
 using TinyTBS.Game.Modules;
-using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Game.Saves;
 using TinyTBS.Game.Scripting;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Scripting.Api;
 
 namespace TinyTBS.Game.Campaigns;
@@ -182,6 +181,6 @@ public sealed class CampaignProgressService
             run.Extensions[pair.Key] = pair.Value;
 
         if (!string.IsNullOrWhiteSpace(mutation.ForcedNextLevelId))
-            run.PendingNextLevelId = mutation.ForcedNextLevelId.Trim();
+            run.PendingNextLevelId = mutation.ForcedNextLevelId;
     }
 }

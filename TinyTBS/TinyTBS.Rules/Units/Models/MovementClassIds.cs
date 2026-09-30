@@ -11,7 +11,7 @@ public static class MovementClassIds
     public static IReadOnlyList<string> All { get; } = [Foot, Water, Fly];
 
     public static MovementClass Parse(string? movementClass) =>
-        movementClass?.Trim().ToLowerInvariant() switch
+        movementClass?.ToLowerInvariant() switch
         {
             Water or "aquatic" => MovementClass.Water,
             Fly or "flying" => MovementClass.Fly,

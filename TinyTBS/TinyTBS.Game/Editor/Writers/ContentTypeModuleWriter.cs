@@ -28,14 +28,17 @@ public sealed class ContentTypeModuleWriter
     public string CreateNew(
         ContentModuleType type,
         string moduleId,
-        string title,
+        ref string title,
         string? description = null)
     {
         if (type is not (ContentModuleType.Units or ContentModuleType.Buildings or ContentModuleType.Theme))
             throw new EditorException("Unsupported module type for this wizard.");
 
-        ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
-        var id = moduleId.Trim();
+        ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
+        ContentModuleManifestParser.ValidateModuleId(moduleId);
+        var id = moduleId;
+        title = SavedUserText.Or(title, id);
+        var savedDescription = SavedUserText.Optional(description);
         _userDataPaths.EnsureCreated();
         var moduleRoot = _files.Combine(_userDataPaths.Modules, id);
         if (_files.DirectoryExists(moduleRoot))
@@ -58,8 +61,8 @@ public sealed class ContentTypeModuleWriter
                     id,
                     type = typeName,
                     @namespace = id,
-                    title = title.Trim(),
-                    description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                    title,
+                    description = savedDescription,
                     version = "1.0.0",
                     content = new { unitsDir = "Units" },
                     recruit = new { addsToPool = Array.Empty<string>() },
@@ -75,8 +78,8 @@ public sealed class ContentTypeModuleWriter
                     id,
                     type = typeName,
                     @namespace = id,
-                    title = title.Trim(),
-                    description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                    title,
+                    description = savedDescription,
                     version = "1.0.0",
                     content = new { buildingsDir = "Buildings" },
                 };
@@ -91,8 +94,8 @@ public sealed class ContentTypeModuleWriter
                     id,
                     type = typeName,
                     @namespace = id,
-                    title = title.Trim(),
-                    description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                    title,
+                    description = savedDescription,
                     version = "1.0.0",
                     content = new
                     {

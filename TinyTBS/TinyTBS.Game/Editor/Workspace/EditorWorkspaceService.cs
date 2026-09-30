@@ -78,10 +78,9 @@ public sealed class EditorWorkspaceService
     public string AllocateModuleId(string stem)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stem);
-        var trimmed = stem.Trim();
-        ContentModuleManifestParser.ValidateModuleId(trimmed);
+        ContentModuleManifestParser.ValidateModuleId(stem);
         _userDataPaths.EnsureCreated();
-        return EditorIds.AllocateUnique(trimmed, IsUserModuleIdTaken, "module");
+        return EditorIds.AllocateUnique(stem, IsUserModuleIdTaken, "module");
     }
 
     public bool IsUserModuleIdTaken(string moduleId) =>
@@ -186,9 +185,9 @@ public sealed class EditorWorkspaceService
             return;
         }
 
-        var contentNamespace = rootObject["namespace"]?.GetValue<string>()?.Trim();
+        var contentNamespace = rootObject["namespace"]?.GetValue<string>();
         if (string.IsNullOrWhiteSpace(contentNamespace))
-            contentNamespace = rootObject["id"]?.GetValue<string>()?.Trim() ?? string.Empty;
+            contentNamespace = rootObject["id"]?.GetValue<string>() ?? string.Empty;
 
         var fullId = string.IsNullOrWhiteSpace(contentNamespace)
             ? localUnitId
@@ -205,7 +204,7 @@ public sealed class EditorWorkspaceService
                 continue;
             }
 
-            pool.Add(value.Trim());
+            pool.Add(value);
         }
 
         recruitObject["addsToPool"] = pool;

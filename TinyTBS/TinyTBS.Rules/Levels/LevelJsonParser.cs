@@ -34,15 +34,15 @@ public static class LevelJsonParser
         if (string.IsNullOrWhiteSpace(levelDocument.Id))
             throw new LevelLoadException("level.json requires non-empty 'id'.");
 
-        var levelId = levelDocument.Id.Trim();
+        var levelId = levelDocument.Id;
         return new LevelFileDefinition
         {
             FormatVersion = levelDocument.FormatVersion,
             Id = levelId,
-            Title = string.IsNullOrWhiteSpace(levelDocument.Title) ? levelId : levelDocument.Title.Trim(),
+            Title = string.IsNullOrWhiteSpace(levelDocument.Title) ? levelId : levelDocument.Title,
             Description = string.IsNullOrWhiteSpace(levelDocument.Description)
                 ? null
-                : levelDocument.Description.Trim(),
+                : levelDocument.Description,
             Modes = ParseModes(levelDocument.Modes),
             MapRef = RequireMapRef(levelDocument),
             Players = ParsePlayers(levelDocument.Players),
@@ -50,7 +50,7 @@ public static class LevelJsonParser
             DefaultUnitCap = levelDocument.DefaultUnitCap ?? DefaultUnitCap,
             TeamDefeatMode = string.IsNullOrWhiteSpace(levelDocument.TeamDefeatMode)
                 ? TeamDefeatModeIds.AllMembers
-                : levelDocument.TeamDefeatMode.Trim(),
+                : levelDocument.TeamDefeatMode,
             Victory = ParseCondition(levelDocument.Victory),
             Defeat = ParseCondition(levelDocument.Defeat),
             Dialogs = ParseDialogs(levelDocument.Dialogs),
@@ -101,7 +101,7 @@ public static class LevelJsonParser
         if (string.IsNullOrWhiteSpace(levelDocument.Map.Ref))
             throw new LevelLoadException("level.json map.ref is required.");
 
-        return levelDocument.Map.Ref.Trim();
+        return levelDocument.Map.Ref;
     }
 
     private static IReadOnlyList<string> ParseModes(List<string>? modes)
@@ -115,7 +115,7 @@ public static class LevelJsonParser
             var mode = modes[i];
             if (string.IsNullOrWhiteSpace(mode))
                 throw new LevelLoadException($"modes[{i}] is empty.");
-            parsed.Add(mode.Trim());
+            parsed.Add(mode);
         }
 
         return parsed;
@@ -161,7 +161,7 @@ public static class LevelJsonParser
         if (condition is null || string.IsNullOrWhiteSpace(condition.Type))
             return new LevelConditionSettings { Type = MatchConditionTypes.Standard };
 
-        return new LevelConditionSettings { Type = condition.Type.Trim() };
+        return new LevelConditionSettings { Type = condition.Type };
     }
 
     private static LevelDialogsSettings? ParseDialogs(LevelDialogsDto? dialogs)
@@ -171,8 +171,8 @@ public static class LevelJsonParser
 
         return new LevelDialogsSettings
         {
-            Start = string.IsNullOrWhiteSpace(dialogs.Start) ? null : dialogs.Start.Trim(),
-            End = string.IsNullOrWhiteSpace(dialogs.End) ? null : dialogs.End.Trim(),
+            Start = string.IsNullOrWhiteSpace(dialogs.Start) ? null : dialogs.Start,
+            End = string.IsNullOrWhiteSpace(dialogs.End) ? null : dialogs.End,
         };
     }
 }

@@ -23,8 +23,8 @@ public sealed class EditableMapDocument
         if (surface.GetLength(0) != width || surface.GetLength(1) != height)
             throw new ArgumentException("Surface dimensions must match width/height.");
 
-        Id = id.Trim();
-        Title = title.Trim();
+        Id = id;
+        Title = title;
         Width = width;
         Height = height;
         Surface = surface;

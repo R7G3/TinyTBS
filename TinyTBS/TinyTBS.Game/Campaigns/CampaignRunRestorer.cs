@@ -1,10 +1,8 @@
-using TinyTBS.Rules.Ai;
+using TinyTBS.Engine.IO;
 using TinyTBS.Game.Campaigns.Models;
-using TinyTBS.Rules.Match;
+using TinyTBS.Game.Match.Session;
 using TinyTBS.Game.Saves;
 using TinyTBS.Rules.Saves.Models;
-using TinyTBS.Engine.IO;
-using TinyTBS.Game.Match.Session;
 
 namespace TinyTBS.Game.Campaigns;
 
@@ -20,11 +18,11 @@ public static class CampaignRunRestorer
         if (string.IsNullOrWhiteSpace(document.CampaignId))
             return null;
 
-        var campaignId = document.CampaignId.Trim();
+        var campaignId = document.CampaignId;
         var scenarioModuleId = document.ContentSetup.ScenarioModuleId;
         var levelId = string.IsNullOrWhiteSpace(document.CampaignLevelId)
             ? document.LevelId
-            : document.CampaignLevelId.Trim();
+            : document.CampaignLevelId;
 
         var progressStore = new CampaignProgressStore(files, userDataPaths);
         var progress = progressStore.TryLoadLatestForCampaign(scenarioModuleId, campaignId);

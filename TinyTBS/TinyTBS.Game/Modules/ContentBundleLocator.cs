@@ -31,21 +31,20 @@ public sealed class ContentBundleLocator
     private (string FilePath, ContentModuleSource Source) Resolve(string bundleId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleId);
-        var trimmedId = bundleId.Trim();
-        var fileName = trimmedId + ContentBundleFiles.BundleJsonExtension;
+        var bundleFileName = bundleId + ContentBundleFiles.BundleJsonExtension;
 
-        var userPath = _files.Combine(_userDataPaths.Bundles, fileName);
+        var userPath = _files.Combine(_userDataPaths.Bundles, bundleFileName);
         if (_files.Exists(userPath))
             return (userPath, ContentModuleSource.UserLibrary);
 
         var bundledPath = _files.Combine(
             _userDataPaths.InstallRoot,
             BundledVanillaBundlesRelativePath,
-            fileName);
+            bundleFileName);
         if (_files.Exists(bundledPath))
             return (bundledPath, ContentModuleSource.Bundled);
 
         throw new ContentBundleException(
-            $"Bundle '{trimmedId}' not found in '{_userDataPaths.Bundles}' or bundled Vanilla/Bundles.");
+            $"Bundle '{bundleId}' not found in '{_userDataPaths.Bundles}' or bundled Vanilla/Bundles.");
     }
 }

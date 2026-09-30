@@ -25,7 +25,26 @@ public sealed class UnitDocumentWriter
         ArgumentNullException.ThrowIfNull(document);
 
         ContentModuleManifestParser.ValidateModuleId(document.Id);
-        var id = document.Id.Trim();
+        var id = document.Id;
+        document.DisplayNameKey = SavedUserText.Or(document.DisplayNameKey, "units." + id);
+        document.MovementClass = MovementClassIds.Normalize(
+            SavedUserText.Or(document.MovementClass, MovementClassIds.Foot));
+        document.Tags = SavedUserText.List(document.Tags);
+        document.SpriteBase = SavedUserText.Optional(document.SpriteBase)?.Replace('\\', '/');
+        document.SpriteMask = SavedUserText.Optional(document.SpriteMask)?.Replace('\\', '/');
+        foreach (var ability in document.Abilities)
+        {
+            ability.Type = SavedUserText.Trimmed(ability.Type);
+            ability.Tags = SavedUserText.List(ability.Tags);
+        }
+
+        foreach (var coefficient in document.SpecialCoefficients)
+        {
+            coefficient.TargetHasTag = coefficient.WhenDefault
+                ? null
+                : SavedUserText.Optional(coefficient.TargetHasTag);
+        }
+
         var unitsDir = ResolveUnitsDir(unitsModuleRoot);
         _files.CreateDirectory(unitsDir);
 
@@ -33,11 +52,9 @@ public sealed class UnitDocumentWriter
         {
             FormatVersion = 1,
             Id = id,
-            DisplayNameKey = string.IsNullOrWhiteSpace(document.DisplayNameKey)
-                ? "units." + id
-                : document.DisplayNameKey.Trim(),
-            MovementClass = MovementClassIds.Normalize(document.MovementClass),
-            Tags = document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList(),
+            DisplayNameKey = document.DisplayNameKey,
+            MovementClass = document.MovementClass,
+            Tags = document.Tags,
             Recruitable = document.Recruitable,
             Attack = document.Attack,
             Defence = document.Defence,
@@ -48,23 +65,19 @@ public sealed class UnitDocumentWriter
             Cost = Math.Max(0, document.Cost),
             Abilities = document.Abilities.Select(ability => new UnitAbilityDto
             {
-                Type = ability.Type.Trim(),
+                Type = ability.Type,
                 Amount = ability.Amount,
                 MinRange = ability.MinRange,
                 Value = ability.Value,
                 Radius = ability.Radius,
-                Tags = ability.Tags.Count == 0
-                    ? null
-                    : ability.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList(),
+                Tags = ability.Tags.Count == 0 ? null : ability.Tags,
             }).ToList(),
             SpecialCoefficients = document.SpecialCoefficients.Select(coefficient => new UnitSpecialCoefficientDto
             {
                 When = new UnitSpecialWhenDto
                 {
                     Default = coefficient.WhenDefault ? true : null,
-                    TargetHasTag = coefficient.WhenDefault || string.IsNullOrWhiteSpace(coefficient.TargetHasTag)
-                        ? null
-                        : coefficient.TargetHasTag.Trim(),
+                    TargetHasTag = coefficient.WhenDefault ? null : coefficient.TargetHasTag,
                     ManhattanRange = coefficient.WhenDefault || !string.IsNullOrWhiteSpace(coefficient.TargetHasTag)
                         ? null
                         : coefficient.ManhattanRange,
@@ -74,15 +87,15 @@ public sealed class UnitDocumentWriter
             LeavesGravestone = document.LeavesGravestone,
             Sprites = new UnitSpritesDto
             {
-                Base = string.IsNullOrWhiteSpace(document.SpriteBase) ? null : document.SpriteBase.Trim().Replace('\\', '/'),
-                Mask = string.IsNullOrWhiteSpace(document.SpriteMask) ? null : document.SpriteMask.Trim().Replace('\\', '/'),
+                Base = document.SpriteBase,
+                Mask = document.SpriteMask,
             },
         };
 
         var path = _files.Combine(unitsDir, id + ".json");
         _files.WriteAllText(path, JsonSerializer.Serialize(payload, ContentJson.Write) + Environment.NewLine, Encoding.UTF8);
 
-        var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId.Trim();
+        var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId;
         if (!string.Equals(originalId, id, StringComparison.Ordinal))
         {
             var oldPath = _files.Combine(unitsDir, originalId + ".json");
@@ -107,7 +120,7 @@ public sealed class UnitDocumentWriter
             using var stream = _files.OpenRead(moduleJsonPath);
             var unitsDir = UnitJsonParser.ParseModuleManifest(stream).UnitsDir;
             if (!string.IsNullOrWhiteSpace(unitsDir))
-                return _files.Combine(moduleRoot, unitsDir.Trim().Replace('/', Path.DirectorySeparatorChar));
+                return _files.Combine(moduleRoot, unitsDir.Replace('/', Path.DirectorySeparatorChar));
         }
         catch (UnitLoadException exception)
         {
@@ -185,7 +198,7 @@ public sealed class UnitDocumentWriter
                     continue;
                 }
 
-                pool.Add(value.Trim());
+                pool.Add(value);
             }
         }
 

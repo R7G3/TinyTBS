@@ -27,12 +27,11 @@ public sealed class EditorNewContentTypeModuleView
                 ContentModuleType.Theme => "user_theme",
                 _ => "user_module",
             };
-            return string.IsNullOrWhiteSpace(_idBox?.Text) ? fallback : _idBox!.Text.Trim();
+            return string.IsNullOrWhiteSpace(_idBox?.Text) ? fallback : _idBox!.Text;
         }
     }
 
-    public string ModuleTitle =>
-        string.IsNullOrWhiteSpace(_titleBox?.Text) ? ModuleId : _titleBox!.Text.Trim();
+    public string ModuleTitle => _titleBox?.Text ?? ModuleId;
 
     public bool IsTextEntryActive => EditorGumTextEntry.IsAnyFocused(_idBox, _titleBox);
 

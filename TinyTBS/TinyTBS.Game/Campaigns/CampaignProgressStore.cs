@@ -144,12 +144,11 @@ public sealed class CampaignProgressStore
 
         var unlocked = document.UnlockedLevelIds?
             .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Select(id => id.Trim())
             .Distinct(StringComparer.Ordinal)
             .ToList() ?? [];
 
-        if (!unlocked.Contains(document.CurrentLevelId.Trim(), StringComparer.Ordinal))
-            unlocked.Insert(0, document.CurrentLevelId.Trim());
+        if (!unlocked.Contains(document.CurrentLevelId, StringComparer.Ordinal))
+            unlocked.Insert(0, document.CurrentLevelId);
 
         return new CampaignProgressDocument
         {
@@ -158,16 +157,16 @@ public sealed class CampaignProgressStore
             WrittenAtUtc = document.WrittenAtUtc == default
                 ? DateTimeOffset.UtcNow
                 : document.WrittenAtUtc.ToUniversalTime(),
-            CampaignId = document.CampaignId.Trim(),
-            ScenarioModuleId = document.ScenarioModuleId.Trim(),
+            CampaignId = document.CampaignId,
+            ScenarioModuleId = document.ScenarioModuleId,
             CampaignTitle = string.IsNullOrWhiteSpace(document.CampaignTitle)
                 ? null
-                : document.CampaignTitle.Trim(),
-            CurrentLevelId = document.CurrentLevelId.Trim(),
+                : document.CampaignTitle,
+            CurrentLevelId = document.CurrentLevelId,
             UnlockedLevelIds = unlocked,
             PendingNextLevelId = string.IsNullOrWhiteSpace(document.PendingNextLevelId)
                 ? null
-                : document.PendingNextLevelId.Trim(),
+                : document.PendingNextLevelId,
             UnitCap = document.UnitCap,
             ContentSetup = document.ContentSetup,
             PlayerSeats = document.PlayerSeats ?? [],

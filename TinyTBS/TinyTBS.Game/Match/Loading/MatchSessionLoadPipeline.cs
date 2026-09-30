@@ -141,7 +141,7 @@ public sealed class MatchSessionLoadPipeline
         {
             var scenarioModuleId = string.IsNullOrWhiteSpace(_request.ScenarioModuleId)
                 ? VanillaContentIds.ScenarioModuleId
-                : _request.ScenarioModuleId.Trim();
+                : _request.ScenarioModuleId;
             var scenario = ScenarioModuleLoader.Load(locator.ResolveModuleRoot(scenarioModuleId), _files);
             composition = MatchContentComposition.FromScenarioDefaults(scenario);
         }
@@ -154,7 +154,7 @@ public sealed class MatchSessionLoadPipeline
         ArgumentNullException.ThrowIfNull(_matchContent);
         _level = LevelFolderLoader.LoadFromModuleLevels(
             _matchContent.Scenario.ModuleRootPath,
-            _request.LevelId.Trim(),
+            _request.LevelId,
             _files);
         MatchContentCompositionLoader.ValidateMapTypes(
             _level.Map,

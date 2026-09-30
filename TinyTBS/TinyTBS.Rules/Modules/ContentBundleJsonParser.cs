@@ -31,7 +31,7 @@ public static class ContentBundleJsonParser
         if (string.IsNullOrWhiteSpace(document.Id))
             throw new ContentBundleException("bundle.json requires non-empty 'id'.");
 
-        var bundleId = document.Id.Trim();
+        var bundleId = document.Id;
         ValidateBundleId(bundleId);
 
         var moduleIds = NormalizeIdList(document.Modules);
@@ -40,7 +40,7 @@ public static class ContentBundleJsonParser
 
         var moduleIdSet = moduleIds.ToHashSet(StringComparer.Ordinal);
         var defaults = ParseDefaults(document.Defaults, bundleId, moduleIdSet);
-        var title = string.IsNullOrWhiteSpace(document.Title) ? bundleId : document.Title.Trim();
+        var title = string.IsNullOrWhiteSpace(document.Title) ? bundleId : document.Title;
 
         return new ContentBundleDefinition
         {
@@ -64,7 +64,7 @@ public static class ContentBundleJsonParser
         if (string.IsNullOrWhiteSpace(defaults.Scenario))
             throw new ContentBundleException($"Bundle '{bundleId}' defaults.scenario is missing.");
 
-        var scenarioModuleId = defaults.Scenario.Trim();
+        var scenarioModuleId = defaults.Scenario;
         EnsureListed(moduleIdSet, scenarioModuleId, bundleId, "defaults.scenario");
 
         var units = NormalizeIdList(defaults.Units);
@@ -84,7 +84,7 @@ public static class ContentBundleJsonParser
         if (string.IsNullOrWhiteSpace(defaults.Theme))
             throw new ContentBundleException($"Bundle '{bundleId}' defaults.theme is missing.");
 
-        var themeModuleId = defaults.Theme.Trim();
+        var themeModuleId = defaults.Theme;
         EnsureListed(moduleIdSet, themeModuleId, bundleId, "defaults.theme");
 
         return new ContentBundleDefaults
@@ -131,10 +131,9 @@ public static class ContentBundleJsonParser
         {
             if (string.IsNullOrWhiteSpace(value))
                 continue;
-            var trimmed = value.Trim();
-            if (!seen.Add(trimmed))
+            if (!seen.Add(value))
                 continue;
-            result.Add(trimmed);
+            result.Add(value);
         }
 
         return result;

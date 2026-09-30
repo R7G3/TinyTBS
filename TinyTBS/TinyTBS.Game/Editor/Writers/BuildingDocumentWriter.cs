@@ -25,7 +25,19 @@ public sealed class BuildingDocumentWriter
         ArgumentNullException.ThrowIfNull(document);
 
         ContentModuleManifestParser.ValidateModuleId(document.Id);
-        var id = document.Id.Trim();
+        var id = document.Id;
+        document.DisplayNameKey = SavedUserText.Or(document.DisplayNameKey, "buildings." + id);
+        document.Tags = SavedUserText.List(document.Tags);
+        document.RecruitFromTags = SavedUserText.List(document.RecruitFromTags);
+        document.SpriteBase = SavedUserText.Trimmed(document.SpriteBase).Replace('\\', '/');
+        document.SpriteMask = SavedUserText.Trimmed(document.SpriteMask).Replace('\\', '/');
+        document.SpriteRuinedBase = SavedUserText.Optional(document.SpriteRuinedBase)?.Replace('\\', '/');
+        document.SpriteRuinedMask = SavedUserText.Optional(document.SpriteRuinedMask)?.Replace('\\', '/');
+        if (document.Heal is not null)
+            document.Heal.Scope = SavedUserText.Or(document.Heal.Scope, BuildingHealScopeIds.Allied);
+        if (document.Ruined?.Heal is not null)
+            document.Ruined.Heal.Scope = SavedUserText.Or(document.Ruined.Heal.Scope, BuildingHealScopeIds.None);
+
         var buildingsDir = ResolveBuildingsDir(buildingsModuleRoot);
         _files.CreateDirectory(buildingsDir);
 
@@ -35,9 +47,7 @@ public sealed class BuildingDocumentWriter
             heal = new BuildingHealDto
             {
                 Amount = Math.Max(0, document.Heal.Amount),
-                Scope = string.IsNullOrWhiteSpace(document.Heal.Scope)
-                    ? BuildingHealScopeIds.Allied
-                    : document.Heal.Scope.Trim(),
+                Scope = document.Heal.Scope,
             };
         }
 
@@ -55,9 +65,7 @@ public sealed class BuildingDocumentWriter
                     : new BuildingHealDto
                     {
                         Amount = Math.Max(0, source.Heal.Amount),
-                        Scope = string.IsNullOrWhiteSpace(source.Heal.Scope)
-                            ? BuildingHealScopeIds.None
-                            : source.Heal.Scope.Trim(),
+                        Scope = source.Heal.Scope,
                     },
             };
         }
@@ -66,26 +74,19 @@ public sealed class BuildingDocumentWriter
         {
             FormatVersion = 1,
             Id = id,
-            DisplayNameKey = string.IsNullOrWhiteSpace(document.DisplayNameKey)
-                ? "buildings." + id
-                : document.DisplayNameKey.Trim(),
-            Tags = document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList(),
+            DisplayNameKey = document.DisplayNameKey,
+            Tags = document.Tags,
             Sprites = new BuildingSpritesDto
             {
-                Base = document.SpriteBase.Trim().Replace('\\', '/'),
-                Mask = document.SpriteMask.Trim().Replace('\\', '/'),
-                RuinedBase = string.IsNullOrWhiteSpace(document.SpriteRuinedBase)
-                    ? null
-                    : document.SpriteRuinedBase.Trim().Replace('\\', '/'),
-                RuinedMask = string.IsNullOrWhiteSpace(document.SpriteRuinedMask)
-                    ? null
-                    : document.SpriteRuinedMask.Trim().Replace('\\', '/'),
+                Base = document.SpriteBase,
+                Mask = document.SpriteMask,
+                RuinedBase = document.SpriteRuinedBase,
+                RuinedMask = document.SpriteRuinedMask,
             },
             Income = document.Income,
             DefenceBonus = document.DefenceBonus,
             AllowsRecruit = document.AllowsRecruit,
-            RecruitFromTags = document.RecruitFromTags
-                .Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList(),
+            RecruitFromTags = document.RecruitFromTags,
             Heal = heal,
             Capturable = document.Capturable,
             Destroyable = document.Destroyable,
@@ -97,7 +98,7 @@ public sealed class BuildingDocumentWriter
         var path = _files.Combine(buildingsDir, id + ".json");
         _files.WriteAllText(path, JsonSerializer.Serialize(payload, ContentJson.Write) + Environment.NewLine, Encoding.UTF8);
 
-        var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId.Trim();
+        var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId;
         if (!string.Equals(originalId, id, StringComparison.Ordinal))
         {
             var oldPath = _files.Combine(buildingsDir, originalId + ".json");
@@ -121,7 +122,7 @@ public sealed class BuildingDocumentWriter
             using var stream = _files.OpenRead(moduleJsonPath);
             var buildingsDir = BuildingJsonParser.ParseModuleManifest(stream).BuildingsDir;
             if (!string.IsNullOrWhiteSpace(buildingsDir))
-                return _files.Combine(moduleRoot, buildingsDir.Trim().Replace('/', Path.DirectorySeparatorChar));
+                return _files.Combine(moduleRoot, buildingsDir.Replace('/', Path.DirectorySeparatorChar));
         }
         catch (BuildingLoadException exception)
         {

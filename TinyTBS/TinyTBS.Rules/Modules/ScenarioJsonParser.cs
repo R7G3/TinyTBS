@@ -32,23 +32,24 @@ public static class ScenarioJsonParser
             throw new MatchContentCompositionException(
                 $"Expected module type '{ContentModuleTypeIds.Scenario}', got '{document.Type}'.");
 
+        var moduleId = document.Id;
         var contentNamespace = string.IsNullOrWhiteSpace(document.Namespace)
-            ? document.Id.Trim()
-            : document.Namespace.Trim();
+            ? moduleId
+            : document.Namespace;
 
-        var defaults = ParseDefaults(document.Defaults, document.Id.Trim());
+        var defaults = ParseDefaults(document.Defaults, moduleId);
         var requires = ParseRequires(document.Requires);
         var replaces = ParseReplaces(document.Replaces);
 
-        var title = string.IsNullOrWhiteSpace(document.Title) ? document.Id.Trim() : document.Title.Trim();
-        var version = string.IsNullOrWhiteSpace(document.Version) ? "0.0.0" : document.Version.Trim();
+        var title = string.IsNullOrWhiteSpace(document.Title) ? moduleId : document.Title;
+        var version = string.IsNullOrWhiteSpace(document.Version) ? "0.0.0" : document.Version;
         var campaignPath = string.IsNullOrWhiteSpace(document.Content?.Campaign)
             ? null
-            : document.Content.Campaign.Trim().Replace('\\', '/');
+            : document.Content.Campaign.Replace('\\', '/');
 
         return new ScenarioModuleDefinition
         {
-            ModuleId = document.Id.Trim(),
+            ModuleId = moduleId,
             ContentNamespace = contentNamespace,
             Title = title,
             Version = version,
@@ -78,7 +79,7 @@ public static class ScenarioJsonParser
         {
             UnitsModuleIds = units,
             BuildingsModuleIds = buildings,
-            ThemeModuleId = defaults.Theme.Trim(),
+            ThemeModuleId = defaults.Theme,
         };
     }
 
@@ -91,7 +92,7 @@ public static class ScenarioJsonParser
         {
             UnitsModuleIds = NormalizeIdList(requires.Units),
             BuildingsModuleIds = NormalizeIdList(requires.Buildings),
-            ThemeModuleId = string.IsNullOrWhiteSpace(requires.Theme) ? null : requires.Theme.Trim(),
+            ThemeModuleId = string.IsNullOrWhiteSpace(requires.Theme) ? null : requires.Theme,
         };
     }
 
@@ -133,10 +134,9 @@ public static class ScenarioJsonParser
         {
             if (string.IsNullOrWhiteSpace(value))
                 continue;
-            var trimmed = value.Trim();
-            if (!seen.Add(trimmed))
+            if (!seen.Add(value))
                 continue;
-            result.Add(trimmed);
+            result.Add(value);
         }
 
         return result;

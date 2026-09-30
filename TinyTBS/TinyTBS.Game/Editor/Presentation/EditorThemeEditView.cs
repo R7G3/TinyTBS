@@ -83,20 +83,20 @@ public sealed class EditorThemeEditView
     public void ApplyTextFields()
     {
         if (_titleBox is not null && !string.IsNullOrWhiteSpace(_titleBox.Text))
-            _document.Title = _titleBox.Text.Trim();
+            _document.Title = _titleBox.Text;
         if (_descriptionBox is not null)
         {
             _document.Description = string.IsNullOrWhiteSpace(_descriptionBox.Text)
                 ? null
-                : _descriptionBox.Text.Trim();
+                : _descriptionBox.Text;
         }
 
         if (_versionBox is not null && !string.IsNullOrWhiteSpace(_versionBox.Text))
-            _document.Version = _versionBox.Text.Trim();
+            _document.Version = _versionBox.Text;
         if (_terrainDirBox is not null && !string.IsNullOrWhiteSpace(_terrainDirBox.Text))
-            _document.TerrainDirectory = _terrainDirBox.Text.Trim();
+            _document.TerrainDirectory = _terrainDirBox.Text;
         if (_gravestoneBox is not null && !string.IsNullOrWhiteSpace(_gravestoneBox.Text))
-            _document.GravestoneRelativePath = _gravestoneBox.Text.Trim();
+            _document.GravestoneRelativePath = _gravestoneBox.Text;
 
         TryCommitNewRemap();
         _document.IsDirty = true;
@@ -198,9 +198,9 @@ public sealed class EditorThemeEditView
         if (_newContentIdBox is null || _newBaseBox is null || _newMaskBox is null)
             return;
 
-        var contentId = (_newContentIdBox.Text ?? string.Empty).Trim();
-        var basePath = (_newBaseBox.Text ?? string.Empty).Trim();
-        var maskPath = (_newMaskBox.Text ?? string.Empty).Trim();
+        var contentId = _newContentIdBox.Text ?? string.Empty;
+        var basePath = _newBaseBox.Text ?? string.Empty;
+        var maskPath = _newMaskBox.Text ?? string.Empty;
         if (string.IsNullOrWhiteSpace(contentId)
             || string.IsNullOrWhiteSpace(basePath)
             || string.IsNullOrWhiteSpace(maskPath))

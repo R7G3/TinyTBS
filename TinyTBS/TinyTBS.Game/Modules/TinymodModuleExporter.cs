@@ -36,8 +36,8 @@ public sealed class TinymodModuleExporter
                 $"Module folder is missing '{ContentModuleFiles.ModuleJsonFileName}'.");
         }
 
-        ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
-        var id = moduleId.Trim();
+        ContentModuleManifestParser.ValidateModuleId(moduleId);
+        var id = moduleId;
 
         _userDataPaths.EnsureCreated();
         var zipFileName = id + ContentModuleFiles.TinymodZipExtension;

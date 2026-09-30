@@ -9,5 +9,5 @@ public static class MatchConditionTypes
         string.Equals(type, Standard, StringComparison.OrdinalIgnoreCase);
 
     public static string Normalize(string? type) =>
-        string.IsNullOrWhiteSpace(type) ? Standard : type.Trim();
+        string.IsNullOrWhiteSpace(type) ? Standard : type;
 }

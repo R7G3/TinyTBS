@@ -59,12 +59,12 @@ public static class MapJsonParser
         var units = ParseUnits(mapDocument.Layers.Units, mapDocument.Width, mapDocument.Height);
         var gravestones = ParseGravestones(mapDocument.Layers.Gravestones, mapDocument.Width, mapDocument.Height);
 
-        var mapId = mapDocument.Id.Trim();
+        var mapId = mapDocument.Id;
         return new MapDefinition
         {
             FormatVersion = mapDocument.FormatVersion,
             Id = mapId,
-            Title = string.IsNullOrWhiteSpace(mapDocument.Title) ? mapId : mapDocument.Title.Trim(),
+            Title = string.IsNullOrWhiteSpace(mapDocument.Title) ? mapId : mapDocument.Title,
             Width = mapDocument.Width,
             Height = mapDocument.Height,
             Surface = surface,
@@ -131,7 +131,7 @@ public static class MapJsonParser
 
             var x = i % width;
             var y = i / width;
-            terrainGrid[x, y] = terrainType.Trim().ToLowerInvariant();
+            terrainGrid[x, y] = terrainType.ToLowerInvariant();
         }
 
         return terrainGrid;
@@ -165,7 +165,7 @@ public static class MapJsonParser
             if (string.IsNullOrWhiteSpace(terrainType))
                 throw new MapLoadException($"surface[{i}].type is empty.");
 
-            terrainGrid[x, y] = terrainType.Trim().ToLowerInvariant();
+            terrainGrid[x, y] = terrainType.ToLowerInvariant();
         }
 
         return terrainGrid;

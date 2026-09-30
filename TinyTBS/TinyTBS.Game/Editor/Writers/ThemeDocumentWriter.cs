@@ -32,32 +32,40 @@ public sealed class ThemeDocumentWriter
         ArgumentNullException.ThrowIfNull(document);
 
         ContentModuleManifestParser.ValidateModuleId(document.ModuleId);
-        var moduleId = document.ModuleId.Trim();
+        var moduleId = document.ModuleId;
         var contentNamespace = string.IsNullOrWhiteSpace(document.ContentNamespace)
             ? moduleId
-            : document.ContentNamespace.Trim();
+            : document.ContentNamespace;
 
-        var terrainDirectory = string.IsNullOrWhiteSpace(document.TerrainDirectory)
-            ? ThemeModuleDefinition.DefaultTerrainDirectory
-            : document.TerrainDirectory.Trim().Replace('\\', '/');
+        document.Title = SavedUserText.Or(document.Title, moduleId);
+        document.Description = SavedUserText.Optional(document.Description);
+        document.Version = SavedUserText.Or(document.Version, "1.0.0");
+        var terrainDirectory = SavedUserText.Or(
+            document.TerrainDirectory,
+            ThemeModuleDefinition.DefaultTerrainDirectory).Replace('\\', '/');
+        document.TerrainDirectory = terrainDirectory;
         if (!terrainDirectory.EndsWith('/'))
             terrainDirectory += "/";
 
-        var gravestone = string.IsNullOrWhiteSpace(document.GravestoneRelativePath)
-            ? ThemeModuleDefinition.DefaultGravestoneRelativePath
-            : document.GravestoneRelativePath.Trim().Replace('\\', '/');
+        var gravestone = SavedUserText.Or(
+            document.GravestoneRelativePath,
+            ThemeModuleDefinition.DefaultGravestoneRelativePath).Replace('\\', '/');
+        document.GravestoneRelativePath = gravestone;
 
         var remaps = new Dictionary<string, ThemeSpriteRemapDto>();
         foreach (var entry in document.Remaps)
         {
-            if (string.IsNullOrWhiteSpace(entry.ContentIdFull)
-                || string.IsNullOrWhiteSpace(entry.BasePath)
-                || string.IsNullOrWhiteSpace(entry.MaskPath))
+            entry.ContentIdFull = SavedUserText.Trimmed(entry.ContentIdFull);
+            entry.BasePath = SavedUserText.Trimmed(entry.BasePath).Replace('\\', '/');
+            entry.MaskPath = SavedUserText.Trimmed(entry.MaskPath).Replace('\\', '/');
+            if (entry.ContentIdFull.Length == 0
+                || entry.BasePath.Length == 0
+                || entry.MaskPath.Length == 0)
             {
                 continue;
             }
 
-            if (!ContentId.TryParse(entry.ContentIdFull.Trim(), out var contentId))
+            if (!ContentId.TryParse(entry.ContentIdFull, out var contentId))
                 throw new EditorException($"Invalid remap content id '{entry.ContentIdFull}'.");
 
             if (remaps.ContainsKey(contentId.Full))
@@ -65,8 +73,8 @@ public sealed class ThemeDocumentWriter
 
             remaps[contentId.Full] = new ThemeSpriteRemapDto
             {
-                Base = entry.BasePath.Trim().Replace('\\', '/'),
-                Mask = entry.MaskPath.Trim().Replace('\\', '/'),
+                Base = entry.BasePath,
+                Mask = entry.MaskPath,
             };
         }
 
@@ -76,9 +84,9 @@ public sealed class ThemeDocumentWriter
             Id = moduleId,
             Type = ContentModuleTypeIds.Theme,
             Namespace = contentNamespace,
-            Title = string.IsNullOrWhiteSpace(document.Title) ? moduleId : document.Title.Trim(),
-            Description = string.IsNullOrWhiteSpace(document.Description) ? null : document.Description.Trim(),
-            Version = string.IsNullOrWhiteSpace(document.Version) ? "1.0.0" : document.Version.Trim(),
+            Title = document.Title,
+            Description = document.Description,
+            Version = document.Version,
             Content = new ThemeModuleContentDto
             {
                 TerrainDir = terrainDirectory,

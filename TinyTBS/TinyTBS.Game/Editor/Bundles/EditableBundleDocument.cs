@@ -27,7 +27,7 @@ public sealed class EditableBundleDocument
 
     public static EditableBundleDocument CreateDefault(string bundleId, IReadOnlyList<ContentModuleInfo> availableModules)
     {
-        var id = string.IsNullOrWhiteSpace(bundleId) ? "user_bundle" : bundleId.Trim();
+        var id = string.IsNullOrWhiteSpace(bundleId) ? "user_bundle" : bundleId;
         var scenarios = availableModules.Where(module => module.Type == ContentModuleType.Scenario).ToArray();
         var units = availableModules.Where(module => module.Type == ContentModuleType.Units).ToArray();
         var buildings = availableModules.Where(module => module.Type == ContentModuleType.Buildings).ToArray();

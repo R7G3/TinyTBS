@@ -56,6 +56,11 @@ public static class PositionEvaluator
     /// Manhattan VIP (<c>uniquePerPlayer</c>) → nearest enemy defeat-counting building
     /// the VIP can capture, or <see cref="int.MaxValue"/> if none.
     /// Used by root search tie-break.
+    /// ---
+    /// Manhattan VIP (<c>uniquePerPlayer</c>) → ближайшее вражеское здание,
+    /// учитываемое при подсчете побед, которое может захватить VIP,
+    /// или <see cref="int.MaxValue"/>, если таких зданий нет.
+    /// Используется для разрешения ничьих при поиске корневого элемента.
     /// </summary>
     public static int MeasureKingEnemyCastleDistance(MatchState match, int botPlayerIndex)
     {
@@ -78,6 +83,9 @@ public static class PositionEvaluator
 
     /// <summary>
     /// Non-negative penalty: higher = more exposed VIP. Used by eval and root tie-break.
+    /// ---
+    /// Неотрицательный штраф: чем выше значение, тем более уязвим VIP.
+    /// Используется при оценке позиции и разрешении ничьей в корневом узле.
     /// </summary>
     public static int MeasureKingSafetyPenalty(
         MatchState match,
@@ -305,6 +313,9 @@ public static class PositionEvaluator
 
     /// <summary>
     /// Enemy (or neutral) building that counts toward standard defeat and this VIP can capture.
+    /// ---
+    /// Вражеское (или нейтральное) здание, учитываемое при определении стандартного поражения
+    /// и которое может захватить этот VIP-персонаж.
     /// </summary>
     private static bool IsEnemyDefeatObjective(
         MatchState match,

@@ -19,7 +19,7 @@ public sealed class EditableUnitSpecialCoefficient
             if (WhenDefault)
                 when = "default";
             else if (!string.IsNullOrWhiteSpace(TargetHasTag))
-                when = "tag:" + TargetHasTag.Trim();
+                when = "tag:" + TargetHasTag;
             else if (ManhattanRange is int range)
                 when = "range:" + range;
             else

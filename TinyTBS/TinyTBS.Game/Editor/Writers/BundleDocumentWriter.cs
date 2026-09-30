@@ -29,8 +29,8 @@ public sealed class BundleDocumentWriter
     public string AllocateUniqueBundleId(string baseId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(baseId);
-        ValidateBundleId(baseId.Trim());
-        var stem = baseId.Trim();
+        ValidateBundleId(baseId);
+        var stem = baseId;
         _userDataPaths.EnsureCreated();
         if (!_files.Exists(UserBundlePath(stem)))
             return stem;
@@ -49,8 +49,21 @@ public sealed class BundleDocumentWriter
     {
         ArgumentNullException.ThrowIfNull(document);
 
+        document.Title = SavedUserText.Or(document.Title, document.Id);
+        document.ModuleIds = SavedUserText.List(document.ModuleIds)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        document.ScenarioModuleId = SavedUserText.Trimmed(document.ScenarioModuleId);
+        document.UnitsModuleIds = SavedUserText.List(document.UnitsModuleIds)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        document.BuildingsModuleIds = SavedUserText.List(document.BuildingsModuleIds)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        document.ThemeModuleId = SavedUserText.Trimmed(document.ThemeModuleId);
+
         ValidateBundleId(document.Id);
-        var id = document.Id.Trim();
+        var id = document.Id;
         ValidateDocument(document);
 
         _userDataPaths.EnsureCreated();
@@ -60,33 +73,21 @@ public sealed class BundleDocumentWriter
         {
             FormatVersion = 1,
             Id = id,
-            Title = string.IsNullOrWhiteSpace(document.Title) ? id : document.Title.Trim(),
-            Modules = document.ModuleIds
-                .Where(moduleId => !string.IsNullOrWhiteSpace(moduleId))
-                .Select(moduleId => moduleId.Trim())
-                .Distinct(StringComparer.Ordinal)
-                .ToList(),
+            Title = document.Title,
+            Modules = document.ModuleIds,
             Defaults = new ContentBundleDefaultsDto
             {
-                Scenario = document.ScenarioModuleId.Trim(),
-                Units = document.UnitsModuleIds
-                    .Where(moduleId => !string.IsNullOrWhiteSpace(moduleId))
-                    .Select(moduleId => moduleId.Trim())
-                    .Distinct(StringComparer.Ordinal)
-                    .ToList(),
-                Buildings = document.BuildingsModuleIds
-                    .Where(moduleId => !string.IsNullOrWhiteSpace(moduleId))
-                    .Select(moduleId => moduleId.Trim())
-                    .Distinct(StringComparer.Ordinal)
-                    .ToList(),
-                Theme = document.ThemeModuleId.Trim(),
+                Scenario = document.ScenarioModuleId,
+                Units = document.UnitsModuleIds,
+                Buildings = document.BuildingsModuleIds,
+                Theme = document.ThemeModuleId,
             },
         };
 
         var path = UserBundlePath(id);
         _files.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
 
-        var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId.Trim();
+        var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId;
         if (!string.Equals(originalId, id, StringComparison.Ordinal))
         {
             var oldPath = UserBundlePath(originalId);
@@ -102,8 +103,8 @@ public sealed class BundleDocumentWriter
     public bool Delete(string bundleId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleId);
-        ValidateBundleId(bundleId.Trim());
-        var path = UserBundlePath(bundleId.Trim());
+        ValidateBundleId(bundleId);
+        var path = UserBundlePath(bundleId);
         if (!_files.Exists(path))
             return false;
 
@@ -115,14 +116,14 @@ public sealed class BundleDocumentWriter
     {
         ArgumentNullException.ThrowIfNull(source);
         ValidateBundleId(targetBundleId);
-        var id = targetBundleId.Trim();
+        var id = targetBundleId;
         if (_files.Exists(UserBundlePath(id)))
             throw new EditorException($"User bundle '{id}' already exists.");
 
         var document = EditableBundleDocument.FromDefinition(source);
         document.OriginalId = id;
         document.Id = id;
-        document.Title = string.IsNullOrWhiteSpace(title) ? source.Title : title.Trim();
+        document.Title = string.IsNullOrWhiteSpace(title) ? source.Title : title;
         document.IsDirty = true;
         return Write(document);
     }
@@ -135,10 +136,7 @@ public sealed class BundleDocumentWriter
         if (document.ModuleIds.Count == 0)
             throw new EditorException("Bundle modules list cannot be empty.");
 
-        var moduleSet = document.ModuleIds
-            .Where(moduleId => !string.IsNullOrWhiteSpace(moduleId))
-            .Select(moduleId => moduleId.Trim())
-            .ToHashSet(StringComparer.Ordinal);
+        var moduleSet = document.ModuleIds.ToHashSet(StringComparer.Ordinal);
 
         EnsureListed(moduleSet, document.ScenarioModuleId, "defaults.scenario");
         if (document.UnitsModuleIds.Count == 0)
@@ -164,7 +162,7 @@ public sealed class BundleDocumentWriter
 
     private static void EnsureListed(HashSet<string> moduleSet, string moduleId, string fieldName)
     {
-        if (string.IsNullOrWhiteSpace(moduleId) || !moduleSet.Contains(moduleId.Trim()))
+        if (string.IsNullOrWhiteSpace(moduleId) || !moduleSet.Contains(moduleId))
         {
             throw new EditorException(
                 $"{fieldName} must reference a module listed in modules[] ('{moduleId}').");

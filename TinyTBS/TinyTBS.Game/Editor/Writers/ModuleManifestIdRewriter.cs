@@ -25,8 +25,8 @@ public static class ModuleManifestIdRewriter
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
         ArgumentNullException.ThrowIfNull(files);
 
-        ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
-        var id = moduleId.Trim();
+        ContentModuleManifestParser.ValidateModuleId(moduleId);
+        var id = moduleId;
         var moduleJsonPath = files.Combine(moduleRootPath, ContentModuleFiles.ModuleJsonFileName);
         if (!files.Exists(moduleJsonPath))
             throw new EditorException($"module.json not found at '{moduleJsonPath}'.");
@@ -47,7 +47,7 @@ public static class ModuleManifestIdRewriter
         if (forceNamespaceToModuleId)
             root["namespace"] = id;
         if (!string.IsNullOrWhiteSpace(title))
-            root["title"] = title.Trim();
+            root["title"] = title;
 
         files.WriteAllText(moduleJsonPath, root.ToJsonString(WriteOptions) + Environment.NewLine, Encoding.UTF8);
     }

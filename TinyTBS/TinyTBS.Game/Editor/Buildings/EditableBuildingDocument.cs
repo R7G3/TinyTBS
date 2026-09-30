@@ -20,7 +20,7 @@ public sealed class EditableBuildingDocument
 
     public string SpriteMask { get; set; } = "Resources/Images/buildings/building_mask.png";
 
-    public string? SpriteRuinedBase {s get; set; }
+    public string? SpriteRuinedBase { get; set; }
 
     public string? SpriteRuinedMask { get; set; }
 
@@ -50,7 +50,7 @@ public sealed class EditableBuildingDocument
 
     public static EditableBuildingDocument CreateDefault(string buildingId)
     {
-        var id = string.IsNullOrWhiteSpace(buildingId) ? "building" : buildingId.Trim();
+        var id = string.IsNullOrWhiteSpace(buildingId) ? "building" : buildingId;
         return new EditableBuildingDocument
         {
             OriginalId = id,

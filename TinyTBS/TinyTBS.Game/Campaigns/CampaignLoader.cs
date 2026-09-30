@@ -1,7 +1,6 @@
 using System.Text.Json;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Campaigns.Models;
-using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Campaigns;
 
@@ -28,7 +27,7 @@ public static class CampaignLoader
 
         var relative = string.IsNullOrWhiteSpace(campaignRelativePath)
             ? DefaultManifestRelativePath
-            : campaignRelativePath.Trim().Replace('\\', '/');
+            : campaignRelativePath.Replace('\\', '/');
 
         var manifestPath = files.Combine(moduleRootPath, relative.Split('/'));
         if (!files.Exists(manifestPath))
@@ -74,13 +73,13 @@ public static class CampaignLoader
                 if (entry is null || string.IsNullOrWhiteSpace(entry.LevelId))
                     continue;
 
-                var levelId = entry.LevelId.Trim();
+                var levelId = entry.LevelId;
                 if (!seen.Add(levelId))
                     throw new MatchContentCompositionException($"Duplicate campaign levelId '{levelId}'.");
 
                 var path = string.IsNullOrWhiteSpace(entry.Path)
                     ? $"Levels/{levelId}"
-                    : entry.Path.Trim().Replace('\\', '/');
+                    : entry.Path.Replace('\\', '/');
 
                 chapters.Add(new CampaignChapterDefinition { LevelId = levelId, Path = path });
             }
@@ -93,11 +92,12 @@ public static class CampaignLoader
         if (!files.Exists(scriptPath))
             scriptPath = null;
 
-        var title = string.IsNullOrWhiteSpace(document.Title) ? document.Id.Trim() : document.Title.Trim();
+        var campaignId = document.Id;
+        var title = string.IsNullOrWhiteSpace(document.Title) ? campaignId : document.Title;
 
         return new CampaignDefinition
         {
-            CampaignId = document.Id.Trim(),
+            CampaignId = campaignId,
             Title = title,
             ModuleRootPath = moduleRootPath,
             ManifestRelativePath = manifestRelativePath.Replace('\\', '/'),
