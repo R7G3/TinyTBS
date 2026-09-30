@@ -4,7 +4,7 @@
 - **Дата:** 2026-09-27
 - **Контекст:** константы вёрстки и тайлов в пикселях back buffer; Gum `EnableExpandToWindow(1f)` → на 4K UI и клетки визуально мельчают
 - **Канон:** [UI_AND_FLOW § Масштаб / разрешение](../design/UI_AND_FLOW.md#масштаб--разрешение)
-- **План:** `ui-scale-hidpi` (внутри / сразу после `settings-ui`) в [ARCHITECTURE](../ARCHITECTURE.md); **после** playtest-приоритета (бот / сейвы / кампании / редактор).
+- **План:** `ui-scale-hidpi` (**продумать**) в [ARCHITECTURE](../ARCHITECTURE.md); после текущего `playtest`.
 
 ## Зачем
 

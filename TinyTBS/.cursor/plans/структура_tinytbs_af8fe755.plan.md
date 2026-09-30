@@ -42,24 +42,20 @@ isProject: false
 - [x] **save-format** (срез 1) — match JSON + Pause Save / Leave / Main menu suspend + Continue live→диск
 - [x] **save-format** (срез 2) — экран Загрузка
 - [x] **campaigns** — campaign.json + прохождение по главам + прогресс
-- [x] **map-editor** (срез 1) — Hub: New Scenario / Duplicate bundled (CoW) → user Modules; open session; Publish greyed
-- [x] **map-editor** (срез 2) — paint карты (terrain/units/buildings) + Save + level-stub
-- [x] **map-editor** (срез 3) — метки Neutral/P0–P3 + Undo/Redo + Validate (Save не блокируется)
-- [x] **map-editor** (срез 4) — Levels (slots/gold/cap/`map.ref`) + Campaign (linear chapters + script stub) + map `script.cs` editor/template; двухколоночный UX + геймпад
-- [x] **map-editor** (срез 5) — masters units/buildings (structured UI + DocumentWriters + New Units/Buildings Module; Publish greyed)
-- [x] **map-editor** (срез 6) — theme + export в модуль
-- [x] **map-editor** (срез 7) — bundles (пресеты composition в редакторе)
+- [x] **editor** (срез 1) — Hub: New Scenario / Duplicate bundled (CoW) → user Modules; open session; Publish greyed
+- [x] **editor** (срез 2) — paint карты (terrain/units/buildings) + Save + level-stub
+- [x] **editor** (срез 3) — метки Neutral/P0–P3 + Undo/Redo + Validate (Save не блокируется)
+- [x] **editor** (срез 4) — Levels (slots/gold/cap/`map.ref`) + Campaign (linear chapters + script stub) + map `script.cs` editor/template; двухколоночный UX + геймпад
+- [x] **editor** (срез 5) — masters units/buildings (structured UI + DocumentWriters + New Units/Buildings Module; Publish greyed)
+- [x] **editor** (срез 6) — theme + export в модуль
+- [x] **editor** (срез 7) — bundles (пресеты composition в редакторе)
 
-### Дальше (playtest-перерыв: бот → сейвы → кампании → редактор)
+### Дальше (актуальный хвост — [ARCHITECTURE](../../docs/ARCHITECTURE.md) § Порядок внедрения)
 
-- [ ] **map-editor** (срез 8) — **tags + abilities + условный heal** (gate → docs/runtime/editor): обсудить и по итогам сделать минимум для связок вроде «здание лечит юнитов с тегом X сильнее остальных»; сейчас heal здания = только `amount`+`scope`, теги юнита в heal не участвуют; при необходимости — расширение BUILDING_FORMAT/abilities, логика матча, UI building/unit master + (если нужно для проверки) composition без ручного `scenario.defaults` JSON
-- [ ] **map-editor** (срез 9) — **multi-module workspace + Shared Resources** (UX modding, не блокер матча): проект из нескольких модулей сразу; временный `shared/` (или аналог) на время работы; при Save/Export модуля — раскладка ассетов в его `Resources/` + валидация путей. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md), [CONTENT_MODULE_FORMAT](../../docs/CONTENT_MODULE_FORMAT.md). До playtest можно отложить, если не упираетесь в копипаст ассетов между модулями
-- [ ] **player-colors** — color picker в лобби / профиле (можно с `settings-ui`)
-- [ ] **settings-ui** — экран **Настройки**: графика (в т.ч. `ui-scale-hidpi`), ввод (3 столбца), профиль; persist JSON. Канон: [UI_AND_FLOW § Настройки](../../docs/design/UI_AND_FLOW.md#настройки)
-- [ ] **ui-scale-hidpi** — масштаб UI/поля под HiDPI / 4K. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#масштаб--разрешение); [ideas/ui-scale-hidpi.md](../../docs/ideas/ui-scale-hidpi.md)
-- [ ] **bot-search-harness** — прогон поиска без UI (после playtest: сделать или отменить). [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md)
-- [ ] **terrain-autotile** — автотайлинг местности (4 соседа, fallback). **Перед стартом** — gate-вопросы из [terrain-autotile-edges](../../docs/ideas/terrain-autotile-edges.md) (термины, примеры, оценка вариантов)
-- [ ] **network-later** — Remote в API; UI greyed only
+- [ ] **playtest** — **сейчас**: тестирование и фидбек ([playtest-checklist](../../docs/ideas/playtest-checklist.md))
+- [ ] **editor** срез 8 / `editor-format-parity` — **продумать** [editor-format-parity](../../docs/ideas/editor-format-parity.md)
+- [ ] **editor** срез 9 / `editor-workspace` — **продумать** [editor-multi-module-workspace](../../docs/ideas/editor-multi-module-workspace.md)
+- [ ] Остальное (settings → … → desktopvk-macos) — см. [ARCHITECTURE](../../docs/ARCHITECTURE.md); пометки **продумать** → [docs/ideas](../../docs/ideas/README.md)
 
 ## Цели архитектуры
 
@@ -374,16 +370,7 @@ ScriptOptions.Default
 20. **`bot-search-ab`** — бот (αβ); **Easy + Normal** до playtest-перерыва; Hard позже. Идея: [bot-difficulty-eval-depth](../../docs/ideas/bot-difficulty-eval-depth.md). Перед кодом — открытые вопросы.
 21. **`save-format`** — сейвы + «Продолжить» — **выполнено** (срезы 1–2 в чеклисте).
 22. **`campaigns`** — главы + прогресс — **выполнено**.
-23. **`map-editor`** — workspace модулей (**Map editor slices**, чеклист выше):
-    - срез 1–5 — **выполнено** (Hub/CoW, paint/Save, labels/Undo/Validate, levels/campaign/script, units/buildings masters)
-    - срез 6 — theme + export — **выполнено**
-    - срез 7 — bundles — **выполнено**
-    - срез 8 — **tags / abilities / conditional heal**: gate-обсуждение → зафиксировать формат (или отложить в ideas); затем runtime + редактор. Целевой UX: modder задаёт теги юнитов и правила лечения здания (напр. бонус heal для выбранных тегов), без сырого JSON и без расхождения с матчем. Зависимости: [BUILDING_FORMAT](../../docs/BUILDING_FORMAT.md), [UNIT_FORMAT](../../docs/UNIT_FORMAT.md), heal end-turn в матче; опционально UI composition для playtest user modules.
-    - срез 9 — **multi-module workspace + Shared Resources** (последний срез редактора по канону): несколько модулей в одном проекте; shared ассеты до Save/Export → раскладка в `Resources/` модуля. Удобство modding (меньше копипаста PNG между units/buildings/theme/scenario); рантайму матча не нужно. Можно после playtest, если не жмёт UX.
-24. `player-colors` — color picker (можно с settings).
-25. **`settings-ui`** + `ui-scale-hidpi` — после playtest-приоритета. Канон: [UI_AND_FLOW](../../docs/design/UI_AND_FLOW.md#настройки).
-26. **`terrain-autotile`** — после HiDPI; идея: [terrain-autotile-edges](../../docs/ideas/terrain-autotile-edges.md). Перед кодом — обязательный gate (вопросы с терминами/примерами/оценкой).
-27. **Сеть** (`network-later`) — позже (Remote в API; UI greyed).
+23. **`editor`** и дальнейшие пункты — не дублировать здесь: актуальный список в [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) (§ Порядок внедрения). `playtest` — текущий этап; editor срезы 8–9 и product gaps → docs/ideas.
 
 ## Документация в репозитории
 

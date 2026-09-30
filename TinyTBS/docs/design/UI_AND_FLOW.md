@@ -47,7 +47,7 @@
 
 Звук / язык / доступность — пока **не** зафиксированы в каноне; добавить отдельным решением, когда понадобятся.
 
-План: `settings-ui` (+ `ui-scale-hidpi` в графике). Persist: JSON в `{UserData}` (точный файл — при реализации).
+План: `settings-ui` (+ `ui-scale-hidpi` в графике; объём — [settings-scope](../ideas/settings-scope.md)). Persist: JSON в `{UserData}` (точный файл — при реализации).
 
 ### Новая игра
 
@@ -74,7 +74,7 @@
 
 Создание карты игроком = **scenario-модуль** (можно дорастить).
 
-Внутри scenario: карта, уровни, кампания, команды/игроки (метки), скрипт. **Masters units / buildings** — доступны при открытом units- или buildings-модуле (список типов + New/Edit/Delete; правка полей UNIT_FORMAT / BUILDING_FORMAT через двухколоночный UI, не сырой JSON). **Theme master** — при открытом theme-модуле (Edit Theme: title/version/paths + remaps по CONTENT_MODULE_FORMAT). **Export** — упаковка открытого user-модуля в `.tinymod.zip` (Downloads). **Bundles** — Hub: New Bundle / Open/Delete user / Confirm на bundled = copy в user `Bundles/`; правка `modules[]` + defaults; Контент → Remove user-bundle. Workspace multi-module + Shared Resources — срез 9.
+Внутри scenario: карта, уровни, кампания, команды/игроки (метки), скрипт. **Masters units / buildings** — при открытом units- или buildings-модуле. **Theme master** — Edit Theme. **Export** — `.tinymod.zip` (Downloads). **Bundles** — New/Edit/Delete user + CoW bundled. Дальше: паритет форматов — **продумать** [editor-format-parity](../ideas/editor-format-parity.md); multi-module workspace + Shared Resources — **продумать** [editor-multi-module-workspace](../ideas/editor-multi-module-workspace.md). Слоты roadmap: `editor` / `editor-format-parity` / `editor-workspace` в [ARCHITECTURE](../ARCHITECTURE.md).
 
 **Зафиксировано для v1:**
 
@@ -173,7 +173,8 @@
 
 - Тип игрока **Remote** зарезервирован в GDD и в chooser **Add player** (greyed).
 - В UI закладываем **неактивные (greyed)** пункты (Remote в лобби, «Опубликовать» в редакторе, **Скачать** / **Обновить** в менеджере контента), чтобы вёрстка их учитывала.
-- **Протокол / лобби / транспорт не проектируем**, пока не дойдём до сетевого этапа roadmap. Никаких решений lockstep/P2P и т.п. в каноне нет.
+- Варианты топологий/протоколов — **продумать** в [network-architecture](../ideas/network-architecture.md); в **канон** не lock'аем, пока не выбран вариант на gate. UI Remote остаётся greyed.
+- Никаких решений lockstep/P2P в каноне до закрытия gate идеи.
 
 ## Масштаб / разрешение
 

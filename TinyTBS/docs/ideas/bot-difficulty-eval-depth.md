@@ -53,3 +53,34 @@ LegalActions → IBotSearchPolicy(difficulty) → PositionEval → ChooseAction 
 
 - Hard + optional full-turn `IBotSearchPolicy`.
 - `bot-search-harness` — после `ui-scale-hidpi` (прогон поиска без UI; принять или отменить после playtest).
+
+## Продумать: Hard / Insane (+ full-turn)
+
+- **Статус среза:** idea (открыть gate перед реализацией)
+- **Слот roadmap:** `bot-hard-insane` — [ARCHITECTURE](../ARCHITECTURE.md)
+
+### Цель
+
+Сложности сильнее Normal **без читов**: глубина/узлы/эвристика; опционально **full-turn / multi-action** поиск поверх атомарного `IBotSearchPolicy` (аддитивно, не заменяя atomic).
+
+### Рычаги (черновик)
+
+| Рычаг | Hard (черновик) | Insane (черновик) |
+|-------|-----------------|-------------------|
+| Имя в лобби | Hard | Insane (или Expert — уточнить) |
+| Глубина / узлы | выше Normal | ещё выше + жёсткий time budget |
+| Quiescence | да | да + шире |
+| Гранулярность | atomic или full-turn | предпочтительно full-turn |
+| Эвристика | богаче (угрозы королю, income tempo) | то же + веса под win rules |
+
+### Открытые вопросы (gate)
+
+1. Два новых уровня или один Hard + Insane = профиль «max time»?
+2. Full-turn: поиск последовательности действий за ход vs iterative atomic с horizon?
+3. Лимит wall-clock на слабом CPU (N100 ~22% на Normal) — сколько секунд max на ход?
+4. UI: цикл Confirm на Bot Easy→Normal→Hard→Insane?
+5. Harness: реплеи/benchmark позиций до merge?
+
+### Gate
+
+Ответы 1–5 → профили в коде + лобби → optional harness. Не начинать full-turn без оценки branching factor на vanilla картах.

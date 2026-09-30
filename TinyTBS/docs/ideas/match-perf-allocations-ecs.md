@@ -1,10 +1,11 @@
 # Производительность solution: матч, меню, загрузка, RSS
 
-- **Статус:** idea
+- **Статус:** idea (**продумать**; слот `match-perf`)
 - **Дата:** 2026-09-28 (полный аудит MonoGame-solution)
 - **Область:** `TinyTBS.Game` / `Engine` / `Desktop` / `Content` — **не** Unity (`../Tiny TBS Unity/`)
 - **Контекст:** playtest ~273 МБ Working Set (Debug); обсуждение пулов / ECS / аллокаций vs RSS
 - **Метод:** обзор кода горячих путей (Update/Draw всех экранов, load pipeline, Roslyn, текстуры, ввод). Без профайлера на железе — приоритеты подтверждать замерами.
+- **Roadmap:** [ARCHITECTURE](../ARCHITECTURE.md)
 
 ## Два разных вопроса
 

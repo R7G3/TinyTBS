@@ -224,7 +224,7 @@ Vanilla/Bundles/          # bundled presets (рядом с exe)
 `TinymodInstaller` ставит `{id}.tinymod.zip` в user `Modules/{module.id}/` (замена по id); `ContentModuleLibrary` сканирует user + bundled.
 `ContentBundleLibrary` / `ContentBundleLocator` грузят `*.bundle.json` (user `Bundles/` → `Vanilla/Bundles`); New Game выбирает scenario defaults или bundle.
 Экран Контент (`ContentLibraryScreen`): список модулей/bundles; Install — From device (`IExternalFilePicker` → `.tinymod.zip`) или From catalog (скоро); очередь `{UserData}/Downloads`; uninstall user; Download/Update greyed.
-Terrain/gravestone — из theme. abilities/бой — следующие срезы.
+Terrain/gravestone — из theme. Паритет abilities/heal/editor — [editor-format-parity](ideas/editor-format-parity.md).
 
 ## Связанные документы
 

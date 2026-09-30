@@ -213,24 +213,31 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 20. **`bot-search-ab`** — **выполнено** (код в `TinyTBS.Game/Ai/`: атомарный αβ Easy+Normal, quiescence у Normal, лобби Bot, `IBotSearchPolicy` шов под Hard/full-turn). Идея: [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md). Hard / harness — позже.
 21. **`save-format`** — match-сейвы + Continue (live → диск) + Pause Save / Leave + экран **Загрузка** (Load/Delete) — **выполнено**. Канон: [SAVE_FORMAT.md](SAVE_FORMAT.md).
 22. **`campaigns`** — **выполнено** (campaign.json, linear unlock, progress save, Next/Retry, script API, Continue/Load обоих kind). Канон: [CAMPAIGN_FORMAT.md](CAMPAIGN_FORMAT.md), [SAVE_FORMAT.md](SAVE_FORMAT.md).
-23. **`map-editor`** — **в работе** (код в `TinyTBS.Game/Editor/`; срезы как в плане):
-    - срез 1 — Hub + CoW / open session; Publish greyed — **выполнено**
-    - срез 2 — paint + Save + level-stub — **выполнено**
-    - срез 3 — метки Neutral/P0–P3 + Undo/Redo + Validate — **выполнено**
-    - срез 4 — Levels + Campaign + map `script.cs` + двухколоночный UX/геймпад — **выполнено**
-    - срез 5 — units/buildings masters (structured UI + DocumentWriters + New Units/Buildings Module) — **выполнено**
-    - срез 6 — theme master + Export Module → `{UserData}/Downloads/*.tinymod.zip` — **выполнено**
-    - срез 7 — bundles (New/Edit/Delete user `*.bundle.json` + CoW bundled; Content Remove) — **выполнено**
-    - срез 8 — tags/abilities/conditional heal (gate → format + runtime + editor; напр. здание лечит выбранные теги сильнее)
-    - срез 9 — multi-module workspace + Shared Resources (раскладка в Resources/ при Save/Export; UX modding)
-24. `player-colors` — color picker в лобби / профиле (dimFactor отрисовки уже в матче); можно совместить с профилем в `settings-ui`.
-25. `settings-ui` — экран **Настройки** (меню сейчас greyed): графика (разрешение/окно, UI scale / `ui-scale-hidpi`, фильтр зума nearest vs bicubic), ввод (три столбца биндов), профиль. Persist в user data. Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки).
-26. `ui-scale-hidpi` — масштаб UI/поля под HiDPI и 4K (вместе с или сразу после `settings-ui`). Канон: [UI_AND_FLOW](design/UI_AND_FLOW.md#масштаб--разрешение); варианты: [ideas/ui-scale-hidpi.md](ideas/ui-scale-hidpi.md).
-27. **`bot-search-harness`** — опциональный прогон αβ/eval без UI (после playtest: сделать или отменить). См. [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md).
-28. **`terrain-autotile`** — автотайлинг местности по 4 соседям (вариации + поворот; fallback на простой тайл). Идея: [terrain-autotile-edges](ideas/terrain-autotile-edges.md). **Перед реализацией** — обязательный gate: задать открытые вопросы из идеи (термины, примеры, оценка вариантов).
-29. **Сеть** (`network-later`) — позже (Remote в API; UI greyed; протокол не проектируем до этапа).
-
-**Playtest-перерыв (приоритет):** бот Easy/Normal → сейвы → кампании → редактор; настройки / HiDPI / harness? / автотайл / Hard-бот / сеть — после.
+23. **`editor`** — код в `TinyTBS.Game/Editor/` (не только карты: scenario / units / buildings / theme / bundles):
+    - срезы 1–7 — Hub, paint, метки, Levels/Campaign/script, masters, theme+Export, bundles — **выполнено**
+    - срез 8 — **продумать** → [editor-format-parity](ideas/editor-format-parity.md) (tags/abilities/conditional heal; gate → format + runtime + editor)
+    - срез 9 — **продумать** → [editor-multi-module-workspace](ideas/editor-multi-module-workspace.md) (multi-module + Shared Resources)
+24. **`playtest`** — **в работе / сейчас**: прогон бот Easy/Normal, сейвы, кампании, editor 1–7; сбор фидбека и багфиксы. Чеклист: [playtest-checklist](ideas/playtest-checklist.md). Это этап тестирования, не остановка разработки.
+25. `settings-ui` — экран **Настройки** (меню greyed): канон [UI_AND_FLOW](design/UI_AND_FLOW.md#настройки); объём — **продумать** [settings-scope](ideas/settings-scope.md).
+26. `ui-scale-hidpi` — **продумать** → [ui-scale-hidpi](ideas/ui-scale-hidpi.md); с или после `settings-ui`.
+27. `player-colors` — color picker в лобби / профиле (dimFactor уже в матче); можно с профилем в settings.
+28. `ui-localization` — **продумать** → [ui-localization-resx](ideas/ui-localization-resx.md) (хардкод UI → `TinyTBS.Content/Resources`).
+29. `audio` — **продумать** → [audio-sfx-music](ideas/audio-sfx-music.md).
+30. `art-pretty-cute` — **продумать** → [art-pretty-cute](ideas/art-pretty-cute.md).
+31. `in-game-tutorial` — **продумать** → [in-game-tutorial](ideas/in-game-tutorial.md).
+32. `editor-format-parity` — после gate идеи (бывший editor срез 8).
+33. `editor-workspace` — после gate идеи (бывший editor срез 9).
+34. `level-campaign-dialogs` — **продумать** → [level-campaign-dialogs](ideas/level-campaign-dialogs.md).
+35. `terrain-autotile` — **продумать** / gate → [terrain-autotile-edges](ideas/terrain-autotile-edges.md).
+36. `bot-hard-insane` — **продумать** → [bot-difficulty-eval-depth](ideas/bot-difficulty-eval-depth.md) (Hard/Insane, опц. full-turn; harness рядом).
+37. `match-perf` — **продумать** → [match-perf-allocations-ecs](ideas/match-perf-allocations-ecs.md).
+38. `match-loading-roslyn` — **продумать** → [match-loading-roslyn-progress](ideas/match-loading-roslyn-progress.md) (важно и для Android).
+39. `ui-frosted-glass` — **продумать** → [ui-frosted-glass](ideas/ui-frosted-glass.md).
+40. `github-builds-releases` — **продумать** → [github-builds-releases](ideas/github-builds-releases.md).
+41. `content-catalog-publish` — **продумать** → [content-catalog-publish](ideas/content-catalog-publish.md).
+42. `network` — **продумать** → [network-architecture](ideas/network-architecture.md) (Remote greyed; варианты в ideas, в канон — после выбора).
+43. `android-port` — **продумать** → [android-port](ideas/android-port.md).
+44. `desktopvk-macos` — **продумать** → [desktopvk-macos](ideas/desktopvk-macos.md).
 
 ## Связанные ADR
 

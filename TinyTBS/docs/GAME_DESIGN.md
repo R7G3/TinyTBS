@@ -53,7 +53,7 @@
 
 ## Игроки и режимы
 
-**Тип игрока:** ИИ, локальный человек, удалённый человек (сеть — **позже** в roadmap; API закладывать с типом Remote). В UI сетевые пункты уже **greyed**; протокол не проектируем до этапа сети — см. [UI_AND_FLOW.md](design/UI_AND_FLOW.md).
+**Тип игрока:** ИИ, локальный человек, удалённый человек (сеть — **продумать** [network-architecture](ideas/network-architecture.md); API с типом Remote; UI greyed). См. [UI_AND_FLOW.md](design/UI_AND_FLOW.md).
 
 **Команды:** союзники не атакуют друг друга. Поражение команды по умолчанию — когда побеждены **все** участники; опция уровня/мода — поражение **любого** = поражение команды.
 
@@ -92,4 +92,4 @@ Bundles/*.bundle.json   # пресеты defaults, не контейнер ге�
 
 ## Расхождение с текущим демо-кодом
 
-Ранний прототип `MatchState` (сетка 8×8, ход на 1 клетку) снят: матч сходится с GDD по экономике, бою, ability и standard victory/defeat. Ближайшие срезы (playtest-перерыв): бот Easy/Normal → сейвы → кампании → редактор; см. [ARCHITECTURE.md](ARCHITECTURE.md) § Порядок внедрения.
+Ранний прототип `MatchState` (сетка 8×8, ход на 1 клетку) снят: матч сходится с GDD по экономике, бою, ability и standard victory/defeat. **Сейчас:** этап `playtest` (тестирование и фидбек) — см. [ARCHITECTURE.md](ARCHITECTURE.md) § Порядок внедрения и [ideas/playtest-checklist.md](ideas/playtest-checklist.md).

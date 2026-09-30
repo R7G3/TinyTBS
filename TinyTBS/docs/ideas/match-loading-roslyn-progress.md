@@ -19,4 +19,4 @@
 | Precompile bundled-карт | Vanilla без Roslyn в рантайме (удобно и для Android) |
 | Фоновая компиляция | Пока игрок в лобби «Новая игра» |
 
-Связь с UI-каноном: [UI_AND_FLOW](../design/UI_AND_FLOW.md). План: `menu-shell-loading`.
+- **Слот roadmap:** `match-loading-roslyn` (**продумать**) — [ARCHITECTURE](../ARCHITECTURE.md)

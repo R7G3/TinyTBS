@@ -10,6 +10,8 @@ The design and architecture are created manually by a human (me).
 
 I am developing it by myself, but with AI assistance, because I physically lack the time for a project of this scale.
 
+You can check progress [here (plan)](https://github.com/R7G3/TinyTBS/blob/main/TinyTBS/.cursor/plans/%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%82%D1%83%D1%80%D0%B0_tinytbs_af8fe755.plan.md)
+
 ### Obsolete project
 Unity project placed in '[Tiny TBS Unity](https://github.com/R7G3/TinyTBS/tree/main/Tiny%20TBS%20Unity)' directory
 
