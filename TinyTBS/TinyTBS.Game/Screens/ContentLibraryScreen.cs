@@ -2,7 +2,6 @@ using Gum;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.Screens;
 using TinyTBS.Engine.IO;
-using TinyTBS.Engine.Rendering;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
@@ -86,16 +85,11 @@ public sealed class ContentLibraryScreen : GameScreen
     {
         GraphicsDevice.Clear(new Color(24, 28, 38));
 
-        var texture = _background?.Texture;
-        if (texture is not null)
-        {
-            ViewportFit.DrawCentered(
-                TinyGame.SharedSpriteBatch,
-                texture,
-                GraphicsDevice.Viewport.Width,
-                GraphicsDevice.Viewport.Height,
-                Color.White * 0.35f);
-        }
+        _background?.Draw(
+            TinyGame.SharedSpriteBatch,
+            GraphicsDevice.Viewport.Width,
+            GraphicsDevice.Viewport.Height,
+            gameTime);
 
         GumService.Default.Draw();
     }
