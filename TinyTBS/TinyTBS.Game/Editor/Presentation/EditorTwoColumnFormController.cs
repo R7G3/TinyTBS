@@ -11,8 +11,10 @@ namespace TinyTBS.Game.Editor.Presentation;
 
 /// <summary>
 /// Focus and input of an <see cref="EditorTwoColumnFormShell"/> form: a scrolling settings column of buttons and
-/// −/+ stepper rows (left) and a menu column (right). LB/RB switch columns (Left/Right too when the form has no
-/// steppers); Left/Right move within a stepper row; holding Confirm or the mouse button repeats a stepper.
+/// −/+ stepper rows (left) and a menu column (right). A settings column may hold only text fields; focusing it
+/// clears the menu highlight so those fields can take the keyboard. LB/RB switch columns (Left/Right too when
+/// the form has no steppers); Left/Right move within a stepper row; holding Confirm or the mouse button repeats
+/// a stepper. When the shell scrolls the menu column, the focused row is kept in view.
 /// </summary>
 public sealed class EditorTwoColumnFormController
 {
@@ -28,6 +30,8 @@ public sealed class EditorTwoColumnFormController
 
     private ScrollViewer? _settingsScroll;
     private Panel? _settingsHost;
+    private ScrollViewer? _menuScroll;
+    private Panel? _menuHost;
     private bool _isMenuFocused;
     private int _settingsFocusIndex;
     private int _menuFocusIndex;
@@ -51,15 +55,24 @@ public sealed class EditorTwoColumnFormController
         ArgumentNullException.ThrowIfNull(shell);
         _settingsScroll = shell.SettingsScroll;
         _settingsHost = shell.SettingsHost;
+        _menuScroll = shell.MenuScroll;
+        _menuHost = shell.MenuHost;
     }
 
-    public void AddMenuButton(Panel menuHost, string text, Action onClick) =>
-        EditorTwoColumnFormShell.AddMenuButton(
-            menuHost,
-            _menuEntries,
-            text,
-            onClick,
-            onFocused: () => FocusMenu(resetIndex: false));
+    public bool IsMenuFocused => _isMenuFocused;
+
+    public void AddMenuButton(Panel menuHost, string text, Action onClick)
+    {
+        var button = new Button { Text = text };
+        GumUiLayout.FillParentWidth(button);
+        menuHost.AddChild(button);
+        _menuEntries.Add((button, onClick));
+        button.Click += (_, _) =>
+        {
+            FocusMenuButton(button);
+            onClick();
+        };
+    }
 
     /// <summary>
     /// Clears the settings column, lets <paramref name="addRows"/> add it again and restores the focused row.
@@ -85,6 +98,30 @@ public sealed class EditorTwoColumnFormController
 
         GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
         EnsureSettingsRowVisible();
+    }
+
+    /// <summary>
+    /// Clears the menu column, lets <paramref name="addRows"/> add it again and restores the focused row.
+    /// </summary>
+    public void RebuildMenu(Action addRows)
+    {
+        ArgumentNullException.ThrowIfNull(addRows);
+
+        var previousFocus = _menuFocusIndex;
+        _menuEntries.Clear();
+        RequireMenuHost().Visual.Children.Clear();
+
+        addRows();
+
+        if (_menuEntries.Count == 0)
+            return;
+
+        _menuFocusIndex = Math.Clamp(previousFocus, 0, _menuEntries.Count - 1);
+        if (!_isMenuFocused)
+            return;
+
+        GumFocusableButtonList.ApplyFocus(_menuEntries, ref _menuFocusIndex);
+        EnsureMenuRowVisible();
     }
 
     public Button AddSettingsButton(string text, Action onClick)
@@ -157,13 +194,27 @@ public sealed class EditorTwoColumnFormController
 
         GumFocusableButtonList.ClearFocus(_settingsEntries);
         if (_menuEntries.Count > 0)
+        {
             GumFocusableButtonList.ApplyFocus(_menuEntries, ref _menuFocusIndex);
+            EnsureMenuRowVisible();
+        }
+    }
+
+    /// <summary>Re-applies whichever column is active (after an overlay closes).</summary>
+    public void RestoreFocus()
+    {
+        if (_isMenuFocused)
+            FocusMenu(resetIndex: false);
+        else
+            FocusSettings(resetIndex: false);
     }
 
     public void Clear()
     {
         _settingsScroll = null;
         _settingsHost = null;
+        _menuScroll = null;
+        _menuHost = null;
         _settingsEntries.Clear();
         _menuEntries.Clear();
         _stepperRows.Clear();
@@ -178,6 +229,9 @@ public sealed class EditorTwoColumnFormController
 
     private Panel RequireSettingsHost() =>
         _settingsHost ?? throw new InvalidOperationException("Attach the form shell before adding settings rows.");
+
+    private Panel RequireMenuHost() =>
+        _menuHost ?? throw new InvalidOperationException("Attach the form shell before rebuilding the menu.");
 
     private Button AddStepperButton(Panel row, string text, Action onActivate)
     {
@@ -199,6 +253,20 @@ public sealed class EditorTwoColumnFormController
         FocusSettings(resetIndex: false);
     }
 
+    private void FocusMenuButton(Button button)
+    {
+        for (var i = 0; i < _menuEntries.Count; i++)
+        {
+            if (!ReferenceEquals(_menuEntries[i].Button, button))
+                continue;
+
+            _menuFocusIndex = i;
+            break;
+        }
+
+        FocusMenu(resetIndex: false);
+    }
+
     private bool TrySwitchColumn(IGameCommandSource commands)
     {
         var toMenu = commands.WasPressed(GameCommand.FocusNextRegion)
@@ -208,25 +276,36 @@ public sealed class EditorTwoColumnFormController
             || commands.WasPressed(GameCommand.ZoomOut)
             || (_allowDpadColumnSwitch && commands.WasPressed(GameCommand.NavigateLeft));
 
-        if (toMenu && !_isMenuFocused)
+        // Re-apply even when that column is already active, so a text-only settings column
+        // drops the menu highlight and can take the keyboard.
+        if (toMenu)
         {
             FocusMenu();
             return true;
         }
 
-        if (toSettings && _isMenuFocused)
+        if (toSettings)
         {
             FocusSettings();
             return true;
         }
 
-        return toMenu || toSettings;
+        return false;
     }
 
     private void HandleMenuInput(IGameCommandSource commands, float elapsedSeconds)
     {
-        if (_menuEntries.Count > 0)
-            GumFocusableButtonList.HandleVerticalInput(commands, _menuEntries, ref _menuFocusIndex, _navigateRepeat, elapsedSeconds);
+        if (_menuEntries.Count == 0)
+            return;
+
+        var result = GumFocusableButtonList.HandleVerticalInput(
+            commands,
+            _menuEntries,
+            ref _menuFocusIndex,
+            _navigateRepeat,
+            elapsedSeconds);
+        if (result == GumFocusListResult.Navigated)
+            EnsureMenuRowVisible();
     }
 
     private void HandleSettingsInput(IGameCommandSource commands, float elapsedSeconds)
@@ -369,6 +448,22 @@ public sealed class EditorTwoColumnFormController
             listFocusStartIndex: 0,
             listFocusCount: _settingsEntries.Count,
             _settingsFocusIndex,
+            EditorTwoColumnFormShell.DefaultStackSpacing,
+            EditorTwoColumnFormShell.DefaultMinScrollViewport);
+    }
+
+    private void EnsureMenuRowVisible()
+    {
+        if (_menuEntries.Count == 0)
+            return;
+
+        EditorFormScrollFocus.AfterNavigate(
+            _menuScroll,
+            _menuHost,
+            _menuEntries,
+            listFocusStartIndex: 0,
+            listFocusCount: _menuEntries.Count,
+            _menuFocusIndex,
             EditorTwoColumnFormShell.DefaultStackSpacing,
             EditorTwoColumnFormShell.DefaultMinScrollViewport);
     }
