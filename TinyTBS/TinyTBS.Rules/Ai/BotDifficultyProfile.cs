@@ -71,7 +71,7 @@ public sealed class BotDifficultyProfile
                 AggressionRangeCap = 99,
                 HomeBiasWeight = 0,
                 UnitCountWeight = 120,
-                CastleObjectiveWeight = 13, // was 10
+                CastleObjectiveWeight = 13,
                 KingSafetyWeight = 12,
                 AllowWaitWithMoves = false,
             },
