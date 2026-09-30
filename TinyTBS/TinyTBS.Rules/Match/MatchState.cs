@@ -242,44 +242,19 @@ public sealed class MatchState
             TurnStartsByPlayer = turnStarts,
             KingRehireCountByPlayer = kingRehires,
             EliminatedPlayers = eliminated,
-            Cursor = ToSaveCell(cursor),
+            Cursor = MatchSnapshotMapper.ToCell(cursor),
             SelectedUnitId = SelectedUnitId,
             WinnerPlayerIndex = WinnerPlayerIndex,
             VictoryReason = VictoryReason,
-            Units = _units.Select(unit => new MatchSaveUnitSnapshot
-            {
-                Id = unit.Id,
-                TypeId = unit.TypeId.Full,
-                Cell = ToSaveCell(unit.Cell),
-                PlayerIndex = unit.PlayerIndex,
-                MaxHealth = unit.MaxHealth,
-                HitPoints = unit.HitPoints,
-                IsActive = unit.IsActive,
-                HasMovedThisActivation = unit.HasMovedThisActivation,
-                CellBeforeMove = ToSaveCell(unit.CellBeforeMove),
-                Experience = unit.Experience,
-            }).ToList(),
-            Buildings = _buildings.Select(building => new MatchSaveBuildingSnapshot
-            {
-                TypeId = building.TypeId.Full,
-                Cell = ToSaveCell(building.Cell),
-                OwnerPlayerIndex = building.OwnerPlayerIndex,
-                IsRuined = building.IsRuined,
-                AllowsRecruit = building.AllowsRecruit,
-                RepairedThisOwnerTurn = building.RepairedThisOwnerTurn,
-            }).ToList(),
-            Gravestones = _gravestones.Select(stone => new MatchSaveGravestoneSnapshot
-            {
-                Cell = ToSaveCell(stone.Cell),
-                SourcePlayerIndex = stone.SourcePlayerIndex,
-                ExpiresWhenTurnStartsReaches = stone.ExpiresWhenTurnStartsReaches,
-            }).ToList(),
+            Units = _units.Select(MatchSnapshotMapper.ToSnapshot).ToList(),
+            Buildings = _buildings.Select(MatchSnapshotMapper.ToSnapshot).ToList(),
+            Gravestones = _gravestones.Select(MatchSnapshotMapper.ToSnapshot).ToList(),
         };
     }
 
     /// <summary>
     /// Replaces dynamic match state from a save snapshot (terrain / catalog stay from <see cref="FromMap"/>).
-    /// Does not run turn-start economy. Counterpart of <see cref="ToSnapshot"/>; keep both in sync.
+    /// Does not run turn-start economy. Entity fields are mapped by <see cref="MatchSnapshotMapper"/>.
     /// </summary>
     public void HydrateFromSnapshot(MatchRuntimeSnapshot snapshot)
     {
@@ -325,59 +300,33 @@ public sealed class MatchState
 
         foreach (var building in snapshot.Buildings)
         {
-            var typeId = ContentId.Parse(building.TypeId);
-            if (!_catalog.TryGetBuilding(typeId, out _))
+            var restored = MatchSnapshotMapper.FromSnapshot(building);
+            if (!_catalog.TryGetBuilding(restored.TypeId, out _))
             {
                 throw new InvalidOperationException(
                     $"Saved building type '{building.TypeId}' is not in the match content catalog.");
             }
 
-            _buildings.Add(new MatchBuilding(
-                typeId,
-                new GridCell(building.Cell.X, building.Cell.Y),
-                building.OwnerPlayerIndex,
-                building.IsRuined,
-                building.AllowsRecruit)
-            {
-                RepairedThisOwnerTurn = building.RepairedThisOwnerTurn,
-            });
+            _buildings.Add(restored);
         }
 
         foreach (var unit in snapshot.Units)
         {
-            var typeId = ContentId.Parse(unit.TypeId);
-            if (!_catalog.TryGetUnit(typeId, out _))
+            var restored = MatchSnapshotMapper.FromSnapshot(unit);
+            if (!_catalog.TryGetUnit(restored.TypeId, out _))
             {
                 throw new InvalidOperationException(
                     $"Saved unit type '{unit.TypeId}' is not in the match content catalog.");
             }
 
-            var maxHealth = Math.Max(1, unit.MaxHealth);
-            _units.Add(new MatchUnit(
-                unit.Id,
-                typeId,
-                new GridCell(unit.Cell.X, unit.Cell.Y),
-                unit.PlayerIndex,
-                maxHealth,
-                Math.Clamp(unit.HitPoints, 1, maxHealth))
-            {
-                IsActive = unit.IsActive,
-                HasMovedThisActivation = unit.HasMovedThisActivation,
-                CellBeforeMove = new GridCell(unit.CellBeforeMove.X, unit.CellBeforeMove.Y),
-                Experience = Math.Clamp(unit.Experience, 0, MatchUnit.MaxExperience),
-            });
+            _units.Add(restored);
         }
 
         if (SelectedUnitId is int selectedId && !_units.Any(unit => unit.Id == selectedId))
             SelectedUnitId = null;
 
         foreach (var stone in snapshot.Gravestones)
-        {
-            _gravestones.Add(new MatchGravestone(
-                new GridCell(stone.Cell.X, stone.Cell.Y),
-                stone.SourcePlayerIndex,
-                stone.ExpiresWhenTurnStartsReaches));
-        }
+            _gravestones.Add(MatchSnapshotMapper.FromSnapshot(stone));
 
         // Keep next id above any restored unit id.
         foreach (var unit in _units)
@@ -951,5 +900,4 @@ public sealed class MatchState
             throw new ArgumentOutOfRangeException(nameof(playerIndex), playerIndex, "Unknown player.");
     }
 
-    private static MatchSaveCell ToSaveCell(GridCell cell) => new() { X = cell.X, Y = cell.Y };
 }
