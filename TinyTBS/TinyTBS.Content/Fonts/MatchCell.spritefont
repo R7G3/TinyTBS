@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <XnaContent xmlns:Graphics="Microsoft.Xna.Framework.Content.Pipeline.Graphics">
   <Asset Type="Graphics:FontDescription">
-    <FontName>Segoe UI</FontName>
+    <!-- File must sit next to this .spritefont (Linux pipeline does not use Windows Segoe UI). -->
+    <FontName>LiberationSans-Bold</FontName>
     <Size>14</Size>
     <Spacing>0</Spacing>
     <UseKerning>true</UseKerning>
-    <Style>Bold</Style>
+    <Style>Regular</Style>
     <CharacterRegions>
       <CharacterRegion>
         <Start>&#48;</Start>
