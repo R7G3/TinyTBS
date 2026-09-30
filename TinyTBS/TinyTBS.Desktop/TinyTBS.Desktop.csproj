@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gum.MonoGame" Version="2026.8.3.1" />
+    <PackageReference Include="Gum.MonoGame" Version="2026.9.2.1" />
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
   </ItemGroup>
 
@@ -54,18 +54,13 @@
       <_DesktopContentDir>$([MSBuild]::NormalizePath('$(_DesktopProjectDir)', 'Content'))</_DesktopContentDir>
     </PropertyGroup>
     <Message Importance="High" Text="Building TinyTBS content → $(_DesktopContentDir)" />
-    <Exec
-      Command="dotnet run --project &quot;$(_ContentCsproj)&quot; -c $(Configuration) --no-launch-profile -- build -p $(MonoGamePlatform) -s . -o &quot;$(_DesktopProjectDir)&quot; -i &quot;$(_ContentIntermediate)&quot; --workingDir &quot;$(_ContentProjectDir)&quot;"
-      WorkingDirectory="$(_ContentProjectDir)" />
+    <Exec Command="dotnet run --project &quot;$(_ContentCsproj)&quot; -c $(Configuration) --no-launch-profile -- build -p $(MonoGamePlatform) -s . -o &quot;$(_DesktopProjectDir)&quot; -i &quot;$(_ContentIntermediate)&quot; --workingDir &quot;$(_ContentProjectDir)&quot;" WorkingDirectory="$(_ContentProjectDir)" />
   </Target>
 
   <Target Name="CopyTinyTbsContentToOutput" AfterTargets="Build">
     <ItemGroup>
       <_BuiltXnb Include="$(MSBuildProjectDirectory)/Content/**/*.xnb" />
     </ItemGroup>
-    <Copy
-      SourceFiles="@(_BuiltXnb)"
-      DestinationFiles="@(_BuiltXnb->'$(TargetDir)Content/%(RecursiveDir)%(Filename)%(Extension)')"
-      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_BuiltXnb)" DestinationFiles="@(_BuiltXnb->'$(TargetDir)Content/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 </Project>

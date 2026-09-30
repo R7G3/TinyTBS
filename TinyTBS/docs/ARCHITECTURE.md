@@ -91,12 +91,13 @@ Bundled pipeline: исходники в **TinyTBS.Content** → builder пише
 | Компонент | Выбор |
 |-----------|--------|
 | Runtime | .NET 10 |
-| Framework | MonoGame 3.8.5 DesktopGL |
-| Расширения | MonoGame.Extended 6 (экраны, ECS) |
-| UI | Gum.MonoGame + тонкий UI-state (ручная синхронизация; не MVVM-архитектура) |
-| Контент | C# Content Builder (`TinyTbsContentBuilder`, RegexRule), .xnb → Desktop |
+| Framework | MonoGame 3.8.5.1 DesktopGL |
+| Расширения | MonoGame.Extended 6.1.1 (экраны, ECS) |
+| UI | Gum.MonoGame 2026.9.2.1 + тонкий UI-state (ручная синхронизация; не MVVM-архитектура) |
+| Контент | C# Content Builder (`TinyTbsContentBuilder`, RegexRule), .xnb → Desktop; pipeline 3.8.5.1 |
 | Карты / уровни | Каталог `Maps/{id}/`, `Levels/{id}/` в scenario; JSON + `script.cs` (ZIP `.map.zip` — legacy/экспорт) |
-| Скрипты | Roslyn `Microsoft.CodeAnalysis.CSharp` → `IMapScriptHooks`; `IScriptEngine` для других языков позже |
+| Скрипты | Roslyn `Microsoft.CodeAnalysis.CSharp` 5.9.0 → `IMapScriptHooks`; `IScriptEngine` для других языков позже |
+| Файловые диалоги | NativeFileDialogNET 2.0.2 (+ Linux portal в Desktop) |
 | Локализация | resx |
 
 ## Потоки данных

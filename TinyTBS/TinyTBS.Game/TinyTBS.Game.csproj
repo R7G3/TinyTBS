@@ -6,7 +6,7 @@
     <RootNamespace>TinyTBS.Game</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Gum.MonoGame" Version="2026.8.3.1" />
+    <PackageReference Include="Gum.MonoGame" Version="2026.9.2.1" />
     <PackageReference Include="MonoGame.Extended" Version="6.1.1" />
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
   </ItemGroup>
@@ -16,8 +16,6 @@
   <ItemGroup>
     <!-- Bundled vanilla tinymod sources (from TinyTBS.Content/Vanilla). Map scripts are data for Roslyn, not project compile. -->
     <Compile Remove="..\TinyTBS.Content\Vanilla\**\*" />
-    <None Include="..\TinyTBS.Content\Vanilla\**\*"
-          Link="Vanilla\%(RecursiveDir)%(Filename)%(Extension)"
-          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\TinyTBS.Content\Vanilla\**\*" Link="Vanilla\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

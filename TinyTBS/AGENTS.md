@@ -10,9 +10,10 @@
 ## Стек
 
 - .NET 10
-- MonoGame 3.8.5 (DesktopGL; DesktopVK — в перспективе)
-- MonoGame.Extended 6 — игровые экраны, ECS
-- Gum.MonoGame — UI на **каждом** экране поверх графики
+- MonoGame 3.8.5.1 (DesktopGL; DesktopVK — в перспективе)
+- MonoGame.Extended 6.1.1 — игровые экраны, ECS
+- Gum.MonoGame 2026.9.2.1 — UI на **каждом** экране поверх графики
+- Microsoft.CodeAnalysis.CSharp 5.9.0 — скрипты карт (Roslyn); NativeFileDialogNET 2.0.2 — desktop file picker
 - Карты / уровни / модули: [MAP_FORMAT.md](docs/MAP_FORMAT.md), [LEVEL_FORMAT.md](docs/LEVEL_FORMAT.md), [CONTENT_MODULE_FORMAT.md](docs/CONTENT_MODULE_FORMAT.md) (`.tinymod.zip`), **без Tiled / DotTiled**
 - Контент: отдельный проект TinyTBS.Content + C# Content Builder (wildcard)
 - Локализация: resx в Content-проекте
@@ -20,7 +21,7 @@
 
 ## NuGet / About
 
-При **добавлении** новой библиотеки (`PackageReference` в любом `.csproj` solution) или **обновлении версии** уже используемой — синхронно обновить список в [`TinyTBS.Game/Presentation/About/AboutSolutionLibraries.cs`](TinyTBS.Game/Presentation/About/AboutSolutionLibraries.cs) (экран «Об игре» → Used libs). Имена и версии должны совпадать с прямыми PackageReference по solution (не транзитивные).
+При **добавлении** новой библиотеки (`PackageReference` в любом `.csproj` solution) или **обновлении версии** уже используемой — синхронно обновить список в [`TinyTBS.Game/Presentation/About/AboutSolutionLibraries.cs`](TinyTBS.Game/Presentation/About/AboutSolutionLibraries.cs) (экран «Об игре» → Used libs) **и** версии в [README.md](README.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), этом файле. Имена и версии должны совпадать с прямыми PackageReference по solution (не транзитивные).
 
 ## Архитектура (кратко)
 

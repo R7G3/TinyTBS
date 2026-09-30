@@ -6,7 +6,7 @@
 
 ## Движок
 
-- Сейчас: **C#** через Roslyn (`Microsoft.CodeAnalysis.CSharp` в Engine → `RoslynScriptCompiler`).
+- Сейчас: **C#** через Roslyn (`Microsoft.CodeAnalysis.CSharp` **5.9.0** в Engine → `RoslynScriptCompiler`).
 - Абстракция **`IScriptEngine`** в Game — точка расширения; **Lua / JavaScript / Python** не отменены, просто не в текущем срезе.
 - Инфраструктура в **`TinyTBS.Engine.Scripting`**: `RoslynScriptCompiler`, `ScriptSourceValidator`, `ScriptHookInvoker`, `ScriptHostException`.
 - Игровой слой **`TinyTBS.Game.Scripting`**: `RoslynMapScriptEngine`, хуки и контексты map/campaign, `MapScriptHost` / `CampaignScriptHost`.

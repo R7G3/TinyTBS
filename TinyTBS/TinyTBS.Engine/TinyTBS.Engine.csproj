@@ -6,8 +6,8 @@
     <RootNamespace>TinyTBS.Engine</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Gum.MonoGame" Version="2026.8.3.1" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+    <PackageReference Include="Gum.MonoGame" Version="2026.9.2.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageReference Include="MonoGame.Extended" Version="6.1.1" />
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
     <PackageReference Include="NativeFileDialogNET" Version="2.0.2" />

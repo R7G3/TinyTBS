@@ -1,6 +1,6 @@
 # TinyTBS (MonoGame)
 
-Пошаговая стратегия (TBS) на **MonoGame 3.8.5**, **.NET 10**, **MonoGame.Extended 6**.
+Пошаговая стратегия (TBS) на **MonoGame 3.8.5.1**, **.NET 10**, **MonoGame.Extended 6.1.1**, **Gum.MonoGame 2026.9.2.1**.
 
 ## Важно: два solution в одном репозитории
 
@@ -41,9 +41,11 @@ dotnet run --project TinyTBS.Desktop/TinyTBS.Desktop.csproj
 
 ## Стек (целевой)
 
-- MonoGame 3.8.5 (DesktopGL)
-- MonoGame.Extended 6 — экраны, ECS
-- Gum.MonoGame — UI поверх всех экранов
+- MonoGame 3.8.5.1 (DesktopGL)
+- MonoGame.Extended 6.1.1 — экраны, ECS
+- Gum.MonoGame 2026.9.2.1 — UI поверх всех экранов
+- Microsoft.CodeAnalysis.CSharp 5.9.0 — скрипты карт (Roslyn)
+- NativeFileDialogNET 2.0.2 — выбор файлов на desktop
 - Собственный формат карт + встроенный редактор (без Tiled)
 
 # Дисклеймер: названия франшиз в примерах
