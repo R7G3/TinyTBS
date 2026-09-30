@@ -1,29 +1,18 @@
 using Gum;
-using Gum.DataTypes;
 using Gum.Forms.Controls;
-using Gum.Managers;
-using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Editor.Themes;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Presentation.Shared;
+using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Editor.Presentation;
 
 /// <summary>Edit theme module.json: settings scroll (left) + Save/Back menu (right).</summary>
 public sealed class EditorThemeEditView
 {
-    private enum FocusZone
-    {
-        Settings = 0,
-        Menu = 1,
-    }
-
-    private const float StackSpacing = 6f;
-    private const float MinScrollViewport = 120f;
+    private readonly EditorTwoColumnFormController _form = new(allowDpadColumnSwitch: true);
 
     private Panel? _rootPanel;
-    private ScrollViewer? _settingsScroll;
     private Panel? _settingsHost;
     private Label? _statusLabel;
     private TextBox? _titleBox;
@@ -34,14 +23,8 @@ public sealed class EditorThemeEditView
     private TextBox? _newContentIdBox;
     private TextBox? _newBaseBox;
     private TextBox? _newMaskBox;
-    private readonly List<(Button Button, Action Activate)> _settingsEntries = [];
-    private readonly List<(Button Button, Action Activate)> _menuEntries = [];
-    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
     private readonly EditorChoiceOverlay _choiceOverlay = new();
 
-    private FocusZone _focusZone = FocusZone.Settings;
-    private int _settingsFocusIndex;
-    private int _menuFocusIndex;
     private EditableThemeDocument _document = new();
 
     public bool IsTextEntryActive =>
@@ -66,34 +49,29 @@ public sealed class EditorThemeEditView
 
         var built = EditorTwoColumnFormShell.Build(
             "Edit Theme — " + _document.ModuleId,
-            "LB/RB: columns. Up/Down: rows. Remap ids use namespace/localId (e.g. vanilla/king).");
+            "LB/RB: columns. Up/Down: rows. Remap ids use namespace/localId (e.g. "
+            + VanillaContentIds.ContentNamespace
+            + "/king).");
         _rootPanel = built.RootPanel;
         _settingsHost = built.SettingsHost;
-        _settingsScroll = built.SettingsScroll;
+        _form.Attach(built);
 
         _statusLabel = new Label { Text = string.Empty };
         GumUiLayout.FillParentWidth(_statusLabel);
         built.MenuHost.AddChild(_statusLabel);
 
-        EditorTwoColumnFormShell.AddMenuButton(
+        _form.AddMenuButton(
             built.MenuHost,
-            _menuEntries,
             "Save theme",
             () =>
             {
                 ApplyTextFields();
                 onSave();
-            },
-            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
-        EditorTwoColumnFormShell.AddMenuButton(
-            built.MenuHost,
-            _menuEntries,
-            "Back",
-            onBack,
-            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
+            });
+        _form.AddMenuButton(built.MenuHost, "Back", onBack);
 
         RebuildSettingsColumn();
-        SetFocusZone(FocusZone.Settings, resetIndex: true);
+        _form.FocusSettings(resetIndex: true);
     }
 
     public void SyncStatus(string text)
@@ -105,20 +83,20 @@ public sealed class EditorThemeEditView
     public void ApplyTextFields()
     {
         if (_titleBox is not null && !string.IsNullOrWhiteSpace(_titleBox.Text))
-            _document.Title = _titleBox.Text.Trim();
+            _document.Title = _titleBox.Text;
         if (_descriptionBox is not null)
         {
             _document.Description = string.IsNullOrWhiteSpace(_descriptionBox.Text)
                 ? null
-                : _descriptionBox.Text.Trim();
+                : _descriptionBox.Text;
         }
 
         if (_versionBox is not null && !string.IsNullOrWhiteSpace(_versionBox.Text))
-            _document.Version = _versionBox.Text.Trim();
+            _document.Version = _versionBox.Text;
         if (_terrainDirBox is not null && !string.IsNullOrWhiteSpace(_terrainDirBox.Text))
-            _document.TerrainDirectory = _terrainDirBox.Text.Trim();
+            _document.TerrainDirectory = _terrainDirBox.Text;
         if (_gravestoneBox is not null && !string.IsNullOrWhiteSpace(_gravestoneBox.Text))
-            _document.GravestoneRelativePath = _gravestoneBox.Text.Trim();
+            _document.GravestoneRelativePath = _gravestoneBox.Text;
 
         TryCommitNewRemap();
         _document.IsDirty = true;
@@ -137,24 +115,15 @@ public sealed class EditorThemeEditView
         if (IsTextEntryActive)
             return;
 
-        if (TrySwitchColumn(commands))
-            return;
-
-        if (_focusZone == FocusZone.Menu)
-        {
-            HandleMenuInput(commands, elapsedSeconds);
-            return;
-        }
-
-        HandleSettingsInput(commands, elapsedSeconds);
+        _form.HandleInput(commands, elapsedSeconds);
     }
 
     public void Clear()
     {
         _choiceOverlay.Close(notifyClosed: false);
         GumService.Default.Root.Children.Clear();
+        _form.Clear();
         _rootPanel = null;
-        _settingsScroll = null;
         _settingsHost = null;
         _statusLabel = null;
         _titleBox = null;
@@ -165,12 +134,6 @@ public sealed class EditorThemeEditView
         _newContentIdBox = null;
         _newBaseBox = null;
         _newMaskBox = null;
-        _settingsEntries.Clear();
-        _menuEntries.Clear();
-        _navigateRepeat.Reset();
-        _focusZone = FocusZone.Settings;
-        _settingsFocusIndex = 0;
-        _menuFocusIndex = 0;
     }
 
     private void RebuildSettingsColumn()
@@ -179,8 +142,13 @@ public sealed class EditorThemeEditView
             return;
 
         ApplyTextFields();
-        _settingsHost.Visual.Children.Clear();
-        _settingsEntries.Clear();
+        _form.RebuildSettings(AddSettingsRows);
+    }
+
+    private void AddSettingsRows()
+    {
+        if (_settingsHost is null)
+            return;
 
         var moduleLabel = new Label
         {
@@ -202,13 +170,13 @@ public sealed class EditorThemeEditView
         EditorTwoColumnFormShell.AddTextField(_settingsHost, "Content id (namespace/localId)", string.Empty, out _newContentIdBox);
         EditorTwoColumnFormShell.AddTextField(_settingsHost, "Remap base path", string.Empty, out _newBaseBox);
         EditorTwoColumnFormShell.AddTextField(_settingsHost, "Remap mask path", string.Empty, out _newMaskBox);
-        AddSettingsButton("Add remap", CommitNewRemap);
+        _form.AddSettingsButton("Add remap", CommitNewRemap);
 
         foreach (var remap in _document.Remaps.OrderBy(entry => entry.ContentIdFull, StringComparer.OrdinalIgnoreCase))
         {
             var captured = remap;
             var summary = captured.ContentIdFull + " → " + ShortPath(captured.BasePath);
-            AddSettingsButton(summary, () => OpenRemapChoice(captured));
+            _form.AddSettingsButton(summary, () => OpenRemapChoice(captured));
         }
 
         if (_document.Remaps.Count == 0)
@@ -230,9 +198,9 @@ public sealed class EditorThemeEditView
         if (_newContentIdBox is null || _newBaseBox is null || _newMaskBox is null)
             return;
 
-        var contentId = (_newContentIdBox.Text ?? string.Empty).Trim();
-        var basePath = (_newBaseBox.Text ?? string.Empty).Trim();
-        var maskPath = (_newMaskBox.Text ?? string.Empty).Trim();
+        var contentId = _newContentIdBox.Text ?? string.Empty;
+        var basePath = _newBaseBox.Text ?? string.Empty;
+        var maskPath = _newMaskBox.Text ?? string.Empty;
         if (string.IsNullOrWhiteSpace(contentId)
             || string.IsNullOrWhiteSpace(basePath)
             || string.IsNullOrWhiteSpace(maskPath))
@@ -281,7 +249,7 @@ public sealed class EditorThemeEditView
                     RebuildSettingsColumn();
                 }),
             ],
-            onClosed: () => SetFocusZone(FocusZone.Settings, resetIndex: false));
+            onClosed: () => _form.FocusSettings());
     }
 
     private static string ShortPath(string path)
@@ -290,116 +258,5 @@ public sealed class EditorThemeEditView
             return "(empty)";
         var normalized = path.Replace('\\', '/');
         return normalized.Length <= 42 ? normalized : "…" + normalized[^39..];
-    }
-
-    private void HandleSettingsInput(IGameCommandSource commands, float elapsedSeconds)
-    {
-        if (_settingsEntries.Count == 0)
-            return;
-
-        var result = GumFocusableButtonList.HandleVerticalInput(
-            commands,
-            _settingsEntries,
-            ref _settingsFocusIndex,
-            _navigateRepeat,
-            elapsedSeconds);
-
-        if (result == GumFocusListResult.Navigated)
-            EnsureSettingsRowVisible();
-    }
-
-    private void HandleMenuInput(IGameCommandSource commands, float elapsedSeconds)
-    {
-        if (_menuEntries.Count == 0)
-            return;
-
-        GumFocusableButtonList.HandleVerticalInput(
-            commands,
-            _menuEntries,
-            ref _menuFocusIndex,
-            _navigateRepeat,
-            elapsedSeconds);
-    }
-
-    private bool TrySwitchColumn(IGameCommandSource commands) =>
-        EditorTwoColumnFormShell.TrySwitchTwoZones(
-            commands,
-            allowDpadColumnSwitch: true,
-            currentZone: (int)_focusZone,
-            settingsZone: (int)FocusZone.Settings,
-            menuZone: (int)FocusZone.Menu,
-            setZone: zone => SetFocusZone((FocusZone)zone, resetIndex: false));
-
-    private void SetFocusZone(FocusZone zone, bool resetIndex)
-    {
-        _focusZone = zone;
-        if (zone == FocusZone.Settings)
-        {
-            if (resetIndex || _settingsEntries.Count == 0)
-                _settingsFocusIndex = 0;
-            else
-                _settingsFocusIndex = Math.Clamp(_settingsFocusIndex, 0, _settingsEntries.Count - 1);
-
-            GumFocusableButtonList.ClearFocus(_menuEntries);
-            if (_settingsEntries.Count > 0)
-            {
-                GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-                EnsureSettingsRowVisible();
-            }
-        }
-        else
-        {
-            if (resetIndex || _menuEntries.Count == 0)
-                _menuFocusIndex = 0;
-            else
-                _menuFocusIndex = Math.Clamp(_menuFocusIndex, 0, _menuEntries.Count - 1);
-
-            GumFocusableButtonList.ClearFocus(_settingsEntries);
-            if (_menuEntries.Count > 0)
-                GumFocusableButtonList.ApplyFocus(_menuEntries, ref _menuFocusIndex);
-        }
-    }
-
-    private void EnsureSettingsRowVisible()
-    {
-        if (_settingsEntries.Count == 0
-            || _settingsScroll is null
-            || _settingsHost is null)
-        {
-            return;
-        }
-
-        EditorFormScrollFocus.AfterNavigate(
-            _settingsScroll,
-            _settingsHost,
-            _settingsEntries,
-            listFocusStartIndex: 0,
-            listFocusCount: _settingsEntries.Count,
-            _settingsFocusIndex,
-            StackSpacing,
-            MinScrollViewport);
-    }
-
-    private void AddSettingsButton(string text, Action onClick)
-    {
-        if (_settingsHost is null)
-            return;
-        var button = new Button { Text = text };
-        GumUiLayout.FillParentWidth(button);
-        _settingsHost.AddChild(button);
-        _settingsEntries.Add((button, onClick));
-        button.Click += (_, _) =>
-        {
-            for (var i = 0; i < _settingsEntries.Count; i++)
-            {
-                if (!ReferenceEquals(_settingsEntries[i].Button, button))
-                    continue;
-                _settingsFocusIndex = i;
-                break;
-            }
-
-            SetFocusZone(FocusZone.Settings, resetIndex: false);
-            onClick();
-        };
     }
 }

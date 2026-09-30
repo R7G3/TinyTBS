@@ -39,19 +39,21 @@ public sealed class GameplayHudViewModel
     /// <summary>True when the compact widget should sit near the top (cursor is on the bottom half).</summary>
     public bool InfoPreferTop { get; set; }
 
+    public MatchOverlayStack Overlays { get; } = new();
+
     /// <summary>Detailed tile inspection overlay (like map/goals).</summary>
-    public bool IsTileDetailVisible { get; set; }
+    public bool IsTileDetailVisible => Overlays.Top == MatchOverlay.TileDetail;
 
-    public bool IsPauseVisible { get; set; }
+    public bool IsPauseVisible => Overlays.Top == MatchOverlay.Pause;
 
-    public bool IsMinimapVisible { get; set; }
+    public bool IsMinimapVisible => Overlays.Top == MatchOverlay.Minimap;
 
-    public bool IsGoalsVisible { get; set; }
+    public bool IsGoalsVisible => Overlays.Top == MatchOverlay.Goals;
 
-    public bool IsShopVisible { get; set; }
+    public bool IsShopVisible => Overlays.Top == MatchOverlay.Shop;
 
     /// <summary>Match ended (standard or script victory) — blocks board and other overlays.</summary>
-    public bool IsMatchResultVisible { get; set; }
+    public bool IsMatchResultVisible => Overlays.Top == MatchOverlay.MatchResult;
 
     public string MatchResultText { get; set; } = string.Empty;
 
@@ -62,7 +64,7 @@ public sealed class GameplayHudViewModel
     public bool ShowMatchResultRetry { get; set; }
 
     /// <summary>Compact Move / Buy chooser above an occupied own castle.</summary>
-    public bool IsCellActionChooserVisible { get; set; }
+    public bool IsCellActionChooserVisible => Overlays.Top == MatchOverlay.CellActionChooser;
 
     /// <summary>Screen X of the cell top-center (chooser anchors just above).</summary>
     public float CellActionChooserAnchorX { get; set; }

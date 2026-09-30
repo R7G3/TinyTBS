@@ -10,22 +10,25 @@ using TinyTBS.Game.Editor.Validation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
+using TinyTBS.Game.Presentation.Match;
+using TinyTBS.Game.Presentation.Match.Board;
+using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Editor.Screens;
 
 /// <summary>Paint map with left content / right tools panels; LB/RB cycles focus zones.</summary>
 public sealed class EditorMapPaintScreen : GameScreen
 {
-    private readonly IAssetResolver _assets;
     private readonly EditorWorkspaceSession _session;
     private readonly EditableMapDocument _document;
     private readonly bool _isNewMap;
     private readonly EditorPaintToolState _tool = new();
     private readonly EditorMapPaintHudView _hud = new();
     private readonly EditorMapHistory _history = new();
+    private readonly BoardInputController _boardInput = new();
 
     private MatchTextureAtlas? _textures;
     private MatchContentCatalog? _catalog;
@@ -37,19 +40,21 @@ public sealed class EditorMapPaintScreen : GameScreen
 
     public EditorMapPaintScreen(
         GameMain game,
-        IAssetResolver assets,
         EditorWorkspaceSession session,
         EditableMapDocument document,
         bool isNewMap)
         : base(game)
     {
-        _assets = assets;
+        TinyGame = game ?? throw new ArgumentNullException(nameof(game));
+        Navigator = game.Navigator;
         _session = session ?? throw new ArgumentNullException(nameof(session));
         _document = document ?? throw new ArgumentNullException(nameof(document));
         _isNewMap = isNewMap;
     }
 
-    private GameMain TinyGame => (GameMain)Game;
+    private GameMain TinyGame { get; }
+
+    private ScreenNavigator Navigator { get; }
 
     public override void LoadContent()
     {
@@ -71,7 +76,7 @@ public sealed class EditorMapPaintScreen : GameScreen
 
             var loaded = MatchContentCompositionLoader.Load(composition, locator, TinyGame.Files);
             _catalog = loaded.Catalog;
-            _textures = MatchTextureAtlas.Load(GraphicsDevice, Content, _assets, loaded.Catalog);
+            _textures = MatchTextureAtlas.Load(GraphicsDevice, Content, TinyGame.Files, TinyGame.App.Assets, loaded.Catalog);
             _board = new EditorMapBoard(_document, GraphicsDevice, TinyGame.SharedSpriteBatch, _textures);
             _mapWriter = new MapDocumentWriter(TinyGame.Files);
             _levelWriter = new LevelStubWriter(TinyGame.Files);
@@ -129,23 +134,23 @@ public sealed class EditorMapPaintScreen : GameScreen
         var pointer = TinyGame.Pointer;
 
         if (pointer.WasPrimaryPressed && !pointerOverUi)
-            MatchCommandApplicator.ArmPrimaryPointerGesture(pointer);
+            _boardInput.ArmPrimaryPointerGesture(pointer);
 
-        var cameraEnabled = _hud.IsMapFocused || MatchCommandApplicator.IsPrimaryGestureActive;
-        MatchCommandApplicator.ApplyZoom(
+        var cameraEnabled = _hud.IsMapFocused || _boardInput.IsPrimaryGestureActive;
+        _boardInput.ApplyZoom(
             _board.Layout,
             TinyGame.Commands,
             pointer,
             gameTime,
             cameraControlsEnabled: cameraEnabled);
-        MatchCommandApplicator.ApplyCameraPan(
+        _boardInput.ApplyCameraPan(
             _board.Layout,
             TinyGame.Commands,
             pointer,
             gameTime,
             cameraControlsEnabled: cameraEnabled);
 
-        if (MatchCommandApplicator.TryConsumePrimaryClick(pointer) && !pointerOverUi)
+        if (_boardInput.TryConsumePrimaryClick(pointer) && !pointerOverUi)
         {
             if (_board.Layout.TryScreenToCell(pointer.Position, out var cellX, out var cellY))
             {
@@ -183,7 +188,7 @@ public sealed class EditorMapPaintScreen : GameScreen
 
     public override void Draw(GameTime gameTime)
     {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
+        GraphicsDevice.Clear(UiColors.MenuBackground);
         _board?.Draw(gameTime, mapFocused: _hud.IsMapFocused);
         GumService.Default.Draw();
     }
@@ -339,15 +344,9 @@ public sealed class EditorMapPaintScreen : GameScreen
             }
         }
 
-        ScreenManager.ReplaceScreen(
-            new EditorMapScriptScreen(
-                TinyGame,
-                _assets,
-                _session,
-                _document.Id,
-                returnToPaint: true));
+        Navigator.ToEditorMapScript(_session, _document.Id, returnToPaint: true);
     }
 
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, _assets, _session));
+        Navigator.ToEditorHub(_session);
 }

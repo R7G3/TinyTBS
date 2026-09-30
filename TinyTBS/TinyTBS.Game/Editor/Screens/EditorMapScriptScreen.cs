@@ -1,91 +1,57 @@
 using System.Text;
-using Gum;
 using Microsoft.Xna.Framework;
-using MonoGame.Extended.Screens;
-using TinyTBS.Game.Assets;
+using TinyTBS.Engine.Diagnostics;
+using TinyTBS.Game.Editor.Map;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
-using TinyTBS.Game.Input;
 using TinyTBS.Game.Maps;
-using TinyTBS.Game.Presentation.Menu;
+using TinyTBS.Game.Screens;
 
 namespace TinyTBS.Game.Editor.Screens;
 
 /// <summary>Edit <c>Maps/{mapId}/script.cs</c> for the open map document.</summary>
-public sealed class EditorMapScriptScreen : GameScreen
+public sealed class EditorMapScriptScreen : MenuScreen
 {
-    private readonly IAssetResolver _assets;
     private readonly EditorWorkspaceSession _session;
     private readonly string _mapId;
     private readonly bool _returnToPaint;
     private readonly EditorMapScriptView _view = new();
-    private MainMenuBackground? _background;
     private string _scriptPath = string.Empty;
 
     public EditorMapScriptScreen(
         GameMain game,
-        IAssetResolver assets,
         EditorWorkspaceSession session,
         string mapId,
         bool returnToPaint)
         : base(game)
     {
-        _assets = assets;
         _session = session ?? throw new ArgumentNullException(nameof(session));
-        _mapId = string.IsNullOrWhiteSpace(mapId) ? "map" : mapId.Trim();
+        _mapId = string.IsNullOrWhiteSpace(mapId) ? "map" : mapId;
         _returnToPaint = returnToPaint;
     }
 
-    private GameMain TinyGame => (GameMain)Game;
-
-    public override void LoadContent()
+    protected override void OnLoad()
     {
-        base.LoadContent();
-        _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
         var mapRoot = TinyGame.Files.Combine(_session.ModuleRootPath, "Maps", _mapId);
-        Directory.CreateDirectory(mapRoot);
+        TinyGame.Files.CreateDirectory(mapRoot);
         _scriptPath = TinyGame.Files.Combine(mapRoot, "script.cs");
-        var text = File.Exists(_scriptPath)
-            ? File.ReadAllText(_scriptPath)
+        var text = TinyGame.Files.Exists(_scriptPath)
+            ? TinyGame.Files.ReadAllText(_scriptPath)
             : MapScriptTemplates.EmptyHooks;
         _view.Build(_mapId, text, Save, ApplyTemplate, GoBack);
     }
 
-    public override void UnloadContent()
-    {
-        _view.Clear();
-        _background?.Dispose();
-        _background = null;
-        base.UnloadContent();
-    }
+    protected override void OnUnload() => _view.Clear();
 
-    public override void Update(GameTime gameTime)
+    protected override void OnUpdate(GameTime gameTime, float elapsedSeconds)
     {
-        GumService.Default.Update(gameTime);
-        _view.HandleInput(TinyGame.Commands, (float)gameTime.ElapsedGameTime.TotalSeconds);
+        _view.HandleInput(TinyGame.Commands, elapsedSeconds);
         if (_view.IsTextEntryActive)
             return;
 
-        if (TinyGame.Commands.WasPressed(GameCommand.Back)
-            || TinyGame.Commands.WasPressed(GameCommand.Cancel)
-            || TinyGame.Commands.WasPressed(GameCommand.Info)
-            || TinyGame.Commands.WasPressed(GameCommand.Pause))
-        {
+        if (WasLeavePressed())
             GoBack();
-        }
-    }
-
-    public override void Draw(GameTime gameTime)
-    {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
-        _background?.Draw(
-            TinyGame.SharedSpriteBatch,
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            gameTime);
-
-        GumService.Default.Draw();
     }
 
     private void ApplyTemplate()
@@ -98,7 +64,7 @@ public sealed class EditorMapScriptScreen : GameScreen
     {
         try
         {
-            File.WriteAllText(_scriptPath, _view.ScriptText, Encoding.UTF8);
+            TinyGame.Files.WriteAllText(_scriptPath, _view.ScriptText, Encoding.UTF8);
             _view.SyncStatus("Saved script.cs");
         }
         catch (Exception exception)
@@ -115,17 +81,16 @@ public sealed class EditorMapScriptScreen : GameScreen
             {
                 var mapRoot = TinyGame.Files.Combine(_session.ModuleRootPath, "Maps", _mapId);
                 var definition = MapFolderLoader.Load(mapRoot, TinyGame.Files);
-                var document = TinyTBS.Game.Editor.Map.EditableMapDocument.FromDefinition(definition);
-                ScreenManager.ReplaceScreen(
-                    new EditorMapPaintScreen(TinyGame, _assets, _session, document, isNewMap: false));
+                var document = EditableMapDocument.FromDefinition(definition);
+                Navigator.ToEditorMapPaint(_session, document, isNewMap: false);
                 return;
             }
-            catch (Exception)
+            catch (Exception exception)
             {
-                // Fall through to hub.
+                GameLog.Warning($"Map '{_mapId}' could not be reopened for painting; returning to the hub.", exception);
             }
         }
 
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, _assets, _session));
+        Navigator.ToEditorHub(_session);
     }
 }

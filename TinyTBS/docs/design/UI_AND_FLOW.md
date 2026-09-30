@@ -31,7 +31,7 @@
 
 Продолжить (если есть сохранения) · Новая игра · Загрузка · Контент · Редактор · Настройки · Об игре · Выход.
 
-**Сейчас в коде:** оболочка пунктов; **Новая игра** — вкладки Mode → Scenario → Level → Composition → Lobby (Left/Right как в Контенте; Start / Back); фильтр уровней по mode+scenario; composition = scenario defaults / bundle; лобби: слоты Local/Bot (кампания: P2 = Bot·Easy по умолчанию; Confirm на Bot циклит Easy/Normal) + **+**/X; схватка — ещё gold/unit cap → loading; **Контент** — панель-библиотека (Modules/Bundles; детальный попап + Remove; Install: From device через `IExternalFilePicker`, From catalog greyed; очередь `{UserData}/Downloads`; Download/Update greyed). **Продолжить** — live suspended (пауза → Main menu) иначе новейший match-сейв; **Загрузка** — список сейвов (Load / Delete; при live — двойной Confirm); пауза: **Save**, **Load** (suspend → Загрузка), **Leave match**, **Main menu** (suspend). **Редактор** — Hub (New Scenario / New Units|Buildings|Theme Module / New Bundle / Duplicate bundled → user Modules|Bundles; **Export Module** → `{UserData}/Downloads/{id}.tinymod.zip`; Publish greyed); scenario: paint карт, Levels, Campaign; open units/buildings → masters типов (structured UI, dual-input); open theme → **Edit Theme** (`module.json`: terrain/gravestone + remaps); bundles — New/Edit/Delete user `*.bundle.json` (+ Content Remove). **Об игре** — About (автор; кнопки Project page / Welcome page and help / MonoGame; список NuGet из solution; скролл геймпадом). **Настройки** — greyed (см. [ARCHITECTURE](../ARCHITECTURE.md)).
+**Сейчас в коде:** оболочка пунктов; **Новая игра** — вкладки Mode → Scenario → Level → Composition → Lobby (Left/Right как в Контенте; Start / Back); фильтр уровней по mode+scenario; composition = scenario defaults / bundle; лобби: слоты Local/Bot (кампания: P2 = Bot·Easy по умолчанию; Confirm на Bot циклит Easy/Normal) + **+**/X; схватка — ещё gold/unit cap → loading; **Контент** — панель-библиотека (Modules/Bundles; детальный попап + Remove; Install: From device через `IExternalFilePicker`, From catalog greyed; очередь `{UserData}/Downloads`; Download/Update greyed). **Продолжить** — live suspended (пауза → Main menu) иначе новейший match-сейв; **Загрузка** — список сейвов (карточка Load / Delete; при live Load сбрасывает матч); пауза: **Save**, **Load** (suspend → Загрузка), **Leave match**, **Main menu** (suspend). **Редактор** — Hub (New Scenario / New Units|Buildings|Theme Module / New Bundle / Duplicate bundled → user Modules|Bundles; **Export Module** → `{UserData}/Downloads/{id}.tinymod.zip`; Publish greyed); scenario: paint карт, Levels, Campaign; open units/buildings → masters типов (structured UI, dual-input); open theme → **Edit Theme** (`module.json`: terrain/gravestone + remaps); bundles — New/Edit/Delete user `*.bundle.json` (+ Content Remove). **Об игре** — About (автор; кнопки Project page / Welcome page and help / MonoGame; список NuGet из solution; скролл геймпадом). **Настройки** — greyed (см. [ARCHITECTURE](../ARCHITECTURE.md)).
 
 Фоны главного меню / настроек / загрузки / «Об игре»: изображение с плавным сдвигом (камера «летит» над полем). Идея матового стекла панелей — [ideas/ui-frosted-glass.md](../ideas/ui-frosted-glass.md).
 
@@ -58,7 +58,7 @@
 
 ### Загрузка / сохранения
 
-Список от новых к старым; Confirm → Load / Delete. «Продолжить» = **сначала** незавершённый матч этой сессии (пауза → Main menu), иначе самое свежее match-сохранение. При Load с живым suspended — двойной Confirm (бросить матч). Сейв хранит снимок модулей/версий — [SAVE_FORMAT.md](../SAVE_FORMAT.md).
+Список от новых к старым; Confirm → Load / Delete. «Продолжить» = **сначала** незавершённый матч этой сессии (пауза → Main menu), иначе самое свежее match-сохранение. Карточка сейва (Load) достаточна, чтобы не загрузить бой случайно; при живом suspended Load его сбрасывает. Сейв хранит снимок модулей/версий — [SAVE_FORMAT.md](../SAVE_FORMAT.md).
 
 ### Контент (менеджер модулей)
 
@@ -66,7 +66,7 @@
 
 Модель: [CONTENT_MODULE_FORMAT.md](../CONTENT_MODULE_FORMAT.md).
 
-Политика скриптов: Уровень 1 + валидация текста по Уровню 2 — [SCRIPTING.md](../SCRIPTING.md).
+Политика скриптов: Уровень 1 (только `TinyTBS.Scripting.Api` + буфер команд) и Уровень 2 (семантика Roslyn, бюджет шагов, таймаут) — [SCRIPTING.md](../SCRIPTING.md).
 
 ### Редактор
 

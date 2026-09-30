@@ -1,25 +1,20 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Units;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Units.Models;
+using TinyTBS.Rules;
+using TinyTBS.Rules.Units.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 
 /// <summary>Writes <c>Units/{id}.json</c> and syncs <c>recruit.addsToPool</c> in module.json.</summary>
 public sealed class UnitDocumentWriter
 {
-    private static readonly JsonSerializerOptions WriteOptions = new()
-    {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    };
+    private readonly IFileSystem _files;
 
-    private readonly IFileContentProvider _files;
-
-    public UnitDocumentWriter(IFileContentProvider files)
+    public UnitDocumentWriter(IFileSystem files)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
     }
@@ -30,19 +25,36 @@ public sealed class UnitDocumentWriter
         ArgumentNullException.ThrowIfNull(document);
 
         ContentModuleManifestParser.ValidateModuleId(document.Id);
-        var id = document.Id.Trim();
+        var id = document.Id;
+        document.DisplayNameKey = SavedUserText.Or(document.DisplayNameKey, "units." + id);
+        document.MovementClass = MovementClassIds.Normalize(
+            SavedUserText.Or(document.MovementClass, MovementClassIds.Foot));
+        document.Tags = SavedUserText.List(document.Tags);
+        document.SpriteBase = SavedUserText.Optional(document.SpriteBase)?.Replace('\\', '/');
+        document.SpriteMask = SavedUserText.Optional(document.SpriteMask)?.Replace('\\', '/');
+        foreach (var ability in document.Abilities)
+        {
+            ability.Type = SavedUserText.Trimmed(ability.Type);
+            ability.Tags = SavedUserText.List(ability.Tags);
+        }
+
+        foreach (var coefficient in document.SpecialCoefficients)
+        {
+            coefficient.TargetHasTag = coefficient.WhenDefault
+                ? null
+                : SavedUserText.Optional(coefficient.TargetHasTag);
+        }
+
         var unitsDir = ResolveUnitsDir(unitsModuleRoot);
-        Directory.CreateDirectory(unitsDir);
+        _files.CreateDirectory(unitsDir);
 
         var payload = new UnitDefinitionDto
         {
             FormatVersion = 1,
             Id = id,
-            DisplayNameKey = string.IsNullOrWhiteSpace(document.DisplayNameKey)
-                ? "units." + id
-                : document.DisplayNameKey.Trim(),
-            MovementClass = NormalizeMovement(document.MovementClass),
-            Tags = document.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList(),
+            DisplayNameKey = document.DisplayNameKey,
+            MovementClass = document.MovementClass,
+            Tags = document.Tags,
             Recruitable = document.Recruitable,
             Attack = document.Attack,
             Defence = document.Defence,
@@ -53,23 +65,19 @@ public sealed class UnitDocumentWriter
             Cost = Math.Max(0, document.Cost),
             Abilities = document.Abilities.Select(ability => new UnitAbilityDto
             {
-                Type = ability.Type.Trim(),
+                Type = ability.Type,
                 Amount = ability.Amount,
                 MinRange = ability.MinRange,
                 Value = ability.Value,
                 Radius = ability.Radius,
-                Tags = ability.Tags.Count == 0
-                    ? null
-                    : ability.Tags.Where(tag => !string.IsNullOrWhiteSpace(tag)).Select(tag => tag.Trim()).ToList(),
+                Tags = ability.Tags.Count == 0 ? null : ability.Tags,
             }).ToList(),
             SpecialCoefficients = document.SpecialCoefficients.Select(coefficient => new UnitSpecialCoefficientDto
             {
                 When = new UnitSpecialWhenDto
                 {
                     Default = coefficient.WhenDefault ? true : null,
-                    TargetHasTag = coefficient.WhenDefault || string.IsNullOrWhiteSpace(coefficient.TargetHasTag)
-                        ? null
-                        : coefficient.TargetHasTag.Trim(),
+                    TargetHasTag = coefficient.WhenDefault ? null : coefficient.TargetHasTag,
                     ManhattanRange = coefficient.WhenDefault || !string.IsNullOrWhiteSpace(coefficient.TargetHasTag)
                         ? null
                         : coefficient.ManhattanRange,
@@ -79,20 +87,20 @@ public sealed class UnitDocumentWriter
             LeavesGravestone = document.LeavesGravestone,
             Sprites = new UnitSpritesDto
             {
-                Base = string.IsNullOrWhiteSpace(document.SpriteBase) ? null : document.SpriteBase.Trim().Replace('\\', '/'),
-                Mask = string.IsNullOrWhiteSpace(document.SpriteMask) ? null : document.SpriteMask.Trim().Replace('\\', '/'),
+                Base = document.SpriteBase,
+                Mask = document.SpriteMask,
             },
         };
 
         var path = _files.Combine(unitsDir, id + ".json");
-        File.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(path, JsonSerializer.Serialize(payload, ContentJson.Write) + Environment.NewLine, Encoding.UTF8);
 
-        var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId.Trim();
+        var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId;
         if (!string.Equals(originalId, id, StringComparison.Ordinal))
         {
             var oldPath = _files.Combine(unitsDir, originalId + ".json");
-            if (File.Exists(oldPath) && !string.Equals(oldPath, path, StringComparison.OrdinalIgnoreCase))
-                File.Delete(oldPath);
+            if (_files.Exists(oldPath) && !string.Equals(oldPath, path, StringComparison.OrdinalIgnoreCase))
+                _files.DeleteFile(oldPath);
         }
 
         SyncRecruitPool(unitsModuleRoot, originalId, id, document.Recruitable);
@@ -104,22 +112,21 @@ public sealed class UnitDocumentWriter
     private string ResolveUnitsDir(string moduleRoot)
     {
         var moduleJsonPath = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
-        if (!File.Exists(moduleJsonPath))
+        if (!_files.Exists(moduleJsonPath))
             return _files.Combine(moduleRoot, "Units");
 
         try
         {
-            using var stream = File.OpenRead(moduleJsonPath);
-            var manifest = JsonSerializer.Deserialize<UnitModuleJsonDto>(stream, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-            });
-            var relative = manifest?.Content?.UnitsDir;
-            if (!string.IsNullOrWhiteSpace(relative))
-                return _files.Combine(moduleRoot, relative.Trim().Replace('/', Path.DirectorySeparatorChar));
+            using var stream = _files.OpenRead(moduleJsonPath);
+            var unitsDir = UnitJsonParser.ParseModuleManifest(stream).UnitsDir;
+            if (!string.IsNullOrWhiteSpace(unitsDir))
+                return _files.Combine(moduleRoot, unitsDir.Replace('/', Path.DirectorySeparatorChar));
         }
-        catch (JsonException)
+        catch (UnitLoadException exception)
         {
+            GameLog.Warning(
+                $"Units module manifest '{moduleJsonPath}' could not be read; using the default Units folder.",
+                exception);
         }
 
         return _files.Combine(moduleRoot, "Units");
@@ -128,23 +135,19 @@ public sealed class UnitDocumentWriter
     private string ResolveContentNamespace(string moduleRoot)
     {
         var moduleJsonPath = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
-        if (!File.Exists(moduleJsonPath))
+        if (!_files.Exists(moduleJsonPath))
             return Path.GetFileName(moduleRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
 
         try
         {
-            using var stream = File.OpenRead(moduleJsonPath);
-            var manifest = JsonSerializer.Deserialize<UnitModuleJsonDto>(stream, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-            });
-            if (!string.IsNullOrWhiteSpace(manifest?.Namespace))
-                return manifest.Namespace.Trim();
-            if (!string.IsNullOrWhiteSpace(manifest?.Id))
-                return manifest.Id.Trim();
+            using var stream = _files.OpenRead(moduleJsonPath);
+            return UnitJsonParser.ParseModuleManifest(stream).ContentNamespace;
         }
-        catch (JsonException)
+        catch (UnitLoadException exception)
         {
+            GameLog.Warning(
+                $"Units module manifest '{moduleJsonPath}' could not be read; using the folder name as the namespace.",
+                exception);
         }
 
         return Path.GetFileName(moduleRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
@@ -153,7 +156,7 @@ public sealed class UnitDocumentWriter
     private void SyncRecruitPool(string moduleRoot, string previousLocalId, string newLocalId, bool recruitable)
     {
         var moduleJsonPath = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
-        if (!File.Exists(moduleJsonPath))
+        if (!_files.Exists(moduleJsonPath))
             return;
 
         var contentNamespace = ResolveContentNamespace(moduleRoot);
@@ -163,7 +166,7 @@ public sealed class UnitDocumentWriter
         System.Text.Json.Nodes.JsonNode? root;
         try
         {
-            root = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(moduleJsonPath));
+            root = System.Text.Json.Nodes.JsonNode.Parse(_files.ReadAllText(moduleJsonPath));
         }
         catch (JsonException)
         {
@@ -195,7 +198,7 @@ public sealed class UnitDocumentWriter
                     continue;
                 }
 
-                pool.Add(value.Trim());
+                pool.Add(value);
             }
         }
 
@@ -203,15 +206,9 @@ public sealed class UnitDocumentWriter
             pool.Add(newFull);
 
         recruitObject["addsToPool"] = pool;
-        File.WriteAllText(
+        _files.WriteAllText(
             moduleJsonPath,
-            rootObject.ToJsonString(WriteOptions) + Environment.NewLine,
+            rootObject.ToJsonString(ContentJson.Write) + Environment.NewLine,
             Encoding.UTF8);
-    }
-
-    private static string NormalizeMovement(string movementClass)
-    {
-        var value = string.IsNullOrWhiteSpace(movementClass) ? "foot" : movementClass.Trim().ToLowerInvariant();
-        return value is "foot" or "water" or "fly" ? value : "foot";
     }
 }

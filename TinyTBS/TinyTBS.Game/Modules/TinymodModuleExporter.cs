@@ -9,10 +9,10 @@ namespace TinyTBS.Game.Modules;
 /// </summary>
 public sealed class TinymodModuleExporter
 {
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public TinymodModuleExporter(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public TinymodModuleExporter(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
@@ -26,7 +26,7 @@ public sealed class TinymodModuleExporter
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
 
-        if (!Directory.Exists(moduleRoot))
+        if (!_files.DirectoryExists(moduleRoot))
             throw new TinymodExportException($"Module folder not found: {moduleRoot}");
 
         var manifestPath = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
@@ -36,15 +36,15 @@ public sealed class TinymodModuleExporter
                 $"Module folder is missing '{ContentModuleFiles.ModuleJsonFileName}'.");
         }
 
-        ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
-        var id = moduleId.Trim();
+        ContentModuleManifestParser.ValidateModuleId(moduleId);
+        var id = moduleId;
 
         _userDataPaths.EnsureCreated();
         var zipFileName = id + ContentModuleFiles.TinymodZipExtension;
         var destinationPath = _files.Combine(_userDataPaths.Downloads, zipFileName);
 
-        if (File.Exists(destinationPath))
-            File.Delete(destinationPath);
+        if (_files.Exists(destinationPath))
+            _files.DeleteFile(destinationPath);
 
         try
         {

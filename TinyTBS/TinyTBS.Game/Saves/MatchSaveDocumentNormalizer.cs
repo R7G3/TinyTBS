@@ -1,4 +1,4 @@
-using TinyTBS.Game.Saves.Models;
+using TinyTBS.Rules.Saves.Models;
 
 namespace TinyTBS.Game.Saves;
 
@@ -38,13 +38,13 @@ internal static class MatchSaveDocumentNormalizer
             WrittenAtUtc = document.WrittenAtUtc == default
                 ? DateTimeOffset.UtcNow
                 : document.WrittenAtUtc.ToUniversalTime(),
-            LevelId = document.LevelId.Trim(),
+            LevelId = document.LevelId,
             CampaignId = string.IsNullOrWhiteSpace(document.CampaignId)
                 ? null
-                : document.CampaignId.Trim(),
+                : document.CampaignId,
             CampaignLevelId = string.IsNullOrWhiteSpace(document.CampaignLevelId)
                 ? null
-                : document.CampaignLevelId.Trim(),
+                : document.CampaignLevelId,
             UnitCap = Math.Max(1, document.UnitCap),
             ContentSetup = contentSetup,
             PlayerSeats = seats,
@@ -83,18 +83,18 @@ internal static class MatchSaveDocumentNormalizer
                     continue;
                 replaces.Add(new MatchSaveReplace
                 {
-                    From = replace.From.Trim(),
-                    To = replace.To.Trim(),
+                    From = replace.From,
+                    To = replace.To,
                 });
             }
         }
 
         return new MatchSaveContentSetup
         {
-            ScenarioModuleId = setup.ScenarioModuleId.Trim(),
+            ScenarioModuleId = setup.ScenarioModuleId,
             UnitsModuleIds = units,
             BuildingsModuleIds = buildings,
-            ThemeModuleId = setup.ThemeModuleId.Trim(),
+            ThemeModuleId = setup.ThemeModuleId,
             ModuleVersions = versions,
             Replaces = replaces,
         };
@@ -108,13 +108,13 @@ internal static class MatchSaveDocumentNormalizer
         var result = new List<MatchSaveSeat>(seats.Count);
         foreach (var seat in seats)
         {
-            var kind = string.IsNullOrWhiteSpace(seat.Kind) ? "local" : seat.Kind.Trim().ToLowerInvariant();
+            var kind = string.IsNullOrWhiteSpace(seat.Kind) ? "local" : seat.Kind.ToLowerInvariant();
             result.Add(new MatchSaveSeat
             {
                 Kind = kind,
                 BotDifficulty = string.IsNullOrWhiteSpace(seat.BotDifficulty)
                     ? null
-                    : seat.BotDifficulty.Trim().ToLowerInvariant(),
+                    : seat.BotDifficulty.ToLowerInvariant(),
             });
         }
 
@@ -169,14 +169,13 @@ internal static class MatchSaveDocumentNormalizer
             KingRehireCountByPlayer = kingRehire.ToList(),
             EliminatedPlayers = (match.EliminatedPlayers ?? []).ToList(),
             Cursor = match.Cursor,
-            SelectedUnitId = match.SelectedUnitId,
             WinnerPlayerIndex = match.WinnerPlayerIndex,
             VictoryReason = match.VictoryReason,
             Units = (match.Units ?? [])
                 .Select(unit => new MatchSaveUnitSnapshot
                 {
                     Id = unit.Id,
-                    TypeId = unit.TypeId.Trim(),
+                    TypeId = unit.TypeId,
                     Cell = unit.Cell,
                     PlayerIndex = unit.PlayerIndex,
                     MaxHealth = unit.MaxHealth,
@@ -190,7 +189,7 @@ internal static class MatchSaveDocumentNormalizer
             Buildings = (match.Buildings ?? [])
                 .Select(building => new MatchSaveBuildingSnapshot
                 {
-                    TypeId = building.TypeId.Trim(),
+                    TypeId = building.TypeId,
                     Cell = building.Cell,
                     OwnerPlayerIndex = building.OwnerPlayerIndex,
                     IsRuined = building.IsRuined,
@@ -213,10 +212,9 @@ internal static class MatchSaveDocumentNormalizer
         {
             if (string.IsNullOrWhiteSpace(value))
                 continue;
-            var trimmed = value.Trim();
-            if (!seen.Add(trimmed))
+            if (!seen.Add(value))
                 continue;
-            result.Add(trimmed);
+            result.Add(value);
         }
 
         return result;

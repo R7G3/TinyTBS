@@ -27,7 +27,7 @@
 
 New Game при живом suspended: повторный Confirm («Confirm New Game again…»), Back отменяет.
 
-Экран **Загрузка**: обе kind в одной ленте newest-first (подпись `Match` / `Campaign`). Load при live suspended — двойной Confirm. Пауза → Load сначала suspend'ит текущий матч.
+Экран **Загрузка**: обе kind в одной ленте newest-first (подпись `Match` / `Campaign`). Карточка сейва (Load / Delete) — единственное подтверждение; при живом suspended Load его сбрасывает. Пауза → Load сначала suspend'ит текущий матч.
 
 ### Orphan match (campaign удалён)
 
@@ -61,7 +61,8 @@ Load match с `campaignId` без progress-файла — бой поднима�
 
 - `playerCount`, `currentPlayer`, `turnNumber`, `nextUnitId`, `unitCap`
 - `moneyByPlayer[]`, `turnStartsByPlayer[]`, `kingRehireCountByPlayer[]`, `eliminatedPlayers[]`
-- `cursor` `{x,y}`, `selectedUnitId`, `winnerPlayerIndex`, `victoryReason`
+- `cursor` `{x,y}`, `winnerPlayerIndex`, `victoryReason`
+- выбор юнита в сейв не пишется (старые файлы с `selectedUnitId` читаются, поле игнорируется). Если юнит в этой активации только переместился и ещё не атаковал, не захватил и не подождал (`units[].hasMovedThisActivation` и юнит всё ещё активен), при загрузке он снова выбран — ход можно закончить или отменить. Юнит, который активацию уже закрыл, выбранным не становится.
 - `units[]`, `buildings[]`, `gravestones[]`
 
 Terrain и каталог **не** пишутся: при load — карта/модули заново, затем hydrate snapshot.

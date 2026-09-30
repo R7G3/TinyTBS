@@ -1,0 +1,20 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace TinyTBS.Rules.Maps.Models;
+
+/// <summary>DTO for the <c>layers</c> object in map.json.</summary>
+internal sealed class MapLayersDto
+{
+    [JsonPropertyName("surface")]
+    public JsonElement Surface { get; set; }
+
+    [JsonPropertyName("buildings")]
+    public List<MapBuildingDto>? Buildings { get; set; }
+
+    [JsonPropertyName("units")]
+    public List<MapUnitDto>? Units { get; set; }
+
+    [JsonPropertyName("gravestones")]
+    public List<MapGravestoneDto>? Gravestones { get; set; }
+}

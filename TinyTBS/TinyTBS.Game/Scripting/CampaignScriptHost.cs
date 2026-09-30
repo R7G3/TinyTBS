@@ -1,61 +1,76 @@
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
 using TinyTBS.Engine.Scripting;
 using TinyTBS.Game.Campaigns;
-using TinyTBS.Game.Scripting.Models;
+using TinyTBS.Scripting.Api;
 
 namespace TinyTBS.Game.Scripting;
 
-/// <summary>Loads and invokes campaign meta scripts with a short timeout.</summary>
-public sealed class CampaignScriptHost
+/// <summary>
+/// Loads and invokes campaign meta scripts. Each hook writes into a mutation object; the host applies
+/// it only when the hook finishes within budget. A failing hook disables the script for the rest of
+/// the campaign run instead of breaking progress.
+/// </summary>
+public sealed class CampaignScriptHost : IDisposable
 {
-    private readonly ICampaignScriptHooks _hooks;
+    private readonly LoadedScript<ICampaignScriptHooks> _script;
     private readonly TimeSpan _hookTimeout;
 
-    public CampaignScriptHost(ICampaignScriptHooks hooks, TimeSpan? hookTimeout = null)
+    public CampaignScriptHost(LoadedScript<ICampaignScriptHooks> script, TimeSpan? hookTimeout = null)
     {
-        _hooks = hooks ?? throw new ArgumentNullException(nameof(hooks));
-        _hookTimeout = hookTimeout ?? TimeSpan.FromSeconds(2);
+        _script = script ?? throw new ArgumentNullException(nameof(script));
+        _hookTimeout = hookTimeout ?? ScriptExecution.DefaultTimeout;
     }
+
+    /// <summary>Why the campaign script was switched off; null while it runs normally.</summary>
+    public string? FailureMessage { get; set; }
+
+    public static CampaignScriptHost Disabled(string failureMessage) =>
+        new(new LoadedScript<ICampaignScriptHooks>(new NoOpCampaignScriptHooks()))
+        {
+            FailureMessage = failureMessage,
+        };
 
     public static CampaignScriptHost Load(
         string? scriptPath,
-        IFileContentProvider files,
+        IFileSystem files,
         IScriptEngine scriptEngine,
         TimeSpan? hookTimeout = null)
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(scriptEngine);
 
-        ICampaignScriptHooks hooks;
         if (string.IsNullOrWhiteSpace(scriptPath) || !files.Exists(scriptPath))
         {
-            hooks = new NoOpCampaignScriptHooks();
-        }
-        else
-        {
-            using var stream = files.OpenRead(scriptPath);
-            using var reader = new StreamReader(stream);
-            var sourceCode = reader.ReadToEnd();
-            hooks = scriptEngine.LoadCampaignScript(sourceCode, Path.GetFileName(scriptPath));
+            return new CampaignScriptHost(
+                new LoadedScript<ICampaignScriptHooks>(new NoOpCampaignScriptHooks()),
+                hookTimeout);
         }
 
-        return new CampaignScriptHost(hooks, hookTimeout);
+        using var stream = files.OpenRead(scriptPath);
+        using var reader = new StreamReader(stream);
+        var sourceCode = reader.ReadToEnd();
+        return new CampaignScriptHost(
+            scriptEngine.LoadCampaignScript(sourceCode, Path.GetFileName(scriptPath)),
+            hookTimeout);
     }
 
     public CampaignScriptMutation InvokeCampaignStarted(CampaignRunState run) =>
-        Invoke("OnCampaignStarted", run, (context, hooks) => hooks.OnCampaignStarted(context));
+        Invoke("OnCampaignStarted", run, static (context, hooks) => hooks.OnCampaignStarted(context));
 
     public CampaignScriptMutation InvokeChapterStarted(CampaignRunState run) =>
-        Invoke("OnChapterStarted", run, (context, hooks) => hooks.OnChapterStarted(context));
+        Invoke("OnChapterStarted", run, static (context, hooks) => hooks.OnChapterStarted(context));
 
     public CampaignScriptMutation InvokeChapterWon(CampaignRunState run) =>
-        Invoke("OnChapterWon", run, (context, hooks) => hooks.OnChapterWon(context));
+        Invoke("OnChapterWon", run, static (context, hooks) => hooks.OnChapterWon(context));
 
     public CampaignScriptMutation InvokeChapterLost(CampaignRunState run) =>
-        Invoke("OnChapterLost", run, (context, hooks) => hooks.OnChapterLost(context));
+        Invoke("OnChapterLost", run, static (context, hooks) => hooks.OnChapterLost(context));
 
     public CampaignScriptMutation InvokeCampaignCompleted(CampaignRunState run) =>
-        Invoke("OnCampaignCompleted", run, (context, hooks) => hooks.OnCampaignCompleted(context));
+        Invoke("OnCampaignCompleted", run, static (context, hooks) => hooks.OnCampaignCompleted(context));
+
+    public void Dispose() => _script.Dispose();
 
     private CampaignScriptMutation Invoke(
         string hookName,
@@ -63,16 +78,23 @@ public sealed class CampaignScriptHost
         Action<CampaignScriptContext, ICampaignScriptHooks> call)
     {
         ArgumentNullException.ThrowIfNull(run);
-        return ScriptHookInvoker.Invoke(hookName, _hookTimeout, () =>
+        if (FailureMessage is not null)
+            return new CampaignScriptMutation();
+
+        var mutation = new CampaignScriptMutation();
+        var context = new CampaignScriptContext(run.CampaignId, run.CurrentLevelId, run.Extensions, mutation);
+        var hooks = _script.Hooks;
+        try
         {
-            var mutation = new CampaignScriptMutation();
-            var context = new CampaignScriptContext(
-                run.CampaignId,
-                run.CurrentLevelId,
-                run.Extensions,
-                mutation);
-            call(context, _hooks);
-            return mutation;
-        });
+            ScriptExecution.Run(hookName, _hookTimeout, () => call(context, hooks));
+        }
+        catch (ScriptHostException exception)
+        {
+            FailureMessage = exception.Message;
+            GameLog.Error($"Campaign script disabled after '{hookName}' failed.", exception);
+            return new CampaignScriptMutation();
+        }
+
+        return mutation;
     }
 }

@@ -8,7 +8,7 @@ public sealed class LevelStubWriter
 {
     private readonly LevelDocumentWriter _levelWriter;
 
-    public LevelStubWriter(IFileContentProvider files)
+    public LevelStubWriter(IFileSystem files)
     {
         _levelWriter = new LevelDocumentWriter(files);
     }
@@ -25,7 +25,7 @@ public sealed class LevelStubWriter
         document.PlayersMin = playersMin;
         document.PlayersMax = Math.Max(playersMin, playersMax);
         document.DefaultSlots = document.PlayersMax;
-        document.Modes = ["skirmish"];
+        document.Modes = [LevelModeIds.Skirmish];
         return _levelWriter.Write(scenarioModuleRoot, document);
     }
 }

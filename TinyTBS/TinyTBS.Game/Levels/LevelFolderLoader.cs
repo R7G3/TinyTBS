@@ -1,5 +1,5 @@
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Levels.Models;
+using TinyTBS.Rules.Levels.Models;
 using TinyTBS.Game.Maps;
 
 namespace TinyTBS.Game.Levels;
@@ -12,13 +12,13 @@ public static class LevelFolderLoader
     public static LevelDefinition Load(
         string levelDirectory,
         string scenarioModuleRoot,
-        IFileContentProvider files)
+        IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelDirectory);
         ArgumentException.ThrowIfNullOrWhiteSpace(scenarioModuleRoot);
         ArgumentNullException.ThrowIfNull(files);
 
-        if (!Directory.Exists(levelDirectory))
+        if (!files.DirectoryExists(levelDirectory))
             throw new LevelLoadException($"Level folder not found: {levelDirectory}");
 
         var levelJsonPath = files.Combine(levelDirectory, LevelJsonFileName);
@@ -59,7 +59,7 @@ public static class LevelFolderLoader
     public static LevelDefinition LoadFromModuleLevels(
         string scenarioModuleRoot,
         string levelId,
-        IFileContentProvider files)
+        IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelId);
         var levelDirectory = files.Combine(scenarioModuleRoot, "Levels", levelId);

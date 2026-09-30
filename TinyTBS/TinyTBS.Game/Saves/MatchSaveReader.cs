@@ -1,5 +1,6 @@
 using System.Text.Json;
-using TinyTBS.Game.Saves.Models;
+using TinyTBS.Engine.IO;
+using TinyTBS.Rules.Saves.Models;
 
 namespace TinyTBS.Game.Saves;
 
@@ -13,15 +14,16 @@ public static class MatchSaveReader
         AllowTrailingCommas = true,
     };
 
-    public static MatchSaveDocument ReadFile(string filePath)
+    public static MatchSaveDocument ReadFile(IFileSystem files, string filePath)
     {
+        ArgumentNullException.ThrowIfNull(files);
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        if (!File.Exists(filePath))
+        if (!files.Exists(filePath))
             throw new MatchSaveException($"Save file not found: {filePath}");
 
         try
         {
-            using var stream = File.OpenRead(filePath);
+            using var stream = files.OpenRead(filePath);
             return Read(stream);
         }
         catch (MatchSaveException)

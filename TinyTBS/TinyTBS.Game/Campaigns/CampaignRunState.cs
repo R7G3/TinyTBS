@@ -1,8 +1,8 @@
-using TinyTBS.Game.Ai;
+using TinyTBS.Rules.Ai;
 using TinyTBS.Game.Campaigns.Models;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Game.Saves;
-using TinyTBS.Game.Saves.Models;
+using TinyTBS.Rules.Saves.Models;
 
 namespace TinyTBS.Game.Campaigns;
 
@@ -30,6 +30,12 @@ public sealed class CampaignRunState
     public int? UnitCap { get; set; }
 
     public string? ProgressFilePath { get; set; }
+
+    /// <summary>
+    /// Set when a campaign hook fails; later hooks in this run are skipped so one bad script
+    /// cannot keep throwing on every chapter transition.
+    /// </summary>
+    public string? ScriptFailureMessage { get; set; }
 
     public static CampaignRunState FromProgress(
         CampaignProgressDocument progress,

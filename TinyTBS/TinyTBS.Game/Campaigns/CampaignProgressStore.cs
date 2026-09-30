@@ -1,4 +1,5 @@
 using System.Text.Json;
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Campaigns.Models;
 using TinyTBS.Game.Modules;
@@ -17,10 +18,12 @@ public sealed class CampaignProgressStore
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public CampaignProgressStore(IUserDataPaths userDataPaths)
+    public CampaignProgressStore(IFileSystem files, IUserDataPaths userDataPaths)
     {
+        _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
     }
 
@@ -47,12 +50,12 @@ public sealed class CampaignProgressStore
     public CampaignProgressDocument ReadFile(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        if (!File.Exists(filePath))
+        if (!_files.Exists(filePath))
             throw new MatchContentCompositionException($"Campaign save not found: {filePath}");
 
         try
         {
-            using var stream = File.OpenRead(filePath);
+            using var stream = _files.OpenRead(filePath);
             var document = JsonSerializer.Deserialize<CampaignProgressDocument>(stream, JsonOptions)
                 ?? throw new MatchContentCompositionException("Campaign save deserialized to null.");
             return Normalize(document);
@@ -73,18 +76,18 @@ public sealed class CampaignProgressStore
         var safeId = SanitizeFileStem(normalized.CampaignId);
         var filePath = Path.Combine(_userDataPaths.Saves, $"campaign_{safeId}.json");
         var json = JsonSerializer.Serialize(normalized, JsonOptions);
-        File.WriteAllText(filePath, json);
+        _files.WriteAllText(filePath, json);
         return filePath;
     }
 
     public IReadOnlyList<CampaignProgressListEntry> ListNewestFirst()
     {
         _userDataPaths.EnsureCreated();
-        if (!Directory.Exists(_userDataPaths.Saves))
+        if (!_files.DirectoryExists(_userDataPaths.Saves))
             return [];
 
         var list = new List<CampaignProgressListEntry>();
-        foreach (var path in Directory.GetFiles(_userDataPaths.Saves, "campaign_*.json"))
+        foreach (var path in _files.EnumerateFiles(_userDataPaths.Saves, "campaign_*.json"))
         {
             try
             {
@@ -99,9 +102,9 @@ public sealed class CampaignProgressStore
                     Title = document.CampaignTitle ?? document.CampaignId,
                 });
             }
-            catch (Exception)
+            catch (Exception exception)
             {
-                // Skip corrupt.
+                GameLog.Warning($"Campaign progress '{path}' is unreadable and was left out of the list.", exception);
             }
         }
 
@@ -119,10 +122,10 @@ public sealed class CampaignProgressStore
         if (!fullPath.StartsWith(savesRoot, StringComparison.OrdinalIgnoreCase))
             throw new MatchContentCompositionException("Refusing to delete outside Saves.");
 
-        if (!File.Exists(fullPath))
+        if (!_files.Exists(fullPath))
             return false;
 
-        File.Delete(fullPath);
+        _files.DeleteFile(fullPath);
         return true;
     }
 
@@ -141,12 +144,11 @@ public sealed class CampaignProgressStore
 
         var unlocked = document.UnlockedLevelIds?
             .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Select(id => id.Trim())
             .Distinct(StringComparer.Ordinal)
             .ToList() ?? [];
 
-        if (!unlocked.Contains(document.CurrentLevelId.Trim(), StringComparer.Ordinal))
-            unlocked.Insert(0, document.CurrentLevelId.Trim());
+        if (!unlocked.Contains(document.CurrentLevelId, StringComparer.Ordinal))
+            unlocked.Insert(0, document.CurrentLevelId);
 
         return new CampaignProgressDocument
         {
@@ -155,16 +157,16 @@ public sealed class CampaignProgressStore
             WrittenAtUtc = document.WrittenAtUtc == default
                 ? DateTimeOffset.UtcNow
                 : document.WrittenAtUtc.ToUniversalTime(),
-            CampaignId = document.CampaignId.Trim(),
-            ScenarioModuleId = document.ScenarioModuleId.Trim(),
+            CampaignId = document.CampaignId,
+            ScenarioModuleId = document.ScenarioModuleId,
             CampaignTitle = string.IsNullOrWhiteSpace(document.CampaignTitle)
                 ? null
-                : document.CampaignTitle.Trim(),
-            CurrentLevelId = document.CurrentLevelId.Trim(),
+                : document.CampaignTitle,
+            CurrentLevelId = document.CurrentLevelId,
             UnlockedLevelIds = unlocked,
             PendingNextLevelId = string.IsNullOrWhiteSpace(document.PendingNextLevelId)
                 ? null
-                : document.PendingNextLevelId.Trim(),
+                : document.PendingNextLevelId,
             UnitCap = document.UnitCap,
             ContentSetup = document.ContentSetup,
             PlayerSeats = document.PlayerSeats ?? [],

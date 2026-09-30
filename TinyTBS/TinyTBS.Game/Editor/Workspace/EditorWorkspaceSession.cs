@@ -1,4 +1,4 @@
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Workspace;
 
@@ -17,10 +17,10 @@ public sealed class EditorWorkspaceSession
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRootPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
 
-        ModuleId = moduleId.Trim();
+        ModuleId = moduleId;
         ModuleRootPath = moduleRootPath;
         Type = type;
-        Title = title.Trim();
+        Title = title;
     }
 
     public string ModuleId { get; }

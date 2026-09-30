@@ -1,116 +1,86 @@
-# Скрипты карт
+# Скрипты карт и кампаний
 
-Логика отдельной карты — **`script.cs`** рядом с `map.json` в scenario-модуле (`Maps/{id}/`).
+Логика отдельной карты — **`script.cs`** рядом с `map.json` в scenario-модуле (`Maps/{id}/`). Мета-логика кампании — **`script.cs`** рядом с `campaign.json`.
 
-**Статус в коде:** загрузка + компиляция + хуки в матче работают (`TinyTBS.Game.Scripting`). Демо-скрипты: `Vanilla/Modules/vanilla_scenario/Maps/*/script.cs`.
+**Статус в коде:** загрузка, компиляция в песочнице и хуки в матче / кампании работают. Демо: `Vanilla/Modules/vanilla_scenario/Maps/*/script.cs` и `…/Campaign/script.cs`.
 
 ## Движок
 
-- Сейчас: **C#** через Roslyn (`Microsoft.CodeAnalysis.CSharp` **5.9.0** в Engine → `RoslynScriptCompiler`).
-- Абстракция **`IScriptEngine`** в Game — точка расширения; **Lua / JavaScript / Python** не отменены, просто не в текущем срезе.
-- Инфраструктура в **`TinyTBS.Engine.Scripting`**: `RoslynScriptCompiler`, `ScriptSourceValidator`, `ScriptHookInvoker`, `ScriptHostException`.
-- Игровой слой **`TinyTBS.Game.Scripting`**: `RoslynMapScriptEngine`, хуки и контексты map/campaign, `MapScriptHost` / `CampaignScriptHost`.
-- Хосты вызывают хуки через `ScriptHookInvoker` (таймаут); матч — через `GameplaySession`.
+- Сейчас: **C#** через Roslyn (`Microsoft.CodeAnalysis.CSharp` **5.9.0**).
+- Абстракция **`IScriptEngine`** в Game — точка расширения; Lua / JS / Python не отменены.
+- **`TinyTBS.Scripting.Api`** — единственная сборка, против которой компилируется `script.cs` (хуки, контексты, команды). Скрипт **не** ссылается на `TinyTBS.Game`.
+- **`TinyTBS.Engine.Scripting`**: `RoslynScriptCompiler` (collectible `AssemblyLoadContext`, кэш по hash), `ScriptSandboxPolicy` + `ScriptSandboxValidator` (семантика Roslyn, не поиск подстрок), `ScriptBudgetRewriter`, `ScriptHookInvoker`.
+- **`TinyTBS.Game.Scripting`**: `RoslynMapScriptEngine`, `MapScriptHost` / `CampaignScriptHost`, фабрика снимка мира.
 
-## Хуки
+Хост вызывает хук на снимке. Методы API **только ставят команды в буфер**. Команды применяются к живому `MatchState` / прогрессу кампании **после** успешного завершения хука (бюджет шагов + таймаут). Сбой или таймаут **выключает скрипт до конца матча / прогона** — команды этого вызова отбрасываются, матч не падает. У кампании флаг сбоя живёт в `CampaignRunState` (хост на каждый хук создаётся заново).
+
+## Хуки карты
 
 | Хук | Когда вызывается |
 |-----|------------------|
 | `OnPlayerTurnStart` | Старт матча (ход игрока 0) и после `EndTurn` |
-| `OnAfterPlayerAction` | После успешного действия (сейчас: выбор юнита, ход на 1 клетку) |
+| `OnAfterPlayerAction` | После успешного действия (`MatchAction`: выбор, ход, удар, захват, …) |
 
-Сигнатуры (в исходнике карты — **`public`** методы; хост вставляет их в сгенерированный класс):
+Сигнатуры — **`public`** методы; хост вставляет их в сгенерированный класс `IMapScriptHooks`:
 
 ```csharp
 public void OnPlayerTurnStart(MapScriptContext context);
 public void OnAfterPlayerAction(MapScriptContext context);
 ```
 
-Пустой / только-комментарии `script.cs` → no-op. Файл отсутствует → no-op.
+Пустой / только-комментарии `script.cs` → no-op. Файла нет → no-op.
 
 ## MapScriptContext
 
-Один объект на вызов — не длинный список параметров.
+Один объект на вызов — снимок мира **до** хука.
 
 | Член | Описание |
 |------|----------|
 | `PlayerId` | Чей ход / кто совершил действие |
-| `Money` | Ресурсы текущего игрока |
-| `MoneyByPlayer` | Readonly по всем игрокам |
+| `Money` / `GetMoney` / `MoneyByPlayer` | Золото (снимок; `AddMoney` обновляет снимок и ставит команду) |
 | `Map` | Readonly: размер, surface |
-| `Units` | id, type, position, hp, owner |
-| `Buildings` | type, position, owner, state |
-| `LastAction` | Только в `OnAfterPlayerAction`: тип, источник, цель, результат |
-| `WinnerPlayerIndex` / `VictoryReason` | После `SetVictory` |
+| `Units` / `Buildings` | Снимок на момент вызова |
+| `LastAction` | Только в `OnAfterPlayerAction` |
+| `WinnerPlayerIndex` / `VictoryReason` | После `SetVictory` на этом снимке |
 
-**Чтение** — через свойства контекста. **Изменение** — только через методы API:
+**Изменение живого матча** — только через API, и только если хук уложился в лимиты:
 
 - `context.AddMoney(playerId, amount)`
 - `context.SetVictory(playerId, reason)`
 
 ## Песочница
 
-Скрипт **не должен** иметь доступ к:
-
-- файловой системе (`File`, `Directory`);
-- сети (`HttpClient`, …);
-- процессам, произвольной загрузке сборок;
-- нативному / JNI-коду (Linux/Android).
-
-### Политика для модулей (зафиксировано)
-
-Для скриптов в **любых** модулях (vanilla, установленные):
-
-1. **Уровень 1** — обязательно.
-2. **Уровень 2** — валидация текста + ограниченный набор metadata references / таймаут / запрет `#r`.
-
-В скриптах предпочитать **теги и слоты**, не жёсткие логические id (иначе replace/смена состава ломает сюжет). Перед хуками мир уже после replaces.
+Полная изоляция произвольного C# в одном процессе .NET **не гарантируется**. Для публичного UGC на Android предпочтительнее Lua/JS или precompile DLL без runtime Roslyn. Ниже — то, что включено сейчас.
 
 ### Уровень 1 — архитектура
 
-- Только `MapScriptContext` и разрешённые типы.
+- Компиляция только против **`TinyTBS.Scripting.Api`** + узкий набор BCL (`System`, `System.Collections.Generic`, `System.Text.StringBuilder`). Нет `System.Linq` (иначе `Enumerable.Range` крутился бы в BCL без бюджетных тиков).
 - Хост вызывает **только** именованные хуки.
+- Мутации — **буфер команд**, не прямой доступ к `MatchState`.
+- Collectible `AssemblyLoadContext`; сборки кэшируются по hash исходника.
 
-### Уровень 2 — Roslyn + валидация текста
+### Уровень 2 — семантика + бюджет + таймаут
 
-- Минимальные ссылки компиляции / без произвольных `using`.
-- Шаблон без `using System.IO`.
-- **Статический разбор** исходника (`ScriptSourceValidator` в Engine): IO, сеть, процессы, reflection/emit, P/Invoke, `unsafe`, Linux `/proc|/sys|/dev`, Android/JNI (`Java.*`, `Android.*`, `content://`, …).
-- **Таймаут** на каждый вызов (`ScriptHookInvoker`).
-- Запрет `#r` где возможно.
+- **Семантический allowlist** (`ScriptSandboxValidator`): каждый символ, который видит компилятор, должен пройти `ScriptSandboxPolicy`. Обход через `global::`, склейку строк и `typeof` / `GetType` не проходит (эти конструкции запрещены явно).
+- Запрещены `unsafe`, указатели, `async`/`await`, `yield`, `lock`, атрибуты, финализаторы, `catch` без типа и `catch` базовых исключений, которые проглотили бы остановку бюджета.
+- **Бюджет шагов** (детерминированно): компилятор вставляет `ScriptBudget.Tick` в циклы/`goto` и `EnterFrame` в каждое тело функции. Лимит — 10 млн шагов и глубина 200. Это останавливает `while (true)` даже если wall-clock таймаут ещё не вышел.
+- **Wall-clock таймаут** (`ScriptHookInvoker`, 2 с). .NET не убивает поток; по таймауту хост **отменяет бюджет** (следующий `Tick` бросает) и **не применяет команды**. Скрипт отключается.
+- Нет `#r` (обычная компиляция C#, не scripting API).
 
-#### Риски на Linux / Android (зачем эти проверки)
-
-| Риск | Пример | Платформа |
-|------|--------|-----------|
-| Чтение системы / секретов | `File` → `/proc`, `/etc`; `Environment.GetEnvironmentVariable` | Linux, Android |
-| Запуск процессов | `Process.Start`, `Os.exec` | Linux, Android |
-| Нативный код | `DllImport("libc")`, `libandroid`, `NativeLibrary` | обе |
-| JNI / смена Activity | `Intent`, `JNIEnv`, `Java.Lang.Runtime` | Android |
-| DoS / зависание хука | бесконечный цикл, `Thread` — частично таймаутом | обе |
-| Обход `using`-фильтра | `global::System.IO.File…` без import | обе |
-
-Статический разбор **не заменяет** изоляцию процесса: для публичного UGC на Android предпочтительнее Lua/JS или precompile DLL без Roslyn в рантайме.
-
-Cold start Roslyn при первом матче — [ideas/match-loading-roslyn-progress.md](ideas/match-loading-roslyn-progress.md).
+В скриптах предпочитать **теги и слоты**, не жёсткие логические id (иначе replace/смена состава ломает сюжет). Перед хуками мир уже после replaces.
 
 ### Если C# недостаточно изолирован
 
 - Lua / JS через `IScriptEngine`;
 - **Precompile** карты в DLL с `IMapScriptHooks` (удобно для Android).
 
-Полная «непробиваемая» песочница для произвольного C# в .NET **не гарантируется** — документировать для авторов карт.
+Cold start Roslyn при первом матче — [ideas/match-loading-roslyn-progress.md](ideas/match-loading-roslyn-progress.md).
 
 ## Шаблон script.cs
 
-Методы компилируются как члены сгенерированного класса `IMapScriptHooks` — объявляйте их **`public`**.
-
 ```csharp
-// Без using System.IO и System.Net
-
 public void OnPlayerTurnStart(MapScriptContext context)
 {
-    // ...
 }
 
 public void OnAfterPlayerAction(MapScriptContext context)

@@ -7,7 +7,7 @@ using TinyTBS.Game.Editor.Themes;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Engine.Input;
 
 namespace TinyTBS.Game.Editor.Screens;
@@ -19,8 +19,8 @@ public sealed class EditorThemeEditScreen : EditorFormScreen
     private readonly EditorThemeEditView _view = new();
     private ThemeDocumentWriter? _writer;
 
-    public EditorThemeEditScreen(GameMain game, IAssetResolver assets, EditorWorkspaceSession session)
-        : base(game, assets)
+    public EditorThemeEditScreen(GameMain game, EditorWorkspaceSession session)
+        : base(game)
     {
         _session = session ?? throw new ArgumentNullException(nameof(session));
         if (_session.Type != ContentModuleType.Theme)
@@ -72,5 +72,5 @@ public sealed class EditorThemeEditScreen : EditorFormScreen
     }
 
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorHub(_session);
 }

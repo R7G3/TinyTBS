@@ -1,19 +1,19 @@
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Maps.Models;
+using TinyTBS.Rules.Maps.Models;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Units.Models;
+using TinyTBS.Rules.Units.Models;
 
 namespace TinyTBS.Game.Units;
 
 /// <summary>Loads a units module folder (<c>module.json</c> + <c>Units/*.json</c>).</summary>
 public static class UnitModuleLoader
 {
-    public static UnitModuleDefinition Load(string moduleRoot, IFileContentProvider files)
+    public static UnitModuleDefinition Load(string moduleRoot, IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRoot);
         ArgumentNullException.ThrowIfNull(files);
 
-        if (!Directory.Exists(moduleRoot))
+        if (!files.DirectoryExists(moduleRoot))
             throw new UnitLoadException($"Units module folder not found: {moduleRoot}");
 
         var moduleJsonPath = files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
@@ -33,11 +33,11 @@ public static class UnitModuleLoader
         }
 
         var unitsDirectory = files.Combine(moduleRoot, unitsDir.TrimEnd('/', '\\'));
-        if (!Directory.Exists(unitsDirectory))
+        if (!files.DirectoryExists(unitsDirectory))
             throw new UnitLoadException($"Units directory not found: {unitsDirectory}");
 
         var unitsById = new Dictionary<ContentId, UnitDefinition>();
-        foreach (var unitFilePath in Directory.EnumerateFiles(unitsDirectory, "*.json", SearchOption.TopDirectoryOnly))
+        foreach (var unitFilePath in files.EnumerateFiles(unitsDirectory, "*.json"))
         {
             using var unitStream = files.OpenRead(unitFilePath);
             var unitDefinition = UnitJsonParser.ParseUnit(unitStream, contentNamespace, moduleRoot);

@@ -2,13 +2,14 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.Screens;
 using TinyTBS.Game.Assets;
+using TinyTBS.Game.Flow;
 using TinyTBS.Game.Input;
 using TinyTBS.Engine.IO;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Engine.Input;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Saves;
-using TinyTBS.Game.Screens;
+using TinyTBS.Game.Presentation.Match;
 
 namespace TinyTBS.Game;
 
@@ -16,10 +17,10 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
 {
     private readonly GraphicsDeviceManager _graphics;
     private readonly ScreenManager _screenManager;
-    private readonly GameCommandService _commands = new();
+    private readonly GameCommandService _commands = new(GumTextInputFocus.IsTextBoxReceivingInput);
     private readonly PointerInputService _pointer = new();
     private readonly IUserDataPaths _userDataPaths;
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IAssetResolver _assets;
     private readonly IExternalFilePicker _filePicker;
     private readonly IExternalUriLauncher _uriLauncher;
@@ -33,7 +34,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
 
     public GameMain(
         IUserDataPaths userDataPaths,
-        IFileContentProvider files,
+        IFileSystem files,
         IAssetResolver assets,
         IExternalFilePicker filePicker,
         IExternalUriLauncher uriLauncher)
@@ -44,6 +45,20 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
         _filePicker = filePicker;
         _uriLauncher = uriLauncher;
 
+        App = new AppServices
+        {
+            UserDataPaths = userDataPaths,
+            Files = files,
+            Assets = assets,
+            FilePicker = filePicker,
+            UriLauncher = uriLauncher,
+            Commands = _commands,
+            Pointer = _pointer,
+            Saves = new SaveResumeService(files, userDataPaths),
+            Campaigns = new CampaignFlowService(userDataPaths, files),
+            NewGame = new NewGameSetupService(files, userDataPaths),
+        };
+
         _graphics = new GraphicsDeviceManager(this)
         {
             PreferredBackBufferWidth = DefaultWindowWidth,
@@ -51,13 +66,18 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
         };
         _screenManager = new ScreenManager();
         Components.Add(_screenManager);
+        Navigator = new ScreenNavigator(this, _screenManager);
 
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
     }
 
+    public AppServices App { get; }
+
+    public ScreenNavigator Navigator { get; }
+
     public IUserDataPaths UserDataPaths => _userDataPaths;
-    public IFileContentProvider Files => _files;
+    public IFileSystem Files => _files;
     public IAssetResolver Assets => _assets;
     public IExternalFilePicker FilePicker => _filePicker;
 
@@ -112,7 +132,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
         Window.ClientSizeChanged += OnWindowClientSizeChanged;
 
         GumBootstrap.Initialize(this);
-        _screenManager.ShowScreen(new MainMenuScreen(this, _assets));
+        Navigator.ShowMainMenuFirst();
     }
 
     private void OnWindowClientSizeChanged(object? sender, EventArgs e)

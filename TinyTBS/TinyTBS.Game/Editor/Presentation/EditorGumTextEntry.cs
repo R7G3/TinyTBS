@@ -1,5 +1,5 @@
 using Gum.Forms.Controls;
-using Gum.Wireframe;
+using TinyTBS.Engine.GumLayout;
 
 namespace TinyTBS.Game.Editor.Presentation;
 
@@ -14,12 +14,6 @@ public static class EditorGumTextEntry
                 return true;
         }
 
-        return IsReceiverTextBox();
-    }
-
-    public static bool IsReceiverTextBox()
-    {
-        var receiver = InteractiveGue.CurrentInputReceiver;
-        return receiver is TextBox or TextBoxBase;
+        return GumTextInputFocus.IsTextBoxReceivingInput();
     }
 }

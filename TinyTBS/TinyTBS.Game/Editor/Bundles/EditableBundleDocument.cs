@@ -1,6 +1,6 @@
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Bundles;
 
@@ -27,16 +27,16 @@ public sealed class EditableBundleDocument
 
     public static EditableBundleDocument CreateDefault(string bundleId, IReadOnlyList<ContentModuleInfo> availableModules)
     {
-        var id = string.IsNullOrWhiteSpace(bundleId) ? "user_bundle" : bundleId.Trim();
+        var id = string.IsNullOrWhiteSpace(bundleId) ? "user_bundle" : bundleId;
         var scenarios = availableModules.Where(module => module.Type == ContentModuleType.Scenario).ToArray();
         var units = availableModules.Where(module => module.Type == ContentModuleType.Units).ToArray();
         var buildings = availableModules.Where(module => module.Type == ContentModuleType.Buildings).ToArray();
         var themes = availableModules.Where(module => module.Type == ContentModuleType.Theme).ToArray();
 
-        var scenarioId = PickPreferred(scenarios, "vanilla_scenario");
-        var unitsId = PickPreferred(units, "vanilla_units");
-        var buildingsId = PickPreferred(buildings, "vanilla_buildings");
-        var themeId = PickPreferred(themes, "vanilla_theme");
+        var scenarioId = PickPreferred(scenarios, VanillaContentIds.ScenarioModuleId);
+        var unitsId = PickPreferred(units, VanillaContentIds.UnitsModuleId);
+        var buildingsId = PickPreferred(buildings, VanillaContentIds.BuildingsModuleId);
+        var themeId = PickPreferred(themes, VanillaContentIds.ThemeModuleId);
 
         var moduleIds = new List<string>();
         TryAdd(moduleIds, scenarioId);
@@ -75,7 +75,7 @@ public sealed class EditableBundleDocument
         };
     }
 
-    public static EditableBundleDocument Load(string bundleFilePath, IFileContentProvider files)
+    public static EditableBundleDocument Load(string bundleFilePath, IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleFilePath);
         ArgumentNullException.ThrowIfNull(files);

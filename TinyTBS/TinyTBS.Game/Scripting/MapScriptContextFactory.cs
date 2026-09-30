@@ -1,16 +1,16 @@
-using TinyTBS.Game.Match;
-using TinyTBS.Game.Scripting.Models;
+using TinyTBS.Game.Maps;
+using TinyTBS.Rules.Match;
+using TinyTBS.Scripting.Api;
 
 namespace TinyTBS.Game.Scripting;
 
-/// <summary>Builds <see cref="MapScriptContext"/> snapshots from match state.</summary>
+/// <summary>Builds <see cref="MapScriptContext"/> snapshots from match state (on the game thread).</summary>
 public static class MapScriptContextFactory
 {
-    public static MapScriptContext Create(
-        MatchState match,
-        IMapScriptWorld world,
-        MapScriptLastAction? lastAction = null)
+    public static MapScriptContext Create(MatchState match, MapScriptLastAction? lastAction = null)
     {
+        ArgumentNullException.ThrowIfNull(match);
+
         var surface = new string[match.Width, match.Height];
         for (var y = 0; y < match.Height; y++)
         {
@@ -28,6 +28,8 @@ public static class MapScriptContextFactory
                 X = unit.Cell.X,
                 Y = unit.Cell.Y,
                 OwnerPlayerIndex = unit.PlayerIndex,
+                Hp = unit.HitPoints,
+                MaxHp = unit.MaxHealth,
             });
         }
 
@@ -40,12 +42,15 @@ public static class MapScriptContextFactory
                 X = building.Cell.X,
                 Y = building.Cell.Y,
                 OwnerPlayerIndex = building.OwnerPlayerIndex,
+                State = building.IsRuined ? MapSurfaceIds.RuinedBuildingState : null,
             });
         }
 
         return new MapScriptContext(
-            world,
             playerId: match.CurrentPlayer,
+            moneyByPlayer: match.MoneyByPlayer,
+            winnerPlayerIndex: match.WinnerPlayerIndex,
+            victoryReason: match.VictoryReason,
             map: new MapScriptMapView
             {
                 Width = match.Width,
@@ -59,15 +64,21 @@ public static class MapScriptContextFactory
 
     public static MapScriptLastAction? FromMatchAction(MatchPlayerAction? action)
     {
-        if (action is null || action.Kind == MatchPlayerActionKind.None)
+        if (action is null)
             return null;
 
         return new MapScriptLastAction
         {
             Kind = action.Kind switch
             {
-                MatchPlayerActionKind.SelectUnit => MapScriptActionKind.SelectUnit,
-                MatchPlayerActionKind.MoveUnit => MapScriptActionKind.MoveUnit,
+                MatchActionKind.MoveUnit => MapScriptActionKind.MoveUnit,
+                MatchActionKind.AttackUnit => MapScriptActionKind.AttackUnit,
+                MatchActionKind.DestroyBuilding => MapScriptActionKind.DestroyBuilding,
+                MatchActionKind.CaptureBuilding => MapScriptActionKind.CaptureBuilding,
+                MatchActionKind.RepairBuilding => MapScriptActionKind.RepairBuilding,
+                MatchActionKind.RaiseSkeleton => MapScriptActionKind.RaiseSkeleton,
+                MatchActionKind.WaitUnit => MapScriptActionKind.WaitUnit,
+                MatchActionKind.RecruitUnit => MapScriptActionKind.RecruitUnit,
                 _ => MapScriptActionKind.SelectUnit,
             },
             PlayerIndex = action.PlayerIndex,

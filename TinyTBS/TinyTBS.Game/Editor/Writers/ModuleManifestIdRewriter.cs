@@ -17,7 +17,7 @@ public static class ModuleManifestIdRewriter
     public static void RewriteIdentity(
         string moduleRootPath,
         string moduleId,
-        IFileContentProvider files,
+        IFileSystem files,
         string? title = null,
         bool forceNamespaceToModuleId = true)
     {
@@ -25,8 +25,8 @@ public static class ModuleManifestIdRewriter
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
         ArgumentNullException.ThrowIfNull(files);
 
-        ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
-        var id = moduleId.Trim();
+        ContentModuleManifestParser.ValidateModuleId(moduleId);
+        var id = moduleId;
         var moduleJsonPath = files.Combine(moduleRootPath, ContentModuleFiles.ModuleJsonFileName);
         if (!files.Exists(moduleJsonPath))
             throw new EditorException($"module.json not found at '{moduleJsonPath}'.");
@@ -34,7 +34,7 @@ public static class ModuleManifestIdRewriter
         JsonNode root;
         try
         {
-            var text = File.ReadAllText(moduleJsonPath);
+            var text = files.ReadAllText(moduleJsonPath);
             root = JsonNode.Parse(text)
                 ?? throw new EditorException("module.json parsed to null.");
         }
@@ -47,8 +47,8 @@ public static class ModuleManifestIdRewriter
         if (forceNamespaceToModuleId)
             root["namespace"] = id;
         if (!string.IsNullOrWhiteSpace(title))
-            root["title"] = title.Trim();
+            root["title"] = title;
 
-        File.WriteAllText(moduleJsonPath, root.ToJsonString(WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        files.WriteAllText(moduleJsonPath, root.ToJsonString(WriteOptions) + Environment.NewLine, Encoding.UTF8);
     }
 }

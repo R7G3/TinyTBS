@@ -5,7 +5,7 @@ using Gum.Managers;
 using Gum.Wireframe;
 using Microsoft.Xna.Framework;
 using TinyTBS.Engine.GumLayout;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.ViewModels;
 
 namespace TinyTBS.Game.Presentation.Match.Controls;

@@ -1,9 +1,8 @@
-using TinyTBS.Game.Ai;
-using TinyTBS.Game.Campaigns.Models;
-using TinyTBS.Game.Match;
-using TinyTBS.Game.Saves;
-using TinyTBS.Game.Saves.Models;
 using TinyTBS.Engine.IO;
+using TinyTBS.Game.Campaigns.Models;
+using TinyTBS.Game.Match.Session;
+using TinyTBS.Game.Saves;
+using TinyTBS.Rules.Saves.Models;
 
 namespace TinyTBS.Game.Campaigns;
 
@@ -12,19 +11,20 @@ public static class CampaignRunRestorer
 {
     public static CampaignRunState? TryRestoreForMatch(
         MatchSaveDocument document,
+        IFileSystem files,
         IUserDataPaths userDataPaths)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(document.CampaignId))
             return null;
 
-        var campaignId = document.CampaignId.Trim();
+        var campaignId = document.CampaignId;
         var scenarioModuleId = document.ContentSetup.ScenarioModuleId;
         var levelId = string.IsNullOrWhiteSpace(document.CampaignLevelId)
             ? document.LevelId
-            : document.CampaignLevelId.Trim();
+            : document.CampaignLevelId;
 
-        var progressStore = new CampaignProgressStore(userDataPaths);
+        var progressStore = new CampaignProgressStore(files, userDataPaths);
         var progress = progressStore.TryLoadLatestForCampaign(scenarioModuleId, campaignId);
         if (progress is null)
         {
@@ -58,7 +58,7 @@ public static class CampaignRunRestorer
         return run;
     }
 
-    public static NewGameStartRequest CreateChapterStartRequest(CampaignProgressDocument progress)
+    public static MatchStartRequest CreateChapterStartRequest(CampaignProgressDocument progress)
     {
         ArgumentNullException.ThrowIfNull(progress);
         if (progress.ContentSetup is null)
@@ -68,7 +68,7 @@ public static class CampaignRunRestorer
         var seats = MatchSaveSeatCodec.FromSaveList(progress.PlayerSeats);
         var run = CampaignRunState.FromProgress(progress, composition, seats);
 
-        return new NewGameStartRequest
+        return new MatchStartRequest
         {
             ScenarioModuleId = progress.ScenarioModuleId,
             LevelId = progress.CurrentLevelId,

@@ -1,5 +1,5 @@
 using Gum.GueDeriving;
-using TinyTBS.Game.Maps.Models;
+using TinyTBS.Rules.Maps.Models;
 
 namespace TinyTBS.Game.Presentation.Match.Controls;
 

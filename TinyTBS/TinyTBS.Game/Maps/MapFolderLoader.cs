@@ -1,5 +1,5 @@
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Maps.Models;
+using TinyTBS.Rules.Maps.Models;
 
 namespace TinyTBS.Game.Maps;
 
@@ -9,12 +9,12 @@ public static class MapFolderLoader
     public const string MapJsonFileName = "map.json";
     public const string ScriptFileName = "script.cs";
 
-    public static MapDefinition Load(string mapDirectory, IFileContentProvider files)
+    public static MapDefinition Load(string mapDirectory, IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mapDirectory);
         ArgumentNullException.ThrowIfNull(files);
 
-        if (!Directory.Exists(mapDirectory))
+        if (!files.DirectoryExists(mapDirectory))
             throw new MapLoadException($"Map folder not found: {mapDirectory}");
 
         var mapJsonPath = files.Combine(mapDirectory, MapJsonFileName);
@@ -35,7 +35,7 @@ public static class MapFolderLoader
     public static MapDefinition LoadFromModuleMaps(
         string moduleOrScenarioRoot,
         string mapId,
-        IFileContentProvider files)
+        IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
         var mapDirectory = files.Combine(moduleOrScenarioRoot, "Maps", mapId);

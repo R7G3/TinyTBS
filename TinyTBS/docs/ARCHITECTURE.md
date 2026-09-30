@@ -20,7 +20,7 @@
 - **Gum** поверх **MGE Screen** на всех экранах (меню и геймплей).
 - **ECS** — MonoGame.Extended.
 - Код разделён на три слоя: **логика**, **представление**, **движок**. См. [ADR 0005](adr/0005-three-layers-logic-presentation-engine.md).
-- Проекты: **Game** (игра + UI) и **Engine** (кадр / I/O). См. [ADR 0007](adr/0007-game-and-engine-projects.md).
+- Проекты: **Rules** (правила и модели без MonoGame), **Game** (UI и сессия), **Engine** (кадр / I/O). См. [ADR 0007](adr/0007-game-and-engine-projects.md), [ADR 0008](adr/0008-rules-project.md).
 - Геймдизайн (канон): [GAME_DESIGN.md](GAME_DESIGN.md).
 
 ## Слои (Logic / Presentation / Engine)
@@ -96,7 +96,7 @@ Bundled pipeline: исходники в **TinyTBS.Content** → builder пише
 | UI | Gum.MonoGame 2026.9.2.1 + тонкий UI-state (ручная синхронизация; не MVVM-архитектура) |
 | Контент | C# Content Builder (`TinyTbsContentBuilder`, RegexRule), .xnb → Desktop; pipeline 3.8.5.1 |
 | Карты / уровни | Каталог `Maps/{id}/`, `Levels/{id}/` в scenario; JSON + `script.cs` (ZIP `.map.zip` — legacy/экспорт) |
-| Скрипты | Roslyn `Microsoft.CodeAnalysis.CSharp` 5.9.0 → `IMapScriptHooks`; `IScriptEngine` для других языков позже |
+| Скрипты | Roslyn 5.9.0 → `TinyTBS.Scripting.Api` + песочница Engine; `IScriptEngine` для других языков позже |
 | Файловые диалоги | NativeFileDialogNET 2.0.2 (+ Linux portal в Desktop) |
 | Локализация | resx |
 
@@ -124,7 +124,7 @@ flowchart TB
 
 ## Пути к данным
 
-Через `IUserDataPaths` / `IFileContentProvider` / `IExternalFilePicker` / `IExternalUriLauncher` (`Engine.IO`, в т.ч. NFD, Linux portal, desktop shell для http(s)) — не хардкодить пути к exe и не открывать OS-диалоги / браузер из Game. Desktop собирает `DesktopExternalFilePickers.CreateDefault()` и `DesktopShellExternalUriLauncher`.
+Через `IUserDataPaths` / `IFileSystem` (чтение, запись, листинг, удаление; `IFileContentProvider` — его узкий предок) / `IExternalFilePicker` / `IExternalUriLauncher` (`Engine.IO`, в т.ч. NFD, Linux portal, desktop shell для http(s)). Игровой код не вызывает `File`/`Directory` и не открывает OS-диалоги. Локаторы бандлов и модулей берут bundled-корень из `IUserDataPaths.InstallRoot`. Desktop собирает `FileSystemContentProvider`, `DesktopExternalFilePickers.CreateDefault()` и `DesktopShellExternalUriLauncher`.
 
 | Каталог | Desktop | Mobile (будущее) |
 |---------|---------|------------------|
@@ -151,12 +151,12 @@ Base + mask PNG, tint при отрисовке; затемнение «уже �
 
 ## ECS (MGE)
 
-- `TinyTBS.Game.Match`: `GridCell`, `MatchDefaults`, `MatchUnit` / `MatchBuilding`, `MatchState` — **логика** (демо-правила; полный GDD — впереди)
-- `TinyTBS.Game.Maps` / `Levels` / `Units` / `Buildings` / `Themes` / `Modules`: загрузка map/level и модулей; `MatchContentCompositionLoader` + `ContentModuleLocator` → `MatchContentCatalog`; `TinymodInstaller` / `ContentModuleLibrary`; `ContentBundleLocator` / `ContentBundleLibrary`
-- `TinyTBS.Game.Scripting`: `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost`, `MapScriptContext` + валидатор песочницы
+- `TinyTBS.Rules`: `MatchState`, действия, бой, путь, экономика, бот, модели и парсеры `Stream` карт / юнитов / строений / уровней / тем / модулей, снимки сейва. Без MonoGame и без `IFileSystem`. См. [ADR 0008](adr/0008-rules-project.md)
+- `TinyTBS.Game` лоадеры папок и сессия: `MatchContentCompositionLoader` + `ContentModuleLocator` → `MatchContentCatalog`; `TinymodInstaller` / `ContentModuleLibrary`; `ContentBundleLocator` / `ContentBundleLibrary`; `MatchRuntime` применяет `MatchAction` и зовёт скрипты
+- `TinyTBS.Scripting.Api` — хуки и буфер команд для `script.cs`; `TinyTBS.Engine.Scripting` — Roslyn, семантическая песочница, бюджет шагов; `TinyTBS.Game.Scripting` — `IScriptEngine` / `RoslynMapScriptEngine`, `MapScriptHost` / `CampaignScriptHost`
 - `TinyTBS.Engine.Ecs`: `TilemapDrawSystem`, `TeamMaskedSpriteDrawSystem` (base + tint mask)
-- `MatchScene` / `GameplaySessionFactory` / `MatchSessionLoadPipeline` — в Game: level → map → скрипт → атлас → сцена (этапы для loading screen); `MatchCommandApplicator` — команды/pointer→логика (+ хуки скрипта)
-- `GameplayScreen` / `MainMenuScreen` / `LoadingScreen` / `ContentLibraryScreen` — тонкая склейка lifecycle; Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
+- `MatchSessionLoadPipeline` — в `Match/Loading`: level → map → скрипт (`MatchRuntime`) → атлас → сцена, результат — `GameplaySession`. Курсор и выбор юнита живут на `MatchCursor`; правила получают выбор аргументом и не хранят его. `BoardInputController` и бот применяют тот же `MatchAction`
+- `GameplayScreen` / `MainMenuScreen` / `LoadingScreen` / `ContentLibraryScreen` — тонкая склейка lifecycle; переходы — `ScreenNavigator`, сервисы — `AppServices` (`SaveResumeService`, `CampaignFlowService`, `NewGameSetupService`). Мастер новой игры — `NewGameDraft` (экран только ввод и вкладки). Хаб редактора — `EditorHubService` (экран только ввод и переходы). Gum в `Presentation/`; ассеты меню — `MainMenuBackground`
 
 ## Ввод
 

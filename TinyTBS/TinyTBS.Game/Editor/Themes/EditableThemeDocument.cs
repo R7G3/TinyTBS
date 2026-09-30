@@ -1,9 +1,8 @@
 using System.Text.Json;
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Maps.Models;
 using TinyTBS.Game.Modules;
 using TinyTBS.Game.Themes;
-using TinyTBS.Game.Themes.Models;
+using TinyTBS.Rules.Themes.Models;
 
 namespace TinyTBS.Game.Editor.Themes;
 
@@ -28,14 +27,14 @@ public sealed class EditableThemeDocument
 
     public bool IsDirty { get; set; }
 
-    public static EditableThemeDocument Load(string themeModuleRoot, IFileContentProvider files)
+    public static EditableThemeDocument Load(string themeModuleRoot, IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(themeModuleRoot);
         ArgumentNullException.ThrowIfNull(files);
 
         var definition = ThemeModuleLoader.Load(themeModuleRoot, files);
         var moduleJsonPath = files.Combine(themeModuleRoot, ContentModuleFiles.ModuleJsonFileName);
-        string? description = TryReadDescription(moduleJsonPath);
+        string? description = TryReadDescription(files, moduleJsonPath);
 
         var document = new EditableThemeDocument
         {
@@ -60,18 +59,18 @@ public sealed class EditableThemeDocument
         return document;
     }
 
-    private static string? TryReadDescription(string moduleJsonPath)
+    private static string? TryReadDescription(IFileSystem files, string moduleJsonPath)
     {
-        if (!File.Exists(moduleJsonPath))
+        if (!files.Exists(moduleJsonPath))
             return null;
 
         try
         {
-            using var jsonDocument = JsonDocument.Parse(File.ReadAllText(moduleJsonPath));
+            using var jsonDocument = JsonDocument.Parse(files.ReadAllText(moduleJsonPath));
             if (jsonDocument.RootElement.TryGetProperty("description", out var descriptionElement)
                 && descriptionElement.ValueKind == JsonValueKind.String)
             {
-                var text = descriptionElement.GetString()?.Trim();
+                var text = descriptionElement.GetString();
                 return string.IsNullOrWhiteSpace(text) ? null : text;
             }
         }

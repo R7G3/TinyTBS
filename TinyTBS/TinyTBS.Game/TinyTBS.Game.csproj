@@ -1,21 +1,39 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <RootNamespace>TinyTBS.Game</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Gum.MonoGame" Version="2026.9.2.1" />
-    <PackageReference Include="MonoGame.Extended" Version="6.1.1" />
-    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
+    <Using Include="TinyTBS.Rules.Ai" />
+    <Using Include="TinyTBS.Rules.Buildings" />
+    <Using Include="TinyTBS.Rules.Levels" />
+    <Using Include="TinyTBS.Rules.Maps" />
+    <Using Include="TinyTBS.Rules.Match" />
+    <Using Include="TinyTBS.Rules.Modules" />
+    <Using Include="TinyTBS.Rules.Themes" />
+    <Using Include="TinyTBS.Rules.Units" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Gum.MonoGame" />
+    <PackageReference Include="MonoGame.Extended" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\TinyTBS.Engine\TinyTBS.Engine.csproj" />
+    <ProjectReference Include="..\TinyTBS.Rules\TinyTBS.Rules.csproj" />
+    <ProjectReference Include="..\TinyTBS.Scripting.Api\TinyTBS.Scripting.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- Bundled vanilla tinymod sources (from TinyTBS.Content/Vanilla). Map scripts are data for Roslyn, not project compile. -->
     <Compile Remove="..\TinyTBS.Content\Vanilla\**\*" />
     <None Include="..\TinyTBS.Content\Vanilla\**\*" Link="Vanilla\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- About screen: one assembly metadata entry per central PackageVersion (Directory.Packages.props). -->
+  <Target Name="AddSolutionLibraryMetadata" BeforeTargets="GetAssemblyAttributes">
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>TinyTBS.SolutionLibrary</_Parameter1>
+        <_Parameter2>%(PackageVersion.Identity) %(PackageVersion.Version)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
 </Project>

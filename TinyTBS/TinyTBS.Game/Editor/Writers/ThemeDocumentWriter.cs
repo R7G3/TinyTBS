@@ -3,9 +3,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Themes;
-using TinyTBS.Game.Maps.Models;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Themes.Models;
+using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Modules.Models;
+using TinyTBS.Rules.Themes.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 
@@ -18,9 +19,9 @@ public sealed class ThemeDocumentWriter
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
 
-    public ThemeDocumentWriter(IFileContentProvider files)
+    public ThemeDocumentWriter(IFileSystem files)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
     }
@@ -31,32 +32,40 @@ public sealed class ThemeDocumentWriter
         ArgumentNullException.ThrowIfNull(document);
 
         ContentModuleManifestParser.ValidateModuleId(document.ModuleId);
-        var moduleId = document.ModuleId.Trim();
+        var moduleId = document.ModuleId;
         var contentNamespace = string.IsNullOrWhiteSpace(document.ContentNamespace)
             ? moduleId
-            : document.ContentNamespace.Trim();
+            : document.ContentNamespace;
 
-        var terrainDirectory = string.IsNullOrWhiteSpace(document.TerrainDirectory)
-            ? ThemeModuleDefinition.DefaultTerrainDirectory
-            : document.TerrainDirectory.Trim().Replace('\\', '/');
+        document.Title = SavedUserText.Or(document.Title, moduleId);
+        document.Description = SavedUserText.Optional(document.Description);
+        document.Version = SavedUserText.Or(document.Version, "1.0.0");
+        var terrainDirectory = SavedUserText.Or(
+            document.TerrainDirectory,
+            ThemeModuleDefinition.DefaultTerrainDirectory).Replace('\\', '/');
+        document.TerrainDirectory = terrainDirectory;
         if (!terrainDirectory.EndsWith('/'))
             terrainDirectory += "/";
 
-        var gravestone = string.IsNullOrWhiteSpace(document.GravestoneRelativePath)
-            ? ThemeModuleDefinition.DefaultGravestoneRelativePath
-            : document.GravestoneRelativePath.Trim().Replace('\\', '/');
+        var gravestone = SavedUserText.Or(
+            document.GravestoneRelativePath,
+            ThemeModuleDefinition.DefaultGravestoneRelativePath).Replace('\\', '/');
+        document.GravestoneRelativePath = gravestone;
 
         var remaps = new Dictionary<string, ThemeSpriteRemapDto>();
         foreach (var entry in document.Remaps)
         {
-            if (string.IsNullOrWhiteSpace(entry.ContentIdFull)
-                || string.IsNullOrWhiteSpace(entry.BasePath)
-                || string.IsNullOrWhiteSpace(entry.MaskPath))
+            entry.ContentIdFull = SavedUserText.Trimmed(entry.ContentIdFull);
+            entry.BasePath = SavedUserText.Trimmed(entry.BasePath).Replace('\\', '/');
+            entry.MaskPath = SavedUserText.Trimmed(entry.MaskPath).Replace('\\', '/');
+            if (entry.ContentIdFull.Length == 0
+                || entry.BasePath.Length == 0
+                || entry.MaskPath.Length == 0)
             {
                 continue;
             }
 
-            if (!ContentId.TryParse(entry.ContentIdFull.Trim(), out var contentId))
+            if (!ContentId.TryParse(entry.ContentIdFull, out var contentId))
                 throw new EditorException($"Invalid remap content id '{entry.ContentIdFull}'.");
 
             if (remaps.ContainsKey(contentId.Full))
@@ -64,8 +73,8 @@ public sealed class ThemeDocumentWriter
 
             remaps[contentId.Full] = new ThemeSpriteRemapDto
             {
-                Base = entry.BasePath.Trim().Replace('\\', '/'),
-                Mask = entry.MaskPath.Trim().Replace('\\', '/'),
+                Base = entry.BasePath,
+                Mask = entry.MaskPath,
             };
         }
 
@@ -73,11 +82,11 @@ public sealed class ThemeDocumentWriter
         {
             FormatVersion = 1,
             Id = moduleId,
-            Type = "theme",
+            Type = ContentModuleTypeIds.Theme,
             Namespace = contentNamespace,
-            Title = string.IsNullOrWhiteSpace(document.Title) ? moduleId : document.Title.Trim(),
-            Description = string.IsNullOrWhiteSpace(document.Description) ? null : document.Description.Trim(),
-            Version = string.IsNullOrWhiteSpace(document.Version) ? "1.0.0" : document.Version.Trim(),
+            Title = document.Title,
+            Description = document.Description,
+            Version = document.Version,
             Content = new ThemeModuleContentDto
             {
                 TerrainDir = terrainDirectory,
@@ -87,7 +96,7 @@ public sealed class ThemeDocumentWriter
         };
 
         var path = _files.Combine(themeModuleRoot, ContentModuleFiles.ModuleJsonFileName);
-        File.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
         document.IsDirty = false;
         return path;
     }

@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 
@@ -16,10 +16,10 @@ public sealed class ScenarioModuleWriter
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public ScenarioModuleWriter(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public ScenarioModuleWriter(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
@@ -30,53 +30,54 @@ public sealed class ScenarioModuleWriter
     /// </summary>
     public string CreateNew(
         string moduleId,
-        string title,
+        ref string title,
         string? contentNamespace = null,
         string? description = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
 
-        ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
-        var id = moduleId.Trim();
-        var moduleNamespace = string.IsNullOrWhiteSpace(contentNamespace) ? id : contentNamespace.Trim();
+        ContentModuleManifestParser.ValidateModuleId(moduleId);
+        var id = moduleId;
+        title = SavedUserText.Or(title, id);
+        var savedDescription = SavedUserText.Optional(description);
+        var moduleNamespace = string.IsNullOrWhiteSpace(contentNamespace) ? id : contentNamespace;
 
         _userDataPaths.EnsureCreated();
         var moduleRoot = _files.Combine(_userDataPaths.Modules, id);
-        if (Directory.Exists(moduleRoot))
+        if (_files.DirectoryExists(moduleRoot))
             throw new EditorException($"User module '{id}' already exists.");
 
         try
         {
-            Directory.CreateDirectory(moduleRoot);
-            Directory.CreateDirectory(_files.Combine(moduleRoot, "Maps"));
-            Directory.CreateDirectory(_files.Combine(moduleRoot, "Levels"));
+            _files.CreateDirectory(moduleRoot);
+            _files.CreateDirectory(_files.Combine(moduleRoot, "Maps"));
+            _files.CreateDirectory(_files.Combine(moduleRoot, "Levels"));
 
             var document = new ScenarioModuleJsonDto
             {
                 FormatVersion = 1,
                 Id = id,
-                Type = "scenario",
+                Type = ContentModuleTypeIds.Scenario,
                 Namespace = moduleNamespace,
-                Title = title.Trim(),
-                Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                Title = title,
+                Description = savedDescription,
                 Version = "1.0.0",
                 Defaults = new ScenarioDefaultsDto
                 {
-                    Units = ["vanilla_units"],
-                    Buildings = ["vanilla_buildings"],
-                    Theme = "vanilla_theme",
+                    Units = [VanillaContentIds.UnitsModuleId],
+                    Buildings = [VanillaContentIds.BuildingsModuleId],
+                    Theme = VanillaContentIds.ThemeModuleId,
                 },
                 Requires = new ScenarioRequiresDto
                 {
-                    Units = ["vanilla_units"],
-                    Buildings = ["vanilla_buildings"],
+                    Units = [VanillaContentIds.UnitsModuleId],
+                    Buildings = [VanillaContentIds.BuildingsModuleId],
                 },
             };
 
             var json = JsonSerializer.Serialize(document, WriteOptions);
             var moduleJsonPath = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
-            File.WriteAllText(moduleJsonPath, json + Environment.NewLine, Encoding.UTF8);
+            _files.WriteAllText(moduleJsonPath, json + Environment.NewLine, Encoding.UTF8);
             return moduleRoot;
         }
         catch (Exception exception) when (exception is not EditorException)
@@ -86,33 +87,12 @@ public sealed class ScenarioModuleWriter
         }
     }
 
-    /// <summary>Picks <c>user_scenario</c>, <c>user_scenario_2</c>, … not yet used in user Modules.</summary>
-    public string AllocateUniqueModuleId(string baseId = "user_scenario")
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseId);
-        ContentModuleManifestParser.ValidateModuleId(baseId.Trim());
-        var stem = baseId.Trim();
-
-        _userDataPaths.EnsureCreated();
-        if (!Directory.Exists(_files.Combine(_userDataPaths.Modules, stem)))
-            return stem;
-
-        for (var suffix = 2; suffix < 10_000; suffix++)
-        {
-            var candidate = stem + "_" + suffix;
-            if (!Directory.Exists(_files.Combine(_userDataPaths.Modules, candidate)))
-                return candidate;
-        }
-
-        throw new EditorException("Could not allocate a unique module id.");
-    }
-
-    private static void TryDeleteDirectory(string path)
+    private void TryDeleteDirectory(string path)
     {
         try
         {
-            if (Directory.Exists(path))
-                Directory.Delete(path, recursive: true);
+            if (_files.DirectoryExists(path))
+                _files.DeleteDirectory(path);
         }
         catch (IOException)
         {

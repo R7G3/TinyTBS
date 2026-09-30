@@ -1,69 +1,29 @@
-using Gum;
 using Microsoft.Xna.Framework;
-using MonoGame.Extended.Screens;
 using TinyTBS.Game.Assets;
-using TinyTBS.Game.Input;
 using TinyTBS.Game.Presentation.About;
-using TinyTBS.Game.Presentation.Menu;
 
 namespace TinyTBS.Game.Screens;
 
 /// <summary>Credits, project links, and solution library list.</summary>
-public sealed class AboutScreen : GameScreen
+public sealed class AboutScreen : MenuScreen
 {
-    private readonly IAssetResolver _assets;
     private readonly AboutView _view = new();
-    private MainMenuBackground? _background;
 
-    public AboutScreen(GameMain game, IAssetResolver assets)
+    public AboutScreen(GameMain game)
         : base(game)
     {
-        _assets = assets;
     }
 
-    private GameMain TinyGame => (GameMain)Game;
+    protected override void OnLoad() => _view.Build(GoToMainMenu, OpenUrl);
 
-    public override void LoadContent()
+    protected override void OnUnload() => _view.Clear();
+
+    protected override void OnUpdate(GameTime gameTime, float elapsedSeconds)
     {
-        base.LoadContent();
-        _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
-        _view.Build(GoToMainMenu, OpenUrl);
-    }
+        _view.HandleInput(TinyGame.Commands, elapsedSeconds);
 
-    public override void UnloadContent()
-    {
-        _view.Clear();
-        _background?.Dispose();
-        _background = null;
-        base.UnloadContent();
-    }
-
-    public override void Update(GameTime gameTime)
-    {
-        GumService.Default.Update(gameTime);
-        _view.HandleInput(
-            TinyGame.Commands,
-            (float)gameTime.ElapsedGameTime.TotalSeconds);
-
-        if (TinyGame.Commands.WasPressed(GameCommand.Back)
-            || TinyGame.Commands.WasPressed(GameCommand.Cancel)
-            || TinyGame.Commands.WasPressed(GameCommand.Info)
-            || TinyGame.Commands.WasPressed(GameCommand.Pause))
-        {
+        if (WasLeavePressed())
             GoToMainMenu();
-        }
-    }
-
-    public override void Draw(GameTime gameTime)
-    {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
-        _background?.Draw(
-            TinyGame.SharedSpriteBatch,
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            gameTime);
-
-        GumService.Default.Draw();
     }
 
     private void OpenUrl(string url)
@@ -78,5 +38,5 @@ public sealed class AboutScreen : GameScreen
     }
 
     private void GoToMainMenu() =>
-        ScreenManager.ReplaceScreen(new MainMenuScreen(TinyGame, _assets));
+        Navigator.ToMainMenu();
 }

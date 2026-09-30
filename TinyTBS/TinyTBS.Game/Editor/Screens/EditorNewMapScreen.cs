@@ -1,56 +1,39 @@
-using Gum;
 using Microsoft.Xna.Framework;
-using MonoGame.Extended.Screens;
-using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Map;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Modules;
-using TinyTBS.Game.Presentation.Menu;
+using TinyTBS.Game.Screens;
 
 namespace TinyTBS.Game.Editor.Screens;
 
 /// <summary>Size picker before opening the map paint screen.</summary>
-public sealed class EditorNewMapScreen : GameScreen
+public sealed class EditorNewMapScreen : MenuScreen
 {
-    private readonly IAssetResolver _assets;
-    private readonly EditorWorkspaceSession _session;
-    private readonly EditorNewMapView _view = new();
-    private MainMenuBackground? _background;
+    private const string DefaultMapId = "map";
 
-    public EditorNewMapScreen(GameMain game, IAssetResolver assets, EditorWorkspaceSession session)
+    private readonly EditorWorkspaceSession _session;
+    private readonly EditorWorkspaceService _workspace;
+    private readonly EditorNewMapView _view = new();
+
+    public EditorNewMapScreen(GameMain game, EditorWorkspaceSession session)
         : base(game)
     {
-        _assets = assets;
         _session = session ?? throw new ArgumentNullException(nameof(session));
+        _workspace = new EditorWorkspaceService(game.Files, game.UserDataPaths);
     }
 
-    private GameMain TinyGame => (GameMain)Game;
-
-    public override void LoadContent()
+    protected override void OnLoad()
     {
-        base.LoadContent();
-        _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
-        var defaultMapId = AllocateMapId();
+        var defaultMapId = _workspace.AllocateMapId(_session, DefaultMapId);
         _view.Build(_session.ModuleId, defaultMapId, StartPaint, GoToHub);
     }
 
-    public override void UnloadContent()
-    {
-        _view.Clear();
-        _background?.Dispose();
-        _background = null;
-        base.UnloadContent();
-    }
+    protected override void OnUnload() => _view.Clear();
 
-    public override void Update(GameTime gameTime)
+    protected override void OnUpdate(GameTime gameTime, float elapsedSeconds)
     {
-        GumService.Default.Update(gameTime);
-        _view.HandleInput(
-            TinyGame.Commands,
-            TinyGame.Pointer,
-            (float)gameTime.ElapsedGameTime.TotalSeconds);
+        _view.HandleInput(TinyGame.Commands, TinyGame.Pointer, elapsedSeconds);
 
         if (_view.IsTextEntryActive)
             return;
@@ -62,70 +45,22 @@ public sealed class EditorNewMapScreen : GameScreen
         }
     }
 
-    public override void Draw(GameTime gameTime)
-    {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
-        _background?.Draw(
-            TinyGame.SharedSpriteBatch,
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            gameTime);
-
-        GumService.Default.Draw();
-    }
-
     private void StartPaint()
     {
-        var mapId = SanitizeMapId(_view.MapId);
-        var mapTitle = string.IsNullOrWhiteSpace(_view.MapTitle) ? mapId : _view.MapTitle.Trim();
-        var mapsRoot = TinyGame.Files.Combine(_session.ModuleRootPath, "Maps");
-        Directory.CreateDirectory(mapsRoot);
-        if (Directory.Exists(TinyGame.Files.Combine(mapsRoot, mapId)))
-            mapId = AllocateMapId(mapId);
+        var mapId = _workspace.AllocateMapId(_session, EditorIds.SanitizeOrDefault(_view.MapId, DefaultMapId));
+        var mapTitle = string.IsNullOrWhiteSpace(_view.MapTitle) ? mapId : _view.MapTitle;
 
         var document = EditableMapDocument.CreateFilled(
             mapId,
             title: mapTitle,
             _view.Width,
             _view.Height,
-            terrainType: "grass");
+            terrainType: MapSurfaceIds.Grass);
         document.IsDirty = true;
 
-        ScreenManager.ReplaceScreen(
-            new EditorMapPaintScreen(TinyGame, _assets, _session, document, isNewMap: true));
-    }
-
-    private static string SanitizeMapId(string raw)
-    {
-        var trimmed = string.IsNullOrWhiteSpace(raw) ? "map" : raw.Trim();
-        try
-        {
-            ContentModuleManifestParser.ValidateModuleId(trimmed);
-            return trimmed;
-        }
-        catch (TinymodInstallException)
-        {
-            return "map";
-        }
-    }
-
-    private string AllocateMapId(string stem = "map")
-    {
-        var mapsRoot = TinyGame.Files.Combine(_session.ModuleRootPath, "Maps");
-        Directory.CreateDirectory(mapsRoot);
-        if (!Directory.Exists(TinyGame.Files.Combine(mapsRoot, stem)))
-            return stem;
-
-        for (var suffix = 2; suffix < 10_000; suffix++)
-        {
-            var candidate = stem + "_" + suffix;
-            if (!Directory.Exists(TinyGame.Files.Combine(mapsRoot, candidate)))
-                return candidate;
-        }
-
-        throw new EditorException("Could not allocate a unique map id.");
+        Navigator.ToEditorMapPaint(_session, document, isNewMap: true);
     }
 
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, _assets, _session));
+        Navigator.ToEditorHub(_session);
 }

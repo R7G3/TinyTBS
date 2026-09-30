@@ -19,13 +19,13 @@ public static class LevelMapRefResolver
     public static string ResolveMapDirectory(
         string scenarioModuleRoot,
         string mapRef,
-        IFileContentProvider files)
+        IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(scenarioModuleRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(mapRef);
         ArgumentNullException.ThrowIfNull(files);
 
-        var trimmedRef = mapRef.Trim().TrimStart(LogicalPathSeparators);
+        var trimmedRef = mapRef.TrimStart(LogicalPathSeparators);
         if (trimmedRef.Length == 0)
             throw new LevelLoadException("map.ref is empty.");
 

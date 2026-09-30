@@ -1,5 +1,5 @@
 using TinyTBS.Engine.IO;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Modules;
 
@@ -8,7 +8,7 @@ public static class ContentBundleLoader
 {
     public static ContentBundleDefinition Load(
         string bundleFilePath,
-        IFileContentProvider files,
+        IFileSystem files,
         ContentModuleSource source)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleFilePath);

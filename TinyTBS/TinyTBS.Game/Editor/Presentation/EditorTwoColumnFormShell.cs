@@ -32,6 +32,9 @@ public static class EditorTwoColumnFormShell
 
         public required Panel MenuHost { get; init; }
 
+        /// <summary>Set when the menu column scrolls; otherwise the menu is a fixed stack.</summary>
+        public ScrollViewer? MenuScroll { get; init; }
+
         public required float ListHeight { get; init; }
     }
 
@@ -41,7 +44,10 @@ public static class EditorTwoColumnFormShell
         float maxShellWidthPixels = 760f,
         float settingsWidthPercent = 62f,
         float menuWidthPercent = 36f,
-        float settingsListMinHeight = DefaultSettingsListMinHeight)
+        float settingsListMinHeight = DefaultSettingsListMinHeight,
+        string settingsHeader = "Settings",
+        string menuHeader = "Menu",
+        bool scrollMenuColumn = false)
     {
         var rootPanel = new Panel();
         rootPanel.Dock(Dock.Fill);
@@ -85,8 +91,14 @@ public static class EditorTwoColumnFormShell
         columns.Visual.StackSpacing = 10f;
         rootStack.AddChild(columns);
 
-        var leftColumn = CreateScrollColumn(columns, "Settings", listHeight, out var settingsHost, out var settingsScroll);
-        var rightColumn = CreatePlainColumn(columns, "Menu", listHeight, out var menuHost);
+        var leftColumn = CreateScrollColumn(columns, settingsHeader, listHeight, out var settingsHost, out var settingsScroll);
+        ScrollViewer? menuScroll = null;
+        Panel menuHost;
+        Panel rightColumn;
+        if (scrollMenuColumn)
+            rightColumn = CreateScrollColumn(columns, menuHeader, listHeight, out menuHost, out menuScroll);
+        else
+            rightColumn = CreatePlainColumn(columns, menuHeader, listHeight, out menuHost);
         GumUiLayout.SetWidthPercent(leftColumn, settingsWidthPercent);
         GumUiLayout.SetWidthPercent(rightColumn, menuWidthPercent);
 
@@ -99,6 +111,7 @@ public static class EditorTwoColumnFormShell
             SettingsHost = settingsHost,
             SettingsScroll = settingsScroll,
             MenuHost = menuHost,
+            MenuScroll = menuScroll,
             ListHeight = listHeight,
         };
     }
@@ -177,24 +190,6 @@ public static class EditorTwoColumnFormShell
         GumUiLayout.SetAbsoluteHeight(textBox, DefaultTextFieldHeight);
         EditorTextFieldStyle.Apply(textBox);
         parent.AddChild(textBox);
-    }
-
-    public static void AddMenuButton(
-        Panel parent,
-        List<(Button Button, Action Activate)> menuEntries,
-        string text,
-        Action onClick,
-        Action? onFocused = null)
-    {
-        var button = new Button { Text = text };
-        GumUiLayout.FillParentWidth(button);
-        button.Click += (_, _) =>
-        {
-            onFocused?.Invoke();
-            onClick();
-        };
-        parent.AddChild(button);
-        menuEntries.Add((button, onClick));
     }
 
     /// <param name="allowDpadColumnSwitch">

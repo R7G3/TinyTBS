@@ -4,8 +4,7 @@ using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Map;
 using TinyTBS.Game.Maps;
-using TinyTBS.Game.Maps.Models;
-using TinyTBS.Game.Modules;
+using TinyTBS.Rules.Maps.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 
@@ -18,9 +17,9 @@ public sealed class MapDocumentWriter
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
 
-    public MapDocumentWriter(IFileContentProvider files)
+    public MapDocumentWriter(IFileSystem files)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
     }
@@ -31,8 +30,9 @@ public sealed class MapDocumentWriter
         ArgumentNullException.ThrowIfNull(document);
 
         ContentModuleManifestParser.ValidateModuleId(document.Id);
+        document.Title = SavedUserText.Or(document.Title, document.Id);
         var mapRoot = _files.Combine(scenarioModuleRoot, "Maps", document.Id);
-        Directory.CreateDirectory(mapRoot);
+        _files.CreateDirectory(mapRoot);
 
         var surface = new string[document.Width * document.Height];
         for (var y = 0; y < document.Height; y++)
@@ -78,16 +78,16 @@ public sealed class MapDocumentWriter
 
         var mapJsonPath = _files.Combine(mapRoot, MapFolderLoader.MapJsonFileName);
         var json = JsonSerializer.Serialize(payload, WriteOptions);
-        File.WriteAllText(mapJsonPath, json + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(mapJsonPath, json + Environment.NewLine, Encoding.UTF8);
 
         var scriptPath = _files.Combine(mapRoot, "script.cs");
         if (scriptText is not null)
         {
-            File.WriteAllText(scriptPath, scriptText, Encoding.UTF8);
+            _files.WriteAllText(scriptPath, scriptText, Encoding.UTF8);
         }
-        else if (!File.Exists(scriptPath))
+        else if (!_files.Exists(scriptPath))
         {
-            File.WriteAllText(scriptPath, MapScriptTemplates.EmptyHooks, Encoding.UTF8);
+            _files.WriteAllText(scriptPath, MapScriptTemplates.EmptyHooks, Encoding.UTF8);
         }
 
         document.IsDirty = false;

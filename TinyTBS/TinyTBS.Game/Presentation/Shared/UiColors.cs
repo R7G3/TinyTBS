@@ -8,6 +8,9 @@ namespace TinyTBS.Game.Presentation.Shared;
 /// </summary>
 public static class UiColors
 {
+    /// <summary>Clear color behind the animated menu background (menus, loading, editor forms).</summary>
+    public static readonly Color MenuBackground = new(24, 28, 38);
+
     /// <summary>Standard dark panel (Content, New Game, About, Editor, match pause/detail).</summary>
     public static readonly Color MenuPanel = new(16, 18, 28, 235);
 
@@ -40,4 +43,13 @@ public static class UiColors
     public static readonly Color MatchIconSlot = new(40, 44, 56, 255);
 
     public static readonly Color MatchSceneClear = new(18, 20, 28);
+
+    /// <summary>Unit level digits on the board (bottom-left of the cell).</summary>
+    public static readonly Color MatchUnitLevel = new(255, 240, 200);
+
+    /// <summary>Unit hit-point digits on the board (bottom-right of the cell).</summary>
+    public static readonly Color MatchUnitHitPoints = new(230, 250, 255);
+
+    /// <summary>Outline around <see cref="MatchUnitLevel"/> and <see cref="MatchUnitHitPoints"/>.</summary>
+    public static readonly Color MatchUnitLabelOutline = new(20, 22, 28, 220);
 }

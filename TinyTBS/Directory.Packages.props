@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <!-- Single source of package versions. The About screen lists these entries (see TinyTBS.Game.csproj). -->
+  <ItemGroup>
+    <PackageVersion Include="Gum.MonoGame" Version="2026.9.2.1" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageVersion Include="MonoGame.Extended" Version="6.1.1" />
+    <PackageVersion Include="MonoGame.Framework.Content.Pipeline" Version="3.8.5.1" />
+    <PackageVersion Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
+    <PackageVersion Include="NativeFileDialogNET" Version="2.0.2" />
+  </ItemGroup>
+</Project>

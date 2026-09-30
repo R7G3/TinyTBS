@@ -1,80 +1,43 @@
-using Gum;
 using Microsoft.Xna.Framework;
-using MonoGame.Extended.Screens;
+using TinyTBS.Engine.Input;
 using TinyTBS.Game.Assets;
+using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Presentation.Menu;
+using TinyTBS.Game.Screens;
 
 namespace TinyTBS.Game.Editor.Screens;
 
 /// <summary>
-/// Shared editor form screen: menu background, Gum update/draw, overlay/text-entry Back handling.
+/// Shared editor form screen: menu background plus overlay / text-entry aware Back handling.
 /// </summary>
-public abstract class EditorFormScreen : GameScreen
+public abstract class EditorFormScreen : MenuScreen
 {
-    private readonly IAssetResolver _assets;
-    private MainMenuBackground? _background;
-
-    protected EditorFormScreen(GameMain game, IAssetResolver assets)
+    protected EditorFormScreen(GameMain game)
         : base(game)
     {
-        _assets = assets ?? throw new ArgumentNullException(nameof(assets));
+        Workspace = new EditorWorkspaceService(game.Files, game.UserDataPaths);
     }
 
-    protected GameMain TinyGame => (GameMain)Game;
+    protected EditorWorkspaceService Workspace { get; }
 
-    protected IAssetResolver Assets => _assets;
+    protected abstract bool IsOverlayOpen { get; }
 
-    public override void LoadContent()
+    protected abstract bool IsTextEntryActive { get; }
+
+    protected sealed override void OnLoad() => OnFormLoad();
+
+    protected sealed override void OnUnload() => OnFormUnload();
+
+    protected sealed override void OnUpdate(GameTime gameTime, float elapsedSeconds)
     {
-        base.LoadContent();
-        _background = MainMenuBackground.Load(GraphicsDevice, Content, _assets);
-        OnFormLoad();
-    }
-
-    public override void UnloadContent()
-    {
-        OnFormUnload();
-        _background?.Dispose();
-        _background = null;
-        base.UnloadContent();
-    }
-
-    public override void Update(GameTime gameTime)
-    {
-        GumService.Default.Update(gameTime);
-
         var overlayWasOpen = IsOverlayOpen;
-        HandleFormInput(
-            TinyGame.Commands,
-            TinyGame.Pointer,
-            (float)gameTime.ElapsedGameTime.TotalSeconds);
+        HandleFormInput(TinyGame.Commands, TinyGame.Pointer, elapsedSeconds);
 
-        if (overlayWasOpen || IsOverlayOpen)
+        if (overlayWasOpen || IsOverlayOpen || IsTextEntryActive)
             return;
 
-        if (IsTextEntryActive)
-            return;
-
-        if (TinyGame.Commands.WasPressed(GameCommand.Back)
-            || TinyGame.Commands.WasPressed(GameCommand.Cancel)
-            || TinyGame.Commands.WasPressed(GameCommand.Info)
-            || TinyGame.Commands.WasPressed(GameCommand.Pause))
-        {
+        if (WasLeavePressed())
             OnBackRequested();
-        }
-    }
-
-    public override void Draw(GameTime gameTime)
-    {
-        GraphicsDevice.Clear(new Color(24, 28, 38));
-        _background?.Draw(
-            TinyGame.SharedSpriteBatch,
-            GraphicsDevice.Viewport.Width,
-            GraphicsDevice.Viewport.Height,
-            gameTime);
-
-        GumService.Default.Draw();
     }
 
     protected abstract void OnFormLoad();
@@ -83,12 +46,8 @@ public abstract class EditorFormScreen : GameScreen
 
     protected abstract void HandleFormInput(
         IGameCommandSource commands,
-        TinyTBS.Engine.Input.IPointerSource pointer,
+        IPointerSource pointer,
         float elapsedSeconds);
-
-    protected abstract bool IsOverlayOpen { get; }
-
-    protected abstract bool IsTextEntryActive { get; }
 
     protected abstract void OnBackRequested();
 }

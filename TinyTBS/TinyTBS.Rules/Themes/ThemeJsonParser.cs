@@ -1,0 +1,98 @@
+using System.Text.Json;
+using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Modules.Models;
+using TinyTBS.Rules.Themes.Models;
+
+namespace TinyTBS.Rules.Themes;
+
+/// <summary>Parses theme <c>module.json</c>.</summary>
+public static class ThemeJsonParser
+{
+    public static (
+        string ModuleId,
+        string ContentNamespace,
+        string Title,
+        string Version,
+        string TerrainDirectory,
+        string GravestoneRelativePath,
+        IReadOnlyDictionary<ContentId, ThemeSpriteRemap> Remaps)
+        ParseModuleManifest(Stream jsonStream)
+    {
+        ThemeModuleJsonDto document;
+        try
+        {
+            document = JsonSerializer.Deserialize<ThemeModuleJsonDto>(jsonStream, ContentJson.Read)
+                ?? throw new ThemeLoadException("module.json deserialized to null.");
+        }
+        catch (JsonException jsonException)
+        {
+            throw new ThemeLoadException("Failed to parse theme module.json.", jsonException);
+        }
+
+        if (document.FormatVersion < 1)
+            throw new ThemeLoadException($"Unsupported formatVersion '{document.FormatVersion}'.");
+
+        if (string.IsNullOrWhiteSpace(document.Id))
+            throw new ThemeLoadException("module.json requires non-empty 'id'.");
+
+        if (!string.Equals(document.Type, ContentModuleTypeIds.Theme, StringComparison.OrdinalIgnoreCase))
+            throw new ThemeLoadException($"Expected module type '{ContentModuleTypeIds.Theme}', got '{document.Type}'.");
+
+        var moduleId = document.Id;
+        var contentNamespace = string.IsNullOrWhiteSpace(document.Namespace)
+            ? moduleId
+            : document.Namespace;
+
+        var terrainDirectory = document.Content?.TerrainDir;
+        if (string.IsNullOrWhiteSpace(terrainDirectory))
+            terrainDirectory = ThemeModuleDefinition.DefaultTerrainDirectory;
+
+        var gravestoneRelativePath = document.Content?.Gravestone;
+        if (string.IsNullOrWhiteSpace(gravestoneRelativePath))
+            gravestoneRelativePath = ThemeModuleDefinition.DefaultGravestoneRelativePath;
+
+        var remaps = new Dictionary<ContentId, ThemeSpriteRemap>();
+        if (document.Remaps is { Count: > 0 })
+        {
+            foreach (var (rawContentId, remapDto) in document.Remaps)
+            {
+                if (!ContentId.TryParse(rawContentId, out var contentId))
+                {
+                    throw new ThemeLoadException(
+                        $"Invalid remap content id '{rawContentId}'.");
+                }
+
+                if (remapDto is null
+                    || string.IsNullOrWhiteSpace(remapDto.Base)
+                    || string.IsNullOrWhiteSpace(remapDto.Mask))
+                {
+                    throw new ThemeLoadException(
+                        $"Remap '{rawContentId}' requires base and mask paths.");
+                }
+
+                if (!remaps.TryAdd(
+                        contentId,
+                        new ThemeSpriteRemap
+                        {
+                            BasePath = remapDto.Base,
+                            MaskPath = remapDto.Mask,
+                        }))
+                {
+                    throw new ThemeLoadException($"Duplicate remap for '{contentId.Full}'.");
+                }
+            }
+        }
+
+        var title = string.IsNullOrWhiteSpace(document.Title) ? moduleId : document.Title;
+        var version = string.IsNullOrWhiteSpace(document.Version) ? "0.0.0" : document.Version;
+
+        return (
+            moduleId,
+            contentNamespace,
+            title,
+            version,
+            terrainDirectory,
+            gravestoneRelativePath,
+            remaps);
+    }
+}

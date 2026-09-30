@@ -1,29 +1,26 @@
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Campaigns;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Saves.Models;
+using TinyTBS.Rules.Saves.Models;
+using TinyTBS.Game.Match.Session;
 
 namespace TinyTBS.Game.Saves;
 
-/// <summary>Builds a <see cref="ContinueMatchRequest"/> from a save, with optional version warning.</summary>
+/// <summary>Builds a resume <see cref="MatchStartRequest"/> from a save, with optional version warning.</summary>
 public static class MatchSaveResume
 {
-    public static ContinueMatchRequest CreateRequest(
+    public static MatchStartRequest CreateRequest(
         MatchSaveDocument document,
-        IFileContentProvider files,
+        IFileSystem files,
         IUserDataPaths userDataPaths)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(userDataPaths);
 
-        var request = ContinueMatchRequest.FromDocument(document);
-        var campaignRun = CampaignRunRestorer.TryRestoreForMatch(document, userDataPaths);
+        var campaignRun = CampaignRunRestorer.TryRestoreForMatch(document, files, userDataPaths);
         var warning = BuildVersionWarning(document, files, userDataPaths);
-        if (campaignRun is null && string.IsNullOrWhiteSpace(warning))
-            return request;
-
         var orphanNote = campaignRun is not null
             && string.IsNullOrWhiteSpace(campaignRun.ProgressFilePath)
             ? "Campaign progress was missing; will recreate on chapter end."
@@ -33,23 +30,15 @@ public static class MatchSaveResume
             " ",
             new[] { warning, orphanNote }.Where(text => !string.IsNullOrWhiteSpace(text)));
 
-        return new ContinueMatchRequest
-        {
-            LevelId = request.LevelId,
-            ScenarioModuleId = request.ScenarioModuleId,
-            Composition = request.Composition,
-            PlayerCount = request.PlayerCount,
-            UnitCap = request.UnitCap,
-            PlayerSeats = request.PlayerSeats,
-            RuntimeSnapshot = request.RuntimeSnapshot,
-            VersionWarning = string.IsNullOrWhiteSpace(combinedWarning) ? null : combinedWarning,
-            CampaignRun = campaignRun,
-        };
+        return MatchStartRequest.FromSaveDocument(
+            document,
+            campaignRun,
+            string.IsNullOrWhiteSpace(combinedWarning) ? null : combinedWarning);
     }
 
     public static string? BuildVersionWarning(
         MatchSaveDocument document,
-        IFileContentProvider files,
+        IFileSystem files,
         IUserDataPaths userDataPaths)
     {
         ArgumentNullException.ThrowIfNull(document);

@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Bundles;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 
@@ -17,10 +17,10 @@ public sealed class BundleDocumentWriter
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public BundleDocumentWriter(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public BundleDocumentWriter(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
@@ -29,16 +29,16 @@ public sealed class BundleDocumentWriter
     public string AllocateUniqueBundleId(string baseId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(baseId);
-        ValidateBundleId(baseId.Trim());
-        var stem = baseId.Trim();
+        ValidateBundleId(baseId);
+        var stem = baseId;
         _userDataPaths.EnsureCreated();
-        if (!File.Exists(UserBundlePath(stem)))
+        if (!_files.Exists(UserBundlePath(stem)))
             return stem;
 
         for (var suffix = 2; suffix < 10_000; suffix++)
         {
             var candidate = stem + "_" + suffix;
-            if (!File.Exists(UserBundlePath(candidate)))
+            if (!_files.Exists(UserBundlePath(candidate)))
                 return candidate;
         }
 
@@ -49,49 +49,50 @@ public sealed class BundleDocumentWriter
     {
         ArgumentNullException.ThrowIfNull(document);
 
+        document.Title = SavedUserText.Or(document.Title, document.Id);
+        document.ModuleIds = SavedUserText.List(document.ModuleIds)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        document.ScenarioModuleId = SavedUserText.Trimmed(document.ScenarioModuleId);
+        document.UnitsModuleIds = SavedUserText.List(document.UnitsModuleIds)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        document.BuildingsModuleIds = SavedUserText.List(document.BuildingsModuleIds)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        document.ThemeModuleId = SavedUserText.Trimmed(document.ThemeModuleId);
+
         ValidateBundleId(document.Id);
-        var id = document.Id.Trim();
+        var id = document.Id;
         ValidateDocument(document);
 
         _userDataPaths.EnsureCreated();
-        Directory.CreateDirectory(_userDataPaths.Bundles);
+        _files.CreateDirectory(_userDataPaths.Bundles);
 
         var payload = new ContentBundleJsonDto
         {
             FormatVersion = 1,
             Id = id,
-            Title = string.IsNullOrWhiteSpace(document.Title) ? id : document.Title.Trim(),
-            Modules = document.ModuleIds
-                .Where(moduleId => !string.IsNullOrWhiteSpace(moduleId))
-                .Select(moduleId => moduleId.Trim())
-                .Distinct(StringComparer.Ordinal)
-                .ToList(),
+            Title = document.Title,
+            Modules = document.ModuleIds,
             Defaults = new ContentBundleDefaultsDto
             {
-                Scenario = document.ScenarioModuleId.Trim(),
-                Units = document.UnitsModuleIds
-                    .Where(moduleId => !string.IsNullOrWhiteSpace(moduleId))
-                    .Select(moduleId => moduleId.Trim())
-                    .Distinct(StringComparer.Ordinal)
-                    .ToList(),
-                Buildings = document.BuildingsModuleIds
-                    .Where(moduleId => !string.IsNullOrWhiteSpace(moduleId))
-                    .Select(moduleId => moduleId.Trim())
-                    .Distinct(StringComparer.Ordinal)
-                    .ToList(),
-                Theme = document.ThemeModuleId.Trim(),
+                Scenario = document.ScenarioModuleId,
+                Units = document.UnitsModuleIds,
+                Buildings = document.BuildingsModuleIds,
+                Theme = document.ThemeModuleId,
             },
         };
 
         var path = UserBundlePath(id);
-        File.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
 
-        var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId.Trim();
+        var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId;
         if (!string.Equals(originalId, id, StringComparison.Ordinal))
         {
             var oldPath = UserBundlePath(originalId);
-            if (File.Exists(oldPath) && !string.Equals(oldPath, path, StringComparison.OrdinalIgnoreCase))
-                File.Delete(oldPath);
+            if (_files.Exists(oldPath) && !string.Equals(oldPath, path, StringComparison.OrdinalIgnoreCase))
+                _files.DeleteFile(oldPath);
         }
 
         document.OriginalId = id;
@@ -102,12 +103,12 @@ public sealed class BundleDocumentWriter
     public bool Delete(string bundleId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleId);
-        ValidateBundleId(bundleId.Trim());
-        var path = UserBundlePath(bundleId.Trim());
-        if (!File.Exists(path))
+        ValidateBundleId(bundleId);
+        var path = UserBundlePath(bundleId);
+        if (!_files.Exists(path))
             return false;
 
-        File.Delete(path);
+        _files.DeleteFile(path);
         return true;
     }
 
@@ -115,14 +116,14 @@ public sealed class BundleDocumentWriter
     {
         ArgumentNullException.ThrowIfNull(source);
         ValidateBundleId(targetBundleId);
-        var id = targetBundleId.Trim();
-        if (File.Exists(UserBundlePath(id)))
+        var id = targetBundleId;
+        if (_files.Exists(UserBundlePath(id)))
             throw new EditorException($"User bundle '{id}' already exists.");
 
         var document = EditableBundleDocument.FromDefinition(source);
         document.OriginalId = id;
         document.Id = id;
-        document.Title = string.IsNullOrWhiteSpace(title) ? source.Title : title.Trim();
+        document.Title = string.IsNullOrWhiteSpace(title) ? source.Title : title;
         document.IsDirty = true;
         return Write(document);
     }
@@ -135,10 +136,7 @@ public sealed class BundleDocumentWriter
         if (document.ModuleIds.Count == 0)
             throw new EditorException("Bundle modules list cannot be empty.");
 
-        var moduleSet = document.ModuleIds
-            .Where(moduleId => !string.IsNullOrWhiteSpace(moduleId))
-            .Select(moduleId => moduleId.Trim())
-            .ToHashSet(StringComparer.Ordinal);
+        var moduleSet = document.ModuleIds.ToHashSet(StringComparer.Ordinal);
 
         EnsureListed(moduleSet, document.ScenarioModuleId, "defaults.scenario");
         if (document.UnitsModuleIds.Count == 0)
@@ -154,7 +152,9 @@ public sealed class BundleDocumentWriter
         if (string.IsNullOrWhiteSpace(document.ThemeModuleId))
         {
             throw new EditorException(
-                "defaults.theme is required — enable a theme in Modules (e.g. vanilla_theme) and set Theme in Defaults.");
+                "defaults.theme is required — enable a theme in Modules (e.g. "
+                + VanillaContentIds.ThemeModuleId
+                + ") and set Theme in Defaults.");
         }
 
         EnsureListed(moduleSet, document.ThemeModuleId, "defaults.theme");
@@ -162,7 +162,7 @@ public sealed class BundleDocumentWriter
 
     private static void EnsureListed(HashSet<string> moduleSet, string moduleId, string fieldName)
     {
-        if (string.IsNullOrWhiteSpace(moduleId) || !moduleSet.Contains(moduleId.Trim()))
+        if (string.IsNullOrWhiteSpace(moduleId) || !moduleSet.Contains(moduleId))
         {
             throw new EditorException(
                 $"{fieldName} must reference a module listed in modules[] ('{moduleId}').");

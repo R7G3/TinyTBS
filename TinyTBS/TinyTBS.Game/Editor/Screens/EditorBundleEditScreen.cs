@@ -1,13 +1,10 @@
-using Gum;
 using TinyTBS.Engine.Input;
-using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Bundles;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
 using TinyTBS.Game.Modules;
-using MonoGame.Extended.Screens;
 
 namespace TinyTBS.Game.Editor.Screens;
 
@@ -23,11 +20,10 @@ public sealed class EditorBundleEditScreen : EditorFormScreen
 
     public EditorBundleEditScreen(
         GameMain game,
-        IAssetResolver assets,
         EditorWorkspaceSession? session,
         EditableBundleDocument document,
         bool isNew)
-        : base(game, assets)
+        : base(game)
     {
         _session = session;
         _document = document ?? throw new ArgumentNullException(nameof(document));
@@ -76,7 +72,7 @@ public sealed class EditorBundleEditScreen : EditorFormScreen
             _document.Id = id;
 
             if ((_isNew || !string.Equals(id, _document.OriginalId, StringComparison.Ordinal))
-                && File.Exists(TinyGame.Files.Combine(
+                && TinyGame.Files.Exists(TinyGame.Files.Combine(
                     TinyGame.UserDataPaths.Bundles,
                     id + ContentBundleFiles.BundleJsonExtension)))
             {
@@ -96,18 +92,18 @@ public sealed class EditorBundleEditScreen : EditorFormScreen
 
     private static string SanitizeId(string raw)
     {
-        var trimmed = string.IsNullOrWhiteSpace(raw) ? "user_bundle" : raw.Trim();
-        if (trimmed.Contains("..", StringComparison.Ordinal)
-            || trimmed.Contains('/', StringComparison.Ordinal)
-            || trimmed.Contains('\\', StringComparison.Ordinal)
-            || trimmed.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        var candidate = SavedUserText.Or(raw, "user_bundle");
+        if (candidate.Contains("..", StringComparison.Ordinal)
+            || candidate.Contains('/', StringComparison.Ordinal)
+            || candidate.Contains('\\', StringComparison.Ordinal)
+            || candidate.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
         {
             return "user_bundle";
         }
 
-        return trimmed;
+        return candidate;
     }
 
     private void GoToHub() =>
-        ScreenManager.ReplaceScreen(new EditorHubScreen(TinyGame, Assets, _session));
+        Navigator.ToEditorHub(_session);
 }

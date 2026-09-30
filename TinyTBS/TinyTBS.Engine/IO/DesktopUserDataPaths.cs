@@ -23,6 +23,7 @@ public sealed class DesktopUserDataPaths : IUserDataPaths
     public string Bundles => Path.Combine(ContentRoot, "Bundles");
     public string Saves => Path.Combine(UserDataRoot, "Saves");
     public string Downloads => Path.Combine(UserDataRoot, "Downloads");
+    public string Logs => Path.Combine(UserDataRoot, "Logs");
 
     public void EnsureCreated()
     {
@@ -30,5 +31,6 @@ public sealed class DesktopUserDataPaths : IUserDataPaths
         Directory.CreateDirectory(Bundles);
         Directory.CreateDirectory(Saves);
         Directory.CreateDirectory(Downloads);
+        Directory.CreateDirectory(Logs);
     }
 }

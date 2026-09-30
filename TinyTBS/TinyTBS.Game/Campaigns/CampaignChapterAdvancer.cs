@@ -1,6 +1,5 @@
 using TinyTBS.Game.Campaigns.Models;
-using TinyTBS.Game.Modules;
-using TinyTBS.Game.Scripting.Models;
+using TinyTBS.Scripting.Api;
 
 namespace TinyTBS.Game.Campaigns;
 
@@ -53,7 +52,7 @@ public static class CampaignChapterAdvancer
         CampaignScriptMutation mutation)
     {
         if (!string.IsNullOrWhiteSpace(mutation.ForcedNextLevelId))
-            return mutation.ForcedNextLevelId.Trim();
+            return mutation.ForcedNextLevelId;
 
         if (!string.IsNullOrWhiteSpace(run.PendingNextLevelId))
             return run.PendingNextLevelId;
@@ -72,8 +71,8 @@ public static class CampaignChapterAdvancer
         if (!string.IsNullOrWhiteSpace(mutation.ReplacedLevelId)
             && !string.IsNullOrWhiteSpace(mutation.ReplaceWithLevelId))
         {
-            var from = mutation.ReplacedLevelId.Trim();
-            var to = mutation.ReplaceWithLevelId.Trim();
+            var from = mutation.ReplacedLevelId;
+            var to = mutation.ReplaceWithLevelId;
             if (campaign.IndexOfLevel(to) < 0)
             {
                 throw new MatchContentCompositionException(
@@ -94,7 +93,7 @@ public static class CampaignChapterAdvancer
 
         if (!string.IsNullOrWhiteSpace(mutation.SkippedLevelId))
         {
-            var skipped = mutation.SkippedLevelId.Trim();
+            var skipped = mutation.SkippedLevelId;
             var afterSkip = campaign.NextLevelIdAfter(skipped);
             if (afterSkip is not null)
             {
@@ -107,7 +106,7 @@ public static class CampaignChapterAdvancer
 
         if (!string.IsNullOrWhiteSpace(mutation.ForcedNextLevelId))
         {
-            var forced = mutation.ForcedNextLevelId.Trim();
+            var forced = mutation.ForcedNextLevelId;
             if (campaign.IndexOfLevel(forced) < 0)
             {
                 throw new MatchContentCompositionException(

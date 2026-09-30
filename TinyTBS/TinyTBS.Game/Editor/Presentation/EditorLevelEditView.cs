@@ -1,13 +1,9 @@
 using Gum;
-using Gum.DataTypes;
 using Gum.Forms.Controls;
-using Gum.Managers;
-using Gum.Wireframe;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Engine.Input;
 using TinyTBS.Game.Editor.Levels;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Presentation.Shared;
 
 namespace TinyTBS.Game.Editor.Presentation;
 
@@ -16,17 +12,8 @@ namespace TinyTBS.Game.Editor.Presentation;
 /// </summary>
 public sealed class EditorLevelEditView
 {
-    private enum FocusZone
-    {
-        Settings = 0,
-        Menu = 1,
-    }
+    private readonly EditorTwoColumnFormController _form = new(allowDpadColumnSwitch: false);
 
-    private const float StackSpacing = 6f;
-    private const float MinScrollViewport = 120f;
-
-    private Panel? _rootPanel;
-    private ScrollViewer? _settingsScroll;
     private Panel? _settingsHost;
     private Label? _statusLabel;
     private Label? _mapLabel;
@@ -36,30 +23,9 @@ public sealed class EditorLevelEditView
     private Label? _modesLabel;
     private TextBox? _idBox;
     private TextBox? _titleBox;
-    private readonly List<(Button Button, Action Activate)> _settingsEntries = [];
-    private readonly List<(Button Button, Action Activate)> _menuEntries = [];
-    private readonly MenuVerticalNavigateRepeat _navigateRepeat = new();
-    private FocusZone _focusZone = FocusZone.Settings;
-    private int _settingsFocusIndex;
-    private int _menuFocusIndex;
     private EditableLevelDocument _document = EditableLevelDocument.CreateDefault("level", "level", "map");
     private IReadOnlyList<string> _mapIds = [];
     private int _mapIndex;
-
-    private float _confirmRepeatTimer;
-    private float _pointerRepeatTimer;
-    private int _pointerHoldFocusIndex = -1;
-    private Button? _minDecrease;
-    private Button? _minIncrease;
-    private Button? _maxDecrease;
-    private Button? _maxIncrease;
-    private Button? _slotsDecrease;
-    private Button? _slotsIncrease;
-    private Button? _goldDecrease;
-    private Button? _goldIncrease;
-    private Button? _capDecrease;
-    private Button? _capIncrease;
-    private (Button Decrease, Button Increase)[] _stepperRows = [];
 
     public bool IsTextEntryActive =>
         _idBox is { IsFocused: true } || _titleBox is { IsFocused: true };
@@ -80,49 +46,31 @@ public sealed class EditorLevelEditView
         var built = EditorTwoColumnFormShell.Build(
             "Edit Level",
             "LB/RB: columns. Left/Right: −/+. Up/Down: next stepper row.");
-        _rootPanel = built.RootPanel;
         _settingsHost = built.SettingsHost;
-        _settingsScroll = built.SettingsScroll;
+        _form.Attach(built);
 
         _modesLabel = new Label { Text = ModesCaption() };
         GumUiLayout.FillParentWidth(_modesLabel);
         built.MenuHost.AddChild(_modesLabel);
-        EditorTwoColumnFormShell.AddMenuButton(
-            built.MenuHost,
-            _menuEntries,
-            "Toggle Skirmish",
-            () => ToggleMode("skirmish"),
-            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
-        EditorTwoColumnFormShell.AddMenuButton(
-            built.MenuHost,
-            _menuEntries,
-            "Toggle Campaign",
-            () => ToggleMode("campaign"),
-            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
+        _form.AddMenuButton(built.MenuHost, "Toggle Skirmish", () => ToggleMode(LevelModeIds.Skirmish));
+        _form.AddMenuButton(built.MenuHost, "Toggle Campaign", () => ToggleMode(LevelModeIds.Campaign));
 
         _statusLabel = new Label { Text = string.Empty };
         GumUiLayout.FillParentWidth(_statusLabel);
         built.MenuHost.AddChild(_statusLabel);
 
-        EditorTwoColumnFormShell.AddMenuButton(
+        _form.AddMenuButton(
             built.MenuHost,
-            _menuEntries,
             "Save",
             () =>
             {
                 ApplyTextFields();
                 onSave();
-            },
-            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
-        EditorTwoColumnFormShell.AddMenuButton(
-            built.MenuHost,
-            _menuEntries,
-            "Back",
-            onBack,
-            onFocused: () => SetFocusZone(FocusZone.Menu, resetIndex: false));
+            });
+        _form.AddMenuButton(built.MenuHost, "Back", onBack);
 
-        BuildSettingsColumn(document);
-        SetFocusZone(FocusZone.Settings, resetIndex: true);
+        _form.RebuildSettings(AddSettingsRows);
+        _form.FocusSettings(resetIndex: true);
     }
 
     public void SyncStatus(string text)
@@ -134,9 +82,9 @@ public sealed class EditorLevelEditView
     public void ApplyTextFields()
     {
         if (_idBox is not null && !string.IsNullOrWhiteSpace(_idBox.Text))
-            _document.Id = _idBox.Text.Trim();
+            _document.Id = _idBox.Text;
         if (_titleBox is not null)
-            _document.Title = string.IsNullOrWhiteSpace(_titleBox.Text) ? _document.Id : _titleBox.Text.Trim();
+            _document.Title = string.IsNullOrWhiteSpace(_titleBox.Text) ? _document.Id : _titleBox.Text;
         _document.IsDirty = true;
     }
 
@@ -145,26 +93,13 @@ public sealed class EditorLevelEditView
         if (IsTextEntryActive)
             return;
 
-        TickPointerHold(pointer, elapsedSeconds);
-        TryBeginPointerHold(pointer);
-
-        if (TrySwitchColumn(commands))
-            return;
-
-        if (_focusZone == FocusZone.Menu)
-        {
-            HandleMenuInput(commands, elapsedSeconds);
-            return;
-        }
-
-        HandleSettingsInput(commands, elapsedSeconds);
+        _form.HandleInput(commands, elapsedSeconds, pointer);
     }
 
     public void Clear()
     {
         GumService.Default.Root.Children.Clear();
-        _rootPanel = null;
-        _settingsScroll = null;
+        _form.Clear();
         _settingsHost = null;
         _statusLabel = null;
         _mapLabel = null;
@@ -174,287 +109,43 @@ public sealed class EditorLevelEditView
         _modesLabel = null;
         _idBox = null;
         _titleBox = null;
-        _settingsEntries.Clear();
-        _menuEntries.Clear();
-        _navigateRepeat.Reset();
-        _focusZone = FocusZone.Settings;
-        _settingsFocusIndex = 0;
-        _menuFocusIndex = 0;
         _mapIds = [];
         _mapIndex = 0;
-        _confirmRepeatTimer = 0f;
-        ClearPointerHold();
-        _minDecrease = null;
-        _minIncrease = null;
-        _maxDecrease = null;
-        _maxIncrease = null;
-        _slotsDecrease = null;
-        _slotsIncrease = null;
-        _goldDecrease = null;
-        _goldIncrease = null;
-        _capDecrease = null;
-        _capIncrease = null;
-        _stepperRows = [];
     }
 
-    private void BuildSettingsColumn(EditableLevelDocument document)
+    private void AddSettingsRows()
     {
         if (_settingsHost is null)
             return;
 
-        EditorTwoColumnFormShell.AddTextField(_settingsHost, "Level Id (Levels/ folder name)", document.Id, out _idBox);
-        EditorTwoColumnFormShell.AddTextField(_settingsHost, "Title (display name)", document.Title, out _titleBox);
+        EditorTwoColumnFormShell.AddTextField(_settingsHost, "Level Id (Levels/ folder name)", _document.Id, out _idBox);
+        EditorTwoColumnFormShell.AddTextField(_settingsHost, "Title (display name)", _document.Title, out _titleBox);
 
-        _mapLabel = new Label { Text = MapCaption() };
-        GumUiLayout.FillParentWidth(_mapLabel);
-        _settingsHost.AddChild(_mapLabel);
-        AddSettingsButton("Prev Map", () => CycleMap(-1));
-        AddSettingsButton("Next Map", () => CycleMap(+1));
+        _mapLabel = AddLabel(MapCaption());
+        _form.AddSettingsButton("Prev Map", () => CycleMap(-1));
+        _form.AddSettingsButton("Next Map", () => CycleMap(+1));
 
-        _playersLabel = new Label { Text = PlayersCaption() };
-        GumUiLayout.FillParentWidth(_playersLabel);
-        _settingsHost.AddChild(_playersLabel);
-        AddStepperRow(_settingsHost, () => AdjustPlayersMin(-1), () => AdjustPlayersMin(+1), out _minDecrease, out _minIncrease, "Min players");
-        AddStepperRow(_settingsHost, () => AdjustPlayersMax(-1), () => AdjustPlayersMax(+1), out _maxDecrease, out _maxIncrease, "Max players");
-        AddStepperRow(_settingsHost, () => AdjustDefaultSlots(-1), () => AdjustDefaultSlots(+1), out _slotsDecrease, out _slotsIncrease, "Default slots");
+        _playersLabel = AddLabel(PlayersCaption());
+        AddLabel("Min players");
+        _form.AddStepper(() => AdjustPlayersMin(-1), () => AdjustPlayersMin(+1));
+        AddLabel("Max players");
+        _form.AddStepper(() => AdjustPlayersMax(-1), () => AdjustPlayersMax(+1));
+        AddLabel("Default slots");
+        _form.AddStepper(() => AdjustDefaultSlots(-1), () => AdjustDefaultSlots(+1));
 
-        _goldLabel = new Label { Text = GoldCaption() };
-        GumUiLayout.FillParentWidth(_goldLabel);
-        _settingsHost.AddChild(_goldLabel);
-        AddStepperRow(_settingsHost, () => AdjustGold(-50), () => AdjustGold(+50), out _goldDecrease, out _goldIncrease);
+        _goldLabel = AddLabel(GoldCaption());
+        _form.AddStepper(() => AdjustGold(-50), () => AdjustGold(+50));
 
-        _capLabel = new Label { Text = CapCaption() };
-        GumUiLayout.FillParentWidth(_capLabel);
-        _settingsHost.AddChild(_capLabel);
-        AddStepperRow(_settingsHost, () => AdjustCap(-1), () => AdjustCap(+1), out _capDecrease, out _capIncrease);
-
-        _stepperRows =
-        [
-            (_minDecrease!, _minIncrease!),
-            (_maxDecrease!, _maxIncrease!),
-            (_slotsDecrease!, _slotsIncrease!),
-            (_goldDecrease!, _goldIncrease!),
-            (_capDecrease!, _capIncrease!),
-        ];
+        _capLabel = AddLabel(CapCaption());
+        _form.AddStepper(() => AdjustCap(-1), () => AdjustCap(+1));
     }
 
-    private void HandleSettingsInput(IGameCommandSource commands, float elapsedSeconds)
+    private Label AddLabel(string text)
     {
-        if (_settingsEntries.Count == 0)
-            return;
-
-        if (IsStepperFocused()
-            && HeldCommandRepeat.TryTick(commands, GameCommand.Confirm, elapsedSeconds, ref _confirmRepeatTimer))
-        {
-            _settingsEntries[_settingsFocusIndex].Activate();
-            return;
-        }
-
-        if (!IsStepperFocused())
-            _confirmRepeatTimer = 0f;
-
-        if (IsStepperFocused())
-        {
-            var horizontal = _navigateRepeat.TryGetHorizontalDelta(commands, elapsedSeconds);
-            if (horizontal != 0 && TryMoveWithinStepperRow(horizontal))
-            {
-                EnsureSettingsRowVisible();
-                return;
-            }
-
-            var vertical = _navigateRepeat.TryGetDelta(commands, elapsedSeconds);
-            if (vertical != 0)
-            {
-                TryMoveStepperRowVertically(vertical);
-                EnsureSettingsRowVisible();
-                return;
-            }
-
-            if (commands.WasPressed(GameCommand.Confirm))
-            {
-                _settingsEntries[_settingsFocusIndex].Activate();
-                return;
-            }
-
-            GumFocusableButtonList.MaintainFocus(_settingsEntries, ref _settingsFocusIndex);
-            return;
-        }
-
-        var result = GumFocusableButtonList.HandleVerticalInput(
-            commands,
-            _settingsEntries,
-            ref _settingsFocusIndex,
-            _navigateRepeat,
-            elapsedSeconds);
-
-        if (result == GumFocusListResult.Navigated)
-            EnsureSettingsRowVisible();
-    }
-
-    private void HandleMenuInput(IGameCommandSource commands, float elapsedSeconds)
-    {
-        if (_menuEntries.Count == 0)
-            return;
-
-        GumFocusableButtonList.HandleVerticalInput(
-            commands,
-            _menuEntries,
-            ref _menuFocusIndex,
-            _navigateRepeat,
-            elapsedSeconds);
-    }
-
-    private bool TrySwitchColumn(IGameCommandSource commands) =>
-        EditorTwoColumnFormShell.TrySwitchTwoZones(
-            commands,
-            allowDpadColumnSwitch: false,
-            currentZone: (int)_focusZone,
-            settingsZone: (int)FocusZone.Settings,
-            menuZone: (int)FocusZone.Menu,
-            setZone: zone => SetFocusZone((FocusZone)zone, resetIndex: false));
-
-    private bool TryMoveWithinStepperRow(int horizontalDelta)
-    {
-        if (!TryGetStepperPlacement(out var rowIndex, out var onIncrease))
-            return false;
-
-        var targetIncrease = horizontalDelta > 0;
-        if (targetIncrease == onIncrease)
-            return true;
-
-        return FocusStepper(rowIndex, targetIncrease);
-    }
-
-    /// <summary>+1 down / -1 up between −/+ rows, keeping − or + side.</summary>
-    private void TryMoveStepperRowVertically(int verticalDelta)
-    {
-        if (!TryGetStepperPlacement(out var rowIndex, out var onIncrease))
-            return;
-
-        var nextRow = rowIndex + verticalDelta;
-        if (nextRow >= 0 && nextRow < _stepperRows.Length)
-        {
-            FocusStepper(nextRow, onIncrease);
-            return;
-        }
-
-        // Up from the first stepper row → last control above steppers (Next Map).
-        if (verticalDelta < 0 && rowIndex == 0 && _stepperRows.Length > 0)
-        {
-            var firstStepperIndex = IndexOfSettingsButton(_stepperRows[0].Decrease);
-            if (firstStepperIndex > 0)
-            {
-                _settingsFocusIndex = firstStepperIndex - 1;
-                GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-            }
-        }
-    }
-
-    private bool TryGetStepperPlacement(out int rowIndex, out bool onIncrease)
-    {
-        rowIndex = -1;
-        onIncrease = false;
-        if (_settingsFocusIndex < 0 || _settingsFocusIndex >= _settingsEntries.Count)
-            return false;
-
-        var button = _settingsEntries[_settingsFocusIndex].Button;
-        for (var i = 0; i < _stepperRows.Length; i++)
-        {
-            if (ReferenceEquals(button, _stepperRows[i].Decrease))
-            {
-                rowIndex = i;
-                onIncrease = false;
-                return true;
-            }
-
-            if (ReferenceEquals(button, _stepperRows[i].Increase))
-            {
-                rowIndex = i;
-                onIncrease = true;
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private bool FocusStepper(int rowIndex, bool onIncrease)
-    {
-        if (rowIndex < 0 || rowIndex >= _stepperRows.Length)
-            return false;
-
-        var target = onIncrease ? _stepperRows[rowIndex].Increase : _stepperRows[rowIndex].Decrease;
-        var index = IndexOfSettingsButton(target);
-        if (index < 0)
-            return false;
-
-        _settingsFocusIndex = index;
-        GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-        return true;
-    }
-
-    private int IndexOfSettingsButton(Button button)
-    {
-        for (var i = 0; i < _settingsEntries.Count; i++)
-        {
-            if (ReferenceEquals(_settingsEntries[i].Button, button))
-                return i;
-        }
-
-        return -1;
-    }
-
-    private void SetFocusZone(FocusZone zone, bool resetIndex)
-    {
-        _focusZone = zone;
-        if (zone == FocusZone.Settings)
-        {
-            if (resetIndex || _settingsEntries.Count == 0)
-                _settingsFocusIndex = 0;
-            else
-                _settingsFocusIndex = Math.Clamp(_settingsFocusIndex, 0, _settingsEntries.Count - 1);
-
-            GumFocusableButtonList.ClearFocus(_menuEntries);
-            if (_settingsEntries.Count > 0)
-            {
-                GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-                EnsureSettingsRowVisible();
-            }
-        }
-        else
-        {
-            if (resetIndex || _menuEntries.Count == 0)
-                _menuFocusIndex = 0;
-            else
-                _menuFocusIndex = Math.Clamp(_menuFocusIndex, 0, _menuEntries.Count - 1);
-
-            GumFocusableButtonList.ClearFocus(_settingsEntries);
-            if (_menuEntries.Count > 0)
-                GumFocusableButtonList.ApplyFocus(_menuEntries, ref _menuFocusIndex);
-        }
-    }
-
-    private void EnsureSettingsRowVisible()
-    {
-        if (_settingsEntries.Count == 0
-            || _settingsScroll is null
-            || _settingsHost is null)
-        {
-            return;
-        }
-
-        GumScrollViewerChrome.StealFocusFromScrollChrome(_settingsScroll);
-        GumScrollListLayout.EnsureFocusedRowVisible(
-            _settingsScroll,
-            _settingsHost,
-            _settingsEntries[_settingsFocusIndex].Button.Visual,
-            listFocusStartIndex: 0,
-            listFocusCount: _settingsEntries.Count,
-            _settingsFocusIndex,
-            StackSpacing,
-            MinScrollViewport,
-            scrollIntoViewMargin: 10f,
-            listBottomPadding: 28f);
+        var label = new Label { Text = text };
+        GumUiLayout.FillParentWidth(label);
+        _settingsHost!.AddChild(label);
+        return label;
     }
 
     private void CycleMap(int delta)
@@ -556,159 +247,4 @@ public sealed class EditorLevelEditView
     private string CapCaption() => $"Unit cap: {_document.DefaultUnitCap}";
 
     private string ModesCaption() => "Modes: " + string.Join(", ", _document.Modes);
-
-
-    private void AddSettingsButton(string text, Action onClick)
-    {
-        if (_settingsHost is null)
-            return;
-        var button = new Button { Text = text };
-        GumUiLayout.FillParentWidth(button);
-        button.Click += (_, _) =>
-        {
-            _settingsFocusIndex = _settingsEntries.Count;
-            SetFocusZone(FocusZone.Settings, resetIndex: false);
-            onClick();
-        };
-        _settingsHost.AddChild(button);
-        _settingsEntries.Add((button, onClick));
-    }
-
-
-    private void AddStepperRow(
-        Panel parent,
-        Action onDecrease,
-        Action onIncrease,
-        out Button decreaseButton,
-        out Button increaseButton,
-        string? rowCaption = null)
-    {
-        if (!string.IsNullOrWhiteSpace(rowCaption))
-        {
-            var caption = new Label { Text = rowCaption };
-            GumUiLayout.FillParentWidth(caption);
-            parent.AddChild(caption);
-        }
-
-        var row = new Panel();
-        GumUiLayout.FillParentWidth(row);
-        row.Visual.HeightUnits = DimensionUnitType.RelativeToChildren;
-        row.Visual.ChildrenLayout = ChildrenLayout.LeftToRightStack;
-        row.Visual.StackSpacing = 8f;
-        parent.AddChild(row);
-
-        decreaseButton = CreateStepperButton(row, "-", onDecrease);
-        increaseButton = CreateStepperButton(row, "+", onIncrease);
-    }
-
-    private Button CreateStepperButton(Panel row, string text, Action onActivate)
-    {
-        var button = new Button { Text = text };
-        GumUiLayout.SetAbsoluteWidth(button, 72f);
-        row.AddChild(button);
-        _settingsEntries.Add((button, onActivate));
-        return button;
-    }
-
-    private bool IsStepperFocused()
-    {
-        if (_focusZone != FocusZone.Settings
-            || _settingsFocusIndex < 0
-            || _settingsFocusIndex >= _settingsEntries.Count)
-        {
-            return false;
-        }
-
-        var button = _settingsEntries[_settingsFocusIndex].Button;
-        return ReferenceEquals(button, _minDecrease)
-            || ReferenceEquals(button, _minIncrease)
-            || ReferenceEquals(button, _maxDecrease)
-            || ReferenceEquals(button, _maxIncrease)
-            || ReferenceEquals(button, _slotsDecrease)
-            || ReferenceEquals(button, _slotsIncrease)
-            || ReferenceEquals(button, _goldDecrease)
-            || ReferenceEquals(button, _goldIncrease)
-            || ReferenceEquals(button, _capDecrease)
-            || ReferenceEquals(button, _capIncrease);
-    }
-
-    private void TryBeginPointerHold(IPointerSource pointer)
-    {
-        if (!pointer.WasPrimaryPressed)
-            return;
-
-        if (!TryFindStepperUnderPointer(out var focusIndex))
-            return;
-
-        _settingsFocusIndex = focusIndex;
-        SetFocusZone(FocusZone.Settings, resetIndex: false);
-        _settingsEntries[focusIndex].Activate();
-        _pointerHoldFocusIndex = focusIndex;
-        _pointerRepeatTimer = HeldCommandRepeat.DefaultInitialDelaySeconds;
-    }
-
-    private void TickPointerHold(IPointerSource pointer, float elapsedSeconds)
-    {
-        if (_pointerHoldFocusIndex < 0)
-            return;
-
-        if (!pointer.IsPrimaryDown)
-        {
-            ClearPointerHold();
-            return;
-        }
-
-        _pointerRepeatTimer -= elapsedSeconds;
-        if (_pointerRepeatTimer > 0f)
-            return;
-
-        _pointerRepeatTimer = HeldCommandRepeat.DefaultIntervalSeconds;
-        _settingsFocusIndex = _pointerHoldFocusIndex;
-        GumFocusableButtonList.ApplyFocus(_settingsEntries, ref _settingsFocusIndex);
-        _settingsEntries[_pointerHoldFocusIndex].Activate();
-    }
-
-    private void ClearPointerHold()
-    {
-        _pointerHoldFocusIndex = -1;
-        _pointerRepeatTimer = 0f;
-    }
-
-    private bool TryFindStepperUnderPointer(out int focusIndex)
-    {
-        focusIndex = -1;
-        var over = GumService.Default.Cursor.FrameworkElementOver;
-        if (over is null)
-            return false;
-
-        Button?[] steppers =
-        [
-            _minDecrease, _minIncrease,
-            _maxDecrease, _maxIncrease,
-            _slotsDecrease, _slotsIncrease,
-            _goldDecrease, _goldIncrease,
-            _capDecrease, _capIncrease,
-        ];
-
-        foreach (var stepper in steppers)
-        {
-            if (stepper is null)
-                continue;
-            if (!ReferenceEquals(over, stepper)
-                && !ReferenceEquals(over, stepper.Visual))
-            {
-                continue;
-            }
-
-            for (var i = 0; i < _settingsEntries.Count; i++)
-            {
-                if (!ReferenceEquals(_settingsEntries[i].Button, stepper))
-                    continue;
-                focusIndex = i;
-                return true;
-            }
-        }
-
-        return false;
-    }
 }

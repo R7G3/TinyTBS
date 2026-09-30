@@ -40,6 +40,13 @@ public sealed class LoadingView
         GumUiLayout.FillParentWidth(title);
         contentPanel.AddChild(title);
 
+        if (!string.IsNullOrWhiteSpace(viewModel.Note))
+        {
+            var note = new Label { Text = viewModel.Note };
+            GumUiLayout.FillParentWidth(note);
+            contentPanel.AddChild(note);
+        }
+
         _stageLabel = new Label { Text = viewModel.StageLabel };
         GumUiLayout.FillParentWidth(_stageLabel);
         contentPanel.AddChild(_stageLabel);

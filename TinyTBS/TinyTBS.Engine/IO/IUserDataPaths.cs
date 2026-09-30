@@ -2,11 +2,11 @@ namespace TinyTBS.Engine.IO;
 
 /// <summary>
 /// Platform-specific roots for writable game data and install-adjacent folders.
-/// Canonical layout: <c>{UserData}/Content/Modules</c>, <c>Bundles</c>, <c>Saves</c>, <c>Downloads</c>.
+/// Canonical layout: <c>{UserData}/Content/Modules</c>, <c>Bundles</c>, <c>Saves</c>, <c>Downloads</c>, <c>Logs</c>.
 /// </summary>
 public interface IUserDataPaths
 {
-    /// <summary>Root for Content/, Saves/, Downloads/.</summary>
+    /// <summary>Root for Content/, Saves/, Downloads/, Logs/.</summary>
     string UserDataRoot { get; }
 
     /// <summary>Game install / base directory (Desktop: next to executable).</summary>
@@ -24,6 +24,9 @@ public interface IUserDataPaths
     string Saves { get; }
     string Downloads { get; }
 
-    /// <summary>Ensures Content/Modules, Bundles, Saves, Downloads exist.</summary>
+    /// <summary><c>{UserData}/Logs</c> — session log files.</summary>
+    string Logs { get; }
+
+    /// <summary>Ensures Content/Modules, Bundles, Saves, Downloads, Logs exist.</summary>
     void EnsureCreated();
 }

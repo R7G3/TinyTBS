@@ -1,5 +1,5 @@
 using TinyTBS.Game.Editor.Map;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 
 namespace TinyTBS.Game.Editor.Validation;
 

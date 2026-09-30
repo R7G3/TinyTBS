@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using TinyTBS.Game.Editor.Presentation;
 
 namespace TinyTBS.Game.Input;
 
@@ -14,6 +13,15 @@ public sealed class GameCommandService : IGameCommandSource
 
     private readonly bool[] _current = new bool[CommandCount];
     private readonly bool[] _previous = new bool[CommandCount];
+    private readonly Func<bool> _isTextEntryActive;
+
+    /// <param name="isTextEntryActive">
+    /// True while a UI text field has the caret; Backspace then edits text instead of raising Cancel.
+    /// </param>
+    public GameCommandService(Func<bool>? isTextEntryActive = null)
+    {
+        _isTextEntryActive = isTextEntryActive ?? (() => false);
+    }
 
     private static int CommandCount => Enum.GetValues<GameCommand>().Length;
 
@@ -31,8 +39,7 @@ public sealed class GameCommandService : IGameCommandSource
         foreach (var command in Enum.GetValues<GameCommand>())
             _current[Index(command)] = DefaultInputBindings.IsPressed(command, keyboard, gamePad);
 
-        // Backspace is Cancel for menus; while a Gum TextBox has caret, keep it for editing.
-        if (EditorGumTextEntry.IsReceiverTextBox())
+        if (_isTextEntryActive())
             _current[Index(GameCommand.Cancel)] = false;
 
         CameraPanStick = ReadCameraPanStick(gamePad);

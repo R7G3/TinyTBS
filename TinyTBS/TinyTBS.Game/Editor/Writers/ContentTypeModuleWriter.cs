@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Modules;
-using TinyTBS.Game.Modules.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 
@@ -16,75 +16,53 @@ public sealed class ContentTypeModuleWriter
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public ContentTypeModuleWriter(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public ContentTypeModuleWriter(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
     }
 
-    public string AllocateUniqueModuleId(string baseId)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseId);
-        ContentModuleManifestParser.ValidateModuleId(baseId.Trim());
-        var stem = baseId.Trim();
-        _userDataPaths.EnsureCreated();
-        if (!Directory.Exists(_files.Combine(_userDataPaths.Modules, stem)))
-            return stem;
-
-        for (var suffix = 2; suffix < 10_000; suffix++)
-        {
-            var candidate = stem + "_" + suffix;
-            if (!Directory.Exists(_files.Combine(_userDataPaths.Modules, candidate)))
-                return candidate;
-        }
-
-        throw new EditorException("Could not allocate a unique module id.");
-    }
-
     public string CreateNew(
         ContentModuleType type,
         string moduleId,
-        string title,
+        ref string title,
         string? description = null)
     {
         if (type is not (ContentModuleType.Units or ContentModuleType.Buildings or ContentModuleType.Theme))
             throw new EditorException("Unsupported module type for this wizard.");
 
-        ContentModuleManifestParser.ValidateModuleId(moduleId.Trim());
-        var id = moduleId.Trim();
+        ArgumentException.ThrowIfNullOrWhiteSpace(moduleId);
+        ContentModuleManifestParser.ValidateModuleId(moduleId);
+        var id = moduleId;
+        title = SavedUserText.Or(title, id);
+        var savedDescription = SavedUserText.Optional(description);
         _userDataPaths.EnsureCreated();
         var moduleRoot = _files.Combine(_userDataPaths.Modules, id);
-        if (Directory.Exists(moduleRoot))
+        if (_files.DirectoryExists(moduleRoot))
             throw new EditorException($"User module '{id}' already exists.");
 
-        var typeName = type switch
-        {
-            ContentModuleType.Units => "units",
-            ContentModuleType.Buildings => "buildings",
-            ContentModuleType.Theme => "theme",
-            _ => throw new EditorException("Unsupported module type for this wizard."),
-        };
+        var typeName = ContentModuleTypeIds.ToId(type);
 
         try
         {
-            Directory.CreateDirectory(moduleRoot);
+            _files.CreateDirectory(moduleRoot);
 
             object document;
             if (type == ContentModuleType.Units)
             {
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Units"));
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "units"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Units"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "units"));
                 document = new
                 {
                     formatVersion = 1,
                     id,
                     type = typeName,
                     @namespace = id,
-                    title = title.Trim(),
-                    description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                    title,
+                    description = savedDescription,
                     version = "1.0.0",
                     content = new { unitsDir = "Units" },
                     recruit = new { addsToPool = Array.Empty<string>() },
@@ -92,32 +70,32 @@ public sealed class ContentTypeModuleWriter
             }
             else if (type == ContentModuleType.Buildings)
             {
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Buildings"));
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "buildings"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Buildings"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "buildings"));
                 document = new
                 {
                     formatVersion = 1,
                     id,
                     type = typeName,
                     @namespace = id,
-                    title = title.Trim(),
-                    description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                    title,
+                    description = savedDescription,
                     version = "1.0.0",
                     content = new { buildingsDir = "Buildings" },
                 };
             }
             else
             {
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "terrain"));
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "misc"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "terrain"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "misc"));
                 document = new
                 {
                     formatVersion = 1,
                     id,
                     type = typeName,
                     @namespace = id,
-                    title = title.Trim(),
-                    description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+                    title,
+                    description = savedDescription,
                     version = "1.0.0",
                     content = new
                     {
@@ -129,7 +107,7 @@ public sealed class ContentTypeModuleWriter
             }
 
             var path = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
-            File.WriteAllText(
+            _files.WriteAllText(
                 path,
                 JsonSerializer.Serialize(document, WriteOptions) + Environment.NewLine,
                 Encoding.UTF8);
@@ -139,8 +117,8 @@ public sealed class ContentTypeModuleWriter
         {
             try
             {
-                if (Directory.Exists(moduleRoot))
-                    Directory.Delete(moduleRoot, recursive: true);
+                if (_files.DirectoryExists(moduleRoot))
+                    _files.DeleteDirectory(moduleRoot);
             }
             catch (IOException)
             {

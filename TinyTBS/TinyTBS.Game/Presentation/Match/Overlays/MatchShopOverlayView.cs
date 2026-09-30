@@ -5,7 +5,7 @@ using Gum.Forms.DefaultVisuals.V3;
 using Gum.Managers;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Match;
+using TinyTBS.Rules.Match;
 using TinyTBS.Game.Presentation.Match.Controls;
 using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.ViewModels;
