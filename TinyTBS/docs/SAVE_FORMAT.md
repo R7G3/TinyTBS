@@ -27,7 +27,7 @@
 
 New Game при живом suspended: повторный Confirm («Confirm New Game again…»), Back отменяет.
 
-Экран **Загрузка**: обе kind в одной ленте newest-first (подпись `Match` / `Campaign`). Load при live suspended — двойной Confirm. Пауза → Load сначала suspend'ит текущий матч.
+Экран **Загрузка**: обе kind в одной ленте newest-first (подпись `Match` / `Campaign`). Карточка сейва (Load / Delete) — единственное подтверждение; при живом suspended Load его сбрасывает. Пауза → Load сначала suspend'ит текущий матч.
 
 ### Orphan match (campaign удалён)
 

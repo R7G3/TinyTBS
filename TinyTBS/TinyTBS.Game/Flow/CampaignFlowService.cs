@@ -30,6 +30,21 @@ public sealed class CampaignFlowService
         int unitCap) =>
         _progress.BeginOrResumeRun(campaign, scenarioModuleId, levelId, composition, playerSeats, unitCap);
 
+    /// <summary>
+    /// Copies composition, seats and unit cap from the loaded match onto the run, attaches the run,
+    /// then fires chapter-start hooks. The loading screen does not edit the run itself.
+    /// </summary>
+    public void AttachOpenedMatch(CampaignRunState run, MatchRuntime runtime)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(runtime);
+        run.Composition ??= runtime.Composition;
+        run.PlayerSeats ??= runtime.PlayerSeats;
+        run.UnitCap ??= runtime.State.UnitCap;
+        runtime.CampaignRun = run;
+        NotifyMatchOpened(run);
+    }
+
     /// <summary>Best-effort chapter-start hook once the match session exists. A missing definition still persists the run.</summary>
     public void NotifyMatchOpened(CampaignRunState run)
     {

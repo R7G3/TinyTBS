@@ -187,14 +187,9 @@ public sealed class LoadingScreen : MenuScreen
 
         if (_request.CampaignRun is { } campaignRun)
         {
-            campaignRun.Composition ??= session.Runtime.Composition;
-            campaignRun.PlayerSeats ??= session.Runtime.PlayerSeats;
-            campaignRun.UnitCap ??= session.State.UnitCap;
-            session.Runtime.CampaignRun = campaignRun;
-
             try
             {
-                App.Campaigns.NotifyMatchOpened(campaignRun);
+                App.Campaigns.AttachOpenedMatch(campaignRun, session.Runtime);
             }
             catch (Exception exception)
             {

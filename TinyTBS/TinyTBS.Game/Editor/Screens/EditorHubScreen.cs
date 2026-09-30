@@ -1,35 +1,25 @@
 using Microsoft.Xna.Framework;
 using TinyTBS.Engine.Input;
-using TinyTBS.Game.Assets;
-using TinyTBS.Game.Editor.Buildings;
-using TinyTBS.Game.Editor.Bundles;
-using TinyTBS.Game.Editor.Levels;
-using TinyTBS.Game.Editor.Map;
 using TinyTBS.Game.Editor.Presentation;
-using TinyTBS.Game.Editor.Units;
 using TinyTBS.Game.Editor.ViewModels;
 using TinyTBS.Game.Editor.Workspace;
-using TinyTBS.Game.Editor.Writers;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Maps;
 using TinyTBS.Game.Modules;
-using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Game.Screens;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Screens;
 
 /// <summary>
-/// Editor hub: modules, CoW duplicate, open session, maps/levels/campaign/units/buildings.
+/// Editor hub glue: input, back, and navigation. Listing, copy, open and delete go through
+/// <see cref="EditorHubService"/>.
 /// </summary>
 public sealed class EditorHubScreen : MenuScreen
 {
     private readonly EditorHubViewModel _viewModel = new();
     private readonly EditorHubView _view = new();
 
-    private ContentModuleLibrary? _moduleLibrary;
-    private ContentBundleLibrary? _bundleLibrary;
-    private BundleDocumentWriter? _bundleWriter;
-    private EditorWorkspaceService? _workspace;
+    private EditorHubService? _hub;
     private EditorWorkspaceSession? _session;
 
     /// <summary>
@@ -50,16 +40,13 @@ public sealed class EditorHubScreen : MenuScreen
         _session = session;
     }
 
-    private EditorWorkspaceService Workspace =>
-        _workspace ?? throw new InvalidOperationException("Editor hub is not loaded.");
+    private EditorHubService Hub =>
+        _hub ?? throw new InvalidOperationException("Editor hub is not loaded.");
 
     protected override void OnLoad()
     {
         TinyGame.UserDataPaths.EnsureCreated();
-        _moduleLibrary = new ContentModuleLibrary(TinyGame.Files, TinyGame.UserDataPaths);
-        _bundleLibrary = new ContentBundleLibrary(TinyGame.Files, TinyGame.UserDataPaths);
-        _bundleWriter = new BundleDocumentWriter(TinyGame.Files, TinyGame.UserDataPaths);
-        _workspace = new EditorWorkspaceService(TinyGame.Files, TinyGame.UserDataPaths);
+        _hub = new EditorHubService(TinyGame.Files, TinyGame.UserDataPaths);
 
         BeginInputSuppress();
         RefreshLibrary(
@@ -71,10 +58,7 @@ public sealed class EditorHubScreen : MenuScreen
     protected override void OnUnload()
     {
         _view.Clear();
-        _moduleLibrary = null;
-        _bundleLibrary = null;
-        _bundleWriter = null;
-        _workspace = null;
+        _hub = null;
     }
 
     protected override void OnUpdate(GameTime gameTime, float elapsedSeconds)
@@ -126,41 +110,13 @@ public sealed class EditorHubScreen : MenuScreen
 
     private void RefreshLibrary(string statusText)
     {
-        ArgumentNullException.ThrowIfNull(_moduleLibrary);
-        ArgumentNullException.ThrowIfNull(_bundleLibrary);
-
-        var modules = _moduleLibrary.ListEffectiveModules()
-            .Select(module => new EditorModuleRowViewModel
-            {
-                ModuleId = module.ModuleId,
-                Title = module.Title,
-                Type = module.Type,
-                Source = module.Source,
-                ModuleRootPath = module.ModuleRootPath,
-            })
-            .ToArray();
-
-        var bundles = _bundleLibrary.ListEffectiveBundles()
-            .Select(bundle => new EditorBundleRowViewModel
-            {
-                BundleId = bundle.BundleId,
-                Title = bundle.Title,
-                Source = bundle.Source,
-                BundleFilePath = bundle.BundleFilePath,
-            })
-            .ToArray();
-
-        _viewModel.Modules = modules;
-        _viewModel.Bundles = bundles;
-        _viewModel.StatusText = statusText;
-        _viewModel.CanPublish = false;
-        SyncOpenFields();
+        Hub.Fill(_viewModel, _session, statusText);
         _view.Build(
             _viewModel,
-            onNewScenario: OpenNewScenarioWizard,
-            onNewUnitsModule: () => OpenNewContentTypeWizard(ContentModuleType.Units),
-            onNewBuildingsModule: () => OpenNewContentTypeWizard(ContentModuleType.Buildings),
-            onNewThemeModule: () => OpenNewContentTypeWizard(ContentModuleType.Theme),
+            onNewScenario: () => Navigator.ToEditorNewScenario(_session),
+            onNewUnitsModule: () => Navigator.ToEditorNewContentType(_session, ContentModuleType.Units),
+            onNewBuildingsModule: () => Navigator.ToEditorNewContentType(_session, ContentModuleType.Buildings),
+            onNewThemeModule: () => Navigator.ToEditorNewContentType(_session, ContentModuleType.Theme),
             onExportModule: ExportOpenModule,
             onNewMap: OpenNewMapWizard,
             onNewLevel: OpenNewLevelWizard,
@@ -185,42 +141,11 @@ public sealed class EditorHubScreen : MenuScreen
             onBack: HandleBack);
     }
 
-    private void SyncOpenFields()
-    {
-        if (_session is null)
-        {
-            _viewModel.OpenModuleId = null;
-            _viewModel.OpenModuleTitle = null;
-            _viewModel.OpenModuleType = null;
-            _viewModel.CanCreateMap = false;
-            _viewModel.Maps = [];
-            _viewModel.Levels = [];
-            _viewModel.Units = [];
-            _viewModel.Buildings = [];
-            return;
-        }
-
-        _viewModel.OpenModuleId = _session.ModuleId;
-        _viewModel.OpenModuleTitle = _session.Title;
-        _viewModel.OpenModuleType = _session.Type;
-        _viewModel.CanCreateMap = _session.Type == ContentModuleType.Scenario;
-        _viewModel.Maps = Workspace.ListMapIds(_session);
-        _viewModel.Levels = Workspace.ListLevelIds(_session);
-        _viewModel.Units = Workspace.ListUnitIds(_session);
-        _viewModel.Buildings = Workspace.ListBuildingIds(_session);
-    }
-
     private void ShowStatus(string statusText)
     {
         _viewModel.StatusText = statusText;
         _view.SyncStatus(_viewModel);
     }
-
-    private void OpenNewScenarioWizard() =>
-        Navigator.ToEditorNewScenario(_session);
-
-    private void OpenNewContentTypeWizard(ContentModuleType type) =>
-        Navigator.ToEditorNewContentType(_session, type);
 
     private void OpenThemeEditor()
     {
@@ -232,12 +157,7 @@ public sealed class EditorHubScreen : MenuScreen
 
     private void OpenNewBundle()
     {
-        ArgumentNullException.ThrowIfNull(_moduleLibrary);
-        ArgumentNullException.ThrowIfNull(_bundleWriter);
-
-        var modules = _moduleLibrary.ListEffectiveModules();
-        var bundleId = _bundleWriter.AllocateUniqueBundleId("user_bundle");
-        var document = EditableBundleDocument.CreateDefault(bundleId, modules);
+        var document = Hub.CreateBundle();
         Navigator.ToEditorBundle(_session, document, isNew: true);
     }
 
@@ -245,10 +165,7 @@ public sealed class EditorHubScreen : MenuScreen
     {
         try
         {
-            var path = TinyGame.Files.Combine(
-                TinyGame.UserDataPaths.Bundles,
-                bundleId + ContentBundleFiles.BundleJsonExtension);
-            var document = EditableBundleDocument.Load(path, TinyGame.Files);
+            var document = Hub.LoadUserBundle(bundleId);
             Navigator.ToEditorBundle(_session, document, isNew: false);
         }
         catch (Exception exception)
@@ -259,11 +176,9 @@ public sealed class EditorHubScreen : MenuScreen
 
     private void DeleteBundle(string bundleId)
     {
-        ArgumentNullException.ThrowIfNull(_bundleWriter);
-
         try
         {
-            if (_bundleWriter.Delete(bundleId))
+            if (Hub.DeleteBundle(bundleId))
                 RefreshLibrary($"Deleted bundle '{bundleId}'.");
             else
                 ShowStatus($"Bundle '{bundleId}' was already gone.");
@@ -276,8 +191,6 @@ public sealed class EditorHubScreen : MenuScreen
 
     private void ActivateBundle(EditorBundleRowViewModel row)
     {
-        ArgumentNullException.ThrowIfNull(_bundleWriter);
-
         try
         {
             if (row.Source == ContentModuleSource.UserLibrary)
@@ -286,18 +199,7 @@ public sealed class EditorHubScreen : MenuScreen
                 return;
             }
 
-            var definition = ContentBundleLoader.Load(
-                row.BundleFilePath,
-                TinyGame.Files,
-                ContentModuleSource.Bundled);
-            var targetId = _bundleWriter.AllocateUniqueBundleId(row.BundleId);
-            var title = targetId == row.BundleId ? row.Title : row.Title + " (copy)";
-            _bundleWriter.CopyToUserLibrary(definition, targetId, title);
-            var document = EditableBundleDocument.Load(
-                TinyGame.Files.Combine(
-                    TinyGame.UserDataPaths.Bundles,
-                    targetId + ContentBundleFiles.BundleJsonExtension),
-                TinyGame.Files);
+            var document = Hub.CopyBundledBundle(row.BundleFilePath, row.BundleId, row.Title);
             Navigator.ToEditorBundle(_session, document, isNew: false);
         }
         catch (Exception exception) when (exception is EditorException or ContentBundleException or IOException)
@@ -313,8 +215,7 @@ public sealed class EditorHubScreen : MenuScreen
 
         try
         {
-            var exporter = new TinymodModuleExporter(TinyGame.Files, TinyGame.UserDataPaths);
-            var zipPath = exporter.ExportToDownloads(_session.ModuleRootPath, _session.ModuleId);
+            var zipPath = Hub.ExportModule(_session);
             RefreshLibrary($"Exported → {zipPath}");
         }
         catch (Exception exception) when (exception is TinymodExportException or IOException)
@@ -336,10 +237,7 @@ public sealed class EditorHubScreen : MenuScreen
         if (_session is null || _session.Type != ContentModuleType.Scenario)
             return;
 
-        var maps = Workspace.ListMapIds(_session);
-        var mapId = maps.Count > 0 ? maps[0] : "map";
-        var levelId = Workspace.AllocateLevelId(_session, mapId);
-        var document = EditableLevelDocument.CreateDefault(levelId, title: levelId, mapId: mapId);
+        var document = Hub.CreateLevel(_session);
         Navigator.ToEditorLevel(_session, document, isNew: true);
     }
 
@@ -356,7 +254,7 @@ public sealed class EditorHubScreen : MenuScreen
         if (_session is null || _session.Type != ContentModuleType.Units)
             return;
 
-        var document = EditableUnitDocument.CreateDefault(Workspace.AllocateUnitId(_session, "unit"));
+        var document = Hub.CreateUnit(_session);
         Navigator.ToEditorUnit(_session, document, isNew: true);
     }
 
@@ -365,7 +263,7 @@ public sealed class EditorHubScreen : MenuScreen
         if (_session is null || _session.Type != ContentModuleType.Buildings)
             return;
 
-        var document = EditableBuildingDocument.CreateDefault(Workspace.AllocateBuildingId(_session, "building"));
+        var document = Hub.CreateBuilding(_session);
         Navigator.ToEditorBuilding(_session, document, isNew: true);
     }
 
@@ -376,8 +274,7 @@ public sealed class EditorHubScreen : MenuScreen
 
         try
         {
-            var definition = MapFolderLoader.Load(Workspace.MapFolder(_session, mapId), TinyGame.Files);
-            var document = EditableMapDocument.FromDefinition(definition);
+            var document = Hub.LoadMap(_session, mapId);
             Navigator.ToEditorMapPaint(_session, document, isNewMap: false);
         }
         catch (Exception exception)
@@ -393,7 +290,7 @@ public sealed class EditorHubScreen : MenuScreen
 
         try
         {
-            Workspace.DeleteMap(_session, mapId);
+            Hub.DeleteMap(_session, mapId);
             RefreshLibrary($"Deleted map '{mapId}'.");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -409,7 +306,7 @@ public sealed class EditorHubScreen : MenuScreen
 
         try
         {
-            var document = EditableLevelDocument.Load(Workspace.LevelFolder(_session, levelId), TinyGame.Files);
+            var document = Hub.LoadLevel(_session, levelId);
             Navigator.ToEditorLevel(_session, document, isNew: false);
         }
         catch (Exception exception)
@@ -425,7 +322,7 @@ public sealed class EditorHubScreen : MenuScreen
 
         try
         {
-            Workspace.DeleteLevel(_session, levelId);
+            Hub.DeleteLevel(_session, levelId);
             RefreshLibrary($"Deleted level '{levelId}'.");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -441,7 +338,7 @@ public sealed class EditorHubScreen : MenuScreen
 
         try
         {
-            var document = EditableUnitDocument.Load(Workspace.UnitFile(_session, unitId), TinyGame.Files);
+            var document = Hub.LoadUnit(_session, unitId);
             Navigator.ToEditorUnit(_session, document, isNew: false);
         }
         catch (Exception exception)
@@ -457,7 +354,7 @@ public sealed class EditorHubScreen : MenuScreen
 
         try
         {
-            Workspace.DeleteUnit(_session, unitId);
+            Hub.DeleteUnit(_session, unitId);
             RefreshLibrary($"Deleted unit '{unitId}'.");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or EditorException)
@@ -473,7 +370,7 @@ public sealed class EditorHubScreen : MenuScreen
 
         try
         {
-            var document = EditableBuildingDocument.Load(Workspace.BuildingFile(_session, buildingId), TinyGame.Files);
+            var document = Hub.LoadBuilding(_session, buildingId);
             Navigator.ToEditorBuilding(_session, document, isNew: false);
         }
         catch (Exception exception)
@@ -489,7 +386,7 @@ public sealed class EditorHubScreen : MenuScreen
 
         try
         {
-            Workspace.DeleteBuilding(_session, buildingId);
+            Hub.DeleteBuilding(_session, buildingId);
             RefreshLibrary($"Deleted building '{buildingId}'.");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -502,15 +399,12 @@ public sealed class EditorHubScreen : MenuScreen
     {
         try
         {
-            if (row.Source == ContentModuleSource.UserLibrary)
-            {
-                _session = new EditorWorkspaceSession(row.ModuleId, row.ModuleRootPath, row.Type, row.Title);
-                RefreshLibrary($"Opened '{row.ModuleId}'.");
-                return;
-            }
-
-            _session = Workspace.CopyToUserLibrary(row.ModuleId, row.ModuleRootPath, row.Type, row.Title);
-            RefreshLibrary($"Duplicated '{row.ModuleId}' → '{_session.ModuleId}' and opened.");
+            var openedCopy = row.Source != ContentModuleSource.UserLibrary;
+            _session = Hub.OpenListedModule(row);
+            RefreshLibrary(
+                openedCopy
+                    ? $"Duplicated '{row.ModuleId}' → '{_session.ModuleId}' and opened."
+                    : $"Opened '{row.ModuleId}'.");
         }
         catch (Exception exception) when (exception is EditorException or TinymodInstallException or IOException)
         {
@@ -535,9 +429,6 @@ public sealed class EditorHubScreen : MenuScreen
             return;
         }
 
-        GoToMainMenu();
-    }
-
-    private void GoToMainMenu() =>
         Navigator.ToMainMenu();
+    }
 }

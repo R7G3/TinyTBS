@@ -1,46 +1,30 @@
 using Microsoft.Xna.Framework;
 using TinyTBS.Engine.Diagnostics;
-using TinyTBS.Game.Assets;
-using TinyTBS.Game.Input;
-using TinyTBS.Game.Match.Session;
-using TinyTBS.Rules.Ai;
-using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Flow;
-using TinyTBS.Game.Campaigns.Models;
-using TinyTBS.Game.Modules;
-using TinyTBS.Rules.Modules.Models;
+using TinyTBS.Game.Input;
 using TinyTBS.Game.Presentation.NewGame;
 using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.ViewModels;
+using TinyTBS.Rules.Ai;
 
 namespace TinyTBS.Game.Screens;
 
 /// <summary>
-/// New Game tabbed flow: Mode → Scenario → Level → Composition → Lobby → loading.
-/// Lobby slots: Local / Bot (Easy·Normal) / Remote greyed.
+/// New Game tabs: Mode → Scenario → Level → Composition → Lobby.
+/// Selection, unlock and the start request live on <see cref="NewGameDraft"/>.
 /// </summary>
 public sealed class NewGameScreen : MenuScreen
 {
-    private const int GoldStep = 50;
-    private const int UnitCapStep = 1;
-    private const int MinGold = 0;
-    private const int MaxGold = 9999;
-    private const int MinUnitCap = 1;
-    private const int MaxUnitCap = 99;
-
     private readonly NewGameViewModel _viewModel = new();
     private readonly NewGameView _view = new();
-    private readonly List<MatchPlayerSeat> _playerSeats = [];
-    private readonly Dictionary<string, IReadOnlyList<ScenarioLevelInfo>> _levelsByScenario = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, CampaignDefinition> _campaignByScenario = new(StringComparer.Ordinal);
+    private readonly NewGameDraft _draft;
 
-    private ContentModuleInfo[] _allScenarios = [];
-    private bool _lobbyInitializedForLevel;
     private NewGameFocusAnchor _focusAnchor = NewGameFocusAnchor.Auto;
 
     public NewGameScreen(GameMain game)
         : base(game)
     {
+        _draft = new NewGameDraft(App.NewGame, App.Campaigns);
     }
 
     protected override void OnLoad()
@@ -50,12 +34,7 @@ public sealed class NewGameScreen : MenuScreen
         Refresh("Pick Campaign or Skirmish, then scenario and level.");
     }
 
-    protected override void OnUnload()
-    {
-        _view.Clear();
-        _levelsByScenario.Clear();
-        _campaignByScenario.Clear();
-    }
+    protected override void OnUnload() => _view.Clear();
 
     protected override void OnUpdate(GameTime gameTime, float elapsedSeconds)
     {
@@ -77,79 +56,7 @@ public sealed class NewGameScreen : MenuScreen
 
     private void Refresh(string statusText)
     {
-        RebuildScenarioCatalog();
-        PruneSelectionAgainstMode();
-
-        _viewModel.Modes =
-        [
-            new NewGameModeRowViewModel
-            {
-                Mode = NewGamePlayMode.Campaign,
-                Title = "Campaign",
-                DetailLine = "story levels, Local vs Bot",
-                IsSelected = _viewModel.SelectedMode == NewGamePlayMode.Campaign,
-            },
-            new NewGameModeRowViewModel
-            {
-                Mode = NewGamePlayMode.Skirmish,
-                Title = "Skirmish",
-                DetailLine = "gold, unit cap, slots",
-                IsSelected = _viewModel.SelectedMode == NewGamePlayMode.Skirmish,
-            },
-        ];
-
-        var filteredScenarios = FilterScenariosForMode(_viewModel.SelectedMode);
-        _viewModel.Scenarios = filteredScenarios
-            .Select(module => new NewGameScenarioRowViewModel
-            {
-                ModuleId = module.ModuleId,
-                Title = module.Title,
-                SourceLabel = module.Source == ContentModuleSource.UserLibrary ? "user" : "bundled",
-                IsSelected = module.ModuleId == _viewModel.SelectedScenarioModuleId,
-            })
-            .ToArray();
-
-        var filteredLevels = FilterLevelsForSelection();
-        var unlocked = ResolveUnlockedLevelIds();
-        _viewModel.Levels = filteredLevels
-            .Select(level => new NewGameLevelRowViewModel
-            {
-                LevelId = level.LevelId,
-                Title = level.Title,
-                ModesLabel = FormatModesLabel(level.Modes),
-                IsSelected = level.LevelId == _viewModel.SelectedLevelId,
-                IsLocked = _viewModel.SelectedMode == NewGamePlayMode.Campaign
-                    && unlocked is not null
-                    && !unlocked.Contains(level.LevelId),
-            })
-            .ToArray();
-
-        var selectedLevel = filteredLevels.FirstOrDefault(level => level.LevelId == _viewModel.SelectedLevelId);
-        ApplyLobbyFromLevel(selectedLevel);
-
-        ScenarioModuleDefinition? scenarioDefinition = null;
-        if (!string.IsNullOrWhiteSpace(_viewModel.SelectedScenarioModuleId))
-        {
-            try
-            {
-                scenarioDefinition = App.NewGame.LoadScenario(_viewModel.SelectedScenarioModuleId);
-            }
-            catch (Exception exception)
-            {
-                statusText = "Scenario load issue: " + exception.Message;
-            }
-        }
-
-        var bundles = App.NewGame.ListBundles();
-        EnsureCompositionSource(bundles);
-        _viewModel.CompositionOptions = BuildCompositionOptions(bundles);
-        var compositionSummary = BuildCompositionSummary(scenarioDefinition, bundles);
-        if (compositionSummary.StartsWith("Composition error:", StringComparison.Ordinal))
-            statusText = compositionSummary;
-
-        _viewModel.CompositionSummary = compositionSummary;
-        _viewModel.TabEmptyHint = BuildTabEmptyHint();
-        _viewModel.StatusText = statusText;
+        _draft.Project(_viewModel, statusText);
 
         var focusAnchor = _focusAnchor;
         _focusAnchor = NewGameFocusAnchor.Auto;
@@ -167,364 +74,20 @@ public sealed class NewGameScreen : MenuScreen
             onCancelAddPlayerChooser: CancelAddPlayerChooser,
             onRemovePlayerAt: RemovePlayerAt,
             onActivatePlayerSlot: ActivatePlayerSlot,
-            onDecreaseGold: () => AdjustGold(-GoldStep),
-            onIncreaseGold: () => AdjustGold(GoldStep),
-            onDecreaseUnitCap: () => AdjustUnitCap(-UnitCapStep),
-            onIncreaseUnitCap: () => AdjustUnitCap(UnitCapStep),
+            onDecreaseGold: () => AdjustGold(-_draft.GoldStepAmount),
+            onIncreaseGold: () => AdjustGold(_draft.GoldStepAmount),
+            onDecreaseUnitCap: () => AdjustUnitCap(-_draft.UnitCapStepAmount),
+            onIncreaseUnitCap: () => AdjustUnitCap(_draft.UnitCapStepAmount),
             onStart: StartMatch,
             onBack: GoToMainMenu,
             focusAnchor: focusAnchor);
-    }
-
-    private void RebuildScenarioCatalog()
-    {
-        var entries = App.NewGame.ListScenarios();
-        _allScenarios = entries.Select(entry => entry.Module).ToArray();
-        _levelsByScenario.Clear();
-        _campaignByScenario.Clear();
-        foreach (var entry in entries)
-        {
-            _levelsByScenario[entry.Module.ModuleId] = entry.Levels;
-            if (entry.Campaign is not null)
-                _campaignByScenario[entry.Module.ModuleId] = entry.Campaign;
-        }
-    }
-
-    private void PruneSelectionAgainstMode()
-    {
-        if (_viewModel.SelectedMode is null)
-        {
-            _viewModel.SelectedScenarioModuleId = null;
-            _viewModel.SelectedLevelId = null;
-            _lobbyInitializedForLevel = false;
-            return;
-        }
-
-        var filteredScenarios = FilterScenariosForMode(_viewModel.SelectedMode);
-        if (string.IsNullOrWhiteSpace(_viewModel.SelectedScenarioModuleId)
-            || filteredScenarios.All(scenario => scenario.ModuleId != _viewModel.SelectedScenarioModuleId))
-        {
-            _viewModel.SelectedScenarioModuleId = filteredScenarios.FirstOrDefault()?.ModuleId;
-            _viewModel.SelectedLevelId = null;
-            _lobbyInitializedForLevel = false;
-        }
-
-        var filteredLevels = FilterLevelsForSelection();
-        if (string.IsNullOrWhiteSpace(_viewModel.SelectedLevelId)
-            || filteredLevels.All(level => level.LevelId != _viewModel.SelectedLevelId)
-            || IsSelectedLevelLocked(filteredLevels))
-        {
-            _viewModel.SelectedLevelId = _viewModel.SelectedMode == NewGamePlayMode.Campaign
-                ? PreferCampaignLevelId(filteredLevels)
-                : PreferDefaultLevelId(filteredLevels);
-            _lobbyInitializedForLevel = false;
-        }
-    }
-
-    private bool IsSelectedLevelLocked(IReadOnlyList<ScenarioLevelInfo> filteredLevels)
-    {
-        if (_viewModel.SelectedMode != NewGamePlayMode.Campaign
-            || string.IsNullOrWhiteSpace(_viewModel.SelectedLevelId))
-        {
-            return false;
-        }
-
-        var unlocked = ResolveUnlockedLevelIds();
-        return unlocked is not null && !unlocked.Contains(_viewModel.SelectedLevelId);
-    }
-
-    private IReadOnlyList<ContentModuleInfo> FilterScenariosForMode(NewGamePlayMode? mode)
-    {
-        if (mode is null)
-            return [];
-
-        return _allScenarios
-            .Where(scenario =>
-                _levelsByScenario.TryGetValue(scenario.ModuleId, out var levels)
-                && levels.Any(level => LevelMatchesMode(level, mode.Value)))
-            .ToArray();
-    }
-
-    private IReadOnlyList<ScenarioLevelInfo> FilterLevelsForSelection()
-    {
-        if (_viewModel.SelectedMode is null
-            || string.IsNullOrWhiteSpace(_viewModel.SelectedScenarioModuleId)
-            || !_levelsByScenario.TryGetValue(_viewModel.SelectedScenarioModuleId, out var levels))
-        {
-            return [];
-        }
-
-        var modeFiltered = levels
-            .Where(level => LevelMatchesMode(level, _viewModel.SelectedMode.Value))
-            .ToArray();
-
-        if (_viewModel.SelectedMode != NewGamePlayMode.Campaign
-            || !_campaignByScenario.TryGetValue(_viewModel.SelectedScenarioModuleId, out var campaign))
-        {
-            return modeFiltered;
-        }
-
-        // Campaign tab: order by campaign.json; drop levels not listed there.
-        var byId = modeFiltered.ToDictionary(level => level.LevelId, StringComparer.Ordinal);
-        var ordered = new List<ScenarioLevelInfo>();
-        foreach (var chapter in campaign.Chapters)
-        {
-            if (byId.TryGetValue(chapter.LevelId, out var level))
-                ordered.Add(level);
-        }
-
-        return ordered;
-    }
-
-    private HashSet<string>? ResolveUnlockedLevelIds()
-    {
-        if (_viewModel.SelectedMode != NewGamePlayMode.Campaign
-            || string.IsNullOrWhiteSpace(_viewModel.SelectedScenarioModuleId)
-            || !_campaignByScenario.TryGetValue(_viewModel.SelectedScenarioModuleId, out var campaign))
-        {
-            return null;
-        }
-
-        return App.Campaigns.UnlockedChapterIds(_viewModel.SelectedScenarioModuleId, campaign);
-    }
-
-    private static string? PreferDefaultLevelId(IReadOnlyList<ScenarioLevelInfo> levels)
-    {
-        if (levels.Count == 0)
-            return null;
-
-        return levels.FirstOrDefault(level => level.LevelId == VanillaContentIds.DefaultSkirmishLevelId)
-                   ?.LevelId
-               ?? levels[0].LevelId;
-    }
-
-    private string? PreferCampaignLevelId(IReadOnlyList<ScenarioLevelInfo> levels)
-    {
-        if (levels.Count == 0
-            || string.IsNullOrWhiteSpace(_viewModel.SelectedScenarioModuleId)
-            || !_campaignByScenario.TryGetValue(_viewModel.SelectedScenarioModuleId, out var campaign))
-        {
-            return PreferDefaultLevelId(levels);
-        }
-
-        var preferred = App.Campaigns.PreferPlayableLevelId(_viewModel.SelectedScenarioModuleId, campaign);
-        var unlocked = App.Campaigns.UnlockedChapterIds(_viewModel.SelectedScenarioModuleId, campaign);
-
-        if (levels.Any(level => level.LevelId == preferred && unlocked.Contains(preferred)))
-            return preferred;
-
-        return levels.FirstOrDefault(level => unlocked.Contains(level.LevelId))?.LevelId
-            ?? PreferDefaultLevelId(levels);
-    }
-
-    private static bool LevelMatchesMode(ScenarioLevelInfo level, NewGamePlayMode mode) =>
-        mode switch
-        {
-            NewGamePlayMode.Campaign => level.SupportsCampaign,
-            NewGamePlayMode.Skirmish => level.SupportsSkirmish,
-            _ => false,
-        };
-
-    private string BuildTabEmptyHint() =>
-        _viewModel.ActiveTab switch
-        {
-            NewGameTab.Scenario when _viewModel.SelectedMode is null =>
-                "Pick Campaign or Skirmish on the Mode tab first.",
-            NewGameTab.Scenario =>
-                "No scenario modules have levels for this mode.",
-            NewGameTab.Level when _viewModel.SelectedMode is null =>
-                "Pick Campaign or Skirmish on the Mode tab first.",
-            NewGameTab.Level when string.IsNullOrWhiteSpace(_viewModel.SelectedScenarioModuleId) =>
-                "Pick a scenario on the Scenario tab first.",
-            NewGameTab.Level =>
-                "No levels for this scenario in the selected mode.",
-            NewGameTab.Composition when string.IsNullOrWhiteSpace(_viewModel.SelectedScenarioModuleId) =>
-                "Pick a scenario first to choose composition.",
-            NewGameTab.Lobby when string.IsNullOrWhiteSpace(_viewModel.SelectedLevelId) =>
-                "Pick a level first to configure the lobby.",
-            _ => string.Empty,
-        };
-
-    private void ApplyLobbyFromLevel(ScenarioLevelInfo? level)
-    {
-        _viewModel.ShowSkirmishLobby = _viewModel.SelectedMode == NewGamePlayMode.Skirmish;
-        _viewModel.AllowEditPlayerSeats = level is not null;
-
-        if (level is null)
-        {
-            _viewModel.LobbyNote = "Select a level to configure the match.";
-            _viewModel.PlayersMin = 2;
-            _viewModel.PlayersMax = 2;
-            _viewModel.StartingGold = 0;
-            _viewModel.UnitCap = MinUnitCap;
-            _playerSeats.Clear();
-            _viewModel.PlayerSlots = [];
-            _viewModel.ShowAddPlayerTypeChooser = false;
-            _viewModel.AllowEditPlayerSeats = false;
-            _lobbyInitializedForLevel = false;
-            return;
-        }
-
-        _viewModel.PlayersMin = level.PlayersMin;
-        _viewModel.PlayersMax = level.PlayersMax;
-
-        if (!_lobbyInitializedForLevel)
-        {
-            _viewModel.StartingGold = level.DefaultStartingGold;
-            _viewModel.UnitCap = level.DefaultUnitCap;
-            _playerSeats.Clear();
-            var slotCount = Math.Clamp(level.PlayersDefaultSlots, level.PlayersMin, level.PlayersMax);
-            for (var index = 0; index < slotCount; index++)
-                _playerSeats.Add(CreateDefaultSeat(index));
-            _lobbyInitializedForLevel = true;
-            _viewModel.ShowAddPlayerTypeChooser = false;
-        }
-
-        ClampPlayerSlots();
-
-        if (_playerSeats.Count >= _viewModel.PlayersMax)
-            _viewModel.ShowAddPlayerTypeChooser = false;
-
-        if (_viewModel.ShowSkirmishLobby)
-        {
-            _viewModel.LobbyNote =
-                "Skirmish: Local and Bot (Easy/Normal). Confirm a Bot seat to cycle difficulty. Gold and unit cap below.";
-        }
-        else
-        {
-            _viewModel.LobbyNote =
-                "Campaign: Player 2 defaults to Bot · Easy. Confirm a Bot seat to cycle Easy/Normal. Gold and unit cap come from the level.";
-            _viewModel.StartingGold = level.DefaultStartingGold;
-            _viewModel.UnitCap = level.DefaultUnitCap;
-        }
-
-        _viewModel.PlayerSlots = _playerSeats
-            .Select((seat, index) => new NewGamePlayerSlotViewModel
-            {
-                SlotIndex = index,
-                Kind = seat.Kind == MatchPlayerKind.Bot ? NewGamePlayerKind.Bot : NewGamePlayerKind.Local,
-                BotDifficulty = seat.BotDifficulty,
-                PaletteIndex = index,
-            })
-            .ToArray();
-    }
-
-    private MatchPlayerSeat CreateDefaultSeat(int slotIndex)
-    {
-        // Campaign: second seat is Bot Easy so the story opponent is ready out of the box.
-        if (_viewModel.SelectedMode == NewGamePlayMode.Campaign && slotIndex == 1)
-        {
-            return new MatchPlayerSeat
-            {
-                Kind = MatchPlayerKind.Bot,
-                BotDifficulty = BotDifficulty.Easy,
-            };
-        }
-
-        return new MatchPlayerSeat { Kind = MatchPlayerKind.Local };
-    }
-
-    private void ClampPlayerSlots()
-    {
-        while (_playerSeats.Count > _viewModel.PlayersMax)
-            _playerSeats.RemoveAt(_playerSeats.Count - 1);
-        // Do not auto-fill Local when below min — that made it impossible to replace a seat with Bot.
-        // Padding to min happens only on level init and right before StartMatch.
-    }
-
-    private void EnsureMinimumPlayerSeats()
-    {
-        while (_playerSeats.Count < _viewModel.PlayersMin)
-            _playerSeats.Add(new MatchPlayerSeat { Kind = MatchPlayerKind.Local });
-    }
-
-    private void EnsureCompositionSource(IReadOnlyList<ContentBundleDefinition> bundles)
-    {
-        if (_viewModel.SelectedCompositionSourceId == NewGameCompositionSources.ScenarioDefaults)
-            return;
-
-        if (bundles.Any(bundle => bundle.BundleId == _viewModel.SelectedCompositionSourceId))
-            return;
-
-        _viewModel.SelectedCompositionSourceId = NewGameCompositionSources.ScenarioDefaults;
-    }
-
-    private IReadOnlyList<NewGameCompositionOptionViewModel> BuildCompositionOptions(
-        IReadOnlyList<ContentBundleDefinition> bundles)
-    {
-        var options = new List<NewGameCompositionOptionViewModel>
-        {
-            new()
-            {
-                SourceId = NewGameCompositionSources.ScenarioDefaults,
-                Title = "Scenario defaults",
-                IsSelected = _viewModel.SelectedCompositionSourceId
-                    == NewGameCompositionSources.ScenarioDefaults,
-            },
-        };
-
-        foreach (var bundle in bundles)
-        {
-            options.Add(new NewGameCompositionOptionViewModel
-            {
-                SourceId = bundle.BundleId,
-                Title = $"Bundle: {bundle.Title}",
-                IsSelected = bundle.BundleId == _viewModel.SelectedCompositionSourceId,
-            });
-        }
-
-        return options;
-    }
-
-    private string BuildCompositionSummary(
-        ScenarioModuleDefinition? scenario,
-        IReadOnlyList<ContentBundleDefinition> bundles)
-    {
-        try
-        {
-            var composition = ResolveComposition(scenario, bundles);
-            if (composition is null)
-                return "Composition: —";
-
-            return "Composition: "
-                + string.Join(", ", composition.UnitsModuleIds)
-                + " · "
-                + string.Join(", ", composition.BuildingsModuleIds)
-                + " · "
-                + composition.ThemeModuleId;
-        }
-        catch (Exception exception)
-        {
-            return "Composition error: " + exception.Message;
-        }
-    }
-
-    private MatchContentComposition? ResolveComposition(
-        ScenarioModuleDefinition? scenario,
-        IReadOnlyList<ContentBundleDefinition> bundles)
-    {
-        if (scenario is null)
-            return null;
-
-        return NewGameSetupService.ResolveComposition(
-            scenario,
-            _viewModel.SelectedCompositionSourceId,
-            bundles);
-    }
-
-    private static string FormatModesLabel(IReadOnlyList<string> modes)
-    {
-        if (modes.Count == 0)
-            return string.Empty;
-
-        return string.Join("/", modes);
     }
 
     private void SelectTab(NewGameTab tab)
     {
         _viewModel.ActiveTab = tab;
         if (tab != NewGameTab.Lobby)
-            _viewModel.ShowAddPlayerTypeChooser = false;
+            _draft.CancelAddPlayerChooser();
 
         _focusAnchor = tab == NewGameTab.Lobby
             ? NewGameFocusAnchor.RemovePlayer
@@ -545,14 +108,7 @@ public sealed class NewGameScreen : MenuScreen
 
     private void SelectMode(NewGamePlayMode mode)
     {
-        if (_viewModel.SelectedMode != mode)
-        {
-            _viewModel.SelectedMode = mode;
-            _viewModel.SelectedScenarioModuleId = null;
-            _viewModel.SelectedLevelId = null;
-            _lobbyInitializedForLevel = false;
-        }
-
+        _draft.SelectMode(mode);
         _viewModel.ActiveTab = NewGameTab.Scenario;
         _focusAnchor = NewGameFocusAnchor.SelectedScenario;
         Refresh(mode == NewGamePlayMode.Campaign
@@ -562,13 +118,7 @@ public sealed class NewGameScreen : MenuScreen
 
     private void SelectScenario(string moduleId)
     {
-        if (_viewModel.SelectedScenarioModuleId != moduleId)
-        {
-            _viewModel.SelectedScenarioModuleId = moduleId;
-            _viewModel.SelectedLevelId = null;
-            _lobbyInitializedForLevel = false;
-        }
-
+        _draft.SelectScenario(moduleId);
         _viewModel.ActiveTab = NewGameTab.Level;
         _focusAnchor = NewGameFocusAnchor.SelectedLevel;
         Refresh("Scenario selected. Pick a level.");
@@ -576,17 +126,12 @@ public sealed class NewGameScreen : MenuScreen
 
     private void SelectLevel(string levelId)
     {
-        var unlocked = ResolveUnlockedLevelIds();
-        if (unlocked is not null && !unlocked.Contains(levelId))
+        if (!_draft.TrySelectLevel(levelId))
         {
             Refresh("That chapter is locked.");
             return;
         }
 
-        if (_viewModel.SelectedLevelId != levelId)
-            _lobbyInitializedForLevel = false;
-
-        _viewModel.SelectedLevelId = levelId;
         _viewModel.ActiveTab = NewGameTab.Composition;
         _focusAnchor = NewGameFocusAnchor.SelectedComposition;
         Refresh("Level selected. Choose composition, then lobby or Start.");
@@ -594,7 +139,7 @@ public sealed class NewGameScreen : MenuScreen
 
     private void SelectComposition(string sourceId)
     {
-        _viewModel.SelectedCompositionSourceId = sourceId;
+        _draft.SelectComposition(sourceId);
         _viewModel.ActiveTab = NewGameTab.Lobby;
         _focusAnchor = NewGameFocusAnchor.RemovePlayer;
         Refresh("Composition updated. Review lobby, then Start.");
@@ -602,41 +147,28 @@ public sealed class NewGameScreen : MenuScreen
 
     private void OpenAddPlayerChooser()
     {
-        if (!_viewModel.AllowEditPlayerSeats || !_viewModel.CanAddPlayer)
+        if (!_draft.TryOpenAddPlayerChooser())
             return;
 
-        _viewModel.ShowAddPlayerTypeChooser = true;
         _focusAnchor = NewGameFocusAnchor.AddPlayerTypeLocal;
         Refresh("Choose player type.");
     }
 
     private void AddLocalPlayer()
     {
-        if (!_viewModel.AllowEditPlayerSeats || !_viewModel.CanAddPlayer)
+        if (!_draft.TryAddLocalPlayer())
             return;
 
-        _playerSeats.Add(new MatchPlayerSeat { Kind = MatchPlayerKind.Local });
-        _viewModel.ShowAddPlayerTypeChooser = false;
-        _focusAnchor = _playerSeats.Count > _viewModel.PlayersMin
-            ? NewGameFocusAnchor.RemovePlayer
-            : NewGameFocusAnchor.AddPlayer;
+        _focusAnchor = SeatFocusAfterEdit();
         Refresh("Local player added.");
     }
 
     private void AddBotPlayer(BotDifficulty difficulty)
     {
-        if (!_viewModel.AllowEditPlayerSeats || !_viewModel.CanAddPlayer)
+        if (!_draft.TryAddBot(difficulty))
             return;
 
-        _playerSeats.Add(new MatchPlayerSeat
-        {
-            Kind = MatchPlayerKind.Bot,
-            BotDifficulty = difficulty,
-        });
-        _viewModel.ShowAddPlayerTypeChooser = false;
-        _focusAnchor = _playerSeats.Count > _viewModel.PlayersMin
-            ? NewGameFocusAnchor.RemovePlayer
-            : NewGameFocusAnchor.AddPlayer;
+        _focusAnchor = SeatFocusAfterEdit();
         Refresh($"Bot ({difficulty}) added.");
     }
 
@@ -645,96 +177,77 @@ public sealed class NewGameScreen : MenuScreen
         if (!_viewModel.ShowAddPlayerTypeChooser)
             return;
 
-        _viewModel.ShowAddPlayerTypeChooser = false;
-        _focusAnchor = _playerSeats.Count > _viewModel.PlayersMin
-            ? NewGameFocusAnchor.RemovePlayer
-            : NewGameFocusAnchor.AddPlayer;
+        _draft.CancelAddPlayerChooser();
+        _focusAnchor = SeatFocusAfterEdit();
         Refresh("Add player cancelled.");
     }
 
     private void RemovePlayerAt(int slotIndex)
     {
-        if (!_viewModel.AllowEditPlayerSeats
-            || !_viewModel.CanRemovePlayer
-            || slotIndex < 0
-            || slotIndex >= _playerSeats.Count)
-        {
+        if (!_draft.TryRemovePlayer(slotIndex, out var belowMinimum))
             return;
-        }
 
-        _playerSeats.RemoveAt(slotIndex);
-        if (_playerSeats.Count < _viewModel.PlayersMin)
+        if (belowMinimum)
         {
-            _viewModel.ShowAddPlayerTypeChooser = true;
             _focusAnchor = NewGameFocusAnchor.AddPlayerTypeLocal;
             Refresh("Player removed — add Local or Bot to reach the minimum.");
             return;
         }
 
-        _viewModel.ShowAddPlayerTypeChooser = false;
-        _focusAnchor = _playerSeats.Count > _viewModel.PlayersMin
-            ? NewGameFocusAnchor.RemovePlayer
-            : NewGameFocusAnchor.AddPlayer;
+        _focusAnchor = SeatFocusAfterEdit();
         Refresh("Player removed.");
     }
 
     private void ActivatePlayerSlot(int slotIndex)
     {
-        if (!_viewModel.AllowEditPlayerSeats
-            || slotIndex < 0
-            || slotIndex >= _playerSeats.Count)
-        {
+        if (!_draft.CanPressSlot(slotIndex))
             return;
-        }
 
-        var seat = _playerSeats[slotIndex];
-        if (seat.Kind != MatchPlayerKind.Bot)
+        _focusAnchor = NewGameFocusAnchor.RemovePlayer;
+        if (!_draft.IsBotSeat(slotIndex))
         {
-            _focusAnchor = NewGameFocusAnchor.RemovePlayer;
             Refresh("Local seat — remove (X) then + Bot to change type.");
             return;
         }
 
-        seat.BotDifficulty = seat.BotDifficulty == BotDifficulty.Easy
-            ? BotDifficulty.Normal
-            : BotDifficulty.Easy;
-        _focusAnchor = NewGameFocusAnchor.RemovePlayer;
-        Refresh($"Player {slotIndex + 1} → bot {PlayerDisplayNames.FormatBotDifficulty(seat.BotDifficulty)}.");
+        var difficulty = _draft.CycleBot(slotIndex);
+        Refresh($"Player {slotIndex + 1} → bot {PlayerDisplayNames.FormatBotDifficulty(difficulty)}.");
     }
+
+    private NewGameFocusAnchor SeatFocusAfterEdit() =>
+        _draft.SeatCount > _draft.PlayersMin
+            ? NewGameFocusAnchor.RemovePlayer
+            : NewGameFocusAnchor.AddPlayer;
 
     private void AdjustGold(int delta)
     {
-        if (!_viewModel.ShowSkirmishLobby)
+        if (!_draft.TryAdjustGold(delta))
             return;
 
-        _viewModel.StartingGold = Math.Clamp(_viewModel.StartingGold + delta, MinGold, MaxGold);
-        _view.SetStatus($"Starting gold: {_viewModel.StartingGold}.");
-        _view.SyncLobbyValues(_viewModel.StartingGold, _viewModel.UnitCap);
+        _viewModel.StartingGold = _draft.StartingGold;
+        _view.SetStatus($"Starting gold: {_draft.StartingGold}.");
+        _view.SyncLobbyValues(_draft.StartingGold, _draft.UnitCap);
     }
 
     private void AdjustUnitCap(int delta)
     {
-        if (!_viewModel.ShowSkirmishLobby)
+        if (!_draft.TryAdjustUnitCap(delta))
             return;
 
-        _viewModel.UnitCap = Math.Clamp(_viewModel.UnitCap + delta, MinUnitCap, MaxUnitCap);
-        _view.SetStatus($"Unit cap: {_viewModel.UnitCap}.");
-        _view.SyncLobbyValues(_viewModel.StartingGold, _viewModel.UnitCap);
+        _viewModel.UnitCap = _draft.UnitCap;
+        _view.SetStatus($"Unit cap: {_draft.UnitCap}.");
+        _view.SyncLobbyValues(_draft.StartingGold, _draft.UnitCap);
     }
 
     private void StartMatch()
     {
-        if (!_viewModel.CanStart
-            || _viewModel.SelectedMode is null
-            || string.IsNullOrWhiteSpace(_viewModel.SelectedScenarioModuleId)
-            || string.IsNullOrWhiteSpace(_viewModel.SelectedLevelId))
+        if (!_draft.CanStart)
         {
             _view.SetStatus("Pick mode, scenario, and level before Start.");
             return;
         }
 
-        var unlocked = ResolveUnlockedLevelIds();
-        if (unlocked is not null && !unlocked.Contains(_viewModel.SelectedLevelId))
+        if (_draft.IsSelectedLevelLocked)
         {
             _view.SetStatus("That chapter is locked.");
             return;
@@ -742,37 +255,7 @@ public sealed class NewGameScreen : MenuScreen
 
         try
         {
-            EnsureMinimumPlayerSeats();
-
-            var scenario = App.NewGame.LoadScenario(_viewModel.SelectedScenarioModuleId);
-            var bundles = App.NewGame.ListBundles();
-            var composition = ResolveComposition(scenario, bundles)
-                ?? throw new InvalidOperationException("Composition is unavailable.");
-
-            CampaignRunState? campaignRun = null;
-            if (_viewModel.SelectedMode == NewGamePlayMode.Campaign
-                && _campaignByScenario.TryGetValue(_viewModel.SelectedScenarioModuleId, out var campaign))
-            {
-                campaignRun = App.Campaigns.BeginOrResumeRun(
-                    campaign,
-                    _viewModel.SelectedScenarioModuleId,
-                    _viewModel.SelectedLevelId,
-                    composition,
-                    _playerSeats,
-                    _viewModel.UnitCap);
-            }
-
-            Navigator.StartMatch(new MatchStartRequest
-            {
-                ScenarioModuleId = _viewModel.SelectedScenarioModuleId,
-                LevelId = _viewModel.SelectedLevelId,
-                Composition = composition,
-                PlayerCount = _playerSeats.Count,
-                StartingGold = _viewModel.StartingGold,
-                UnitCap = _viewModel.UnitCap,
-                PlayerSeats = _playerSeats.ToArray(),
-                CampaignRun = campaignRun,
-            });
+            Navigator.StartMatch(_draft.CreateStartRequest());
         }
         catch (Exception exception)
         {

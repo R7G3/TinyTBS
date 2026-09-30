@@ -13,8 +13,6 @@ public sealed class LoadGameScreen : MenuScreen
     private readonly LoadGameViewModel _viewModel = new();
     private readonly LoadGameView _view = new();
     private IReadOnlyList<SaveCatalogEntry> _entries = [];
-    private LoadGameSaveRowViewModel? _pendingLoadRow;
-    private bool _awaitingLoadAbandonConfirm;
 
     public LoadGameScreen(GameMain game)
         : base(game)
@@ -33,12 +31,6 @@ public sealed class LoadGameScreen : MenuScreen
 
         if (!WasLeavePressed())
             return;
-
-        if (_awaitingLoadAbandonConfirm)
-        {
-            CancelAbandonConfirm();
-            return;
-        }
 
         if (_view.IsDetailOpen)
             _view.TryCloseDetail();
@@ -66,37 +58,19 @@ public sealed class LoadGameScreen : MenuScreen
         _view.SetStatus(statusText);
     }
 
-    private void OpenSaveDetail(LoadGameSaveRowViewModel row)
-    {
-        _awaitingLoadAbandonConfirm = false;
-        _pendingLoadRow = null;
+    private void OpenSaveDetail(LoadGameSaveRowViewModel row) =>
         _view.OpenDetail(
             row,
             onLoad: () => TryLoadSave(row),
             onDelete: () => DeleteSave(row));
-    }
 
     private void TryLoadSave(LoadGameSaveRowViewModel row)
     {
-        if (TinyGame.HasSuspendedMatch)
-        {
-            if (!_awaitingLoadAbandonConfirm || _pendingLoadRow?.FilePath != row.FilePath)
-            {
-                _awaitingLoadAbandonConfirm = true;
-                _pendingLoadRow = row;
-                _view.SetStatus("Confirm Load again to leave the current match. Back cancels.");
-                return;
-            }
-
-            TinyGame.ClearSuspendedMatch(dispose: true);
-        }
-
-        _awaitingLoadAbandonConfirm = false;
-        _pendingLoadRow = null;
-
         try
         {
             var request = App.Saves.CreateResumeRequest(FindEntry(row));
+            if (TinyGame.HasSuspendedMatch)
+                TinyGame.ClearSuspendedMatch(dispose: true);
             _view.CloseDetail();
             Navigator.StartMatch(request);
         }
@@ -109,9 +83,6 @@ public sealed class LoadGameScreen : MenuScreen
 
     private void DeleteSave(LoadGameSaveRowViewModel row)
     {
-        _awaitingLoadAbandonConfirm = false;
-        _pendingLoadRow = null;
-
         try
         {
             App.Saves.Delete(FindEntry(row));
@@ -128,13 +99,6 @@ public sealed class LoadGameScreen : MenuScreen
     private SaveCatalogEntry FindEntry(LoadGameSaveRowViewModel row) =>
         _entries.FirstOrDefault(entry => entry.FilePath == row.FilePath)
         ?? throw new MatchSaveException($"Save '{row.Title}' is no longer listed.");
-
-    private void CancelAbandonConfirm()
-    {
-        _awaitingLoadAbandonConfirm = false;
-        _pendingLoadRow = null;
-        _view.SetStatus("Load cancelled. Confirm a save for Load / Delete.");
-    }
 
     private void GoToMainMenu() =>
         Navigator.ToMainMenu();
