@@ -282,11 +282,11 @@ public sealed class GameplayMatchController
                 gameTime,
                 afterEntities: (spriteBatch, layout) =>
                 {
-                    IReadOnlyList<(int X, int Y)>? moveRangeCells = null;
-                    IReadOnlyList<(int X, int Y)>? attackTargetCells = null;
-                    IReadOnlyList<(int X, int Y)>? raiseTargetCells = null;
-                    IReadOnlyList<(int X, int Y)>? captureTargetCells = null;
-                    IReadOnlyList<(int X, int Y)>? repairTargetCells = null;
+                    IReadOnlyList<GridCell>? moveRangeCells = null;
+                    IReadOnlyList<GridCell>? attackTargetCells = null;
+                    IReadOnlyList<GridCell>? raiseTargetCells = null;
+                    IReadOnlyList<GridCell>? captureTargetCells = null;
+                    IReadOnlyList<GridCell>? repairTargetCells = null;
 
                     if (_enemyThreatHold.PreviewUnitId is int threatUnitId
                         && match.TryGetUnitThreatPreview(threatUnitId, out var overlay))
@@ -311,17 +311,18 @@ public sealed class GameplayMatchController
                     }
 
                     scene.GetVisualCursorCell(out var cursorCellX, out var cursorCellY);
-                    _session.CursorHighlight.Draw(
+                    MatchBoardHighlight.Draw(
+                        _session.CursorHighlight,
                         spriteBatch,
                         layout,
                         cursorCellX,
                         cursorCellY,
                         hasSelection: match.SelectedUnitId is not null,
-                        moveRangeCells: moveRangeCells,
-                        attackTargetCells: attackTargetCells,
-                        raiseTargetCells: raiseTargetCells,
-                        captureTargetCells: captureTargetCells,
-                        repairTargetCells: repairTargetCells);
+                        moveRangeCells,
+                        attackTargetCells,
+                        raiseTargetCells,
+                        captureTargetCells,
+                        repairTargetCells);
 
                     spriteBatch.Begin(
                         SpriteSortMode.Deferred,
@@ -387,33 +388,33 @@ public sealed class GameplayMatchController
 
     private static void ApplyThreatOverlayCells(
         MatchUnitActionOverlay overlay,
-        out IReadOnlyList<(int X, int Y)>? moveRangeCells,
-        out IReadOnlyList<(int X, int Y)>? attackTargetCells,
-        out IReadOnlyList<(int X, int Y)>? raiseTargetCells,
-        out IReadOnlyList<(int X, int Y)>? captureTargetCells,
-        out IReadOnlyList<(int X, int Y)>? repairTargetCells)
+        out IReadOnlyList<GridCell>? moveRangeCells,
+        out IReadOnlyList<GridCell>? attackTargetCells,
+        out IReadOnlyList<GridCell>? raiseTargetCells,
+        out IReadOnlyList<GridCell>? captureTargetCells,
+        out IReadOnlyList<GridCell>? repairTargetCells)
     {
-        moveRangeCells = ToCellTuples(overlay.MoveCells);
+        moveRangeCells = overlay.MoveCells;
         // Full potential attack footprint (empty tiles included), not only current targets.
-        attackTargetCells = ToCellTuples(ExceptCells(overlay.AttackRangeCells, overlay.MoveCells));
-        raiseTargetCells = ToCellTuples(overlay.RaiseCells);
-        captureTargetCells = ToCellTuples(overlay.CaptureCells);
-        repairTargetCells = ToCellTuples(overlay.RepairCells);
+        attackTargetCells = ExceptCells(overlay.AttackRangeCells, overlay.MoveCells);
+        raiseTargetCells = overlay.RaiseCells;
+        captureTargetCells = overlay.CaptureCells;
+        repairTargetCells = overlay.RepairCells;
     }
 
     private static void ApplyOverlayCells(
         MatchUnitActionOverlay overlay,
-        out IReadOnlyList<(int X, int Y)>? moveRangeCells,
-        out IReadOnlyList<(int X, int Y)>? attackTargetCells,
-        out IReadOnlyList<(int X, int Y)>? raiseTargetCells,
-        out IReadOnlyList<(int X, int Y)>? captureTargetCells,
-        out IReadOnlyList<(int X, int Y)>? repairTargetCells)
+        out IReadOnlyList<GridCell>? moveRangeCells,
+        out IReadOnlyList<GridCell>? attackTargetCells,
+        out IReadOnlyList<GridCell>? raiseTargetCells,
+        out IReadOnlyList<GridCell>? captureTargetCells,
+        out IReadOnlyList<GridCell>? repairTargetCells)
     {
-        moveRangeCells = ToCellTuples(overlay.MoveCells);
-        attackTargetCells = ToCellTuples(overlay.AttackCells);
-        raiseTargetCells = ToCellTuples(overlay.RaiseCells);
-        captureTargetCells = ToCellTuples(overlay.CaptureCells);
-        repairTargetCells = ToCellTuples(overlay.RepairCells);
+        moveRangeCells = overlay.MoveCells;
+        attackTargetCells = overlay.AttackCells;
+        raiseTargetCells = overlay.RaiseCells;
+        captureTargetCells = overlay.CaptureCells;
+        repairTargetCells = overlay.RepairCells;
     }
 
     private static IReadOnlyList<GridCell> ExceptCells(
@@ -427,9 +428,6 @@ public sealed class GameplayMatchController
         var filtered = source.Where(cell => !exclude.Contains(cell)).ToArray();
         return filtered.Length == source.Count ? source : filtered;
     }
-
-    private static IReadOnlyList<(int X, int Y)>? ToCellTuples(IReadOnlyList<GridCell> cells) =>
-        cells.Count == 0 ? null : cells.Select(cell => (cell.X, cell.Y)).ToArray();
 
     private static bool IsPointerOverInteractiveHud() =>
         GumService.Default.Cursor.FrameworkElementOver is Button;

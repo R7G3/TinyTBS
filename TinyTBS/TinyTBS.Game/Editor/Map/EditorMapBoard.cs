@@ -28,8 +28,6 @@ public sealed class EditorMapBoard : IDisposable
     private bool _overlaysDirty = true;
     private bool _viewportReady;
 
-    private static readonly Color MapFocusBorder = new(255, 220, 80);
-
     public EditorMapBoard(
         EditableMapDocument document,
         GraphicsDevice graphicsDevice,
@@ -117,7 +115,7 @@ public sealed class EditorMapBoard : IDisposable
                 (int)_layout.Origin.Y - pad,
                 _layout.Width * _layout.TileSize + pad * 2,
                 _layout.Height * _layout.TileSize + pad * 2);
-            SpriteBatchPrimitives.DrawRectBorder(_spriteBatch, _pixel, bounds, MapFocusBorder, thickness);
+            SpriteBatchPrimitives.DrawRectBorder(_spriteBatch, _pixel, bounds, CursorPalette.Idle.Border, thickness);
         }
 
         _spriteBatch.End();
@@ -127,7 +125,7 @@ public sealed class EditorMapBoard : IDisposable
             _layout,
             CursorX,
             CursorY,
-            hasSelection: false);
+            CursorPalette.Idle);
     }
 
     public void Dispose()
