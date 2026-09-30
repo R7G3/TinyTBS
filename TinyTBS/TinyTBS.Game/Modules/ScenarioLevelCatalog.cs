@@ -23,17 +23,17 @@ public static class ScenarioLevelCatalog
 
     public static IReadOnlyList<ScenarioLevelInfo> ListLevels(
         string scenarioModuleRoot,
-        IFileContentProvider files)
+        IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(scenarioModuleRoot);
         ArgumentNullException.ThrowIfNull(files);
 
         var levelsRoot = files.Combine(scenarioModuleRoot, "Levels");
-        if (!Directory.Exists(levelsRoot))
+        if (!files.DirectoryExists(levelsRoot))
             return [];
 
         var results = new List<ScenarioLevelInfo>();
-        foreach (var levelFolder in Directory.GetDirectories(levelsRoot)
+        foreach (var levelFolder in files.EnumerateDirectories(levelsRoot)
                      .OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
         {
             var levelJsonPath = files.Combine(levelFolder, LevelFolderLoader.LevelJsonFileName);

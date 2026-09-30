@@ -9,12 +9,12 @@ namespace TinyTBS.Game.Assets;
 public sealed class ModAssetResolver : IAssetResolver
 {
     private readonly IUserDataPaths _paths;
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly string _bundledContentRoot;
 
     public ModAssetResolver(
         IUserDataPaths paths,
-        IFileContentProvider files,
+        IFileSystem files,
         string bundledContentRoot)
     {
         _paths = paths;
@@ -50,10 +50,10 @@ public sealed class ModAssetResolver : IAssetResolver
 
     public IReadOnlyList<string> ListMods()
     {
-        if (!Directory.Exists(_paths.Modules))
+        if (!_files.DirectoryExists(_paths.Modules))
             return [];
 
-        return Directory.GetDirectories(_paths.Modules)
+        return _files.EnumerateDirectories(_paths.Modules)
             .Select(Path.GetFileName)
             .Where(folderName => !string.IsNullOrEmpty(folderName))
             .Cast<string>()

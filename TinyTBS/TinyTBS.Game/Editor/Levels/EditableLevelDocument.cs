@@ -61,7 +61,7 @@ public sealed class EditableLevelDocument
         };
     }
 
-    public static EditableLevelDocument Load(string levelDirectory, IFileContentProvider files)
+    public static EditableLevelDocument Load(string levelDirectory, IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(levelDirectory);
         ArgumentNullException.ThrowIfNull(files);

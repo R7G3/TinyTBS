@@ -9,10 +9,10 @@ public sealed class ContentModuleLocator
 {
     public const string BundledVanillaModulesRelativePath = "Vanilla/Modules";
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public ContentModuleLocator(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public ContentModuleLocator(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
@@ -24,14 +24,14 @@ public sealed class ContentModuleLocator
         var trimmedId = moduleId.Trim();
 
         var userRoot = _files.Combine(_userDataPaths.Modules, trimmedId);
-        if (Directory.Exists(userRoot) && HasModuleJson(userRoot))
+        if (_files.DirectoryExists(userRoot) && HasModuleJson(userRoot))
             return userRoot;
 
         var bundledRoot = _files.Combine(
-            AppContext.BaseDirectory,
+            _userDataPaths.InstallRoot,
             BundledVanillaModulesRelativePath,
             trimmedId);
-        if (Directory.Exists(bundledRoot) && HasModuleJson(bundledRoot))
+        if (_files.DirectoryExists(bundledRoot) && HasModuleJson(bundledRoot))
             return bundledRoot;
 
         throw new MatchContentCompositionException(

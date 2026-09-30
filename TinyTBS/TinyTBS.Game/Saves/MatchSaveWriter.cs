@@ -14,10 +14,12 @@ public sealed class MatchSaveWriter
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public MatchSaveWriter(IUserDataPaths userDataPaths)
+    public MatchSaveWriter(IFileSystem files, IUserDataPaths userDataPaths)
     {
+        _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
     }
 
@@ -33,7 +35,7 @@ public sealed class MatchSaveWriter
         try
         {
             var json = JsonSerializer.Serialize(document, JsonOptions);
-            File.WriteAllText(filePath, json);
+            _files.WriteAllText(filePath, json);
             return filePath;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)

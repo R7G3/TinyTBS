@@ -20,7 +20,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     private readonly GameCommandService _commands = new(GumTextInputFocus.IsTextBoxReceivingInput);
     private readonly PointerInputService _pointer = new();
     private readonly IUserDataPaths _userDataPaths;
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IAssetResolver _assets;
     private readonly IExternalFilePicker _filePicker;
     private readonly IExternalUriLauncher _uriLauncher;
@@ -34,7 +34,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
 
     public GameMain(
         IUserDataPaths userDataPaths,
-        IFileContentProvider files,
+        IFileSystem files,
         IAssetResolver assets,
         IExternalFilePicker filePicker,
         IExternalUriLauncher uriLauncher)
@@ -58,7 +58,7 @@ public sealed class GameMain : Microsoft.Xna.Framework.Game
     }
 
     public IUserDataPaths UserDataPaths => _userDataPaths;
-    public IFileContentProvider Files => _files;
+    public IFileSystem Files => _files;
     public IAssetResolver Assets => _assets;
     public IExternalFilePicker FilePicker => _filePicker;
 

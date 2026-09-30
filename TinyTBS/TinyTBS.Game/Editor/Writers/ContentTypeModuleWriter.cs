@@ -16,10 +16,10 @@ public sealed class ContentTypeModuleWriter
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public ContentTypeModuleWriter(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public ContentTypeModuleWriter(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
@@ -38,7 +38,7 @@ public sealed class ContentTypeModuleWriter
         var id = moduleId.Trim();
         _userDataPaths.EnsureCreated();
         var moduleRoot = _files.Combine(_userDataPaths.Modules, id);
-        if (Directory.Exists(moduleRoot))
+        if (_files.DirectoryExists(moduleRoot))
             throw new EditorException($"User module '{id}' already exists.");
 
         var typeName = type switch
@@ -51,13 +51,13 @@ public sealed class ContentTypeModuleWriter
 
         try
         {
-            Directory.CreateDirectory(moduleRoot);
+            _files.CreateDirectory(moduleRoot);
 
             object document;
             if (type == ContentModuleType.Units)
             {
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Units"));
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "units"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Units"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "units"));
                 document = new
                 {
                     formatVersion = 1,
@@ -73,8 +73,8 @@ public sealed class ContentTypeModuleWriter
             }
             else if (type == ContentModuleType.Buildings)
             {
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Buildings"));
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "buildings"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Buildings"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "buildings"));
                 document = new
                 {
                     formatVersion = 1,
@@ -89,8 +89,8 @@ public sealed class ContentTypeModuleWriter
             }
             else
             {
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "terrain"));
-                Directory.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "misc"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "terrain"));
+                _files.CreateDirectory(_files.Combine(moduleRoot, "Resources", "Images", "misc"));
                 document = new
                 {
                     formatVersion = 1,
@@ -110,7 +110,7 @@ public sealed class ContentTypeModuleWriter
             }
 
             var path = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
-            File.WriteAllText(
+            _files.WriteAllText(
                 path,
                 JsonSerializer.Serialize(document, WriteOptions) + Environment.NewLine,
                 Encoding.UTF8);
@@ -120,8 +120,8 @@ public sealed class ContentTypeModuleWriter
         {
             try
             {
-                if (Directory.Exists(moduleRoot))
-                    Directory.Delete(moduleRoot, recursive: true);
+                if (_files.DirectoryExists(moduleRoot))
+                    _files.DeleteDirectory(moduleRoot);
             }
             catch (IOException)
             {

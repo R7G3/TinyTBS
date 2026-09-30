@@ -17,9 +17,9 @@ public sealed class BuildingDocumentWriter
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
 
-    public BuildingDocumentWriter(IFileContentProvider files)
+    public BuildingDocumentWriter(IFileSystem files)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
     }
@@ -32,7 +32,7 @@ public sealed class BuildingDocumentWriter
         ContentModuleManifestParser.ValidateModuleId(document.Id);
         var id = document.Id.Trim();
         var buildingsDir = ResolveBuildingsDir(buildingsModuleRoot);
-        Directory.CreateDirectory(buildingsDir);
+        _files.CreateDirectory(buildingsDir);
 
         BuildingHealDto? heal = null;
         if (document.Heal is not null)
@@ -96,14 +96,14 @@ public sealed class BuildingDocumentWriter
         };
 
         var path = _files.Combine(buildingsDir, id + ".json");
-        File.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
 
         var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId.Trim();
         if (!string.Equals(originalId, id, StringComparison.Ordinal))
         {
             var oldPath = _files.Combine(buildingsDir, originalId + ".json");
-            if (File.Exists(oldPath) && !string.Equals(oldPath, path, StringComparison.OrdinalIgnoreCase))
-                File.Delete(oldPath);
+            if (_files.Exists(oldPath) && !string.Equals(oldPath, path, StringComparison.OrdinalIgnoreCase))
+                _files.DeleteFile(oldPath);
         }
 
         document.OriginalId = id;
@@ -114,12 +114,12 @@ public sealed class BuildingDocumentWriter
     private string ResolveBuildingsDir(string moduleRoot)
     {
         var moduleJsonPath = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
-        if (!File.Exists(moduleJsonPath))
+        if (!_files.Exists(moduleJsonPath))
             return _files.Combine(moduleRoot, "Buildings");
 
         try
         {
-            using var stream = File.OpenRead(moduleJsonPath);
+            using var stream = _files.OpenRead(moduleJsonPath);
             var manifest = JsonSerializer.Deserialize<BuildingModuleJsonDto>(stream, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,

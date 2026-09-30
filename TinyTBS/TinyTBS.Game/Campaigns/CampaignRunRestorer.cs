@@ -13,6 +13,7 @@ public static class CampaignRunRestorer
 {
     public static CampaignRunState? TryRestoreForMatch(
         MatchSaveDocument document,
+        IFileSystem files,
         IUserDataPaths userDataPaths)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -25,7 +26,7 @@ public static class CampaignRunRestorer
             ? document.LevelId
             : document.CampaignLevelId.Trim();
 
-        var progressStore = new CampaignProgressStore(userDataPaths);
+        var progressStore = new CampaignProgressStore(files, userDataPaths);
         var progress = progressStore.TryLoadLatestForCampaign(scenarioModuleId, campaignId);
         if (progress is null)
         {

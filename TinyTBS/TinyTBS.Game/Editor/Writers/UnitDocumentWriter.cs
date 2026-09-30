@@ -17,9 +17,9 @@ public sealed class UnitDocumentWriter
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
 
-    public UnitDocumentWriter(IFileContentProvider files)
+    public UnitDocumentWriter(IFileSystem files)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
     }
@@ -32,7 +32,7 @@ public sealed class UnitDocumentWriter
         ContentModuleManifestParser.ValidateModuleId(document.Id);
         var id = document.Id.Trim();
         var unitsDir = ResolveUnitsDir(unitsModuleRoot);
-        Directory.CreateDirectory(unitsDir);
+        _files.CreateDirectory(unitsDir);
 
         var payload = new UnitDefinitionDto
         {
@@ -85,14 +85,14 @@ public sealed class UnitDocumentWriter
         };
 
         var path = _files.Combine(unitsDir, id + ".json");
-        File.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
 
         var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId.Trim();
         if (!string.Equals(originalId, id, StringComparison.Ordinal))
         {
             var oldPath = _files.Combine(unitsDir, originalId + ".json");
-            if (File.Exists(oldPath) && !string.Equals(oldPath, path, StringComparison.OrdinalIgnoreCase))
-                File.Delete(oldPath);
+            if (_files.Exists(oldPath) && !string.Equals(oldPath, path, StringComparison.OrdinalIgnoreCase))
+                _files.DeleteFile(oldPath);
         }
 
         SyncRecruitPool(unitsModuleRoot, originalId, id, document.Recruitable);
@@ -104,12 +104,12 @@ public sealed class UnitDocumentWriter
     private string ResolveUnitsDir(string moduleRoot)
     {
         var moduleJsonPath = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
-        if (!File.Exists(moduleJsonPath))
+        if (!_files.Exists(moduleJsonPath))
             return _files.Combine(moduleRoot, "Units");
 
         try
         {
-            using var stream = File.OpenRead(moduleJsonPath);
+            using var stream = _files.OpenRead(moduleJsonPath);
             var manifest = JsonSerializer.Deserialize<UnitModuleJsonDto>(stream, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
@@ -128,12 +128,12 @@ public sealed class UnitDocumentWriter
     private string ResolveContentNamespace(string moduleRoot)
     {
         var moduleJsonPath = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
-        if (!File.Exists(moduleJsonPath))
+        if (!_files.Exists(moduleJsonPath))
             return Path.GetFileName(moduleRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
 
         try
         {
-            using var stream = File.OpenRead(moduleJsonPath);
+            using var stream = _files.OpenRead(moduleJsonPath);
             var manifest = JsonSerializer.Deserialize<UnitModuleJsonDto>(stream, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
@@ -153,7 +153,7 @@ public sealed class UnitDocumentWriter
     private void SyncRecruitPool(string moduleRoot, string previousLocalId, string newLocalId, bool recruitable)
     {
         var moduleJsonPath = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
-        if (!File.Exists(moduleJsonPath))
+        if (!_files.Exists(moduleJsonPath))
             return;
 
         var contentNamespace = ResolveContentNamespace(moduleRoot);
@@ -163,7 +163,7 @@ public sealed class UnitDocumentWriter
         System.Text.Json.Nodes.JsonNode? root;
         try
         {
-            root = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(moduleJsonPath));
+            root = System.Text.Json.Nodes.JsonNode.Parse(_files.ReadAllText(moduleJsonPath));
         }
         catch (JsonException)
         {
@@ -203,7 +203,7 @@ public sealed class UnitDocumentWriter
             pool.Add(newFull);
 
         recruitObject["addsToPool"] = pool;
-        File.WriteAllText(
+        _files.WriteAllText(
             moduleJsonPath,
             rootObject.ToJsonString(WriteOptions) + Environment.NewLine,
             Encoding.UTF8);

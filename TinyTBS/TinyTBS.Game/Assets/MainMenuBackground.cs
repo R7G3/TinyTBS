@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using TinyTBS.Engine.IO;
 
 namespace TinyTBS.Game.Assets;
 
@@ -42,11 +43,13 @@ public sealed class MainMenuBackground : IDisposable
     public static MainMenuBackground Load(
         GraphicsDevice graphicsDevice,
         ContentManager content,
+        IFileSystem files,
         IAssetResolver assets)
     {
         var loaded = GameTextureLoader.TryLoad(
             graphicsDevice,
             content,
+            files,
             assets,
             logicalRelativePath: "Images/menu_background.png",
             contentAssetName: "Images/menu_background");

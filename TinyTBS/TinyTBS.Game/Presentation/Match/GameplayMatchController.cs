@@ -123,7 +123,7 @@ public sealed class GameplayMatchController
                 _session.Cursor.Cell,
                 _game.Files,
                 _game.UserDataPaths);
-            var path = new MatchSaveWriter(_game.UserDataPaths).Write(document);
+            var path = new MatchSaveWriter(_game.Files, _game.UserDataPaths).Write(document);
             _hudSync.Hud.HintText = "Saved: " + Path.GetFileName(path);
             CloseAllOverlays();
         }

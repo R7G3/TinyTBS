@@ -19,7 +19,7 @@ public static class LevelMapRefResolver
     public static string ResolveMapDirectory(
         string scenarioModuleRoot,
         string mapRef,
-        IFileContentProvider files)
+        IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(scenarioModuleRoot);
         ArgumentException.ThrowIfNullOrWhiteSpace(mapRef);

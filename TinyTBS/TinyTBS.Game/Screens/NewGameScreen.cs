@@ -43,7 +43,7 @@ public sealed class NewGameScreen : MenuScreen
     public NewGameScreen(GameMain game, IAssetResolver assets)
         : base(game, assets)
     {
-        _campaignProgressStore = new CampaignProgressStore(game.UserDataPaths);
+        _campaignProgressStore = new CampaignProgressStore(game.Files, game.UserDataPaths);
     }
 
     protected override void OnLoad()

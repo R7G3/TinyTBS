@@ -12,14 +12,14 @@ public static class MatchSaveResume
 {
     public static MatchStartRequest CreateRequest(
         MatchSaveDocument document,
-        IFileContentProvider files,
+        IFileSystem files,
         IUserDataPaths userDataPaths)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(userDataPaths);
 
-        var campaignRun = CampaignRunRestorer.TryRestoreForMatch(document, userDataPaths);
+        var campaignRun = CampaignRunRestorer.TryRestoreForMatch(document, files, userDataPaths);
         var warning = BuildVersionWarning(document, files, userDataPaths);
         var orphanNote = campaignRun is not null
             && string.IsNullOrWhiteSpace(campaignRun.ProgressFilePath)
@@ -38,7 +38,7 @@ public static class MatchSaveResume
 
     public static string? BuildVersionWarning(
         MatchSaveDocument document,
-        IFileContentProvider files,
+        IFileSystem files,
         IUserDataPaths userDataPaths)
     {
         ArgumentNullException.ThrowIfNull(document);

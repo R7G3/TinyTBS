@@ -15,7 +15,7 @@ public static class MatchSaveDocumentFactory
     public static MatchSaveDocument FromRuntime(
         MatchRuntime runtime,
         GridCell cursor,
-        IFileContentProvider files,
+        IFileSystem files,
         IUserDataPaths userDataPaths,
         DateTimeOffset? writtenAtUtc = null)
     {
@@ -86,7 +86,7 @@ public static class MatchSaveDocumentFactory
 
     public static IReadOnlyDictionary<string, string> CollectModuleVersions(
         MatchContentComposition composition,
-        IFileContentProvider files,
+        IFileSystem files,
         IUserDataPaths userDataPaths)
     {
         var locator = new ContentModuleLocator(files, userDataPaths);

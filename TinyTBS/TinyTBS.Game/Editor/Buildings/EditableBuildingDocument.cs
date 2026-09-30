@@ -73,7 +73,7 @@ public sealed class EditableBuildingDocument
         };
     }
 
-    public static EditableBuildingDocument Load(string buildingJsonPath, IFileContentProvider files)
+    public static EditableBuildingDocument Load(string buildingJsonPath, IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(buildingJsonPath);
         ArgumentNullException.ThrowIfNull(files);

@@ -75,7 +75,7 @@ public sealed class EditorMapPaintScreen : GameScreen
 
             var loaded = MatchContentCompositionLoader.Load(composition, locator, TinyGame.Files);
             _catalog = loaded.Catalog;
-            _textures = MatchTextureAtlas.Load(GraphicsDevice, Content, _assets, loaded.Catalog);
+            _textures = MatchTextureAtlas.Load(GraphicsDevice, Content, TinyGame.Files, _assets, loaded.Catalog);
             _board = new EditorMapBoard(_document, GraphicsDevice, TinyGame.SharedSpriteBatch, _textures);
             _mapWriter = new MapDocumentWriter(TinyGame.Files);
             _levelWriter = new LevelStubWriter(TinyGame.Files);

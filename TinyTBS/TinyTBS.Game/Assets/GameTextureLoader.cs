@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using TinyTBS.Engine.IO;
 
 namespace TinyTBS.Game.Assets;
 
@@ -11,13 +12,14 @@ internal static class GameTextureLoader
     public static LoadedTexture? TryLoad(
         GraphicsDevice graphicsDevice,
         ContentManager content,
+        IFileSystem files,
         IAssetResolver assets,
         string logicalRelativePath,
         string contentAssetName)
     {
         var resolvedPath = assets.Resolve(logicalRelativePath);
-        if (resolvedPath is not null && File.Exists(resolvedPath))
-            return LoadFromFile(graphicsDevice, resolvedPath);
+        if (resolvedPath is not null && files.Exists(resolvedPath))
+            return LoadFromFile(graphicsDevice, files, resolvedPath);
 
         try
         {
@@ -35,35 +37,38 @@ internal static class GameTextureLoader
     public static LoadedTexture? TryLoadModuleSprite(
         GraphicsDevice graphicsDevice,
         ContentManager content,
+        IFileSystem files,
         IAssetResolver assets,
         string absoluteFilePath,
         string moduleRelativePath)
     {
-        if (File.Exists(absoluteFilePath))
-            return LoadFromFile(graphicsDevice, absoluteFilePath);
+        if (files.Exists(absoluteFilePath))
+            return LoadFromFile(graphicsDevice, files, absoluteFilePath);
 
         var contentAssetName = ModuleSpritePath.ToContentAssetName(moduleRelativePath);
         if (contentAssetName is null)
             return null;
 
         var logicalRelativePath = contentAssetName + ".png";
-        return TryLoad(graphicsDevice, content, assets, logicalRelativePath, contentAssetName);
+        return TryLoad(graphicsDevice, content, files, assets, logicalRelativePath, contentAssetName);
     }
 
     public static LoadedTexture LoadOrFallback(
         GraphicsDevice graphicsDevice,
         ContentManager content,
+        IFileSystem files,
         IAssetResolver assets,
         string logicalRelativePath,
         string contentAssetName)
     {
-        return TryLoad(graphicsDevice, content, assets, logicalRelativePath, contentAssetName)
+        return TryLoad(graphicsDevice, content, files, assets, logicalRelativePath, contentAssetName)
             ?? new LoadedTexture(CreateSolid(graphicsDevice, 16, 16), disposeOnUnload: true);
     }
 
     public static LoadedTexture LoadModuleSpriteOrFallback(
         GraphicsDevice graphicsDevice,
         ContentManager content,
+        IFileSystem files,
         IAssetResolver assets,
         string absoluteFilePath,
         string moduleRelativePath)
@@ -71,15 +76,16 @@ internal static class GameTextureLoader
         return TryLoadModuleSprite(
                 graphicsDevice,
                 content,
+                files,
                 assets,
                 absoluteFilePath,
                 moduleRelativePath)
             ?? new LoadedTexture(CreateSolid(graphicsDevice, 16, 16), disposeOnUnload: true);
     }
 
-    private static LoadedTexture LoadFromFile(GraphicsDevice graphicsDevice, string absoluteFilePath)
+    private static LoadedTexture LoadFromFile(GraphicsDevice graphicsDevice, IFileSystem files, string absoluteFilePath)
     {
-        using var stream = File.OpenRead(absoluteFilePath);
+        using var stream = files.OpenRead(absoluteFilePath);
         return new LoadedTexture(Texture2D.FromStream(graphicsDevice, stream), disposeOnUnload: true);
     }
 

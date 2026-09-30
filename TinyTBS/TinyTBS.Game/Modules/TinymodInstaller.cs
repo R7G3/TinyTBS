@@ -10,10 +10,10 @@ namespace TinyTBS.Game.Modules;
 /// </summary>
 public sealed class TinymodInstaller
 {
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public TinymodInstaller(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public TinymodInstaller(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
@@ -26,7 +26,7 @@ public sealed class TinymodInstaller
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tinymodZipPath);
 
-        if (!File.Exists(tinymodZipPath))
+        if (!_files.Exists(tinymodZipPath))
             throw new TinymodInstallException($"Tinymod archive not found: {tinymodZipPath}");
 
         if (!HasTinymodExtension(tinymodZipPath))
@@ -40,7 +40,8 @@ public sealed class TinymodInstaller
         ContentModuleInfo manifest;
         try
         {
-            using var archive = ZipFile.OpenRead(tinymodZipPath);
+            using var zipStream = _files.OpenRead(tinymodZipPath);
+            using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
             var moduleJsonEntry = FindRootModuleJson(archive)
                 ?? throw new TinymodInstallException(
                     $"Archive must contain '{ContentModuleFiles.ModuleJsonFileName}' at the zip root.");
@@ -57,8 +58,8 @@ public sealed class TinymodInstaller
             var destinationRoot = _files.Combine(_userDataPaths.Modules, manifest.ModuleId);
             var stagingRoot = destinationRoot + ".__installing";
 
-            DeleteDirectoryIfExists(stagingRoot);
-            Directory.CreateDirectory(stagingRoot);
+            _files.DeleteDirectory(stagingRoot);
+            _files.CreateDirectory(stagingRoot);
 
             try
             {
@@ -71,12 +72,12 @@ public sealed class TinymodInstaller
                         $"Extracted archive is missing '{ContentModuleFiles.ModuleJsonFileName}'.");
                 }
 
-                DeleteDirectoryIfExists(destinationRoot);
-                Directory.Move(stagingRoot, destinationRoot);
+                _files.DeleteDirectory(destinationRoot);
+                _files.MoveDirectory(stagingRoot, destinationRoot);
             }
             catch
             {
-                DeleteDirectoryIfExists(stagingRoot);
+                _files.DeleteDirectory(stagingRoot);
                 throw;
             }
 
@@ -123,12 +124,12 @@ public sealed class TinymodInstaller
 
         var id = moduleId.Trim();
         var moduleRoot = _files.Combine(_userDataPaths.Modules, id);
-        if (!Directory.Exists(moduleRoot))
+        if (!_files.DirectoryExists(moduleRoot))
             return false;
 
         try
         {
-            Directory.Delete(moduleRoot, recursive: true);
+            _files.DeleteDirectory(moduleRoot);
             TryDeleteDownloadArchive(id);
             return true;
         }
@@ -159,8 +160,8 @@ public sealed class TinymodInstaller
             id + ContentModuleFiles.TinymodZipExtension);
         try
         {
-            if (File.Exists(zipPath))
-                File.Delete(zipPath);
+            if (_files.Exists(zipPath))
+                _files.DeleteFile(zipPath);
         }
         catch (IOException)
         {
@@ -174,10 +175,10 @@ public sealed class TinymodInstaller
     public IReadOnlyList<string> ListDownloadArchives()
     {
         _userDataPaths.EnsureCreated();
-        if (!Directory.Exists(_userDataPaths.Downloads))
+        if (!_files.DirectoryExists(_userDataPaths.Downloads))
             return [];
 
-        return Directory.GetFiles(_userDataPaths.Downloads, "*" + ContentModuleFiles.TinymodZipExtension)
+        return _files.EnumerateFiles(_userDataPaths.Downloads, "*" + ContentModuleFiles.TinymodZipExtension)
             .OrderBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
@@ -207,7 +208,7 @@ public sealed class TinymodInstaller
         return null;
     }
 
-    private static void ExtractArchive(ZipArchive archive, string destinationRoot)
+    private void ExtractArchive(ZipArchive archive, string destinationRoot)
     {
         var destinationFullRoot = Path.GetFullPath(destinationRoot);
 
@@ -219,7 +220,7 @@ public sealed class TinymodInstaller
             if (isDirectoryEntry && string.IsNullOrEmpty(entry.Name))
             {
                 var directoryPath = MapEntryPath(entry.FullName, destinationFullRoot);
-                Directory.CreateDirectory(directoryPath);
+                _files.CreateDirectory(directoryPath);
                 continue;
             }
 
@@ -229,9 +230,11 @@ public sealed class TinymodInstaller
             var targetPath = MapEntryPath(entry.FullName, destinationFullRoot);
             var targetDirectory = Path.GetDirectoryName(targetPath);
             if (!string.IsNullOrEmpty(targetDirectory))
-                Directory.CreateDirectory(targetDirectory);
+                _files.CreateDirectory(targetDirectory);
 
-            entry.ExtractToFile(targetPath, overwrite: true);
+            using (var source = entry.Open())
+            using (var destination = _files.Create(targetPath))
+                source.CopyTo(destination);
         }
     }
 
@@ -264,9 +267,4 @@ public sealed class TinymodInstaller
         return combined;
     }
 
-    private static void DeleteDirectoryIfExists(string path)
-    {
-        if (Directory.Exists(path))
-            Directory.Delete(path, recursive: true);
-    }
 }

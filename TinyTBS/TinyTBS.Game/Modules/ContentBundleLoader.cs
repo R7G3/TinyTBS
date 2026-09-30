@@ -8,7 +8,7 @@ public static class ContentBundleLoader
 {
     public static ContentBundleDefinition Load(
         string bundleFilePath,
-        IFileContentProvider files,
+        IFileSystem files,
         ContentModuleSource source)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleFilePath);

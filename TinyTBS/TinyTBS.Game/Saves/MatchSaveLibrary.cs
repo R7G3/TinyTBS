@@ -6,10 +6,12 @@ namespace TinyTBS.Game.Saves;
 /// <summary>Lists and resolves match saves in <see cref="IUserDataPaths.Saves"/>.</summary>
 public sealed class MatchSaveLibrary
 {
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public MatchSaveLibrary(IUserDataPaths userDataPaths)
+    public MatchSaveLibrary(IFileSystem files, IUserDataPaths userDataPaths)
     {
+        _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
     }
 
@@ -17,15 +19,15 @@ public sealed class MatchSaveLibrary
     public IReadOnlyList<MatchSaveListEntry> ListMatchSavesNewestFirst()
     {
         _userDataPaths.EnsureCreated();
-        if (!Directory.Exists(_userDataPaths.Saves))
+        if (!_files.DirectoryExists(_userDataPaths.Saves))
             return [];
 
         var entries = new List<MatchSaveListEntry>();
-        foreach (var path in Directory.GetFiles(_userDataPaths.Saves, "match_*.json"))
+        foreach (var path in _files.EnumerateFiles(_userDataPaths.Saves, "match_*.json"))
         {
             try
             {
-                var document = MatchSaveReader.ReadFile(path);
+                var document = MatchSaveReader.ReadFile(_files, path);
                 entries.Add(new MatchSaveListEntry
                 {
                     FilePath = path,
@@ -64,13 +66,13 @@ public sealed class MatchSaveLibrary
         if (!TryGetLatest(out var entry))
             throw new MatchSaveException("No match saves found.");
 
-        return MatchSaveReader.ReadFile(entry.FilePath);
+        return MatchSaveReader.ReadFile(_files, entry.FilePath);
     }
 
     public MatchSaveDocument Load(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-        return MatchSaveReader.ReadFile(filePath);
+        return MatchSaveReader.ReadFile(_files, filePath);
     }
 
     /// <summary>Deletes a match save file. Returns false if the file was already gone.</summary>
@@ -83,12 +85,12 @@ public sealed class MatchSaveLibrary
         if (!fullPath.StartsWith(savesRoot, StringComparison.OrdinalIgnoreCase))
             throw new MatchSaveException("Refusing to delete a file outside the Saves folder.");
 
-        if (!File.Exists(fullPath))
+        if (!_files.Exists(fullPath))
             return false;
 
         try
         {
-            File.Delete(fullPath);
+            _files.DeleteFile(fullPath);
             return true;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)

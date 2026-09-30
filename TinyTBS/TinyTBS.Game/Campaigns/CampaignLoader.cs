@@ -21,7 +21,7 @@ public static class CampaignLoader
     public static CampaignDefinition? TryLoadFromScenario(
         string moduleRootPath,
         string? campaignRelativePath,
-        IFileContentProvider files)
+        IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRootPath);
         ArgumentNullException.ThrowIfNull(files);
@@ -42,7 +42,7 @@ public static class CampaignLoader
         Stream jsonStream,
         string moduleRootPath,
         string manifestRelativePath,
-        IFileContentProvider files)
+        IFileSystem files)
     {
         ArgumentNullException.ThrowIfNull(jsonStream);
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRootPath);

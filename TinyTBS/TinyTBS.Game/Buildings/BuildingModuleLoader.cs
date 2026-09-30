@@ -8,12 +8,12 @@ namespace TinyTBS.Game.Buildings;
 /// <summary>Loads a buildings module folder (<c>module.json</c> + <c>Buildings/*.json</c>).</summary>
 public static class BuildingModuleLoader
 {
-    public static BuildingModuleDefinition Load(string moduleRoot, IFileContentProvider files)
+    public static BuildingModuleDefinition Load(string moduleRoot, IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(moduleRoot);
         ArgumentNullException.ThrowIfNull(files);
 
-        if (!Directory.Exists(moduleRoot))
+        if (!files.DirectoryExists(moduleRoot))
             throw new BuildingLoadException($"Buildings module folder not found: {moduleRoot}");
 
         var moduleJsonPath = files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
@@ -32,14 +32,12 @@ public static class BuildingModuleLoader
         }
 
         var buildingsDirectory = files.Combine(moduleRoot, buildingsDir.TrimEnd('/', '\\'));
-        if (!Directory.Exists(buildingsDirectory))
+        if (!files.DirectoryExists(buildingsDirectory))
             throw new BuildingLoadException($"Buildings directory not found: {buildingsDirectory}");
 
         var buildingsById = new Dictionary<ContentId, BuildingDefinition>();
-        foreach (var buildingFilePath in Directory.EnumerateFiles(
-                     buildingsDirectory,
-                     "*.json",
-                     SearchOption.TopDirectoryOnly))
+        foreach (var buildingFilePath in files.EnumerateFiles(
+                     buildingsDirectory, "*.json"))
         {
             using var buildingStream = files.OpenRead(buildingFilePath);
             var buildingDefinition = BuildingJsonParser.ParseBuilding(buildingStream, contentNamespace, moduleRoot);

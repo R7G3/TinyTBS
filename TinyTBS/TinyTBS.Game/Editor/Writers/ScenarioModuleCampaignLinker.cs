@@ -10,7 +10,7 @@ namespace TinyTBS.Game.Editor.Writers;
 /// <summary>Ensures scenario <c>module.json</c> has <c>content.campaign</c>.</summary>
 public static class ScenarioModuleCampaignLinker
 {
-    public static void EnsureCampaignContentPath(string scenarioModuleRoot, IFileContentProvider files)
+    public static void EnsureCampaignContentPath(string scenarioModuleRoot, IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(scenarioModuleRoot);
         ArgumentNullException.ThrowIfNull(files);
@@ -19,7 +19,7 @@ public static class ScenarioModuleCampaignLinker
         if (!files.Exists(moduleJsonPath))
             throw new EditorException("module.json not found in scenario root.");
 
-        var text = File.ReadAllText(moduleJsonPath);
+        var text = files.ReadAllText(moduleJsonPath);
         JsonNode? root;
         try
         {
@@ -42,6 +42,6 @@ public static class ScenarioModuleCampaignLinker
         contentObject["campaign"] = CampaignLoader.DefaultManifestRelativePath;
 
         var options = new JsonSerializerOptions { WriteIndented = true };
-        File.WriteAllText(moduleJsonPath, rootObject.ToJsonString(options) + Environment.NewLine, Encoding.UTF8);
+        files.WriteAllText(moduleJsonPath, rootObject.ToJsonString(options) + Environment.NewLine, Encoding.UTF8);
     }
 }

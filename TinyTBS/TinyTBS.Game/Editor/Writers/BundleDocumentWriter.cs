@@ -17,10 +17,10 @@ public sealed class BundleDocumentWriter
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public BundleDocumentWriter(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public BundleDocumentWriter(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
@@ -32,13 +32,13 @@ public sealed class BundleDocumentWriter
         ValidateBundleId(baseId.Trim());
         var stem = baseId.Trim();
         _userDataPaths.EnsureCreated();
-        if (!File.Exists(UserBundlePath(stem)))
+        if (!_files.Exists(UserBundlePath(stem)))
             return stem;
 
         for (var suffix = 2; suffix < 10_000; suffix++)
         {
             var candidate = stem + "_" + suffix;
-            if (!File.Exists(UserBundlePath(candidate)))
+            if (!_files.Exists(UserBundlePath(candidate)))
                 return candidate;
         }
 
@@ -54,7 +54,7 @@ public sealed class BundleDocumentWriter
         ValidateDocument(document);
 
         _userDataPaths.EnsureCreated();
-        Directory.CreateDirectory(_userDataPaths.Bundles);
+        _files.CreateDirectory(_userDataPaths.Bundles);
 
         var payload = new ContentBundleJsonDto
         {
@@ -84,14 +84,14 @@ public sealed class BundleDocumentWriter
         };
 
         var path = UserBundlePath(id);
-        File.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
 
         var originalId = string.IsNullOrWhiteSpace(document.OriginalId) ? id : document.OriginalId.Trim();
         if (!string.Equals(originalId, id, StringComparison.Ordinal))
         {
             var oldPath = UserBundlePath(originalId);
-            if (File.Exists(oldPath) && !string.Equals(oldPath, path, StringComparison.OrdinalIgnoreCase))
-                File.Delete(oldPath);
+            if (_files.Exists(oldPath) && !string.Equals(oldPath, path, StringComparison.OrdinalIgnoreCase))
+                _files.DeleteFile(oldPath);
         }
 
         document.OriginalId = id;
@@ -104,10 +104,10 @@ public sealed class BundleDocumentWriter
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleId);
         ValidateBundleId(bundleId.Trim());
         var path = UserBundlePath(bundleId.Trim());
-        if (!File.Exists(path))
+        if (!_files.Exists(path))
             return false;
 
-        File.Delete(path);
+        _files.DeleteFile(path);
         return true;
     }
 
@@ -116,7 +116,7 @@ public sealed class BundleDocumentWriter
         ArgumentNullException.ThrowIfNull(source);
         ValidateBundleId(targetBundleId);
         var id = targetBundleId.Trim();
-        if (File.Exists(UserBundlePath(id)))
+        if (_files.Exists(UserBundlePath(id)))
             throw new EditorException($"User bundle '{id}' already exists.");
 
         var document = EditableBundleDocument.FromDefinition(source);

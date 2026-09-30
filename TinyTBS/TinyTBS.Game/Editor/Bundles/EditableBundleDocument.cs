@@ -75,7 +75,7 @@ public sealed class EditableBundleDocument
         };
     }
 
-    public static EditableBundleDocument Load(string bundleFilePath, IFileContentProvider files)
+    public static EditableBundleDocument Load(string bundleFilePath, IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(bundleFilePath);
         ArgumentNullException.ThrowIfNull(files);

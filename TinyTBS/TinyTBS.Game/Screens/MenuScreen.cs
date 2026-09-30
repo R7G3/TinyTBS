@@ -30,7 +30,7 @@ public abstract class MenuScreen : GameScreen
     public sealed override void LoadContent()
     {
         base.LoadContent();
-        _background = MainMenuBackground.Load(GraphicsDevice, Content, Assets);
+        _background = MainMenuBackground.Load(GraphicsDevice, Content, TinyGame.Files, Assets);
         OnLoad();
     }
 

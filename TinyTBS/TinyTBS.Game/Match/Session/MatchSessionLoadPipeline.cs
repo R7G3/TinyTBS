@@ -25,7 +25,7 @@ public sealed class MatchSessionLoadPipeline
     private readonly ContentManager _content;
     private readonly SpriteBatch _spriteBatch;
     private readonly IAssetResolver _assets;
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
     private readonly MatchStartRequest _request;
     private readonly IReadOnlyList<LoadStage> _stages;
@@ -54,7 +54,7 @@ public sealed class MatchSessionLoadPipeline
         ContentManager content,
         SpriteBatch spriteBatch,
         IAssetResolver assets,
-        IFileContentProvider files,
+        IFileSystem files,
         IUserDataPaths userDataPaths,
         MatchStartRequest request)
     {
@@ -221,6 +221,7 @@ public sealed class MatchSessionLoadPipeline
         _textures = MatchTextureAtlas.Load(
             _graphicsDevice,
             _content,
+            _files,
             _assets,
             _matchContent.Catalog,
             onItemLoaded: () => UiPump?.Invoke());

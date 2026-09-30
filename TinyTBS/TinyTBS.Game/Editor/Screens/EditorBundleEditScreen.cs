@@ -76,7 +76,7 @@ public sealed class EditorBundleEditScreen : EditorFormScreen
             _document.Id = id;
 
             if ((_isNew || !string.Equals(id, _document.OriginalId, StringComparison.Ordinal))
-                && File.Exists(TinyGame.Files.Combine(
+                && TinyGame.Files.Exists(TinyGame.Files.Combine(
                     TinyGame.UserDataPaths.Bundles,
                     id + ContentBundleFiles.BundleJsonExtension)))
             {

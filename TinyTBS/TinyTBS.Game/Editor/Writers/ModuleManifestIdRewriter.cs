@@ -17,7 +17,7 @@ public static class ModuleManifestIdRewriter
     public static void RewriteIdentity(
         string moduleRootPath,
         string moduleId,
-        IFileContentProvider files,
+        IFileSystem files,
         string? title = null,
         bool forceNamespaceToModuleId = true)
     {
@@ -34,7 +34,7 @@ public static class ModuleManifestIdRewriter
         JsonNode root;
         try
         {
-            var text = File.ReadAllText(moduleJsonPath);
+            var text = files.ReadAllText(moduleJsonPath);
             root = JsonNode.Parse(text)
                 ?? throw new EditorException("module.json parsed to null.");
         }
@@ -49,6 +49,6 @@ public static class ModuleManifestIdRewriter
         if (!string.IsNullOrWhiteSpace(title))
             root["title"] = title.Trim();
 
-        File.WriteAllText(moduleJsonPath, root.ToJsonString(WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        files.WriteAllText(moduleJsonPath, root.ToJsonString(WriteOptions) + Environment.NewLine, Encoding.UTF8);
     }
 }

@@ -9,15 +9,15 @@ public sealed class SaveCatalog
 {
     private readonly MatchSaveLibrary _matchLibrary;
     private readonly CampaignProgressStore _campaignStore;
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public SaveCatalog(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public SaveCatalog(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
-        _matchLibrary = new MatchSaveLibrary(userDataPaths);
-        _campaignStore = new CampaignProgressStore(userDataPaths);
+        _matchLibrary = new MatchSaveLibrary(files, userDataPaths);
+        _campaignStore = new CampaignProgressStore(files, userDataPaths);
     }
 
     public IReadOnlyList<SaveCatalogEntry> ListNewestFirst()
@@ -25,7 +25,7 @@ public sealed class SaveCatalog
         var entries = new List<SaveCatalogEntry>();
 
         foreach (var match in _matchLibrary.ListMatchSavesNewestFirst())
-            entries.Add(SaveCatalogEntry.FromMatch(match));
+            entries.Add(SaveCatalogEntry.FromMatch(_files, match));
 
         foreach (var campaign in _campaignStore.ListNewestFirst())
             entries.Add(SaveCatalogEntry.FromCampaign(campaign));

@@ -16,9 +16,9 @@ public sealed class CampaignDocumentWriter
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
 
-    public CampaignDocumentWriter(IFileContentProvider files)
+    public CampaignDocumentWriter(IFileSystem files)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
     }
@@ -38,7 +38,7 @@ public sealed class CampaignDocumentWriter
         ContentModuleManifestParser.ValidateModuleId(campaignId.Trim());
 
         var campaignRoot = _files.Combine(scenarioModuleRoot, "Campaign");
-        Directory.CreateDirectory(campaignRoot);
+        _files.CreateDirectory(campaignRoot);
 
         var chapters = levelIds
             .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -60,7 +60,7 @@ public sealed class CampaignDocumentWriter
         };
 
         var manifestPath = _files.Combine(campaignRoot, "campaign.json");
-        File.WriteAllText(
+        _files.WriteAllText(
             manifestPath,
             JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine,
             Encoding.UTF8);
@@ -68,8 +68,8 @@ public sealed class CampaignDocumentWriter
         if (writeScriptIfMissing)
         {
             var scriptPath = _files.Combine(campaignRoot, "script.cs");
-            if (!File.Exists(scriptPath))
-                File.WriteAllText(scriptPath, CampaignScriptTemplates.EmptyHooks, Encoding.UTF8);
+            if (!_files.Exists(scriptPath))
+                _files.WriteAllText(scriptPath, CampaignScriptTemplates.EmptyHooks, Encoding.UTF8);
         }
 
         ScenarioModuleCampaignLinker.EnsureCampaignContentPath(scenarioModuleRoot, _files);

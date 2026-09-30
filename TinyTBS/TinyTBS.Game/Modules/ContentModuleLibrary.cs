@@ -8,10 +8,10 @@ namespace TinyTBS.Game.Modules;
 /// </summary>
 public sealed class ContentModuleLibrary
 {
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public ContentModuleLibrary(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public ContentModuleLibrary(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
@@ -25,7 +25,7 @@ public sealed class ContentModuleLibrary
     public IReadOnlyList<ContentModuleInfo> ListBundledModules()
     {
         var bundledRoot = _files.Combine(
-            AppContext.BaseDirectory,
+            _userDataPaths.InstallRoot,
             ContentModuleLocator.BundledVanillaModulesRelativePath);
         return ScanModulesRoot(bundledRoot, ContentModuleSource.Bundled);
     }
@@ -55,11 +55,11 @@ public sealed class ContentModuleLibrary
 
     private IReadOnlyList<ContentModuleInfo> ScanModulesRoot(string modulesRoot, ContentModuleSource source)
     {
-        if (!Directory.Exists(modulesRoot))
+        if (!_files.DirectoryExists(modulesRoot))
             return [];
 
         var result = new List<ContentModuleInfo>();
-        foreach (var moduleDirectory in Directory.GetDirectories(modulesRoot))
+        foreach (var moduleDirectory in _files.EnumerateDirectories(modulesRoot))
         {
             var folderName = Path.GetFileName(moduleDirectory);
             if (string.IsNullOrEmpty(folderName) || folderName.EndsWith(".__installing", StringComparison.OrdinalIgnoreCase))

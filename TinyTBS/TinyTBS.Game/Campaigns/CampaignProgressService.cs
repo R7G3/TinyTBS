@@ -14,19 +14,19 @@ namespace TinyTBS.Game.Campaigns;
 public sealed class CampaignProgressService
 {
     private readonly IUserDataPaths _userDataPaths;
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IScriptEngine _scriptEngine;
     private readonly CampaignProgressStore _store;
 
     public CampaignProgressService(
         IUserDataPaths userDataPaths,
-        IFileContentProvider files,
+        IFileSystem files,
         IScriptEngine? scriptEngine = null)
     {
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _scriptEngine = scriptEngine ?? new RoslynMapScriptEngine();
-        _store = new CampaignProgressStore(userDataPaths);
+        _store = new CampaignProgressStore(_files, userDataPaths);
     }
 
     public CampaignProgressStore Store => _store;

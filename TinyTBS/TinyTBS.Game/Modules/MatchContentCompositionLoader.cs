@@ -17,7 +17,7 @@ public static class MatchContentCompositionLoader
     public static MatchContentLoadResult Load(
         MatchContentComposition composition,
         ContentModuleLocator locator,
-        IFileContentProvider files)
+        IFileSystem files)
     {
         ArgumentNullException.ThrowIfNull(composition);
         ArgumentNullException.ThrowIfNull(locator);

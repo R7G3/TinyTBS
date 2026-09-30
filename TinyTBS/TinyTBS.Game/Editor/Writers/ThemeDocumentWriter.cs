@@ -18,9 +18,9 @@ public sealed class ThemeDocumentWriter
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
 
-    public ThemeDocumentWriter(IFileContentProvider files)
+    public ThemeDocumentWriter(IFileSystem files)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
     }
@@ -87,7 +87,7 @@ public sealed class ThemeDocumentWriter
         };
 
         var path = _files.Combine(themeModuleRoot, ContentModuleFiles.ModuleJsonFileName);
-        File.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
         document.IsDirty = false;
         return path;
     }

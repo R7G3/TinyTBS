@@ -10,10 +10,10 @@ public sealed class ContentBundleLocator
 {
     public const string BundledVanillaBundlesRelativePath = "Vanilla/Bundles";
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public ContentBundleLocator(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public ContentBundleLocator(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
@@ -39,7 +39,7 @@ public sealed class ContentBundleLocator
             return (userPath, ContentModuleSource.UserLibrary);
 
         var bundledPath = _files.Combine(
-            AppContext.BaseDirectory,
+            _userDataPaths.InstallRoot,
             BundledVanillaBundlesRelativePath,
             fileName);
         if (_files.Exists(bundledPath))

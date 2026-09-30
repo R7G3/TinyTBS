@@ -21,10 +21,10 @@ public sealed class EditorWorkspaceService
 
     private static readonly JsonSerializerOptions ManifestWriteOptions = new() { WriteIndented = true };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public EditorWorkspaceService(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public EditorWorkspaceService(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
@@ -63,16 +63,16 @@ public sealed class EditorWorkspaceService
         _files.Combine(session.ModuleRootPath, BuildingsFolderName, buildingId + JsonExtension);
 
     public string AllocateMapId(EditorWorkspaceSession session, string stem) =>
-        EditorIds.AllocateUnique(stem, candidate => Directory.Exists(MapFolder(session, candidate)), "map");
+        EditorIds.AllocateUnique(stem, candidate => _files.DirectoryExists(MapFolder(session, candidate)), "map");
 
     public string AllocateLevelId(EditorWorkspaceSession session, string stem) =>
-        EditorIds.AllocateUnique(stem, candidate => Directory.Exists(LevelFolder(session, candidate)), "level");
+        EditorIds.AllocateUnique(stem, candidate => _files.DirectoryExists(LevelFolder(session, candidate)), "level");
 
     public string AllocateUnitId(EditorWorkspaceSession session, string stem) =>
-        EditorIds.AllocateUnique(stem, candidate => File.Exists(UnitFile(session, candidate)), "unit");
+        EditorIds.AllocateUnique(stem, candidate => _files.Exists(UnitFile(session, candidate)), "unit");
 
     public string AllocateBuildingId(EditorWorkspaceSession session, string stem) =>
-        EditorIds.AllocateUnique(stem, candidate => File.Exists(BuildingFile(session, candidate)), "building");
+        EditorIds.AllocateUnique(stem, candidate => _files.Exists(BuildingFile(session, candidate)), "building");
 
     /// <summary>Picks <paramref name="stem"/>, <c>{stem}_2</c>, … not yet used in the user module library.</summary>
     public string AllocateModuleId(string stem)
@@ -85,7 +85,7 @@ public sealed class EditorWorkspaceService
     }
 
     public bool IsUserModuleIdTaken(string moduleId) =>
-        Directory.Exists(_files.Combine(_userDataPaths.Modules, moduleId));
+        _files.DirectoryExists(_files.Combine(_userDataPaths.Modules, moduleId));
 
     public void DeleteMap(EditorWorkspaceSession session, string mapId) =>
         DeleteFolder(MapFolder(session, mapId));
@@ -97,8 +97,8 @@ public sealed class EditorWorkspaceService
     public void DeleteUnit(EditorWorkspaceSession session, string unitId)
     {
         var path = UnitFile(session, unitId);
-        if (File.Exists(path))
-            File.Delete(path);
+        if (_files.Exists(path))
+            _files.DeleteFile(path);
 
         RemoveFromRecruitPool(session.ModuleRootPath, unitId);
     }
@@ -106,8 +106,8 @@ public sealed class EditorWorkspaceService
     public void DeleteBuilding(EditorWorkspaceSession session, string buildingId)
     {
         var path = BuildingFile(session, buildingId);
-        if (File.Exists(path))
-            File.Delete(path);
+        if (_files.Exists(path))
+            _files.DeleteFile(path);
     }
 
     /// <summary>
@@ -131,12 +131,12 @@ public sealed class EditorWorkspaceService
         return new EditorWorkspaceSession(targetId, destination, type, copyTitle);
     }
 
-    private static IReadOnlyList<string> ListFolderNames(string root)
+    private IReadOnlyList<string> ListFolderNames(string root)
     {
-        if (!Directory.Exists(root))
+        if (!_files.DirectoryExists(root))
             return [];
 
-        return Directory.GetDirectories(root)
+        return _files.EnumerateDirectories(root)
             .Select(Path.GetFileName)
             .OfType<string>()
             .Where(name => name.Length > 0)
@@ -144,12 +144,12 @@ public sealed class EditorWorkspaceService
             .ToArray();
     }
 
-    private static IReadOnlyList<string> ListJsonNames(string folder)
+    private IReadOnlyList<string> ListJsonNames(string folder)
     {
-        if (!Directory.Exists(folder))
+        if (!_files.DirectoryExists(folder))
             return [];
 
-        return Directory.EnumerateFiles(folder, "*" + JsonExtension, SearchOption.TopDirectoryOnly)
+        return _files.EnumerateFiles(folder, "*" + JsonExtension)
             .Select(Path.GetFileNameWithoutExtension)
             .OfType<string>()
             .Where(name => name.Length > 0)
@@ -157,22 +157,22 @@ public sealed class EditorWorkspaceService
             .ToArray();
     }
 
-    private static void DeleteFolder(string path)
+    private void DeleteFolder(string path)
     {
-        if (Directory.Exists(path))
-            Directory.Delete(path, recursive: true);
+        if (_files.DirectoryExists(path))
+            _files.DeleteDirectory(path);
     }
 
     private void RemoveFromRecruitPool(string moduleRoot, string localUnitId)
     {
         var moduleJsonPath = _files.Combine(moduleRoot, ContentModuleFiles.ModuleJsonFileName);
-        if (!File.Exists(moduleJsonPath))
+        if (!_files.Exists(moduleJsonPath))
             return;
 
         JsonNode? root;
         try
         {
-            root = JsonNode.Parse(File.ReadAllText(moduleJsonPath));
+            root = JsonNode.Parse(_files.ReadAllText(moduleJsonPath));
         }
         catch (JsonException)
         {
@@ -209,6 +209,6 @@ public sealed class EditorWorkspaceService
         }
 
         recruitObject["addsToPool"] = pool;
-        File.WriteAllText(moduleJsonPath, rootObject.ToJsonString(ManifestWriteOptions) + Environment.NewLine);
+        _files.WriteAllText(moduleJsonPath, rootObject.ToJsonString(ManifestWriteOptions) + Environment.NewLine);
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using TinyTBS.Engine.IO;
 using TinyTBS.Game.Assets;
 using TinyTBS.Game.Maps.Models;
 using TinyTBS.Game.Match;
@@ -84,6 +85,7 @@ public sealed class MatchTextureAtlas : IDisposable
     public static MatchTextureAtlas Load(
         GraphicsDevice graphicsDevice,
         ContentManager content,
+        IFileSystem files,
         IAssetResolver assets,
         MatchContentCatalog catalog,
         Action? onItemLoaded = null)
@@ -98,9 +100,9 @@ public sealed class MatchTextureAtlas : IDisposable
             var baseAbsolute = ModuleSpritePath.CombineModuleFile(moduleRoot, baseRelativePath);
             var maskAbsolute = ModuleSpritePath.CombineModuleFile(moduleRoot, maskRelativePath);
             var baseTexture = GameTextureLoader.LoadModuleSpriteOrFallback(
-                graphicsDevice, content, assets, baseAbsolute, baseRelativePath);
+                graphicsDevice, content, files, assets, baseAbsolute, baseRelativePath);
             var maskTexture = GameTextureLoader.LoadModuleSpriteOrFallback(
-                graphicsDevice, content, assets, maskAbsolute, maskRelativePath);
+                graphicsDevice, content, files, assets, maskAbsolute, maskRelativePath);
             ownedTextures.Add(baseTexture);
             ownedTextures.Add(maskTexture);
             onItemLoaded?.Invoke();
@@ -111,7 +113,7 @@ public sealed class MatchTextureAtlas : IDisposable
         {
             var absolutePath = ModuleSpritePath.CombineModuleFile(theme.ModuleRootPath, moduleRelativePath);
             var loaded = GameTextureLoader.LoadModuleSpriteOrFallback(
-                graphicsDevice, content, assets, absolutePath, moduleRelativePath);
+                graphicsDevice, content, files, assets, absolutePath, moduleRelativePath);
             ownedTextures.Add(loaded);
             onItemLoaded?.Invoke();
             return loaded.Texture;

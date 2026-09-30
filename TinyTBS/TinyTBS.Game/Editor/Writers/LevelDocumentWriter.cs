@@ -18,9 +18,9 @@ public sealed class LevelDocumentWriter
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
 
-    public LevelDocumentWriter(IFileContentProvider files)
+    public LevelDocumentWriter(IFileSystem files)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
     }
@@ -32,7 +32,7 @@ public sealed class LevelDocumentWriter
 
         ContentModuleManifestParser.ValidateModuleId(document.Id);
         var levelRoot = _files.Combine(scenarioModuleRoot, "Levels", document.Id);
-        Directory.CreateDirectory(levelRoot);
+        _files.CreateDirectory(levelRoot);
 
         var playersMin = Math.Max(1, document.PlayersMin);
         var playersMax = Math.Max(playersMin, document.PlayersMax);
@@ -68,7 +68,7 @@ public sealed class LevelDocumentWriter
         };
 
         var path = _files.Combine(levelRoot, LevelFolderLoader.LevelJsonFileName);
-        File.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
+        _files.WriteAllText(path, JsonSerializer.Serialize(payload, WriteOptions) + Environment.NewLine, Encoding.UTF8);
         document.IsDirty = false;
         return levelRoot;
     }

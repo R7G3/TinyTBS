@@ -8,10 +8,10 @@ namespace TinyTBS.Game.Modules;
 /// </summary>
 public sealed class ContentBundleLibrary
 {
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly IUserDataPaths _userDataPaths;
 
-    public ContentBundleLibrary(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public ContentBundleLibrary(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _userDataPaths = userDataPaths ?? throw new ArgumentNullException(nameof(userDataPaths));
@@ -23,7 +23,7 @@ public sealed class ContentBundleLibrary
     public IReadOnlyList<ContentBundleDefinition> ListBundledBundles()
     {
         var bundledRoot = _files.Combine(
-            AppContext.BaseDirectory,
+            _userDataPaths.InstallRoot,
             ContentBundleLocator.BundledVanillaBundlesRelativePath);
         return ScanBundlesRoot(bundledRoot, ContentModuleSource.Bundled);
     }
@@ -55,11 +55,11 @@ public sealed class ContentBundleLibrary
         string bundlesRoot,
         ContentModuleSource source)
     {
-        if (!Directory.Exists(bundlesRoot))
+        if (!_files.DirectoryExists(bundlesRoot))
             return [];
 
         var result = new List<ContentBundleDefinition>();
-        foreach (var filePath in Directory.GetFiles(bundlesRoot, "*" + ContentBundleFiles.BundleJsonExtension))
+        foreach (var filePath in _files.EnumerateFiles(bundlesRoot, "*" + ContentBundleFiles.BundleJsonExtension))
         {
             try
             {

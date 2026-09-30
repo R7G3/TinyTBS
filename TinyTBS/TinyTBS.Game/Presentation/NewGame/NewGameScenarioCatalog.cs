@@ -9,11 +9,11 @@ namespace TinyTBS.Game.Presentation.NewGame;
 /// <summary>Reads scenario modules, their levels and campaigns from the content library for New Game.</summary>
 public sealed class NewGameScenarioCatalog
 {
-    private readonly IFileContentProvider _files;
+    private readonly IFileSystem _files;
     private readonly ContentModuleLibrary _moduleLibrary;
     private readonly ContentModuleLocator _moduleLocator;
 
-    public NewGameScenarioCatalog(IFileContentProvider files, IUserDataPaths userDataPaths)
+    public NewGameScenarioCatalog(IFileSystem files, IUserDataPaths userDataPaths)
     {
         _files = files ?? throw new ArgumentNullException(nameof(files));
         _moduleLibrary = new ContentModuleLibrary(files, userDataPaths);

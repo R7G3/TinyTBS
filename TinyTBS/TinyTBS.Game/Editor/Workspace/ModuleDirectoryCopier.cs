@@ -11,7 +11,7 @@ public static class ModuleDirectoryCopier
     public static string CopyToUserLibrary(
         string sourceModuleRoot,
         string targetModuleId,
-        IFileContentProvider files,
+        IFileSystem files,
         IUserDataPaths userDataPaths)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceModuleRoot);
@@ -22,60 +22,60 @@ public static class ModuleDirectoryCopier
         ContentModuleManifestParser.ValidateModuleId(targetModuleId.Trim());
         var moduleId = targetModuleId.Trim();
 
-        if (!Directory.Exists(sourceModuleRoot))
+        if (!files.DirectoryExists(sourceModuleRoot))
             throw new EditorException($"Source module folder not found: {sourceModuleRoot}");
 
         userDataPaths.EnsureCreated();
         var destinationRoot = files.Combine(userDataPaths.Modules, moduleId);
-        if (Directory.Exists(destinationRoot))
+        if (files.DirectoryExists(destinationRoot))
             throw new EditorException($"User module '{moduleId}' already exists.");
 
         try
         {
-            CopyDirectoryRecursive(sourceModuleRoot, destinationRoot);
+            CopyDirectoryRecursive(files, sourceModuleRoot, destinationRoot);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            TryDeleteDirectory(destinationRoot);
+            TryDeleteDirectory(files, destinationRoot);
             throw new EditorException($"Failed to copy module to '{moduleId}'.", exception);
         }
 
         var moduleJsonPath = files.Combine(destinationRoot, ContentModuleFiles.ModuleJsonFileName);
         if (!files.Exists(moduleJsonPath))
         {
-            TryDeleteDirectory(destinationRoot);
+            TryDeleteDirectory(files, destinationRoot);
             throw new EditorException("Copied folder is missing module.json.");
         }
 
         return destinationRoot;
     }
 
-    private static void CopyDirectoryRecursive(string sourceRoot, string destinationRoot)
+    private static void CopyDirectoryRecursive(IFileSystem files, string sourceRoot, string destinationRoot)
     {
-        Directory.CreateDirectory(destinationRoot);
+        files.CreateDirectory(destinationRoot);
 
-        foreach (var filePath in Directory.GetFiles(sourceRoot))
+        foreach (var filePath in files.EnumerateFiles(sourceRoot, "*"))
         {
             var fileName = Path.GetFileName(filePath);
-            File.Copy(filePath, Path.Combine(destinationRoot, fileName), overwrite: false);
+            files.CopyFile(filePath, Path.Combine(destinationRoot, fileName), overwrite: false);
         }
 
-        foreach (var directoryPath in Directory.GetDirectories(sourceRoot))
+        foreach (var directoryPath in files.EnumerateDirectories(sourceRoot))
         {
             var directoryName = Path.GetFileName(directoryPath);
             if (string.IsNullOrEmpty(directoryName))
                 continue;
 
-            CopyDirectoryRecursive(directoryPath, Path.Combine(destinationRoot, directoryName));
+            CopyDirectoryRecursive(files, directoryPath, Path.Combine(destinationRoot, directoryName));
         }
     }
 
-    private static void TryDeleteDirectory(string path)
+    private static void TryDeleteDirectory(IFileSystem files, string path)
     {
         try
         {
-            if (Directory.Exists(path))
-                Directory.Delete(path, recursive: true);
+            if (files.DirectoryExists(path))
+                files.DeleteDirectory(path);
         }
         catch (IOException)
         {

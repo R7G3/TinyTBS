@@ -1,3 +1,4 @@
+using TinyTBS.Engine.IO;
 using TinyTBS.Game.Campaigns.Models;
 using TinyTBS.Game.Saves.Models;
 
@@ -28,14 +29,15 @@ public sealed class SaveCatalogEntry
     public bool IsMatch =>
         string.Equals(Kind, MatchSaveDocument.KindMatch, StringComparison.OrdinalIgnoreCase);
 
-    public static SaveCatalogEntry FromMatch(MatchSaveListEntry match)
+    public static SaveCatalogEntry FromMatch(IFileSystem files, MatchSaveListEntry match)
     {
+        ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(match);
         string meta;
         string? campaignId = null;
         try
         {
-            var document = MatchSaveReader.ReadFile(match.FilePath);
+            var document = MatchSaveReader.ReadFile(files, match.FilePath);
             campaignId = document.CampaignId;
             meta = string.IsNullOrWhiteSpace(document.CampaignId)
                 ? $"Match · {match.DisplayMeta}"

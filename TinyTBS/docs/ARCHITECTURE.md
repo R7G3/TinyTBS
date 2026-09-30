@@ -124,7 +124,7 @@ flowchart TB
 
 ## Пути к данным
 
-Через `IUserDataPaths` / `IFileContentProvider` / `IExternalFilePicker` / `IExternalUriLauncher` (`Engine.IO`, в т.ч. NFD, Linux portal, desktop shell для http(s)) — не хардкодить пути к exe и не открывать OS-диалоги / браузер из Game. Desktop собирает `DesktopExternalFilePickers.CreateDefault()` и `DesktopShellExternalUriLauncher`.
+Через `IUserDataPaths` / `IFileSystem` (чтение, запись, листинг, удаление; `IFileContentProvider` — его узкий предок) / `IExternalFilePicker` / `IExternalUriLauncher` (`Engine.IO`, в т.ч. NFD, Linux portal, desktop shell для http(s)). Игровой код не вызывает `File`/`Directory` и не открывает OS-диалоги. Локаторы бандлов и модулей берут bundled-корень из `IUserDataPaths.InstallRoot`. Desktop собирает `FileSystemContentProvider`, `DesktopExternalFilePickers.CreateDefault()` и `DesktopShellExternalUriLauncher`.
 
 | Каталог | Desktop | Mobile (будущее) |
 |---------|---------|------------------|

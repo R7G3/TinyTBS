@@ -75,7 +75,7 @@ public sealed class EditableUnitDocument
         };
     }
 
-    public static EditableUnitDocument Load(string unitJsonPath, IFileContentProvider files)
+    public static EditableUnitDocument Load(string unitJsonPath, IFileSystem files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(unitJsonPath);
         ArgumentNullException.ThrowIfNull(files);

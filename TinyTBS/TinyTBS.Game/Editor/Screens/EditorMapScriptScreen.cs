@@ -36,10 +36,10 @@ public sealed class EditorMapScriptScreen : MenuScreen
     protected override void OnLoad()
     {
         var mapRoot = TinyGame.Files.Combine(_session.ModuleRootPath, "Maps", _mapId);
-        Directory.CreateDirectory(mapRoot);
+        TinyGame.Files.CreateDirectory(mapRoot);
         _scriptPath = TinyGame.Files.Combine(mapRoot, "script.cs");
-        var text = File.Exists(_scriptPath)
-            ? File.ReadAllText(_scriptPath)
+        var text = TinyGame.Files.Exists(_scriptPath)
+            ? TinyGame.Files.ReadAllText(_scriptPath)
             : MapScriptTemplates.EmptyHooks;
         _view.Build(_mapId, text, Save, ApplyTemplate, GoBack);
     }
@@ -66,7 +66,7 @@ public sealed class EditorMapScriptScreen : MenuScreen
     {
         try
         {
-            File.WriteAllText(_scriptPath, _view.ScriptText, Encoding.UTF8);
+            TinyGame.Files.WriteAllText(_scriptPath, _view.ScriptText, Encoding.UTF8);
             _view.SyncStatus("Saved script.cs");
         }
         catch (Exception exception)

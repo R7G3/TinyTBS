@@ -33,7 +33,7 @@ public sealed class CampaignScriptHost : IDisposable
 
     public static CampaignScriptHost Load(
         string? scriptPath,
-        IFileContentProvider files,
+        IFileSystem files,
         IScriptEngine scriptEngine,
         TimeSpan? hookTimeout = null)
     {

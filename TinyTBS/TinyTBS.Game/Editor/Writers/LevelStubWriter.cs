@@ -8,7 +8,7 @@ public sealed class LevelStubWriter
 {
     private readonly LevelDocumentWriter _levelWriter;
 
-    public LevelStubWriter(IFileContentProvider files)
+    public LevelStubWriter(IFileSystem files)
     {
         _levelWriter = new LevelDocumentWriter(files);
     }

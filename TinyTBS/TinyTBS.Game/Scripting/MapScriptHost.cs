@@ -27,7 +27,7 @@ public sealed class MapScriptHost : IDisposable
 
     public static MapScriptHost LoadForMap(
         string? scriptPath,
-        IFileContentProvider files,
+        IFileSystem files,
         IScriptEngine scriptEngine,
         TimeSpan? hookTimeout = null)
     {
