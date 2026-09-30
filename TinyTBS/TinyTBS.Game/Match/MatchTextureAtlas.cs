@@ -84,7 +84,8 @@ public sealed class MatchTextureAtlas : IDisposable
         GraphicsDevice graphicsDevice,
         ContentManager content,
         IAssetResolver assets,
-        MatchContentCatalog catalog)
+        MatchContentCatalog catalog,
+        Action? onItemLoaded = null)
     {
         ArgumentNullException.ThrowIfNull(catalog);
 
@@ -101,6 +102,7 @@ public sealed class MatchTextureAtlas : IDisposable
                 graphicsDevice, content, assets, maskAbsolute, maskRelativePath);
             ownedTextures.Add(baseTexture);
             ownedTextures.Add(maskTexture);
+            onItemLoaded?.Invoke();
             return new TeamSprite(baseTexture.Texture, maskTexture.Texture);
         }
 
@@ -110,6 +112,7 @@ public sealed class MatchTextureAtlas : IDisposable
             var loaded = GameTextureLoader.LoadModuleSpriteOrFallback(
                 graphicsDevice, content, assets, absolutePath, moduleRelativePath);
             ownedTextures.Add(loaded);
+            onItemLoaded?.Invoke();
             return loaded.Texture;
         }
 

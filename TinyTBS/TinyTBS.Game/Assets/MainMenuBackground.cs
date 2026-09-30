@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -7,6 +8,7 @@ namespace TinyTBS.Game.Assets;
 /// <summary>
 /// Menu background: infinite tile field with a slow drifting "camera" that occasionally turns.
 /// Flight state is static so the view continues across menu / editor shell screens.
+/// Motion uses wall-clock time so long Update frames (e.g. match loading) do not stall the drift.
 /// </summary>
 public sealed class MainMenuBackground : IDisposable
 {
@@ -16,11 +18,13 @@ public sealed class MainMenuBackground : IDisposable
     private const float MaxHeadingDeltaRadians = 0.85f; // ~49° — no U-turns
     private const float MinSecondsUntilRetarget = 4f;
     private const float MaxSecondsUntilRetarget = 11f;
-    private const float MaxDeltaSeconds = 1f / 20f;
+    /// <summary>Caps only extreme pauses (alt-tab); loading stages often exceed 50ms.</summary>
+    private const float MaxDeltaSeconds = 0.25f;
 
     private static readonly Random SharedRandom = new();
 
     private static bool s_flightInitialized;
+    private static long s_lastTimestamp;
     private static Vector2 s_camera;
     private static float s_headingRadians;
     private static float s_targetHeadingRadians;
@@ -58,7 +62,7 @@ public sealed class MainMenuBackground : IDisposable
         int viewportHeight,
         GameTime gameTime)
     {
-        AdvanceFlight((float)gameTime.ElapsedGameTime.TotalSeconds);
+        AdvanceFlightWallClock();
 
         var texture = Texture;
         if (texture is null || viewportWidth <= 0 || viewportHeight <= 0)
@@ -91,16 +95,26 @@ public sealed class MainMenuBackground : IDisposable
 
     public void Dispose() => _texture?.DisposeIfOwned();
 
-    private static void AdvanceFlight(float elapsedSeconds)
+    private static void AdvanceFlightWallClock()
     {
+        var now = Stopwatch.GetTimestamp();
+        if (!s_flightInitialized)
+        {
+            EnsureFlightInitialized(now);
+            return;
+        }
+
+        var elapsedSeconds = (float)((now - s_lastTimestamp) / (double)Stopwatch.Frequency);
+        s_lastTimestamp = now;
         if (elapsedSeconds <= 0f)
             return;
 
-        // Spikes (alt-tab, hitch) would otherwise look like a teleport.
         elapsedSeconds = Math.Min(elapsedSeconds, MaxDeltaSeconds);
+        AdvanceFlight(elapsedSeconds);
+    }
 
-        EnsureFlightInitialized();
-
+    private static void AdvanceFlight(float elapsedSeconds)
+    {
         s_secondsUntilRetarget -= elapsedSeconds;
         if (s_secondsUntilRetarget <= 0f)
             PickNewTargetHeading();
@@ -118,7 +132,7 @@ public sealed class MainMenuBackground : IDisposable
         s_camera += direction * (SpeedPixelsPerSecond * elapsedSeconds);
     }
 
-    private static void EnsureFlightInitialized()
+    private static void EnsureFlightInitialized(long timestamp)
     {
         if (s_flightInitialized)
             return;
@@ -126,6 +140,7 @@ public sealed class MainMenuBackground : IDisposable
         s_headingRadians = RandomAngle();
         s_targetHeadingRadians = s_headingRadians;
         PickNewTargetHeading();
+        s_lastTimestamp = timestamp;
         s_flightInitialized = true;
     }
 

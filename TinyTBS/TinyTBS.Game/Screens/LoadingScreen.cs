@@ -42,6 +42,10 @@ public sealed class LoadingScreen : GameScreen
     private MatchSessionLoadPipeline? _pipeline;
     private LoadPhase _phase = LoadPhase.Warmup;
     private int _warmupFrames;
+    private bool _restoreFixedTimeStep;
+    private bool _previousFixedTimeStep;
+    private Task? _backgroundStageTask;
+    private long _lastUiPumpTimestamp;
 
     public LoadingScreen(
         GameMain game,
@@ -135,6 +139,11 @@ public sealed class LoadingScreen : GameScreen
     {
         base.LoadContent();
 
+        // Fixed timestep drops Draw while Update runs long load stages — background would freeze.
+        _previousFixedTimeStep = TinyGame.IsFixedTimeStep;
+        TinyGame.IsFixedTimeStep = false;
+        _restoreFixedTimeStep = true;
+
         _viewModel.Title = _continueRequest is null ? "Loading match" : "Loading save";
         _viewModel.StageLabel = string.IsNullOrWhiteSpace(_continueRequest?.VersionWarning)
             ? "Preparing…"
@@ -177,6 +186,12 @@ public sealed class LoadingScreen : GameScreen
 
     public override void UnloadContent()
     {
+        if (_restoreFixedTimeStep)
+        {
+            TinyGame.IsFixedTimeStep = _previousFixedTimeStep;
+            _restoreFixedTimeStep = false;
+        }
+
         _view.Clear();
         _background?.Dispose();
         _background = null;
@@ -193,6 +208,20 @@ public sealed class LoadingScreen : GameScreen
 
         try
         {
+            if (_backgroundStageTask is not null)
+            {
+                if (!_backgroundStageTask.IsCompleted)
+                    return;
+
+                var task = _backgroundStageTask;
+                _backgroundStageTask = null;
+                if (task.IsFaulted)
+                    throw task.Exception?.GetBaseException() ?? new InvalidOperationException("Load stage failed.");
+                task.GetAwaiter().GetResult();
+                OnStageFinished();
+                return;
+            }
+
             switch (_phase)
             {
                 case LoadPhase.Warmup:
@@ -214,20 +243,70 @@ public sealed class LoadingScreen : GameScreen
                     break;
 
                 case LoadPhase.Run:
-                    _pipeline.RunAnnouncedStage();
-                    ApplyProgress(_pipeline.Progress);
-                    _phase = _pipeline.IsComplete ? LoadPhase.Done : LoadPhase.Announce;
-                    if (_phase == LoadPhase.Done)
-                        FinishWithSession();
+                    if (_pipeline.AnnouncedStageRequiresMainThread)
+                    {
+                        _pipeline.UiPump = PumpLoadingVisuals;
+                        try
+                        {
+                            _pipeline.RunAnnouncedStage();
+                        }
+                        finally
+                        {
+                            _pipeline.UiPump = null;
+                        }
+
+                        OnStageFinished();
+                    }
+                    else
+                    {
+                        // Keep Draw pumping the flying background while CPU/IO stages run.
+                        var pipeline = _pipeline;
+                        _backgroundStageTask = Task.Run(pipeline.RunAnnouncedStage);
+                    }
+
                     break;
             }
         }
         catch (Exception exception)
         {
+            _backgroundStageTask = null;
             _phase = LoadPhase.Failed;
             _viewModel.StageLabel = $"Failed: {exception.Message}";
             _view.Sync(_viewModel);
         }
+    }
+
+    private void OnStageFinished()
+    {
+        if (_pipeline is null)
+            return;
+
+        ApplyProgress(_pipeline.Progress);
+        _phase = _pipeline.IsComplete ? LoadPhase.Done : LoadPhase.Announce;
+        if (_phase == LoadPhase.Done)
+            FinishWithSession();
+    }
+
+    /// <summary>
+    /// Mid-stage redraw so the tiled background keeps drifting while textures load on the game thread.
+    /// </summary>
+    private void PumpLoadingVisuals()
+    {
+        var now = System.Diagnostics.Stopwatch.GetTimestamp();
+        var elapsed = (now - _lastUiPumpTimestamp) / (double)System.Diagnostics.Stopwatch.Frequency;
+        if (_lastUiPumpTimestamp != 0 && elapsed < 1.0 / 30.0)
+            return;
+
+        _lastUiPumpTimestamp = now;
+
+        GraphicsDevice.Clear(new Color(24, 28, 38));
+        _background?.Draw(
+            TinyGame.SharedSpriteBatch,
+            GraphicsDevice.Viewport.Width,
+            GraphicsDevice.Viewport.Height,
+            new GameTime());
+        GumService.Default.Draw();
+        GraphicsDevice.Present();
     }
 
     public override void Draw(GameTime gameTime)

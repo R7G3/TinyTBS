@@ -37,7 +37,7 @@ public sealed class MatchSessionLoadPipeline
     private readonly int? _unitCapOverride;
     private readonly IReadOnlyList<MatchPlayerSeat>? _playerSeatsOverride;
     private readonly MatchRuntimeSnapshot? _hydrateSnapshot;
-    private readonly IReadOnlyList<(string Label, Action Work)> _stages;
+    private readonly IReadOnlyList<LoadStage> _stages;
 
     private MatchContentLoadResult? _matchContent;
     private LevelDefinition? _level;
@@ -50,6 +50,11 @@ public sealed class MatchSessionLoadPipeline
     private UnitLevelLabelRenderer? _unitLevelLabels;
     private int _nextStageIndex;
     private bool _stageAnnounced;
+
+    /// <summary>Optional heartbeat while a main-thread stage runs (keeps loading UI / background alive).</summary>
+    public Action? UiPump { get; set; }
+
+    private readonly record struct LoadStage(string Label, Action Work, bool RequiresMainThread);
 
     public MatchSessionLoadPipeline(
         GraphicsDevice graphicsDevice,
@@ -88,12 +93,12 @@ public sealed class MatchSessionLoadPipeline
 
         _stages =
         [
-            ("Loading match content…", LoadMatchContentComposition),
-            ("Loading level and map…", LoadLevelAndMap),
-            ("Preparing match state…", PrepareMatchState),
-            ("Compiling map script…", CompileMapScript),
-            ("Loading textures…", LoadTextures),
-            ("Building scene…", BuildScene),
+            new("Loading match content…", LoadMatchContentComposition, RequiresMainThread: false),
+            new("Loading level and map…", LoadLevelAndMap, RequiresMainThread: false),
+            new("Preparing match state…", PrepareMatchState, RequiresMainThread: false),
+            new("Compiling map script…", CompileMapScript, RequiresMainThread: false),
+            new("Loading textures…", LoadTextures, RequiresMainThread: true),
+            new("Building scene…", BuildScene, RequiresMainThread: true),
         ];
 
         Progress = MatchLoadProgress.Starting(_stages.Count, "Preparing…");
@@ -107,14 +112,24 @@ public sealed class MatchSessionLoadPipeline
 
     public bool HasPendingStages => !IsComplete && _nextStageIndex < _stages.Count;
 
+    /// <summary>
+    /// True after <see cref="AnnounceNextStage"/> when the pending work must stay on the game thread
+    /// (GraphicsDevice / Content). Other stages may run on a worker so Draw keeps pumping.
+    /// </summary>
+    public bool AnnouncedStageRequiresMainThread =>
+        _stageAnnounced
+        && _nextStageIndex >= 0
+        && _nextStageIndex < _stages.Count
+        && _stages[_nextStageIndex].RequiresMainThread;
+
     /// <summary>Updates progress text for the next stage without running it yet.</summary>
     public bool AnnounceNextStage()
     {
         if (!HasPendingStages || _stageAnnounced)
             return false;
 
-        var (label, _) = _stages[_nextStageIndex];
-        Progress = new MatchLoadProgress(_nextStageIndex, _stages.Count, label);
+        var stage = _stages[_nextStageIndex];
+        Progress = new MatchLoadProgress(_nextStageIndex, _stages.Count, stage.Label);
         _stageAnnounced = true;
         return true;
     }
@@ -125,11 +140,11 @@ public sealed class MatchSessionLoadPipeline
         if (!_stageAnnounced || _nextStageIndex >= _stages.Count)
             throw new InvalidOperationException("No announced match-load stage to run.");
 
-        var (label, work) = _stages[_nextStageIndex];
-        work();
+        var stage = _stages[_nextStageIndex];
+        stage.Work();
         _nextStageIndex++;
         _stageAnnounced = false;
-        Progress = new MatchLoadProgress(_nextStageIndex, _stages.Count, label);
+        Progress = new MatchLoadProgress(_nextStageIndex, _stages.Count, stage.Label);
 
         if (_nextStageIndex < _stages.Count)
             return;
@@ -229,7 +244,12 @@ public sealed class MatchSessionLoadPipeline
     private void LoadTextures()
     {
         ArgumentNullException.ThrowIfNull(_matchContent);
-        _textures = MatchTextureAtlas.Load(_graphicsDevice, _content, _assets, _matchContent.Catalog);
+        _textures = MatchTextureAtlas.Load(
+            _graphicsDevice,
+            _content,
+            _assets,
+            _matchContent.Catalog,
+            onItemLoaded: () => UiPump?.Invoke());
     }
 
     private void BuildScene()
