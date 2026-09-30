@@ -56,21 +56,21 @@ public sealed class ScenarioModuleWriter
             {
                 FormatVersion = 1,
                 Id = id,
-                Type = "scenario",
+                Type = ContentModuleTypeIds.Scenario,
                 Namespace = moduleNamespace,
                 Title = title.Trim(),
                 Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
                 Version = "1.0.0",
                 Defaults = new ScenarioDefaultsDto
                 {
-                    Units = ["vanilla_units"],
-                    Buildings = ["vanilla_buildings"],
-                    Theme = "vanilla_theme",
+                    Units = [VanillaContentIds.UnitsModuleId],
+                    Buildings = [VanillaContentIds.BuildingsModuleId],
+                    Theme = VanillaContentIds.ThemeModuleId,
                 },
                 Requires = new ScenarioRequiresDto
                 {
-                    Units = ["vanilla_units"],
-                    Buildings = ["vanilla_buildings"],
+                    Units = [VanillaContentIds.UnitsModuleId],
+                    Buildings = [VanillaContentIds.BuildingsModuleId],
                 },
             };
 

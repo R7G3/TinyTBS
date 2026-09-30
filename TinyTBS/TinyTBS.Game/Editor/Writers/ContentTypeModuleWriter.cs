@@ -41,13 +41,7 @@ public sealed class ContentTypeModuleWriter
         if (_files.DirectoryExists(moduleRoot))
             throw new EditorException($"User module '{id}' already exists.");
 
-        var typeName = type switch
-        {
-            ContentModuleType.Units => "units",
-            ContentModuleType.Buildings => "buildings",
-            ContentModuleType.Theme => "theme",
-            _ => throw new EditorException("Unsupported module type for this wizard."),
-        };
+        var typeName = ContentModuleTypeIds.ToId(type);
 
         try
         {

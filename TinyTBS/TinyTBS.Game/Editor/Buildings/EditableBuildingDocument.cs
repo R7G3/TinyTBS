@@ -20,7 +20,7 @@ public sealed class EditableBuildingDocument
 
     public string SpriteMask { get; set; } = "Resources/Images/buildings/building_mask.png";
 
-    public string? SpriteRuinedBase { get; set; }
+    public string? SpriteRuinedBase {s get; set; }
 
     public string? SpriteRuinedMask { get; set; }
 
@@ -32,7 +32,7 @@ public sealed class EditableBuildingDocument
 
     public List<string> RecruitFromTags { get; set; } = [];
 
-    public EditableBuildingHeal? Heal { get; set; } = new() { Amount = 20, Scope = "allied" };
+    public EditableBuildingHeal? Heal { get; set; } = new() { Amount = 20, Scope = BuildingHealScopeIds.Allied };
 
     public bool Capturable { get; set; } = true;
 
@@ -63,7 +63,7 @@ public sealed class EditableBuildingDocument
             DefenceBonus = 15,
             AllowsRecruit = false,
             RecruitFromTags = [],
-            Heal = new EditableBuildingHeal { Amount = 20, Scope = "allied" },
+            Heal = new EditableBuildingHeal { Amount = 20, Scope = BuildingHealScopeIds.Allied },
             Capturable = true,
             Destroyable = false,
             Repairable = false,

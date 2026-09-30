@@ -6,8 +6,6 @@ namespace TinyTBS.Rules.Maps;
 /// <summary>Parses map.json into <see cref="MapDefinition"/>.</summary>
 public static class MapJsonParser
 {
-    private const string DefaultTerrainType = "grass";
-
     public static MapDefinition Parse(
         Stream jsonStream,
         string? sourceDirectory = null,
@@ -106,7 +104,7 @@ public static class MapJsonParser
         for (var y = 0; y < height; y++)
         {
             for (var x = 0; x < width; x++)
-                terrainGrid[x, y] = DefaultTerrainType;
+                terrainGrid[x, y] = MapSurfaceIds.Grass;
         }
 
         return terrainGrid;

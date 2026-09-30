@@ -1,10 +1,8 @@
 using Microsoft.Xna.Framework;
-using TinyTBS.Game.Assets;
 using TinyTBS.Game.Editor.Map;
 using TinyTBS.Game.Editor.Presentation;
 using TinyTBS.Game.Editor.Workspace;
 using TinyTBS.Game.Input;
-using TinyTBS.Game.Modules;
 using TinyTBS.Game.Screens;
 
 namespace TinyTBS.Game.Editor.Screens;
@@ -57,7 +55,7 @@ public sealed class EditorNewMapScreen : MenuScreen
             title: mapTitle,
             _view.Width,
             _view.Height,
-            terrainType: "grass");
+            terrainType: MapSurfaceIds.Grass);
         document.IsDirty = true;
 
         Navigator.ToEditorMapPaint(_session, document, isNewMap: true);

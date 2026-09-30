@@ -1,3 +1,5 @@
+using TinyTBS.Rules.Levels;
+
 namespace TinyTBS.Rules.Modules.Models;
 
 /// <summary>One playable level discovered under a scenario module's <c>Levels/</c> folder.</summary>
@@ -23,8 +25,8 @@ public sealed class ScenarioLevelInfo
     public required int DefaultUnitCap { get; init; }
 
     public bool SupportsSkirmish =>
-        Modes.Any(mode => string.Equals(mode, "skirmish", StringComparison.OrdinalIgnoreCase));
+        Modes.Any(LevelModeIds.IsSkirmish);
 
     public bool SupportsCampaign =>
-        Modes.Any(mode => string.Equals(mode, "campaign", StringComparison.OrdinalIgnoreCase));
+        Modes.Any(LevelModeIds.IsCampaign);
 }

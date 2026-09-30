@@ -3,6 +3,7 @@ using Gum.Forms.Controls;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Editor.Themes;
 using TinyTBS.Game.Input;
+using TinyTBS.Game.Modules;
 
 namespace TinyTBS.Game.Editor.Presentation;
 
@@ -48,7 +49,9 @@ public sealed class EditorThemeEditView
 
         var built = EditorTwoColumnFormShell.Build(
             "Edit Theme — " + _document.ModuleId,
-            "LB/RB: columns. Up/Down: rows. Remap ids use namespace/localId (e.g. vanilla/king).");
+            "LB/RB: columns. Up/Down: rows. Remap ids use namespace/localId (e.g. "
+            + VanillaContentIds.ContentNamespace
+            + "/king).");
         _rootPanel = built.RootPanel;
         _settingsHost = built.SettingsHost;
         _form.Attach(built);

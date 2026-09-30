@@ -290,7 +290,7 @@ public static class PositionEvaluator
                 continue;
             if (!match.ContentCatalog.TryGetUnit(unit.TypeId, out var definition))
                 continue;
-            if (!MatchUnitAbilities.HasAbility(definition, "uniquePerPlayer"))
+            if (!MatchUnitAbilities.HasAbility(definition, UnitAbilityTypes.UniquePerPlayer))
                 continue;
 
             vip = unit;

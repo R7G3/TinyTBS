@@ -1,7 +1,5 @@
 using TinyTBS.Game.Editor.Undo;
-using TinyTBS.Game.Maps;
 using TinyTBS.Rules.Maps.Models;
-using TinyTBS.Rules.Match;
 
 namespace TinyTBS.Game.Editor.Map;
 
@@ -116,7 +114,7 @@ public sealed class EditableMapDocument
         return MapSurfaceIds.ParseTerrain(Surface[x, y]);
     }
 
-    public bool PlaceBuilding(ContentId typeId, int x, int y, int? slot, string? state = "intact")
+    public bool PlaceBuilding(ContentId typeId, int x, int y, int? slot, string? state = MapSurfaceIds.IntactBuildingState)
     {
         EnsureInBounds(x, y);
         RemoveGravestoneAt(x, y);
@@ -224,9 +222,9 @@ public sealed class EditableMapDocument
         var removed = Buildings.RemoveAll(building => building.X == x && building.Y == y);
         removed += Units.RemoveAll(unit => unit.X == x && unit.Y == y);
         removed += Gravestones.RemoveAll(grave => grave.X == x && grave.Y == y);
-        if (!string.Equals(Surface[x, y], "grass", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(Surface[x, y], MapSurfaceIds.Grass, StringComparison.OrdinalIgnoreCase))
         {
-            Surface[x, y] = "grass";
+            Surface[x, y] = MapSurfaceIds.Grass;
             removed++;
         }
 
@@ -262,15 +260,7 @@ public sealed class EditableMapDocument
         return Math.Max(2, maxSlot + 1);
     }
 
-    public static string FormatTerrain(TerrainKind kind) => kind switch
-    {
-        TerrainKind.Water => "water",
-        TerrainKind.Road => "road",
-        TerrainKind.Mountain => "mountain",
-        TerrainKind.Bridge => "bridge",
-        TerrainKind.Forest => "forest",
-        _ => "grass",
-    };
+    public static string FormatTerrain(TerrainKind kind) => MapSurfaceIds.ToId(kind);
 
     private void RemoveGravestoneAt(int x, int y) =>
         Gravestones.RemoveAll(grave => grave.X == x && grave.Y == y);

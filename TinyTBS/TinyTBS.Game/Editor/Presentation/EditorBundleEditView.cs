@@ -3,6 +3,7 @@ using Gum.Forms.Controls;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Editor.Bundles;
 using TinyTBS.Game.Input;
+using TinyTBS.Game.Modules;
 using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Game.Editor.Presentation;
@@ -272,7 +273,9 @@ public sealed class EditorBundleEditView
             SyncStatus(
                 "No "
                 + type.ToString().ToLowerInvariant()
-                + " module in Modules — toggle one above (e.g. vanilla_theme).");
+                + " module in Modules — toggle one above (e.g. "
+                + VanillaContentIds.ThemeModuleId
+                + ").");
             return;
         }
 

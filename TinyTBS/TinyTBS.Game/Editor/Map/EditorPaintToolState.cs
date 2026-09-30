@@ -1,6 +1,6 @@
-using TinyTBS.Rules.Maps.Models;
-using TinyTBS.Rules.Match;
+using TinyTBS.Game.Modules;
 using TinyTBS.Game.Presentation.Shared;
+using TinyTBS.Rules.Maps.Models;
 
 namespace TinyTBS.Game.Editor.Map;
 
@@ -15,11 +15,11 @@ public sealed class EditorPaintToolState
 
     public TerrainKind Terrain { get; private set; } = TerrainKind.Grass;
 
-    public ContentId BuildingTypeId { get; private set; } = ContentId.Parse("vanilla/castle");
+    public ContentId BuildingTypeId { get; private set; } = ContentId.Parse(VanillaContentIds.CastleId);
 
-    public string? BuildingState { get; private set; } = "intact";
+    public string? BuildingState { get; private set; } = MapSurfaceIds.IntactBuildingState;
 
-    public ContentId UnitTypeId { get; private set; } = ContentId.Parse("vanilla/swordsman");
+    public ContentId UnitTypeId { get; private set; } = ContentId.Parse(VanillaContentIds.SwordsmanId);
 
     /// <summary>Null = Neutral (buildings). Units fall back to slot 0 when placing.</summary>
     public int? OwnerSlot { get; private set; }
@@ -76,7 +76,7 @@ public sealed class EditorPaintToolState
         Mode = EditorPaintMode.Place;
     }
 
-    public void SelectBuilding(ContentId typeId, string? state = "intact")
+    public void SelectBuilding(ContentId typeId, string? state = MapSurfaceIds.IntactBuildingState)
     {
         ContentKind = EditorPaintContentKind.Building;
         BuildingTypeId = typeId;

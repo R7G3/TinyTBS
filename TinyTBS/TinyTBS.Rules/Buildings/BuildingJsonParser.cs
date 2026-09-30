@@ -1,6 +1,7 @@
 using System.Text.Json;
 using TinyTBS.Rules.Buildings.Models;
 using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Modules.Models;
 
 namespace TinyTBS.Rules.Buildings;
 
@@ -46,8 +47,9 @@ public static class BuildingJsonParser
         if (string.IsNullOrWhiteSpace(document.Id))
             throw new BuildingLoadException("module.json requires non-empty 'id'.");
 
-        if (!string.Equals(document.Type, "buildings", StringComparison.OrdinalIgnoreCase))
-            throw new BuildingLoadException($"Expected module type 'buildings', got '{document.Type}'.");
+        if (!string.Equals(document.Type, ContentModuleTypeIds.Buildings, StringComparison.OrdinalIgnoreCase))
+            throw new BuildingLoadException(
+                $"Expected module type '{ContentModuleTypeIds.Buildings}', got '{document.Type}'.");
 
         var contentNamespace = string.IsNullOrWhiteSpace(document.Namespace)
             ? document.Id.Trim()
@@ -92,7 +94,9 @@ public static class BuildingJsonParser
             heal = new BuildingHealDefinition
             {
                 Amount = document.Heal.Amount,
-                Scope = string.IsNullOrWhiteSpace(document.Heal.Scope) ? "none" : document.Heal.Scope.Trim(),
+                Scope = string.IsNullOrWhiteSpace(document.Heal.Scope)
+                    ? BuildingHealScopeIds.None
+                    : document.Heal.Scope.Trim(),
             };
         }
 
@@ -106,7 +110,7 @@ public static class BuildingJsonParser
                 {
                     Amount = document.Ruined.Heal.Amount,
                     Scope = string.IsNullOrWhiteSpace(document.Ruined.Heal.Scope)
-                        ? "none"
+                        ? BuildingHealScopeIds.None
                         : document.Ruined.Heal.Scope.Trim(),
                 };
             }

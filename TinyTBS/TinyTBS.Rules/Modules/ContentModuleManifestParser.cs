@@ -63,38 +63,8 @@ public static class ContentModuleManifestParser
         };
     }
 
-    public static bool TryParseType(string? typeValue, out ContentModuleType moduleType)
-    {
-        moduleType = default;
-        if (string.IsNullOrWhiteSpace(typeValue))
-            return false;
-
-        if (string.Equals(typeValue, "scenario", StringComparison.OrdinalIgnoreCase))
-        {
-            moduleType = ContentModuleType.Scenario;
-            return true;
-        }
-
-        if (string.Equals(typeValue, "units", StringComparison.OrdinalIgnoreCase))
-        {
-            moduleType = ContentModuleType.Units;
-            return true;
-        }
-
-        if (string.Equals(typeValue, "buildings", StringComparison.OrdinalIgnoreCase))
-        {
-            moduleType = ContentModuleType.Buildings;
-            return true;
-        }
-
-        if (string.Equals(typeValue, "theme", StringComparison.OrdinalIgnoreCase))
-        {
-            moduleType = ContentModuleType.Theme;
-            return true;
-        }
-
-        return false;
-    }
+    public static bool TryParseType(string? typeValue, out ContentModuleType moduleType) =>
+        ContentModuleTypeIds.TryParse(typeValue, out moduleType);
 
     public static void ValidateModuleId(string moduleId)
     {

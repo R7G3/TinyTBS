@@ -5,5 +5,5 @@ public sealed class EditableBuildingHeal
 {
     public int Amount { get; set; }
 
-    public string Scope { get; set; } = "allied";
+    public string Scope { get; set; } = BuildingHealScopeIds.Allied;
 }

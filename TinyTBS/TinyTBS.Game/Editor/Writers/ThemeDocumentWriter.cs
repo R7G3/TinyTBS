@@ -3,8 +3,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Editor.Themes;
-using TinyTBS.Rules.Maps.Models;
 using TinyTBS.Game.Modules;
+using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Rules.Themes.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
@@ -73,7 +74,7 @@ public sealed class ThemeDocumentWriter
         {
             FormatVersion = 1,
             Id = moduleId,
-            Type = "theme",
+            Type = ContentModuleTypeIds.Theme,
             Namespace = contentNamespace,
             Title = string.IsNullOrWhiteSpace(document.Title) ? moduleId : document.Title.Trim(),
             Description = string.IsNullOrWhiteSpace(document.Description) ? null : document.Description.Trim(),

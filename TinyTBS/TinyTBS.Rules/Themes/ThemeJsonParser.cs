@@ -1,5 +1,6 @@
 using System.Text.Json;
 using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Rules.Themes.Models;
 
 namespace TinyTBS.Rules.Themes;
@@ -34,8 +35,8 @@ public static class ThemeJsonParser
         if (string.IsNullOrWhiteSpace(document.Id))
             throw new ThemeLoadException("module.json requires non-empty 'id'.");
 
-        if (!string.Equals(document.Type, "theme", StringComparison.OrdinalIgnoreCase))
-            throw new ThemeLoadException($"Expected module type 'theme', got '{document.Type}'.");
+        if (!string.Equals(document.Type, ContentModuleTypeIds.Theme, StringComparison.OrdinalIgnoreCase))
+            throw new ThemeLoadException($"Expected module type '{ContentModuleTypeIds.Theme}', got '{document.Type}'.");
 
         var contentNamespace = string.IsNullOrWhiteSpace(document.Namespace)
             ? document.Id.Trim()

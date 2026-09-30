@@ -12,7 +12,7 @@ public sealed class EditableLevelDocument
 
     public string? Description { get; set; }
 
-    public List<string> Modes { get; set; } = ["skirmish"];
+    public List<string> Modes { get; set; } = [LevelModeIds.Skirmish];
 
     /// <summary>e.g. <c>Maps/demo</c>.</summary>
     public string MapRef { get; set; } = "Maps/map";
@@ -27,11 +27,11 @@ public sealed class EditableLevelDocument
 
     public int DefaultUnitCap { get; set; } = 25;
 
-    public string TeamDefeatMode { get; set; } = "allMembers";
+    public string TeamDefeatMode { get; set; } = TeamDefeatModeIds.AllMembers;
 
-    public string VictoryType { get; set; } = "standard";
+    public string VictoryType { get; set; } = MatchConditionTypes.Standard;
 
-    public string DefeatType { get; set; } = "standard";
+    public string DefeatType { get; set; } = MatchConditionTypes.Standard;
 
     public bool IsDirty { get; set; }
 
@@ -44,16 +44,16 @@ public sealed class EditableLevelDocument
             Id = id,
             Title = string.IsNullOrWhiteSpace(title) ? id : title.Trim(),
             Description = "Created in TinyTBS Editor.",
-            Modes = ["skirmish"],
+            Modes = [LevelModeIds.Skirmish],
             MapRef = "Maps/" + map,
             PlayersMin = 2,
             PlayersMax = 2,
             DefaultSlots = 2,
             DefaultStartingGold = 500,
             DefaultUnitCap = 25,
-            TeamDefeatMode = "allMembers",
-            VictoryType = "standard",
-            DefeatType = "standard",
+            TeamDefeatMode = TeamDefeatModeIds.AllMembers,
+            VictoryType = MatchConditionTypes.Standard,
+            DefeatType = MatchConditionTypes.Standard,
             IsDirty = true,
         };
     }
@@ -114,7 +114,7 @@ public sealed class EditableLevelDocument
         if (enabled)
             Modes.Add(normalized);
         if (Modes.Count == 0)
-            Modes.Add("skirmish");
+            Modes.Add(LevelModeIds.Skirmish);
         IsDirty = true;
     }
 }

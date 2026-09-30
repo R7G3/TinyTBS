@@ -6,15 +6,14 @@ using Gum.Managers;
 using Gum.Wireframe;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using RenderingLibrary.Graphics;
 using TinyTBS.Engine.GumLayout;
 using TinyTBS.Game.Editor.Map;
 using TinyTBS.Game.Editor.Validation;
 using TinyTBS.Game.Input;
-using TinyTBS.Rules.Maps.Models;
-using TinyTBS.Rules.Match;
-using TinyTBS.Game.Presentation.Shared;
+using TinyTBS.Game.Modules;
 using TinyTBS.Game.Presentation.Match;
+using TinyTBS.Game.Presentation.Shared;
+using TinyTBS.Rules.Maps.Models;
 
 namespace TinyTBS.Game.Editor.Presentation;
 
@@ -569,8 +568,8 @@ public sealed class EditorMapPaintHudView
         MatchTextureAtlas textures,
         Action onToolChanged)
     {
-        var castle = ContentId.Parse("vanilla/castle");
-        var village = ContentId.Parse("vanilla/village");
+        var castle = ContentId.Parse(VanillaContentIds.CastleId);
+        var village = ContentId.Parse(VanillaContentIds.VillageId);
         AddTeamIconRow(host, "Castle", textures.Building(castle), () =>
         {
             tool.SelectBuilding(castle);
@@ -578,12 +577,12 @@ public sealed class EditorMapPaintHudView
         });
         AddTeamIconRow(host, "Village", textures.Building(village), () =>
         {
-            tool.SelectBuilding(village, "intact");
+            tool.SelectBuilding(village, MapSurfaceIds.IntactBuildingState);
             onToolChanged();
         });
         AddTeamIconRow(host, "Village (ruined)", textures.Building(village, isRuined: true), () =>
         {
-            tool.SelectBuilding(village, "ruined");
+            tool.SelectBuilding(village, MapSurfaceIds.RuinedBuildingState);
             onToolChanged();
         });
         AddIconRow(host, "Gravestone", textures.Gravestone, () =>

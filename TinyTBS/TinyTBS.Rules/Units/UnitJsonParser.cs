@@ -1,5 +1,6 @@
 using System.Text.Json;
 using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Modules.Models;
 using TinyTBS.Rules.Units.Models;
 
 namespace TinyTBS.Rules.Units;
@@ -43,8 +44,8 @@ public static class UnitJsonParser
         if (string.IsNullOrWhiteSpace(document.Id))
             throw new UnitLoadException("module.json requires non-empty 'id'.");
 
-        if (!string.Equals(document.Type, "units", StringComparison.OrdinalIgnoreCase))
-            throw new UnitLoadException($"Expected module type 'units', got '{document.Type}'.");
+        if (!string.Equals(document.Type, ContentModuleTypeIds.Units, StringComparison.OrdinalIgnoreCase))
+            throw new UnitLoadException($"Expected module type '{ContentModuleTypeIds.Units}', got '{document.Type}'.");
 
         var contentNamespace = string.IsNullOrWhiteSpace(document.Namespace)
             ? document.Id.Trim()

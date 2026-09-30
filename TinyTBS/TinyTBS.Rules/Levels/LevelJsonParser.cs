@@ -1,6 +1,7 @@
 using System.Text.Json;
 using TinyTBS.Rules.Levels.Models;
 using TinyTBS.Rules.Maps.Models;
+using TinyTBS.Rules.Match;
 
 namespace TinyTBS.Rules.Levels;
 
@@ -11,8 +12,6 @@ public static class LevelJsonParser
 {
     private const int DefaultStartingGold = 500;
     private const int DefaultUnitCap = 25;
-    private const string DefaultTeamDefeatMode = "allMembers";
-    private const string DefaultConditionType = "standard";
 
     public static LevelFileDefinition Read(Stream jsonStream)
     {
@@ -50,7 +49,7 @@ public static class LevelJsonParser
             DefaultStartingGold = levelDocument.DefaultStartingGold ?? DefaultStartingGold,
             DefaultUnitCap = levelDocument.DefaultUnitCap ?? DefaultUnitCap,
             TeamDefeatMode = string.IsNullOrWhiteSpace(levelDocument.TeamDefeatMode)
-                ? DefaultTeamDefeatMode
+                ? TeamDefeatModeIds.AllMembers
                 : levelDocument.TeamDefeatMode.Trim(),
             Victory = ParseCondition(levelDocument.Victory),
             Defeat = ParseCondition(levelDocument.Defeat),
@@ -108,7 +107,7 @@ public static class LevelJsonParser
     private static IReadOnlyList<string> ParseModes(List<string>? modes)
     {
         if (modes is null || modes.Count == 0)
-            return ["skirmish"];
+            return [LevelModeIds.Skirmish];
 
         var parsed = new List<string>(modes.Count);
         for (var i = 0; i < modes.Count; i++)
@@ -160,7 +159,7 @@ public static class LevelJsonParser
     private static LevelConditionSettings ParseCondition(LevelConditionDto? condition)
     {
         if (condition is null || string.IsNullOrWhiteSpace(condition.Type))
-            return new LevelConditionSettings { Type = DefaultConditionType };
+            return new LevelConditionSettings { Type = MatchConditionTypes.Standard };
 
         return new LevelConditionSettings { Type = condition.Type.Trim() };
     }

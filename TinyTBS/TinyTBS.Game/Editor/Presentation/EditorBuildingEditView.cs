@@ -10,8 +10,6 @@ namespace TinyTBS.Game.Editor.Presentation;
 /// <summary>Edit Buildings/{id}.json: settings scroll (left) + Save/Back menu (right).</summary>
 public sealed class EditorBuildingEditView
 {
-    private static readonly string[] HealScopes = ["none", "allied", "any"];
-
     private readonly EditorTwoColumnFormController _form = new(allowDpadColumnSwitch: false);
 
     private Panel? _rootPanel;
@@ -248,7 +246,7 @@ public sealed class EditorBuildingEditView
             AddSettingsButton(RuinedCapturableCaption(), ToggleRuinedCapturable);
 
             if (_document.Ruined.Heal is null)
-                _document.Ruined.Heal = new EditableBuildingHeal { Amount = 0, Scope = "none" };
+                _document.Ruined.Heal = new EditableBuildingHeal { Amount = 0, Scope = BuildingHealScopeIds.None };
 
             _ruinedHealAmountLabel = AddStatLabel("Ruined heal amount: " + _document.Ruined.Heal.Amount);
             AddStatStepper(() => AdjustRuinedHealAmount(-5), () => AdjustRuinedHealAmount(+5));
@@ -319,7 +317,7 @@ public sealed class EditorBuildingEditView
             return;
 
         var actions = new List<(string Label, Action Activate)>();
-        foreach (var scope in HealScopes)
+        foreach (var scope in BuildingHealScopeIds.All)
         {
             var captured = scope;
             actions.Add((scope, () =>
@@ -391,7 +389,7 @@ public sealed class EditorBuildingEditView
     private void ToggleHealEnabled()
     {
         if (_document.Heal is null)
-            _document.Heal = new EditableBuildingHeal { Amount = 20, Scope = "allied" };
+            _document.Heal = new EditableBuildingHeal { Amount = 20, Scope = BuildingHealScopeIds.Allied };
         else
             _document.Heal = null;
         _document.IsDirty = true;

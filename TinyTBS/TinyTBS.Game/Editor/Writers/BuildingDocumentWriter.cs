@@ -2,10 +2,10 @@ using System.Text;
 using System.Text.Json;
 using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
-using TinyTBS.Rules;
-using TinyTBS.Rules.Buildings.Models;
 using TinyTBS.Game.Editor.Buildings;
 using TinyTBS.Game.Modules;
+using TinyTBS.Rules;
+using TinyTBS.Rules.Buildings.Models;
 
 namespace TinyTBS.Game.Editor.Writers;
 
@@ -35,7 +35,9 @@ public sealed class BuildingDocumentWriter
             heal = new BuildingHealDto
             {
                 Amount = Math.Max(0, document.Heal.Amount),
-                Scope = string.IsNullOrWhiteSpace(document.Heal.Scope) ? "allied" : document.Heal.Scope.Trim(),
+                Scope = string.IsNullOrWhiteSpace(document.Heal.Scope)
+                    ? BuildingHealScopeIds.Allied
+                    : document.Heal.Scope.Trim(),
             };
         }
 
@@ -53,7 +55,9 @@ public sealed class BuildingDocumentWriter
                     : new BuildingHealDto
                     {
                         Amount = Math.Max(0, source.Heal.Amount),
-                        Scope = string.IsNullOrWhiteSpace(source.Heal.Scope) ? "none" : source.Heal.Scope.Trim(),
+                        Scope = string.IsNullOrWhiteSpace(source.Heal.Scope)
+                            ? BuildingHealScopeIds.None
+                            : source.Heal.Scope.Trim(),
                     },
             };
         }

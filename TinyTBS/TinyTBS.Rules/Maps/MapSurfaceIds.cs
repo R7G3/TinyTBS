@@ -2,22 +2,47 @@ using TinyTBS.Rules.Match;
 
 namespace TinyTBS.Rules.Maps;
 
-/// <summary>Parses map terrain type strings and building instance state flags.</summary>
+/// <summary>Map terrain type strings and building instance <c>state</c> flags.</summary>
 public static class MapSurfaceIds
 {
-    /// <summary>Building instance <c>state</c> value for a destroyed building.</summary>
+    public const string Grass = "grass";
+
+    public const string Water = "water";
+
+    public const string Road = "road";
+
+    public const string Mountain = "mountain";
+
+    public const string Bridge = "bridge";
+
+    public const string Forest = "forest";
+
+    /// <summary>Building instance <c>state</c> while the building is standing.</summary>
+    public const string IntactBuildingState = "intact";
+
+    /// <summary>Building instance <c>state</c> for a destroyed building.</summary>
     public const string RuinedBuildingState = "ruined";
+
+    public static string ToId(TerrainKind kind) => kind switch
+    {
+        TerrainKind.Water => Water,
+        TerrainKind.Road => Road,
+        TerrainKind.Mountain => Mountain,
+        TerrainKind.Bridge => Bridge,
+        TerrainKind.Forest => Forest,
+        _ => Grass,
+    };
 
     public static TerrainKind ParseTerrain(string typeId)
     {
         return typeId.Trim().ToLowerInvariant() switch
         {
-            "grass" => TerrainKind.Grass,
-            "water" => TerrainKind.Water,
-            "road" => TerrainKind.Road,
-            "mountain" => TerrainKind.Mountain,
-            "bridge" => TerrainKind.Bridge,
-            "forest" => TerrainKind.Forest,
+            Grass => TerrainKind.Grass,
+            Water => TerrainKind.Water,
+            Road => TerrainKind.Road,
+            Mountain => TerrainKind.Mountain,
+            Bridge => TerrainKind.Bridge,
+            Forest => TerrainKind.Forest,
             _ => throw new MapLoadException($"Unknown terrain type '{typeId}'."),
         };
     }

@@ -28,8 +28,9 @@ public static class ScenarioJsonParser
         if (string.IsNullOrWhiteSpace(document.Id))
             throw new MatchContentCompositionException("module.json requires non-empty 'id'.");
 
-        if (!string.Equals(document.Type, "scenario", StringComparison.OrdinalIgnoreCase))
-            throw new MatchContentCompositionException($"Expected module type 'scenario', got '{document.Type}'.");
+        if (!string.Equals(document.Type, ContentModuleTypeIds.Scenario, StringComparison.OrdinalIgnoreCase))
+            throw new MatchContentCompositionException(
+                $"Expected module type '{ContentModuleTypeIds.Scenario}', got '{document.Type}'.");
 
         var contentNamespace = string.IsNullOrWhiteSpace(document.Namespace)
             ? document.Id.Trim()

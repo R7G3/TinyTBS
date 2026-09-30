@@ -154,7 +154,9 @@ public sealed class BundleDocumentWriter
         if (string.IsNullOrWhiteSpace(document.ThemeModuleId))
         {
             throw new EditorException(
-                "defaults.theme is required — enable a theme in Modules (e.g. vanilla_theme) and set Theme in Defaults.");
+                "defaults.theme is required — enable a theme in Modules (e.g. "
+                + VanillaContentIds.ThemeModuleId
+                + ") and set Theme in Defaults.");
         }
 
         EnsureListed(moduleSet, document.ThemeModuleId, "defaults.theme");

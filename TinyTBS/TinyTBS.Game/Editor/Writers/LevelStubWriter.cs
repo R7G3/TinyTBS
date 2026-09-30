@@ -25,7 +25,7 @@ public sealed class LevelStubWriter
         document.PlayersMin = playersMin;
         document.PlayersMax = Math.Max(playersMin, playersMax);
         document.DefaultSlots = document.PlayersMax;
-        document.Modes = ["skirmish"];
+        document.Modes = [LevelModeIds.Skirmish];
         return _levelWriter.Write(scenarioModuleRoot, document);
     }
 }

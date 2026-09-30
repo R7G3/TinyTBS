@@ -37,7 +37,7 @@ public sealed class LevelDocumentWriter
             Id = document.Id.Trim(),
             Title = string.IsNullOrWhiteSpace(document.Title) ? document.Id : document.Title.Trim(),
             Description = string.IsNullOrWhiteSpace(document.Description) ? null : document.Description.Trim(),
-            Modes = document.Modes.Count > 0 ? document.Modes.ToList() : ["skirmish"],
+            Modes = document.Modes.Count > 0 ? document.Modes.ToList() : [LevelModeIds.Skirmish],
             Map = new LevelMapRefDto { Ref = document.MapRef.Replace('\\', '/') },
             Players = new LevelPlayersDto
             {
@@ -48,15 +48,19 @@ public sealed class LevelDocumentWriter
             DefaultStartingGold = Math.Max(0, document.DefaultStartingGold),
             DefaultUnitCap = Math.Max(1, document.DefaultUnitCap),
             TeamDefeatMode = string.IsNullOrWhiteSpace(document.TeamDefeatMode)
-                ? "allMembers"
+                ? TeamDefeatModeIds.AllMembers
                 : document.TeamDefeatMode.Trim(),
             Victory = new LevelConditionDto
             {
-                Type = string.IsNullOrWhiteSpace(document.VictoryType) ? "standard" : document.VictoryType.Trim(),
+                Type = string.IsNullOrWhiteSpace(document.VictoryType)
+                    ? MatchConditionTypes.Standard
+                    : document.VictoryType.Trim(),
             },
             Defeat = new LevelConditionDto
             {
-                Type = string.IsNullOrWhiteSpace(document.DefeatType) ? "standard" : document.DefeatType.Trim(),
+                Type = string.IsNullOrWhiteSpace(document.DefeatType)
+                    ? MatchConditionTypes.Standard
+                    : document.DefeatType.Trim(),
             },
         };
 

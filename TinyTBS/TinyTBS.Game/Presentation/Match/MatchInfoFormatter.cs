@@ -1,7 +1,6 @@
 using System.Text;
-using TinyTBS.Rules.Buildings.Models;
-using TinyTBS.Rules.Match;
 using TinyTBS.Game.Presentation.Shared;
+using TinyTBS.Rules.Buildings.Models;
 
 namespace TinyTBS.Game.Presentation.Match;
 
@@ -130,7 +129,7 @@ public static class MatchInfoFormatter
             if (ruined.Heal is { } ruinedHeal)
             {
                 builder.AppendLine(
-                    ruinedHeal.Amount <= 0 || string.Equals(ruinedHeal.Scope, "none", StringComparison.OrdinalIgnoreCase)
+                    ruinedHeal.Amount <= 0 || BuildingHealScopeIds.IsNone(ruinedHeal.Scope)
                         ? "Heal: none"
                         : $"Heal: +{ruinedHeal.Amount} HP / turn ({ruinedHeal.Scope})");
             }
@@ -147,7 +146,7 @@ public static class MatchInfoFormatter
         if (definition.Heal is { } heal)
         {
             builder.AppendLine(
-                heal.Amount <= 0 || string.Equals(heal.Scope, "none", StringComparison.OrdinalIgnoreCase)
+                heal.Amount <= 0 || BuildingHealScopeIds.IsNone(heal.Scope)
                     ? "Heal: none"
                     : $"Heal: +{heal.Amount} HP / turn ({heal.Scope})");
         }

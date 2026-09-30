@@ -52,8 +52,8 @@ public sealed class EditorLevelEditView
         _modesLabel = new Label { Text = ModesCaption() };
         GumUiLayout.FillParentWidth(_modesLabel);
         built.MenuHost.AddChild(_modesLabel);
-        _form.AddMenuButton(built.MenuHost, "Toggle Skirmish", () => ToggleMode("skirmish"));
-        _form.AddMenuButton(built.MenuHost, "Toggle Campaign", () => ToggleMode("campaign"));
+        _form.AddMenuButton(built.MenuHost, "Toggle Skirmish", () => ToggleMode(LevelModeIds.Skirmish));
+        _form.AddMenuButton(built.MenuHost, "Toggle Campaign", () => ToggleMode(LevelModeIds.Campaign));
 
         _statusLabel = new Label { Text = string.Empty };
         GumUiLayout.FillParentWidth(_statusLabel);
