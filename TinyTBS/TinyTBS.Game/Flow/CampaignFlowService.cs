@@ -42,7 +42,64 @@ public sealed class CampaignFlowService
         run.PlayerSeats ??= runtime.PlayerSeats;
         run.UnitCap ??= runtime.State.UnitCap;
         runtime.CampaignRun = run;
-        NotifyMatchOpened(run);
+        try
+        {
+            NotifyMatchOpened(run);
+        }
+        finally
+        {
+            // Subscribe even when chapter-start hooks fail, and pick up a match that already ended
+            // during load (the event replays for a late subscriber).
+            runtime.MatchEnded -= RecordFinishedChapter;
+            runtime.MatchEnded += RecordFinishedChapter;
+        }
+    }
+
+    /// <summary>Persists the chapter once <see cref="MatchRuntime.MatchEnded"/> fires. The HUD only reads the result.</summary>
+    private void RecordFinishedChapter(MatchRuntime runtime)
+    {
+        if (runtime.CampaignChapterResult is not null || runtime.CampaignRun is not { } run)
+            return;
+
+        var campaign = _progress.TryLoadDefinition(run.ScenarioModuleId);
+        if (campaign is null)
+        {
+            runtime.SetCampaignChapterResult(new MatchCampaignResult(ShowNextChapter: false, ShowRetry: true, Note: null));
+            return;
+        }
+
+        var localWon = IsLocalPlayerWinner(runtime);
+        try
+        {
+            var chapterEnd = localWon
+                ? _progress.ApplyChapterWon(run, campaign)
+                : _progress.ApplyChapterLost(run, campaign);
+            var note = !localWon
+                ? null
+                : chapterEnd.HasNextChapter
+                    ? $"Next: {chapterEnd.NextLevelId}"
+                    : "Campaign complete";
+            runtime.SetCampaignChapterResult(new MatchCampaignResult(chapterEnd.HasNextChapter, ShowRetry: !localWon, note));
+        }
+        catch (Exception exception)
+        {
+            GameLog.Error("Recording the campaign chapter result failed.", exception);
+            runtime.SetCampaignChapterResult(new MatchCampaignResult(
+                ShowNextChapter: false,
+                ShowRetry: true,
+                Note: $"Progress error: {exception.Message}"));
+        }
+    }
+
+    private static bool IsLocalPlayerWinner(MatchRuntime runtime)
+    {
+        if (runtime.State.WinnerPlayerIndex is not int winner)
+            return false;
+
+        if (winner < 0 || winner >= runtime.PlayerSeats.Count)
+            return winner == 0;
+
+        return runtime.PlayerSeats[winner].Kind == MatchPlayerKind.Local;
     }
 
     /// <summary>Best-effort chapter-start hook once the match session exists. A missing definition still persists the run.</summary>

@@ -3,7 +3,6 @@ using Gum.Forms.Controls;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TinyTBS.Engine.Diagnostics;
-using TinyTBS.Game.Campaigns;
 using TinyTBS.Game.Presentation.Match.Board;
 using TinyTBS.Game.Presentation.Shared;
 using TinyTBS.Game.Input;
@@ -35,7 +34,6 @@ public sealed class GameplayMatchController
     private readonly MatchEnemyThreatHold _enemyThreatHold = new();
     private float _lastBotFollowCursorX = float.NaN;
     private float _lastBotFollowCursorY = float.NaN;
-    private readonly MatchCampaignResultResolver _campaignResult;
 
     public GameplayMatchController(
         GameMain game,
@@ -47,8 +45,6 @@ public sealed class GameplayMatchController
         _graphicsDevice = graphicsDevice;
         _hudComposer = hudComposer;
         _hudSync = new GameplayHudSync(hud, hudComposer);
-        _campaignResult = new MatchCampaignResultResolver(
-            new CampaignProgressService(game.UserDataPaths, game.Files));
     }
 
     public void LoadContent(
@@ -374,8 +370,7 @@ public sealed class GameplayMatchController
         if (_session is null)
             return;
 
-        _campaignResult.Update(_session.Runtime);
-        _hudSync.SyncFromSession(_session, _cellActionChooserCell, _campaignResult.Result);
+        _hudSync.SyncFromSession(_session, _cellActionChooserCell, _session.Runtime.CampaignChapterResult);
         if (_session.Runtime.ScriptHost.FailureMessage is { } scriptFailure)
         {
             _hudSync.Hud.HintText = "Map script disabled: " + scriptFailure;

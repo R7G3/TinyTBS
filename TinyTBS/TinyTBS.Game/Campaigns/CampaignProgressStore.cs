@@ -1,4 +1,5 @@
 using System.Text.Json;
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Campaigns.Models;
 using TinyTBS.Game.Modules;
@@ -101,9 +102,9 @@ public sealed class CampaignProgressStore
                     Title = document.CampaignTitle ?? document.CampaignId,
                 });
             }
-            catch (Exception)
+            catch (Exception exception)
             {
-                // Skip corrupt.
+                GameLog.Warning($"Campaign progress '{path}' is unreadable and was left out of the list.", exception);
             }
         }
 

@@ -1,3 +1,4 @@
+using TinyTBS.Engine.Diagnostics;
 using TinyTBS.Engine.IO;
 using TinyTBS.Game.Campaigns.Models;
 using TinyTBS.Rules.Saves.Models;
@@ -43,8 +44,9 @@ public sealed class SaveCatalogEntry
                 ? $"Match · {match.DisplayMeta}"
                 : $"Match · Campaign {document.CampaignId} · {document.CampaignLevelId ?? document.LevelId} · {match.WrittenAtUtc.ToUniversalTime():yyyy-MM-dd HH:mm} UTC";
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            GameLog.Warning($"Save '{match.FilePath}' could not be read; the catalog row keeps the summary only.", exception);
             meta = $"Match · {match.DisplayMeta}";
         }
 

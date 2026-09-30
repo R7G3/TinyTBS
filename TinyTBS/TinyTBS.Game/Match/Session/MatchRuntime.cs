@@ -44,7 +44,39 @@ public sealed class MatchRuntime : IDisposable
     /// <summary>When non-null, this match is a campaign chapter.</summary>
     public CampaignRunState? CampaignRun { get; set; }
 
+    /// <summary>
+    /// Overlay hints for a campaign chapter, set once when <see cref="MatchEnded"/> is handled.
+    /// Null for a skirmish and until a campaign chapter actually ends.
+    /// </summary>
+    public MatchCampaignResult? CampaignChapterResult { get; private set; }
+
     public MatchContentCatalog ContentCatalog => State.ContentCatalog;
+
+    private Action<MatchRuntime>? _matchEnded;
+    private bool _matchEndedRaised;
+
+    /// <summary>
+    /// Fires once, after <see cref="StartFreshMatch"/> or a command leaves the match over.
+    /// A subscriber that arrives later is called immediately.
+    /// A resumed save that was already finished does not fire, so loading it does not apply the chapter again.
+    /// </summary>
+    public event Action<MatchRuntime>? MatchEnded
+    {
+        add
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _matchEnded += value;
+            if (_matchEndedRaised)
+                value(this);
+        }
+        remove => _matchEnded -= value;
+    }
+
+    internal void SetCampaignChapterResult(MatchCampaignResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        CampaignChapterResult ??= result;
+    }
 
     public bool IsCurrentPlayerBot()
     {
@@ -59,6 +91,7 @@ public sealed class MatchRuntime : IDisposable
     {
         ScriptHost.NotifyMatchStarted(State);
         State.EvaluateStandardOutcome();
+        RaiseMatchEnded();
     }
 
     /// <summary>A Confirm (click / A) on <paramref name="cell"/>, resolved by the rules.</summary>
@@ -90,6 +123,7 @@ public sealed class MatchRuntime : IDisposable
         if (!State.IsMatchOver)
             ScriptHost.NotifyPlayerTurnStart(State);
         State.EvaluateStandardOutcome();
+        RaiseMatchEnded();
         return result with { SelectedUnitId = State.NormalizeSelection(result.SelectedUnitId) };
     }
 
@@ -123,5 +157,15 @@ public sealed class MatchRuntime : IDisposable
         if (applied && State.LastAction is { } action)
             ScriptHost.NotifyAfterPlayerAction(State, action);
         State.EvaluateStandardOutcome();
+        RaiseMatchEnded();
+    }
+
+    private void RaiseMatchEnded()
+    {
+        if (_matchEndedRaised || !State.IsMatchOver)
+            return;
+
+        _matchEndedRaised = true;
+        _matchEnded?.Invoke(this);
     }
 }
