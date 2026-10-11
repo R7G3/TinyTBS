@@ -2,7 +2,7 @@
 <XnaContent xmlns:Graphics="Microsoft.Xna.Framework.Content.Pipeline.Graphics">
   <Asset Type="Graphics:FontDescription">
     <!-- File must sit next to this .spritefont (Linux pipeline does not use Windows Segoe UI). -->
-    <FontName>LiberationSans-Bold</FontName>
+    <FontName>LiberationSans-Bold.ttf</FontName>
     <Size>14</Size>
     <Spacing>0</Spacing>
     <UseKerning>true</UseKerning>
