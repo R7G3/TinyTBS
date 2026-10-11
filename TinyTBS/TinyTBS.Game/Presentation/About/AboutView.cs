@@ -24,7 +24,7 @@ public sealed class AboutView
     public const string SiteUrl = "https://github.com/R7G3/TinyTBS";
     public const string WelcomeDocsUrl = "https://github.com/R7G3/TinyTBS/blob/main/TinyTBS/docs/WELCOME.md";
     public const string MonoGameUrl = "https://monogame.net/";
-    public const string LiverationFontsUrl = "https://github.com/liberationfonts/liberation-fonts";
+    public const string LiberationFontsUrl = "https://github.com/liberationfonts/liberation-fonts";
 
     private Panel? _rootPanel;
     private ScrollViewer? _scroll;
@@ -111,7 +111,7 @@ public sealed class AboutView
         AddBodyLine(_scrollHost, "Based on:");
         AddLinkButton(_scrollHost, "MonoGame", () => onOpenUrl(MonoGameUrl));
         AddBodyLine(_scrollHost, "Used fonts:");
-        AddLinkButton(_scrollHost, "Liberation fonts", () => onOpenUrl(LiverationFontsUrl));
+        AddLinkButton(_scrollHost, "Liberation fonts", () => onOpenUrl(LiberationFontsUrl));
         AddBodyLine(_scrollHost, "Used libs:");
 
         foreach (var libraryLine in AboutSolutionLibraries.Lines)
